@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MessageFlow Pro - Licensed Version</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Indicatore Licenza */
+        .license-badge {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            z-index: 10001;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header .tagline {
+            font-size: 1.2rem;
+            opacity: 0.95;
+        }
+
+        .content {
+            padding: 35px;
+        }
+
+        .section {
+            margin-bottom: 35px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .section-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+
+        .section h2 {
+            color: #2d3748;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 25px 20px;
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            background: linear-gradient(135deg, #e6f2ff 0%, #dce8ff 100%);
+            border-color: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 18px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 150px;
+            transition: all 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+
+        input[type="number"], select {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .contacts-preview {
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 2px solid #e2e8f0;
+        }
+
+        .contact-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: white;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .contact-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .contact-info {
+            flex-grow: 1;
+            margin-left: 15px;
+        }
+
+        .contact-name {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 1.05rem;
+        }
+
+        .contact-phone {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status.sent {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .progress-section {
+            background: #f7fafc;
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 25px;
+            display: none;
+            border: 2px solid #e2e8f0;
+        }
+
+        .progress-bar {
+            background: #e2e8f0;
+            border-radius: 10px;
+            height: 12px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .footer {
+            background: #f7fafc;
+            padding: 20px;
+            text-align: center;
+            color: #718096;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .templates-section {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .template-btn {
+            padding: 10px 15px;
+            margin: 5px;
+            border: 2px solid #cbd5e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .template-btn:hover {
+            border-color: #667eea;
+            background: #e6f2ff;
+            transform: translateY(-2px);
+        }
+
+        .selection-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .selection-actions button {
+            padding: 6px 12px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .selection-actions button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+    </style>
+</head>
+<body>
+    <!-- Badge Licenza -->
+    <div class="license-badge">
+        ✅ Licensed: {{LICENSE_KEY}}
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>⚡ MessageFlow Pro</h1>
+            <p class="tagline">Versione Professionale - Contatti Illimitati</p>
+        </div>
+
+        <div class="content">
+            <!-- Sezione Carica Contatti -->
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-icon">📋</div>
+                    <h2>Importa Contatti</h2>
+                </div>
+                <div class="file-input-container">
+                    <input type="file" id="fileInput" class="file-input" accept=".csv,.txt">
+                    <label for="fileInput" class="file-input-label">
+                        <span style="font-size: 2.5rem; display: block; margin-bottom: 10px;">📁</span>
+                        <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 5px;">Clicca per caricare il file CSV</div>
+                        <div style="font-size: 0.9rem; color: #718096;">Formato: Nome, Cognome, Numero (con prefisso +39)</div>
+                    </label>
+                </div>
+
+                <div id="selectionInfo" class="selection-info">
+                    <div>
+                        <span id="selectedCount">0</span> contatti selezionati su <span id="totalContacts">0</span>
+                    </div>
+                    <div class="selection-actions">
+                        <button onclick="selectAll()">Tutti</button>
+                        <button onclick="deselectAll()">Nessuno</button>
+                    </div>
+                </div>
+
+                <div id="contactsPreview" class="contacts-preview" style="display: none;"></div>
+            </div>
+
+            <!-- Sezione Template Messaggio -->
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-icon">✉️</div>
+                    <h2>Personalizza Messaggio</h2>
+                </div>
+
+                <div class="templates-section">
+                    <strong>📝 Template rapidi:</strong><br>
+                    <button class="template-btn" onclick="setTemplate('professional')">🎯 Professionale</button>
+                    <button class="template-btn" onclick="setTemplate('promo')">🎁 Promozionale</button>
+                    <button class="template-btn" onclick="setTemplate('followup')">📞 Follow-up</button>
+                    <button class="template-btn" onclick="setTemplate('newsletter')">📰 Newsletter</button>
+                </div>
+
+                <textarea id="messageText" placeholder="Scrivi qui il tuo messaggio personalizzato...
+
+Puoi usare:
+• {nome} - per il nome del contatto
+• {cognome} - per il cognome
+• {numero} - per il numero di telefono">Ciao {nome}! 👋
+
+Ti scrivo per condividere una novità interessante.
+
+Hai qualche minuto per parlarne?
+
+Grazie e a presto!</textarea>
+            </div>
+
+            <!-- Sezione Impostazioni -->
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-icon">⚙️</div>
+                    <h2>Impostazioni Invio</h2>
+                </div>
+                
+                <div class="controls">
+                    <div class="control-group">
+                        <label>⏱️ Pausa tra messaggi (secondi)</label>
+                        <input type="number" id="delaySeconds" value="2" min="1" max="30">
+                    </div>
+                    <div class="control-group">
+                        <label>🔔 Notifica sonora</label>
+                        <select id="soundEnabled">
+                            <option value="true">Attiva</option>
+                            <option value="false">Disattiva</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="startButton" class="btn btn-primary" onclick="startSending()" disabled>
+                        <span>🚀</span>
+                        <span>Avvia Invio</span>
+                    </button>
+                    <button id="stopButton" class="btn" onclick="stopSending()" style="display: none; background: #fc5c7d; color: white;">
+                        <span>⏸️</span>
+                        <span>Ferma Invio</span>
+                    </button>
+                    <button class="btn" onclick="saveProgress()" style="background: #f7fafc; color: #4a5568;">
+                        <span>💾</span>
+                        <span>Salva Progresso</span>
+                    </button>
+                    <button class="btn" onclick="loadProgress()" style="background: #f7fafc; color: #4a5568;">
+                        <span>📂</span>
+                        <span>Carica Progresso</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sezione Progresso -->
+            <div id="progressSection" class="progress-section">
+                <h3 style="color: #2d3748; margin-bottom: 15px; font-size: 1.2rem;">📊 Stato Invio</h3>
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalCount">0</div>
+                        <div class="stat-label">Totali</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="sentCount" style="color: #10b981;">0</div>
+                        <div class="stat-label">Inviati</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="errorCount" style="color: #ef4444;">0</div>
+                        <div class="stat-label">Errori</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            Powered by <strong>MessageFlow Pro</strong> | Licensed to: {{LICENSE_EMAIL}} | v{{PLAN}}
+        </div>
+    </div>
+
+    <script>
+        // Sistema di verifica licenza
+        const LICENSE_KEY = '{{LICENSE_KEY}}';
+        const LICENSE_EMAIL = '{{LICENSE_EMAIL}}';
+        const PLAN = '{{PLAN}}';
+        const MAX_CONTACTS = {{MAX_CONTACTS}}; // Infinity per PRO
+
+        let contacts = [];
+        let currentIndex = 0;
+        let isRunning = false;
+        let intervalId = null;
+
+        const fileInput = document.getElementById('fileInput');
+        const messageText = document.getElementById('messageText');
+        const delaySeconds = document.getElementById('delaySeconds');
+        const soundEnabled = document.getElementById('soundEnabled');
+        const contactsPreview = document.getElementById('contactsPreview');
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const progressSection = document.getElementById('progressSection');
+        const progressFill = document.getElementById('progressFill');
+        const totalCount = document.getElementById('totalCount');
+        const sentCount = document.getElementById('sentCount');
+        const errorCount = document.getElementById('errorCount');
+        const selectionInfo = document.getElementById('selectionInfo');
+        const selectedCount = document.getElementById('selectedCount');
+        const totalContacts = document.getElementById('totalContacts');
+
+        const messageTemplates = {
+            professional: `Buongiorno {nome},
+
+mi chiamo [TUO NOME] di [TUA AZIENDA] e vorrei presentarle le nostre soluzioni.
+
+Posso inviarle maggiori informazioni?
+
+Cordiali saluti`,
+
+            promo: `Ciao {nome}! 🎁
+
+Abbiamo una promozione speciale riservata per te!
+
+Scopri tutti i dettagli qui: [inserisci link]
+
+Valida fino a fine mese. Non perdere questa occasione!
+
+A presto! 😊`,
+
+            followup: `Ciao {nome},
+
+ti scrivo per fare un follow-up sulla nostra ultima conversazione.
+
+Hai avuto modo di valutare la proposta che ti ho inviato?
+
+Resto a disposizione per qualsiasi chiarimento.
+
+Grazie!`,
+
+            newsletter: `Ciao {nome}! 📰
+
+Ecco le novità di questo mese:
+
+• [Novità 1]
+• [Novità 2]
+• [Novità 3]
+
+Per maggiori info: [link]
+
+Buona lettura!`
+        };
+
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                parseCSV(content);
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSV(content) {
+            const lines = content.split('\n').filter(line => line.trim());
+            contacts = [];
+
+            lines.forEach((line, index) => {
+                if (index === 0) return; // Skip header
+
+                const parts = line.split(',').map(part => part.trim().replace(/['"]/g, ''));
+                
+                if (parts.length >= 3) {
+                    contacts.push({
+                        nome: parts[0] || 'Sconosciuto',
+                        cognome: parts[1] || '',
+                        numero: parts[2] || '',
+                        status: 'pending',
+                        selected: true
+                    });
+                }
+            });
+
+            if (contacts.length > 0) {
+                displayContacts();
+                updateSelectionInfo();
+                updateStartButton();
+                alert('✅ File caricato con successo!\n\n' + contacts.length + ' contatti importati.\n\n💎 Versione PRO: Nessun limite!');
+            } else {
+                alert('❌ Errore: Nessun contatto valido trovato nel file.');
+            }
+        }
+
+        function displayContacts() {
+            if (contacts.length === 0) {
+                contactsPreview.style.display = 'none';
+                return;
+            }
+
+            contactsPreview.style.display = 'block';
+            contactsPreview.innerHTML = '';
+
+            contacts.forEach((contact, index) => {
+                const div = document.createElement('div');
+                div.className = 'contact-item' + (!contact.selected ? ' excluded' : '');
+                
+                let statusHtml = '';
+                if (contact.status === 'sent') {
+                    statusHtml = '<span class="status sent">✓ Inviato</span>';
+                } else {
+                    statusHtml = '<span class="status pending">⏳ In attesa</span>';
+                }
+
+                div.innerHTML = `
+                    <input type="checkbox" class="contact-checkbox" ${contact.selected ? 'checked' : ''} 
+                           onchange="toggleContact(${index})" ${contact.status === 'sent' ? 'disabled' : ''}>
+                    <div class="contact-info">
+                        <div class="contact-name">${contact.nome} ${contact.cognome}</div>
+                        <div class="contact-phone">${contact.numero}</div>
+                    </div>
+                    ${statusHtml}
+                `;
+                
+                contactsPreview.appendChild(div);
+            });
+        }
+
+        function toggleContact(index) {
+            if (contacts[index].status !== 'sent') {
+                contacts[index].selected = !contacts[index].selected;
+                displayContacts();
+                updateSelectionInfo();
+                updateStartButton();
+            }
+        }
+
+        function selectAll() {
+            contacts.forEach(contact => {
+                if (contact.status !== 'sent') contact.selected = true;
+            });
+            displayContacts();
+            updateSelectionInfo();
+            updateStartButton();
+        }
+
+        function deselectAll() {
+            contacts.forEach(contact => {
+                if (contact.status !== 'sent') contact.selected = false;
+            });
+            displayContacts();
+            updateSelectionInfo();
+            updateStartButton();
+        }
+
+        function updateSelectionInfo() {
+            const selected = contacts.filter(c => c.selected).length;
+            const total = contacts.length;
+            
+            if (total > 0) {
+                selectionInfo.style.display = 'flex';
+                selectedCount.textContent = selected;
+                totalContacts.textContent = total;
+            } else {
+                selectionInfo.style.display = 'none';
+            }
+        }
+
+        function updateStartButton() {
+            const hasContacts = contacts.filter(c => c.selected).length > 0;
+            const hasMessage = messageText.value.trim().length > 0;
+            startButton.disabled = !hasContacts || !hasMessage;
+        }
+
+        function setTemplate(type) {
+            if (messageTemplates[type]) {
+                messageText.value = messageTemplates[type];
+                updateStartButton();
+            }
+        }
+
+        function saveProgress() {
+            const data = {
+                contacts: contacts,
+                message: messageText.value,
+                delay: delaySeconds.value,
+                timestamp: new Date().toISOString(),
+                currentIndex: currentIndex,
+                license: LICENSE_KEY
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'messageflow-progresso-' + new Date().toISOString().slice(0,10) + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            alert('💾 Progresso salvato con successo!');
+        }
+
+        function loadProgress() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(event) {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        
+                        if (data.contacts && Array.isArray(data.contacts)) {
+                            contacts = data.contacts;
+                            messageText.value = data.message || '';
+                            delaySeconds.value = data.delay || 2;
+                            currentIndex = data.currentIndex || 0;
+                            
+                            displayContacts();
+                            updateSelectionInfo();
+                            updateStartButton();
+                            
+                            alert('✅ Progresso caricato con successo!');
+                        }
+                    } catch (error) {
+                        alert('❌ Errore nel caricamento del file:\n\n' + error.message);
+                    }
+                };
+                
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        }
+
+        function startSending() {
+            const selectedContacts = contacts.filter(c => c.selected);
+            
+            if (selectedContacts.length === 0) {
+                alert('⚠️ Nessun contatto selezionato!');
+                return;
+            }
+            
+            if (!messageText.value.trim()) {
+                alert('⚠️ Messaggio vuoto!');
+                return;
+            }
+
+            const messagePreview = messageText.value.substring(0, 100) + (messageText.value.length > 100 ? '...' : '');
+            
+            if (!confirm('🚀 Iniziare l\'invio a ' + selectedContacts.length + ' contatti?\n\nMessaggio:\n"' + messagePreview + '"')) {
+                return;
+            }
+
+            isRunning = true;
+            currentIndex = 0;
+            startButton.style.display = 'none';
+            stopButton.style.display = 'inline-flex';
+            progressSection.style.display = 'block';
+            
+            updateStats();
+            sendNextMessage();
+        }
+
+        function stopSending() {
+            isRunning = false;
+            if (intervalId) clearTimeout(intervalId);
+            startButton.style.display = 'inline-flex';
+            stopButton.style.display = 'none';
+        }
+
+        async function sendNextMessage() {
+            const selectedContacts = contacts.filter(c => c.selected);
+            
+            if (!isRunning || currentIndex >= selectedContacts.length) {
+                stopSending();
+                if (soundEnabled.value === 'true') playCompletionSound();
+                alert('🎉 Invio completato!\n\n✅ Messaggi inviati a ' + currentIndex + ' contatti!');
+                return;
+            }
+
+            const contact = selectedContacts[currentIndex];
+            let personalizedMessage = messageText.value
+                .replace(/{nome}/g, contact.nome)
+                .replace(/{cognome}/g, contact.cognome)
+                .replace(/{numero}/g, contact.numero);
+            
+            const cleanNumber = contact.numero.replace(/[\s\-\(\)]/g, '');
+            
+            try {
+                const whatsappUrl = `https://web.whatsapp.com/send?phone=${cleanNumber}&text=${encodeURIComponent(personalizedMessage)}`;
+                const popup = window.open(whatsappUrl, '_blank', 'width=450,height=650');
+                
+                if (!popup) throw new Error('Popup bloccato');
+
+                await new Promise((resolve) => {
+                    const dialog = document.createElement('div');
+                    dialog.style.cssText = 'position: fixed; top: 80px; right: 20px; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 10000; border: 3px solid #667eea; max-width: 380px;';
+                    
+                    dialog.innerHTML = `
+                        <div style="margin-bottom: 15px;">
+                            <strong style="font-size: 1.1rem;">${contact.nome} ${contact.cognome}</strong><br>
+                            <small style="color: #718096;">${contact.numero}</small>
+                        </div>
+                        <p style="margin: 15px 0; color: #4a5568;">📱 Premi INVIO su WhatsApp, poi:</p>
+                        <button id="confirmSent" style="width: 100%; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 600;">✅ Confermo Invio</button>
+                    `;
+
+                    document.body.appendChild(dialog);
+
+                    document.getElementById('confirmSent').onclick = function() {
+                        document.body.removeChild(dialog);
+                        popup.close();
+                        resolve('sent');
+                    };
+
+                    setTimeout(() => {
+                        if (document.body.contains(dialog)) {
+                            document.body.removeChild(dialog);
+                            popup.close();
+                            resolve('sent');
+                        }
+                    }, 30000);
+                });
+
+                contact.status = 'sent';
+                if (soundEnabled.value === 'true') playNotificationSound();
+                
+            } catch (error) {
+                console.error('Errore:', error);
+                contact.status = 'error';
+            }
+
+            displayContacts();
+            updateStats();
+            
+            currentIndex++;
+            
+            if (isRunning && currentIndex < selectedContacts.length) {
+                intervalId = setTimeout(sendNextMessage, parseFloat(delaySeconds.value) * 1000);
+            } else if (currentIndex >= selectedContacts.length) {
+                stopSending();
+                if (soundEnabled.value === 'true') playCompletionSound();
+                alert('🎉 Invio completato!\n\n✅ Messaggi inviati a ' + currentIndex + ' contatti!');
+            }
+        }
+
+        function updateStats() {
+            const selected = contacts.filter(c => c.selected);
+            const total = selected.length;
+            const sent = selected.filter(c => c.status === 'sent').length;
+            const errors = selected.filter(c => c.status === 'error').length;
+            
+            totalCount.textContent = total;
+            sentCount.textContent = sent;
+            errorCount.textContent = errors;
+            
+            const progress = total > 0 ? (sent / total) * 100 : 0;
+            progressFill.style.width = progress + '%';
+        }
+
+        function playNotificationSound() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
+        }
+
+        function playCompletionSound() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            [523, 659, 784].forEach((freq, i) => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = freq;
+                oscillator.type = 'sine';
+                
+                const startTime = audioContext.currentTime + (i * 0.15);
+                gainNode.gain.setValueAtTime(0.3, startTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.2);
+                
+                oscillator.start(startTime);
+                oscillator.stop(startTime + 0.2);
+            });
+        }
+
+        messageText.addEventListener('input', updateStartButton);
+
+        // Verifica licenza all'avvio
+        window.addEventListener('load', function() {
+            if (!LICENSE_KEY || LICENSE_KEY.includes('{{')) {
+                alert('⚠️ ERRORE: Licenza non valida!\n\nQuesto file non è stato generato correttamente.\nContatta support@messageflow.pro');
+                document.body.innerHTML = '<div style="text-align: center; padding: 50px; font-family: Arial;"><h1>❌ Licenza Non Valida</h1><p>Contatta support@messageflow.pro</p></div>';
+            }
+        });
+    </script>
+</body>
+</html>
