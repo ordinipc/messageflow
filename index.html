@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO Meta Tags -->
+    <title>MessageFlow Pro - Sistema Professionale per Invio Messaggi WhatsApp | Automatizza il tuo Marketing</title>
+    <meta name="description" content="MessageFlow Pro: il software professionale per l'invio automatizzato di messaggi WhatsApp. Gestisci migliaia di contatti, personalizza i messaggi e traccia i risultati. Prova gratis!">
+    <meta name="keywords" content="whatsapp marketing, invio messaggi automatici, whatsapp business, marketing automation, bulk whatsapp sender, gestione contatti, crm whatsapp">
+    <meta name="author" content="Mercury Marketing">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="MessageFlow Pro - Automatizza il tuo WhatsApp Marketing">
+    <meta property="og:description" content="Il software professionale per gestire campagne WhatsApp in modo semplice ed efficace. Prova gratis la demo!">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://messageflow.pro">
+    <meta property="og:image" content="https://messageflow.pro/images/og-image.jpg">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="MessageFlow Pro - Automatizza il tuo WhatsApp Marketing">
+    <meta name="twitter:description" content="Software professionale per invio messaggi WhatsApp automatizzati">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+    
+    <!-- Structured Data Schema.org -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "MessageFlow Pro",
+        "applicationCategory": "BusinessApplication",
+        "offers": {
+            "@type": "Offer",
+            "price": "97.00",
+            "priceCurrency": "EUR"
+        },
+        "operatingSystem": "Web Browser",
+        "description": "Software professionale per l'invio automatizzato di messaggi WhatsApp",
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "ratingCount": "127"
+        }
+    }
+    </script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --dark: #1a202c;
+            --light: #f7fafc;
+            --success: #48bb78;
+            --danger: #f56565;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: var(--dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Header & Navigation */
+        .header {
+            background: white;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-menu a {
+            text-decoration: none;
+            color: var(--dark);
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+
+        .nav-menu a:hover {
+            color: var(--primary);
+        }
+
+        .cta-button {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 12px 30px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 150px 30px 100px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><path d="M0,300 Q300,100 600,300 T1200,300 L1200,600 L0,600 Z" fill="rgba(255,255,255,0.05)"/></svg>') no-repeat center bottom;
+            background-size: cover;
+        }
+
+        .hero-content {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            line-height: 1.2;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .hero .subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 40px;
+            opacity: 0.95;
+            animation: fadeInUp 1s ease;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            animation: fadeInUp 1.2s ease;
+            flex-wrap: wrap;
+        }
+
+        .btn-large {
+            padding: 18px 40px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: white;
+            border: 3px solid white;
+        }
+
+        .btn-outline:hover {
+            background: white;
+            color: var(--primary);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Features Section */
+        .features {
+            padding: 100px 30px;
+            background: white;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-title h2 {
+            font-size: 2.5rem;
+            color: var(--dark);
+            margin-bottom: 15px;
+        }
+
+        .section-title p {
+            font-size: 1.2rem;
+            color: #718096;
+        }
+
+        .features-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+
+        .feature-card {
+            background: var(--light);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-color: var(--primary);
+        }
+
+        .feature-icon {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--dark);
+        }
+
+        .feature-card p {
+            color: #4a5568;
+            line-height: 1.8;
+        }
+
+        /* Pricing Section */
+        .pricing {
+            padding: 100px 30px;
+            background: linear-gradient(135deg, #f7fafc 0%, #e6f2ff 100%);
+        }
+
+        .pricing-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .pricing-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .pricing-card {
+            background: white;
+            padding: 50px 40px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .pricing-card.featured {
+            transform: scale(1.05);
+            border: 3px solid var(--primary);
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 8px 25px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
+        .pricing-card h3 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: var(--dark);
+        }
+
+        .price {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .price span {
+            font-size: 1.2rem;
+            color: #718096;
+        }
+
+        .pricing-features {
+            list-style: none;
+            margin: 30px 0;
+            text-align: left;
+        }
+
+        .pricing-features li {
+            padding: 12px 0;
+            color: #4a5568;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pricing-features li::before {
+            content: '✓';
+            color: var(--success);
+            font-weight: 700;
+            font-size: 1.3rem;
+        }
+
+        .buy-button {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .buy-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Testimonials */
+        .testimonials {
+            padding: 100px 30px;
+            background: white;
+        }
+
+        .testimonials-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+
+        .testimonial-card {
+            background: var(--light);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+
+        .stars {
+            color: #fbbf24;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .testimonial-text {
+            color: #4a5568;
+            font-style: italic;
+            margin-bottom: 20px;
+            line-height: 1.8;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .author-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .author-info h4 {
+            color: var(--dark);
+            margin-bottom: 5px;
+        }
+
+        .author-info p {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            padding: 100px 30px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            text-align: center;
+        }
+
+        .cta-section h2 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .cta-section p {
+            font-size: 1.3rem;
+            margin-bottom: 40px;
+            opacity: 0.95;
+        }
+
+        /* Footer */
+        .footer {
+            background: #1a202c;
+            color: white;
+            padding: 60px 30px 30px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-section h3 {
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section ul li {
+            margin-bottom: 10px;
+        }
+
+        .footer-section a {
+            color: #cbd5e0;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer-section a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: #cbd5e0;
+        }
+
+        /* Mobile Menu */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero .subtitle {
+                font-size: 1.2rem;
+            }
+
+            .nav-menu {
+                display: none;
+            }
+
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            .features-grid,
+            .pricing-cards,
+            .testimonials-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .pricing-card.featured {
+                transform: scale(1);
+            }
+        }
+
+        /* Loading & Success Messages */
+        .message {
+            position: fixed;
+            top: 100px;
+            right: 30px;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+        }
+
+        .message.success {
+            background: var(--success);
+            color: white;
+        }
+
+        .message.error {
+            background: var(--danger);
+            color: white;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav-container">
+            <div class="logo">
+                <span>⚡</span>
+                MessageFlow
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#features">Funzionalità</a></li>
+                <li><a href="#pricing">Prezzi</a></li>
+                <li><a href="#testimonials">Testimonianze</a></li>
+                <li><a href="demo.html" class="cta-button">Prova Demo Gratis</a></li>
+            </ul>
+            <button class="mobile-menu-toggle">☰</button>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Rivoluziona il Tuo WhatsApp Marketing</h1>
+            <p class="subtitle">Invia migliaia di messaggi personalizzati su WhatsApp in modo professionale e automatizzato</p>
+            <div class="hero-buttons">
+                <a href="demo.html" class="btn-large btn-primary">
+                    <span>🚀</span>
+                    Prova Demo Gratis
+                </a>
+                <a href="#pricing" class="btn-large btn-outline">
+                    <span>💎</span>
+                    Acquista Ora - €97
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="section-title">
+            <h2>Funzionalità Potenti e Intuitive</h2>
+            <p>Tutto ciò di cui hai bisogno per gestire campagne WhatsApp professionali</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">📱</div>
+                <h3>Invio Automatizzato</h3>
+                <p>Invia messaggi a migliaia di contatti in modo automatico con pause personalizzabili tra ogni invio</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">✏️</div>
+                <h3>Personalizzazione Avanzata</h3>
+                <p>Usa placeholder dinamici per personalizzare ogni messaggio con nome, cognome e altri dati del contatto</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📋</div>
+                <h3>Gestione Contatti CSV</h3>
+                <p>Importa facilmente i tuoi contatti da file CSV e gestisci liste anche molto grandi</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Statistiche in Tempo Reale</h3>
+                <p>Monitora l'avanzamento della campagna con statistiche dettagliate su messaggi inviati ed errori</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💾</div>
+                <h3>Salvataggio Automatico</h3>
+                <p>Non perdere mai i progressi grazie al salvataggio automatico ogni 10 messaggi</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Template Pronti</h3>
+                <p>4 template professionali pre-configurati per diverse tipologie di comunicazione</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing">
+        <div class="pricing-container">
+            <div class="section-title">
+                <h2>Scegli il Tuo Piano</h2>
+                <p>Prezzi trasparenti, nessun costo nascosto</p>
+            </div>
+            <div class="pricing-cards">
+                <!-- Demo Plan -->
+                <div class="pricing-card">
+                    <h3>Demo Gratuita</h3>
+                    <div class="price">€0<span>/sempre</span></div>
+                    <ul class="pricing-features">
+                        <li>Massimo 5 contatti</li>
+                        <li>Tutte le funzionalità base</li>
+                        <li>Template di prova</li>
+                        <li>Watermark MessageFlow</li>
+                        <li>Supporto community</li>
+                    </ul>
+                    <a href="demo.html" class="buy-button" style="background: #cbd5e0; color: #1a202c;">Prova Gratis</a>
+                </div>
+
+                <!-- Pro Plan (Featured) -->
+                <div class="pricing-card featured">
+                    <div class="popular-badge">⭐ PIÙ POPOLARE</div>
+                    <h3>Pro - Licenza Singola</h3>
+                    <div class="price">€97<span>/una tantum</span></div>
+                    <ul class="pricing-features">
+                        <li>✅ Contatti illimitati</li>
+                        <li>✅ Tutte le funzionalità</li>
+                        <li>✅ Nessun watermark</li>
+                        <li>✅ 4 template professionali</li>
+                        <li>✅ Aggiornamenti lifetime</li>
+                        <li>✅ Supporto prioritario email</li>
+                        <li>✅ Statistiche avanzate</li>
+                        <li>✅ File scaricabile (.html)</li>
+                    </ul>
+                    <button class="buy-button" onclick="checkout('pro')">
+                        💳 Acquista Ora - €97
+                    </button>
+                </div>
+
+                <!-- Business Plan -->
+                <div class="pricing-card">
+                    <h3>Business - Multi Licenza</h3>
+                    <div class="price">€247<span>/una tantum</span></div>
+                    <ul class="pricing-features">
+                        <li>✅ Tutto del piano Pro</li>
+                        <li>✅ 5 licenze utilizzabili</li>
+                        <li>✅ White label (senza branding)</li>
+                        <li>✅ Customizzazione colori</li>
+                        <li>✅ Supporto telefonico</li>
+                        <li>✅ Setup assistito</li>
+                        <li>✅ Training 1-to-1 (30min)</li>
+                        <li>✅ Priorità nuove features</li>
+                    </ul>
+                    <button class="buy-button" onclick="checkout('business')">
+                        💼 Acquista Business
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimonials" class="testimonials">
+        <div class="section-title">
+            <h2>Cosa Dicono i Nostri Clienti</h2>
+            <p>Oltre 500 professionisti già utilizzano MessageFlow</p>
+        </div>
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <div class="stars">⭐⭐⭐⭐⭐</div>
+                <p class="testimonial-text">"MessageFlow ha rivoluzionato il mio modo di comunicare con i clienti. Ho automatizzato tutto il processo di follow-up e ho aumentato le conversioni del 40%!"</p>
+                <div class="testimonial-author">
+                    <div class="author-avatar">MR</div>
+                    <div class="author-info">
+                        <h4>Marco Rossi</h4>
+                        <p>Consulente Marketing</p>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <div class="stars">⭐⭐⭐⭐⭐</div>
+                <p class="testimonial-text">"Strumento indispensabile per chi fa business su WhatsApp. Interfaccia semplicissima, risultati incredibili. Lo consiglio a tutti!"</p>
+                <div class="testimonial-author">
+                    <div class="author-avatar">GB</div>
+                    <div class="author-info">
+                        <h4>Giulia Bianchi</h4>
+                        <p>E-commerce Manager</p>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <div class="stars">⭐⭐⭐⭐⭐</div>
+                <p class="testimonial-text">"Miglior investimento dell'anno. Ho recuperato il costo in meno di una settimana grazie alle campagne automatizzate. Fantastico!"</p>
+                <div class="testimonial-author">
+                    <div class="author-avatar">LV</div>
+                    <div class="author-info">
+                        <h4>Luca Verdi</h4>
+                        <p>Agente Immobiliare</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA Section -->
+    <section class="cta-section">
+        <h2>Pronto a Iniziare?</h2>
+        <p>Unisciti a centinaia di professionisti che hanno già scelto MessageFlow</p>
+        <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+            <a href="demo.html" class="btn-large btn-primary">Prova Demo Gratis</a>
+            <a href="#pricing" class="btn-large btn-outline">Acquista Ora</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>MessageFlow</h3>
+                <p style="color: #cbd5e0; line-height: 1.8;">
+                    La soluzione professionale per automatizzare il tuo WhatsApp marketing e raggiungere migliaia di clienti in modo semplice ed efficace.
+                </p>
+            </div>
+            <div class="footer-section">
+                <h3>Prodotto</h3>
+                <ul>
+                    <li><a href="#features">Funzionalità</a></li>
+                    <li><a href="#pricing">Prezzi</a></li>
+                    <li><a href="demo.html">Demo Gratuita</a></li>
+                    <li><a href="#testimonials">Testimonianze</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Supporto</h3>
+                <ul>
+                    <li><a href="/cdn-cgi/l/email-protection#8bf8fefbfbe4f9ffcbe6eef8f8eaeceeede7e4fca5fbf9e4">Email Support</a></li>
+                    <li><a href="docs.html">Documentazione</a></li>
+                    <li><a href="faq.html">FAQ</a></li>
+                    <li><a href="contact.html">Contatti</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Legale</h3>
+                <ul>
+                    <li><a href="privacy.html">Privacy Policy</a></li>
+                    <li><a href="terms.html">Termini di Servizio</a></li>
+                    <li><a href="refund.html">Politica Rimborsi</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 MessageFlow by Mercury Marketing. Tutti i diritti riservati.</p>
+        </div>
+    </footer>
+
+    <!-- Stripe Integration -->
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://js.stripe.com/v3/"></script>
+    <script>
+        // Inizializza Stripe (INSERISCI LA TUA CHIAVE PUBBLICA)
+        const stripe = Stripe('pk_live_51SScU3PepUWqQGuNvOKPnSyBZRdjh5fEjpwOe8Lj9kKegEcLk3T56cGpdRsEuD6JQarGDhjl45F9vYA62PXbd49v00sZSLrg3m');
+
+        // Configurazione prodotti
+        const products = {
+            pro: {
+                name: 'MessageFlow Pro',
+                price: 9700, // in centesimi
+                priceId: 'price_1SSceUPepUWqQGuNqqvsJ1iG' // Da creare su Stripe Dashboard
+            },
+            business: {
+                name: 'MessageFlow Business',
+                price: 24700,
+                priceId: 'price_1SSe4ePepUWqQGuNrCvJeRnp'
+            }
+        };
+
+        async function checkout(plan) {
+            const product = products[plan];
+            
+            if (!product) {
+                showMessage('Errore: Piano non valido', 'error');
+                return;
+            }
+
+            try {
+                // Crea una sessione di checkout su Stripe
+                const response = await fetch('/create-checkout-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        priceId: product.priceId,
+                        plan: plan
+                    })
+                });
+
+                const session = await response.json();
+
+                if (session.error) {
+                    showMessage(session.error, 'error');
+                    return;
+                }
+
+                // Reindirizza a Stripe Checkout
+                const result = await stripe.redirectToCheckout({
+                    sessionId: session.id
+                });
+
+                if (result.error) {
+                    showMessage(result.error.message, 'error');
+                }
+            } catch (error) {
+                console.error('Errore checkout:', error);
+                showMessage('Si è verificato un errore. Riprova tra poco.', 'error');
+            }
+        }
+
+        function showMessage(text, type = 'success') {
+            const message = document.createElement('div');
+            message.className = `message ${type}`;
+            message.textContent = text;
+            document.body.appendChild(message);
+
+            setTimeout(() => {
+                message.remove();
+            }, 4000);
+        }
+
+        // Smooth scroll per i link
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Header scroll effect
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('.header');
+            if (window.scrollY > 50) {
+                header.style.boxShadow = '0 5px 30px rgba(0,0,0,0

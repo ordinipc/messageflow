@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Gratuita - MessageFlow Pro | Prova Tutte le Funzionalità</title>
+    <meta name="description" content="Prova gratuitamente MessageFlow Pro. Demo completamente funzionante con limite di 5 contatti. Nessuna registrazione richiesta!">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .demo-banner {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: #1a202c;
+            padding: 15px;
+            text-align: center;
+            font-weight: 700;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .demo-banner a {
+            color: #1a202c;
+            text-decoration: underline;
+            font-weight: 800;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 60px auto 0;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-watermark {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            background: rgba(251, 191, 36, 0.9);
+            color: #1a202c;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header .tagline {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        .upgrade-cta {
+            background: rgba(251, 191, 36, 0.2);
+            border: 2px solid #fbbf24;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 30px;
+            text-align: center;
+        }
+
+        .upgrade-cta h3 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+
+        .upgrade-cta p {
+            color: #4a5568;
+            margin-bottom: 15px;
+        }
+
+        .upgrade-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .upgrade-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+        }
+
+        .content {
+            padding: 35px;
+        }
+
+        .section {
+            margin-bottom: 35px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .section-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+
+        .section h2 {
+            color: #2d3748;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        .limitation-warning {
+            background: #fff3cd;
+            border-left: 4px solid #fbbf24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            color: #856404;
+            font-weight: 600;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 25px 20px;
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            background: linear-gradient(135deg, #e6f2ff 0%, #dce8ff 100%);
+            border-color: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 18px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 150px;
+            transition: all 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+
+        input[type="number"], select {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .contacts-preview {
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 2px solid #e2e8f0;
+        }
+
+        .contact-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: white;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .contact-info {
+            flex-grow: 1;
+            margin-left: 15px;
+        }
+
+        .contact-name {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 1.05rem;
+        }
+
+        .contact-phone {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status.sent {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .contact-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .progress-section {
+            background: #f7fafc;
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 25px;
+            display: none;
+            border: 2px solid #e2e8f0;
+        }
+
+        .progress-bar {
+            background: #e2e8f0;
+            border-radius: 10px;
+            height: 12px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .footer {
+            background: #f7fafc;
+            padding: 20px;
+            text-align: center;
+            color: #718096;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .footer strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-banner">
+        🎯 VERSIONE DEMO - Limitata a 5 contatti | <a href="index.html#pricing">Acquista la versione completa per contatti illimitati!</a>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div class="demo-watermark">🔒 DEMO</div>
+            <h1>⚡ MessageFlow Demo</h1>
+            <p class="tagline">Prova Tutte le Funzionalità - Max 5 Contatti</p>
+        </div>
+
+        <div class="upgrade-cta">
+            <h3>🚀 Passa alla Versione PRO!</h3>
+            <p>Sblocca contatti illimitati, rimuovi il watermark e accedi a tutte le funzionalità premium</p>
+            <a href="index.html#pricing" class="upgrade-button">💎 Acquista Ora - Solo €97</a>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-icon">📋</div>
+                    <h2>Importa Contatti</h2>
+                </div>
+                
+                <div class="limitation-warning">
+                    ⚠️ VERSIONE DEMO: Puoi caricare massimo 5 contatti
+                </div>
+
+                <div class="file-input-container">
+                    <input type="file" id="fileInput" class="file-input" accept=".csv,.txt">
+                    <label for="fileInput" class="file-input-label">
+                        <span style="font-size: 2.5rem; display: block; margin-bottom: 10px;">📁</span>
+                        <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 5px;">Clicca per caricare CSV</div>
+                        <div style="font-size: 0.9rem; color: #718096;">Formato: Nome, Cognome, Numero</div>
+                    </label>
+                </div>
+
+                <div id="contactsPreview" class="contacts-preview" style="display: none;"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-icon">✉️</div>
+                    <h2>Messaggio</h2>
+                </div>
+                <textarea id="messageText" placeholder="Scrivi qui il tuo messaggio...
+
+Usa:
+• {nome} per il nome
+• {cognome} per il cognome
+• {numero} per il telefono">Ciao {nome}! 👋
+
+Ti scrivo per condividere una novità interessante.
+
+Hai qualche minuto per parlarne?
+
+Grazie!</textarea>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-icon">⚙️</div>
+                    <h2>Impostazioni</h2>
+                </div>
+                
+                <div class="controls">
+                    <div class="control-group">
+                        <label>⏱️ Pausa (secondi)</label>
+                        <input type="number" id="delaySeconds" value="2" min="1" max="30">
+                    </div>
+                    <div class="control-group">
+                        <label>🔔 Notifiche</label>
+                        <select id="soundEnabled">
+                            <option value="true">Attive</option>
+                            <option value="false">Disattivate</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="startButton" class="btn btn-primary" onclick="startSending()" disabled>
+                        🚀 Avvia Invio
+                    </button>
+                    <button id="stopButton" class="btn" onclick="stopSending()" style="display: none; background: #fc5c7d; color: white;">
+                        ⏸️ Ferma
+                    </button>
+                </div>
+            </div>
+
+            <div id="progressSection" class="progress-section">
+                <h3 style="color: #2d3748; margin-bottom: 15px;">📊 Progresso</h3>
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalCount">0</div>
+                        <div class="stat-label">Totali</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="sentCount" style="color: #10b981;">0</div>
+                        <div class="stat-label">Inviati</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="errorCount" style="color: #ef4444;">0</div>
+                        <div class="stat-label">Errori</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="upgrade-cta" style="margin-top: 30px;">
+            <h3>💡 Ti piace MessageFlow?</h3>
+            <p>Acquista la versione completa e sblocca il potenziale illimitato!</p>
+            <a href="index.html#pricing" class="upgrade-button">Acquista PRO - €97 una tantum</a>
+        </div>
+
+        <div class="footer">
+            Versione DEMO | Powered by <strong>MessageFlow</strong> &copy; 2025
+        </div>
+    </div>
+
+    <script>
+        const MAX_CONTACTS = 5; // LIMITE DEMO
+        let contacts = [];
+        let currentIndex = 0;
+        let isRunning = false;
+        let intervalId = null;
+
+        const fileInput = document.getElementById('fileInput');
+        const messageText = document.getElementById('messageText');
+        const delaySeconds = document.getElementById('delaySeconds');
+        const contactsPreview = document.getElementById('contactsPreview');
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const progressSection = document.getElementById('progressSection');
+        const progressFill = document.getElementById('progressFill');
+        const totalCount = document.getElementById('totalCount');
+        const sentCount = document.getElementById('sentCount');
+        const errorCount = document.getElementById('errorCount');
+
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                parseCSV(content);
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSV(content) {
+            const lines = content.split('\n').filter(line => line.trim());
+            contacts = [];
+
+            lines.forEach((line, index) => {
+                if (index === 0) return;
+                if (contacts.length >= MAX_CONTACTS) return; // LIMITE DEMO
+
+                const parts = line.split(',').map(part => part.trim().replace(/['"]/g, ''));
+                
+                if (parts.length >= 3) {
+                    contacts.push({
+                        nome: parts[0] || 'Sconosciuto',
+                        cognome: parts[1] || '',
+                        numero: parts[2] || '',
+                        status: 'pending',
+                        selected: true
+                    });
+                }
+            });
+
+            if (contacts.length > 0) {
+                if (lines.length > MAX_CONTACTS + 1) {
+                    alert(`⚠️ LIMITE DEMO\n\nHai caricato ${lines.length - 1} contatti, ma la versione demo è limitata a ${MAX_CONTACTS} contatti.\n\nSono stati importati solo i primi ${MAX_CONTACTS} contatti.\n\n💎 Acquista la versione PRO per contatti illimitati!`);
+                }
+                displayContacts();
+                updateStartButton();
+            } else {
+                alert('❌ Nessun contatto valido trovato nel file.');
+            }
+        }
+
+        function displayContacts() {
+            if (contacts.length === 0) {
+                contactsPreview.style.display = 'none';
+                return;
+            }
+
+            contactsPreview.style.display = 'block';
+            contactsPreview.innerHTML = `<div style="background: #fff3cd; padding: 10px; border-radius: 8px; margin-bottom: 15px; color: #856404; font-weight: 600; text-align: center;">🔒 DEMO: ${contacts.length}/${MAX_CONTACTS} contatti caricati</div>`;
+
+            contacts.forEach((contact, index) => {
+                const div = document.createElement('div');
+                div.className = 'contact-item';
+                
+                let statusHtml = '';
+                if (contact.status === 'sent') {
+                    statusHtml = '<span class="status sent">✓ Inviato</span>';
+                } else {
+                    statusHtml = '<span class="status pending">⏳ In attesa</span>';
+                }
+
+                div.innerHTML = `
+                    <input type="checkbox" class="contact-checkbox" ${contact.selected ? 'checked' : ''} 
+                           onchange="toggleContact(${index})" ${contact.status === 'sent' ? 'disabled' : ''}>
+                    <div class="contact-info">
+                        <div class="contact-name">${contact.nome} ${contact.cognome}</div>
+                        <div class="contact-phone">${contact.numero}</div>
+                    </div>
+                    ${statusHtml}
+                `;
+                
+                contactsPreview.appendChild(div);
+            });
+        }
+
+        function toggleContact(index) {
+            if (contacts[index].status !== 'sent') {
+                contacts[index].selected = !contacts[index].selected;
+                displayContacts();
+                updateStartButton();
+            }
+        }
+
+        function updateStartButton() {
+            const hasContacts = contacts.filter(c => c.selected).length > 0;
+            const hasMessage = messageText.value.trim().length > 0;
+            startButton.disabled = !hasContacts || !hasMessage;
+        }
+
+        messageText.addEventListener('input', updateStartButton);
+
+        function startSending() {
+            const selectedContacts = contacts.filter(c => c.selected);
+            
+            if (selectedContacts.length === 0) {
+                alert('⚠️ Nessun contatto selezionato!');
+                return;
+            }
+
+            if (!confirm(`🚀 Iniziare l\'invio a ${selectedContacts.length} contatti?\n\n⚠️ Questa è la versione DEMO.\nPer contatti illimitati, acquista MessageFlow PRO!`)) {
+                return;
+            }
+
+            isRunning = true;
+            currentIndex = 0;
+            startButton.style.display = 'none';
+            stopButton.style.display = 'inline-flex';
+            progressSection.style.display = 'block';
+            
+            updateStats();
+            sendNextMessage();
+        }
+
+        function stopSending() {
+            isRunning = false;
+            if (intervalId) clearTimeout(intervalId);
+            startButton.style.display = 'inline-flex';
+            stopButton.style.display = 'none';
+        }
+
+        async function sendNextMessage() {
+            const selectedContacts = contacts.filter(c => c.selected);
+            
+            if (!isRunning || currentIndex >= selectedContacts.length) {
+                stopSending();
+                alert('🎉 Demo completata!\n\n💎 Ti è piaciuto? Acquista la versione PRO per funzionalità illimitate!');
+                return;
+            }
+
+            const contact = selectedContacts[currentIndex];
+            let personalizedMessage = messageText.value
+                .replace(/{nome}/g, contact.nome)
+                .replace(/{cognome}/g, contact.cognome)
+                .replace(/{numero}/g, contact.numero);
+            
+            personalizedMessage += '\n\n---\n🔒 Inviato con MessageFlow DEMO';
+            
+            const cleanNumber = contact.numero.replace(/[\s\-\(\)]/g, '');
+            
+            try {
+                const whatsappUrl = `https://web.whatsapp.com/send?phone=${cleanNumber}&text=${encodeURIComponent(personalizedMessage)}`;
+                const popup = window.open(whatsappUrl, '_blank', 'width=450,height=650');
+                
+                if (!popup) {
+                    throw new Error('Popup bloccato');
+                }
+
+                await new Promise((resolve) => {
+                    const dialog = document.createElement('div');
+                    dialog.style.cssText = 'position: fixed; top: 80px; right: 20px; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 10000; border: 3px solid #667eea; max-width: 380px;';
+                    
+                    dialog.innerHTML = `
+                        <div style="margin-bottom: 15px;">
+                            <strong style="font-size: 1.1rem;">${contact.nome} ${contact.cognome}</strong><br>
+                            <small style="color: #718096;">${contact.numero}</small>
+                        </div>
+                        <p style="margin: 15px 0; color: #4a5568;">📱 Premi INVIO su WhatsApp, poi:</p>
+                        <button id="confirmSent" style="width: 100%; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 600;">✅ Confermo Invio</button>
+                    `;
+
+                    document.body.appendChild(dialog);
+
+                    document.getElementById('confirmSent').onclick = function() {
+                        document.body.removeChild(dialog);
+                        popup.close();
+                        resolve('sent');
+                    };
+
+                    setTimeout(() => {
+                        if (document.body.contains(dialog)) {
+                            document.body.removeChild(dialog);
+                            popup.close();
+                            resolve('sent');
+                        }
+                    }, 30000);
+                });
+
+                contact.status = 'sent';
+                
+            } catch (error) {
+                console.error('Errore:', error);
+                contact.status = 'error';
+            }
+
+            displayContacts();
+            updateStats();
+            
+            currentIndex++;
+            
+            if (isRunning && currentIndex < selectedContacts.length) {
+                intervalId = setTimeout(sendNextMessage, parseFloat(delaySeconds.value) * 1000);
+            } else if (currentIndex >= selectedContacts.length) {
+                stopSending();
+                
+                // Mostra CTA alla fine
+                if (confirm('🎉 Demo completata!\n\n💎 Ti è piaciuto MessageFlow?\n\nAcquista la versione PRO per:\n✅ Contatti illimitati\n✅ Nessun watermark\n✅ Tutte le funzionalità premium\n\nVuoi procedere all\'acquisto?')) {
+                    window.location.href = 'index.html#pricing';
+                }
+            }
+        }
+
+        function updateStats() {
+            const selected = contacts.filter(c => c.selected);
+            const total = selected.length;
+            const sent = selected.filter(c => c.status === 'sent').length;
+            const errors = selected.filter(c => c.status === 'error').length;
+            
+            totalCount.textContent = total;
+            sentCount.textContent = sent;
+            errorCount.textContent = errors;
+            
+            const progress = total > 0 ? (sent / total) * 100 : 0;
+            progressFill.style.width = progress + '%';
+        }
+    </script>
+</body>
+</html>
