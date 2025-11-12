@@ -46,7 +46,8 @@ app.use(cors(corsOptions));
 // Trust proxy - Required for Render/Heroku/Vercel
 app.set('trust proxy', 1);
 
-// 3. Rate Limiting - Protezione contro attacchi DDoS
+// 3. Rate Limiting - TEMPORANEAMENTE DISABILITATO PER DEBUG
+/*
 const createAccountLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 ora
     max: 5, // Max 5 tentativi
@@ -67,6 +68,7 @@ const generalLimiter = rateLimit({
 
 app.use('/create-checkout-session', checkoutLimiter);
 app.use(generalLimiter);
+*/
 
 // 4. Body Parser con limite di dimensione
 app.use(express.json({ limit: '10kb' }));
