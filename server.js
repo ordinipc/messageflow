@@ -42,6 +42,7 @@ const corsOptions = {
     optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
+app.set('trust proxy', 1);  // ← AGGIUNGI QUESTA
 
 // 3. Rate Limiting - Protezione contro attacchi DDoS
 const createAccountLimiter = rateLimit({
