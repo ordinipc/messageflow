@@ -42,7 +42,9 @@ const corsOptions = {
     optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
-app.set('trust proxy', 1);  // ← AGGIUNGI QUESTA
+
+// Trust proxy - Required for Render/Heroku/Vercel
+app.set('trust proxy', 1);
 
 // 3. Rate Limiting - Protezione contro attacchi DDoS
 const createAccountLimiter = rateLimit({
