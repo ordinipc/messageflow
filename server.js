@@ -234,6 +234,10 @@ app.post('/create-checkout-session', async (req, res) => {
             mode: 'payment',
             success_url: `${process.env.DOMAIN}/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${process.env.DOMAIN}/cancel`,
+            
+            // 🎁 ABILITA CODICI SCONTO STRIPE
+            allow_promotion_codes: true,
+            
             metadata: {
                 plan: plan,
                 timestamp: Date.now().toString()
