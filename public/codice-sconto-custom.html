@@ -1,0 +1,129 @@
+<!-- ============================================ -->
+<!-- CAMPO SCONTO PERSONALIZZATO PER MESSAGEFLOW -->
+<!-- ============================================ -->
+
+<!-- AGGIUNGI QUESTO HTML PRIMA DEI PULSANTI "ACQUISTA ORA" -->
+
+<div class="discount-section" style="margin: 20px 0;">
+    <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+        <input 
+            type="text" 
+            id="discount-code" 
+            placeholder="Hai un codice sconto? 🎁"
+            style="padding: 12px 20px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 1rem; width: 250px;"
+        >
+        <button 
+            id="apply-discount"
+            style="padding: 12px 25px; background: #10b981; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600;"
+        >
+            Applica
+        </button>
+    </div>
+    <div id="discount-message" style="margin-top: 10px; text-align: center; font-size: 0.9rem;"></div>
+</div>
+
+<!-- AGGIUNGI QUESTO JAVASCRIPT ALLA FINE DELLO SCRIPT -->
+
+<script>
+// Codici sconto validi (gestiti lato client - base)
+const validDiscounts = {
+    'LANCIO2025': { type: 'percent', value: 20, description: '20% di sconto' },
+    'PROMO50': { type: 'amount', value: 5000, description: '€50 di sconto' }, // in centesimi
+    'NATALE': { type: 'percent', value: 15, description: '15% di sconto' }
+};
+
+let appliedDiscount = null;
+
+// Gestione applicazione sconto
+document.getElementById('apply-discount')?.addEventListener('click', () => {
+    const code = document.getElementById('discount-code').value.trim().toUpperCase();
+    const messageEl = document.getElementById('discount-message');
+    
+    if (validDiscounts[code]) {
+        appliedDiscount = code;
+        messageEl.innerHTML = `<span style="color: #10b981; font-weight: 600;">✅ ${validDiscounts[code].description} applicato!</span>`;
+        
+        // Aggiorna i prezzi visibili
+        updatePrices(code);
+    } else if (code) {
+        messageEl.innerHTML = `<span style="color: #ef4444; font-weight: 600;">❌ Codice non valido</span>`;
+        appliedDiscount = null;
+    } else {
+        messageEl.innerHTML = `<span style="color: #f59e0b;">⚠️ Inserisci un codice</span>`;
+    }
+});
+
+// Aggiorna prezzi mostrati
+function updatePrices(code) {
+    const discount = validDiscounts[code];
+    
+    // Prezzo PRO originale: €97
+    const proPriceEl = document.querySelector('.pricing-card:nth-child(1) .price');
+    if (proPriceEl && discount.type === 'percent') {
+        const originalPrice = 97;
+        const discountedPrice = originalPrice * (1 - discount.value / 100);
+        proPriceEl.innerHTML = `€${discountedPrice.toFixed(2)}<span>/una tantum</span> <small style="text-decoration: line-through; color: #94a3b8;">€${originalPrice}</small>`;
+    }
+    
+    // Prezzo BUSINESS originale: €247
+    const businessPriceEl = document.querySelector('.pricing-card:nth-child(2) .price');
+    if (businessPriceEl && discount.type === 'percent') {
+        const originalPrice = 247;
+        const discountedPrice = originalPrice * (1 - discount.value / 100);
+        businessPriceEl.innerHTML = `€${discountedPrice.toFixed(2)}<span>/una tantum</span> <small style="text-decoration: line-through; color: #94a3b8;">€${originalPrice}</small>`;
+    }
+}
+
+// Modifica funzione checkout per includere sconto
+const originalCheckout = window.checkout;
+window.checkout = async function(plan) {
+    const product = products[plan];
+    
+    if (!product) {
+        showMessage('Errore: Piano non valido', 'error');
+        return;
+    }
+
+    try {
+        const requestBody = {
+            priceId: product.priceId,
+            plan: plan
+        };
+        
+        // Aggiungi codice sconto se applicato
+        if (appliedDiscount) {
+            requestBody.discountCode = appliedDiscount;
+        }
+        
+        const response = await fetch('/create-checkout-session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        const session = await response.json();
+
+        if (session.error) {
+            showMessage(session.error, 'error');
+            return;
+        }
+
+        const result = await stripe.redirectToCheckout({
+            sessionId: session.id
+        });
+
+        if (result.error) {
+            showMessage(result.error.message, 'error');
+        }
+    } catch (error) {
+        console.error('Errore checkout:', error);
+        showMessage('Si è verificato un errore. Riprova tra poco.', 'error');
+    }
+};
+</script>
+
+<!-- ============================================ -->
+<!-- FINE CAMPO SCONTO                           -->
+<!-- ============================================ -->
