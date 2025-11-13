@@ -22,7 +22,7 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             scriptSrc: ["'self'", "'unsafe-inline'", "https://js.stripe.com"],
             frameSrc: ["'self'", "https://js.stripe.com"],
-            connectSrc: ["'self'", "https://api.stripe.com"],
+            connectSrc: ["'self'", "https://api.stripe.com", "https://messageflow-8a9i.onrender.com"],
             styleSrc: ["'self'", "'unsafe-inline'"]
         }
     },
