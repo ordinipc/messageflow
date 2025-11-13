@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ - Domande Frequenti | MessageFlow</title>
+    <meta name="description" content="Risposte alle domande più frequenti su MessageFlow">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            color: #2d3748;
+            background: #f7fafc;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #4a5568;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #667eea;
+        }
+
+        /* Container */
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        /* Breadcrumb */
+        .breadcrumb {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+            color: #718096;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        /* Page Header */
+        .page-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .page-header h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+        }
+
+        .page-header p {
+            font-size: 1.2rem;
+            color: #718096;
+        }
+
+        /* FAQ Content */
+        .faq-section {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+
+        .faq-category {
+            margin-bottom: 40px;
+        }
+
+        .faq-category:last-child {
+            margin-bottom: 0;
+        }
+
+        .category-title {
+            font-size: 1.8rem;
+            color: #2d3748;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .faq-item {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .faq-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .faq-question {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .faq-question::before {
+            content: "❓";
+            font-size: 1.5rem;
+        }
+
+        .faq-answer {
+            color: #4a5568;
+            line-height: 1.8;
+            padding-left: 40px;
+        }
+
+        .faq-answer ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .faq-answer li {
+            margin: 5px 0;
+        }
+
+        .faq-answer strong {
+            color: #2d3748;
+        }
+
+        /* CTA Box */
+        .cta-box {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .cta-box h2 {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .cta-box p {
+            font-size: 1.1rem;
+            margin-bottom: 25px;
+            opacity: 0.9;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 35px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Footer */
+        .footer {
+            background: #2d3748;
+            color: white;
+            padding: 40px 0 20px;
+            margin-top: 60px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            text-align: center;
+        }
+
+        .footer a {
+            color: #a0aec0;
+            text-decoration: none;
+            margin: 0 15px;
+        }
+
+        .footer a:hover {
+            color: white;
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .page-header h1 {
+                font-size: 2rem;
+            }
+
+            .faq-section {
+                padding: 25px;
+            }
+
+            .category-title {
+                font-size: 1.4rem;
+            }
+
+            .faq-question {
+                font-size: 1.1rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="logo">💬 MessageFlow</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/#features">Features</a></li>
+                    <li><a href="/#pricing">Prezzi</a></li>
+                    <li><a href="/faq.html">FAQ</a></li>
+                    <li><a href="/contact.html">Contatti</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <div class="container">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="/">Home</a>
+            <span>›</span>
+            <span>FAQ</span>
+        </div>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>Domande Frequenti</h1>
+            <p>Trova risposte alle domande più comuni su MessageFlow</p>
+        </div>
+
+        <!-- FAQ Content -->
+        <div class="faq-section">
+            <!-- Generale -->
+            <div class="faq-category">
+                <h2 class="category-title">🌟 Generale</h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question">Cos'è MessageFlow?</div>
+                    <div class="faq-answer">
+                        MessageFlow è un sistema di gestione messaggi WhatsApp professionale che ti permette di raccogliere, organizzare e rispondere ai messaggi dei tuoi clienti in modo efficiente. Include funzionalità avanzate come tag, priorità, statistiche e molto altro.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Chi può usare MessageFlow?</div>
+                    <div class="faq-answer">
+                        MessageFlow è perfetto per:
+                        <ul>
+                            <li><strong>Professionisti:</strong> consulenti, coach, freelance</li>
+                            <li><strong>Piccole imprese:</strong> negozi, ristoranti, studi</li>
+                            <li><strong>Agenzie:</strong> marketing, comunicazione, vendita</li>
+                            <li><strong>E-commerce:</strong> gestione ordini e supporto clienti</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Serve installare qualcosa?</div>
+                    <div class="faq-answer">
+                        <strong>No!</strong> MessageFlow è completamente web-based. Dopo l'acquisto ricevi un file HTML che puoi aprire direttamente nel browser o hostare sul tuo sito web. Nessuna installazione richiesta.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acquisto e Licenze -->
+            <div class="faq-category">
+                <h2 class="category-title">💳 Acquisto e Licenze</h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question">Come funziona l'acquisto?</div>
+                    <div class="faq-answer">
+                        1. Scegli il piano (Pro o Business)<br>
+                        2. Clicca "Acquista Ora"<br>
+                        3. Completa il pagamento sicuro con Stripe<br>
+                        4. Ricevi immediatamente la tua licenza e il file scaricabile<br>
+                        <strong>Tutto in meno di 2 minuti!</strong>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Che metodi di pagamento accettate?</div>
+                    <div class="faq-answer">
+                        Accettiamo tutte le principali carte di credito e debito tramite Stripe:
+                        <ul>
+                            <li>Visa</li>
+                            <li>Mastercard</li>
+                            <li>American Express</li>
+                            <li>Carte prepagate</li>
+                        </ul>
+                        I pagamenti sono sicuri e crittografati con standard PCI-DSS Level 1.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">La licenza scade?</div>
+                    <div class="faq-answer">
+                        <strong>No!</strong> Entrambi i piani (Pro e Business) sono <strong>acquisti una tantum</strong>. Paghi una volta e la licenza è tua per sempre. Nessun abbonamento, nessun costo ricorrente.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Posso usare MessageFlow su più dispositivi?</div>
+                    <div class="faq-answer">
+                        <strong>Piano Pro:</strong> 1 licenza personale<br>
+                        <strong>Piano Business:</strong> 5 licenze utilizzabili su dispositivi diversi o per il tuo team.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Offrite sconti?</div>
+                    <div class="faq-answer">
+                        Sì! Iscriviti alla newsletter per ricevere codici sconto esclusivi. Offriamo anche sconti per:
+                        <ul>
+                            <li>Studenti e insegnanti</li>
+                            <li>Non-profit</li>
+                            <li>Lanci e promozioni stagionali</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tecnico -->
+            <div class="faq-category">
+                <h2 class="category-title">⚙️ Tecnico</h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question">Come installo MessageFlow?</div>
+                    <div class="faq-answer">
+                        <strong>Opzione 1 - Locale (più semplice):</strong><br>
+                        1. Scarica il file HTML<br>
+                        2. Apri con il browser<br>
+                        3. Fatto! Funziona subito<br><br>
+                        
+                        <strong>Opzione 2 - Online:</strong><br>
+                        1. Carica il file sul tuo hosting<br>
+                        2. Accedi tramite URL<br>
+                        3. Condividi con il team se necessario
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Funziona su mobile?</div>
+                    <div class="faq-answer">
+                        <strong>Sì!</strong> MessageFlow è completamente responsive e funziona perfettamente su:
+                        <ul>
+                            <li>📱 Smartphone (iOS e Android)</li>
+                            <li>💻 Tablet</li>
+                            <li>🖥️ Desktop</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">I dati sono sicuri?</div>
+                    <div class="faq-answer">
+                        <strong>Assolutamente sì!</strong> Tutti i dati sono salvati localmente nel tuo browser (localStorage). Nessun dato viene inviato a server esterni. Tu hai il controllo completo dei tuoi dati.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Posso fare backup dei dati?</div>
+                    <div class="faq-answer">
+                        Sì! MessageFlow include funzioni di:
+                        <ul>
+                            <li><strong>Esporta:</strong> Salva tutti i messaggi in formato JSON</li>
+                            <li><strong>Importa:</strong> Ripristina da backup precedenti</li>
+                            <li><strong>CSV Export:</strong> Esporta per analisi in Excel</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Supporto -->
+            <div class="faq-category">
+                <h2 class="category-title">🆘 Supporto</h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question">Offrite supporto?</div>
+                    <div class="faq-answer">
+                        <strong>Piano Pro:</strong> Supporto via email (risposta entro 24-48h)<br>
+                        <strong>Piano Business:</strong> Supporto prioritario via email e telefono + training 1-to-1 di 30 minuti
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Come vi contatto?</div>
+                    <div class="faq-answer">
+                        Email: <a href="mailto:support@massageflow.it" style="color: #667eea;">support@massageflow.it</a><br>
+                        Form contatti: <a href="/contact.html" style="color: #667eea;">Clicca qui</a><br>
+                        Tempo di risposta: 24-48 ore (Business: prioritario)
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Offrite aggiornamenti?</div>
+                    <div class="faq-answer">
+                        <strong>Sì!</strong> Gli aggiornamenti sono <strong>gratuiti per sempre</strong> per tutti i clienti. Riceverai notifica via email quando esce una nuova versione con:
+                        <ul>
+                            <li>Nuove funzionalità</li>
+                            <li>Miglioramenti performance</li>
+                            <li>Bug fix</li>
+                            <li>Ottimizzazioni UI/UX</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rimborsi -->
+            <div class="faq-category">
+                <h2 class="category-title">💰 Rimborsi</h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question">Posso ottenere un rimborso?</div>
+                    <div class="faq-answer">
+                        Sì! Offriamo <strong>garanzia soddisfatti o rimborsati 30 giorni</strong>. Se non sei soddisfatto per qualsiasi motivo, contattaci entro 30 giorni dall'acquisto per un rimborso completo, nessuna domanda fatta.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Come richiedo un rimborso?</div>
+                    <div class="faq-answer">
+                        Invia una email a <a href="mailto:support@massageflow.it" style="color: #667eea;">support@massageflow.it</a> con:
+                        <ul>
+                            <li>Codice licenza</li>
+                            <li>Email usata per l'acquisto</li>
+                            <li>Motivo (opzionale, ci aiuta a migliorare)</li>
+                        </ul>
+                        Rimborso processato entro 5-7 giorni lavorativi.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA Box -->
+        <div class="cta-box">
+            <h2>Non hai trovato la risposta?</h2>
+            <p>Siamo qui per aiutarti! Contattaci e ti risponderemo entro 24 ore.</p>
+            <div class="cta-buttons">
+                <a href="/contact.html" class="btn btn-primary">📧 Contattaci</a>
+                <a href="/#pricing" class="btn btn-secondary">💰 Vedi Prezzi</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>
+                <a href="/">Home</a>
+                <a href="/privacy.html">Privacy</a>
+                <a href="/terms.html">Termini</a>
+                <a href="/refund.html">Rimborsi</a>
+                <a href="/contact.html">Contatti</a>
+            </p>
+            <p style="margin-top: 20px; color: #a0aec0;">&copy; 2025 MessageFlow by Mercury Marketing. Tutti i diritti riservati.</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contatti | MessageFlow</title>
+    <meta name="description" content="Contatta il team di MessageFlow per supporto, domande o collaborazioni">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            color: #2d3748;
+            background: #f7fafc;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #4a5568;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #667eea;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        /* Breadcrumb */
+        .breadcrumb {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+            color: #718096;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        /* Page Header */
+        .page-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .page-header h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+        }
+
+        .page-header p {
+            font-size: 1.2rem;
+            color: #718096;
+        }
+
+        /* Two Column Layout */
+        .content-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        /* Contact Info */
+        .contact-info {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .contact-info h2 {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            color: #2d3748;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .contact-item:hover {
+            background: #edf2f7;
+            transform: translateY(-2px);
+        }
+
+        .contact-icon {
+            font-size: 2rem;
+            flex-shrink: 0;
+        }
+
+        .contact-details h3 {
+            font-size: 1.2rem;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .contact-details p {
+            color: #718096;
+            font-size: 0.95rem;
+        }
+
+        .contact-details a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .contact-details a:hover {
+            text-decoration: underline;
+        }
+
+        /* Contact Form */
+        .contact-form {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .contact-form h2 {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            color: #2d3748;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Success Message */
+        .success-message {
+            display: none;
+            padding: 20px;
+            background: #d4edda;
+            color: #155724;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Business Hours */
+        .business-hours {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .business-hours h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        .hours-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .hours-item {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .hours-item strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        /* Footer */
+        .footer {
+            background: #2d3748;
+            color: white;
+            padding: 40px 0 20px;
+            margin-top: 60px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            text-align: center;
+        }
+
+        .footer a {
+            color: #a0aec0;
+            text-decoration: none;
+            margin: 0 15px;
+        }
+
+        .footer a:hover {
+            color: white;
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .page-header h1 {
+                font-size: 2rem;
+            }
+
+            .content-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            .contact-info,
+            .contact-form {
+                padding: 25px;
+            }
+
+            .hours-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="logo">💬 MessageFlow</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/#features">Features</a></li>
+                    <li><a href="/#pricing">Prezzi</a></li>
+                    <li><a href="/faq.html">FAQ</a></li>
+                    <li><a href="/contact.html">Contatti</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <div class="container">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="/">Home</a>
+            <span>›</span>
+            <span>Contatti</span>
+        </div>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>Contattaci</h1>
+            <p>Siamo qui per aiutarti! Rispondiamo entro 24 ore.</p>
+        </div>
+
+        <!-- Two Column Layout -->
+        <div class="content-wrapper">
+            <!-- Contact Info -->
+            <div class="contact-info">
+                <h2>📞 Informazioni di Contatto</h2>
+                
+                <div class="contact-item">
+                    <div class="contact-icon">📧</div>
+                    <div class="contact-details">
+                        <h3>Email</h3>
+                        <p>Supporto generale e vendite</p>
+                        <a href="mailto:support@massageflow.it">support@massageflow.it</a>
+                    </div>
+                </div>
+
+                <div class="contact-item">
+                    <div class="contact-icon">💼</div>
+                    <div class="contact-details">
+                        <h3>Business</h3>
+                        <p>Partnership e collaborazioni</p>
+                        <a href="mailto:business@massageflow.it">business@massageflow.it</a>
+                    </div>
+                </div>
+
+                <div class="contact-item">
+                    <div class="contact-icon">⏱️</div>
+                    <div class="contact-details">
+                        <h3>Tempi di Risposta</h3>
+                        <p>Piano Pro: 24-48 ore</p>
+                        <p>Piano Business: Priorità (12-24 ore)</p>
+                    </div>
+                </div>
+
+                <div class="contact-item">
+                    <div class="contact-icon">🌍</div>
+                    <div class="contact-details">
+                        <h3>Mercury Marketing</h3>
+                        <p>Agenzia di sviluppo e marketing</p>
+                        <p style="font-size: 0.9rem; margin-top: 5px;">🇮🇹 Made in Italy</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Form -->
+            <div class="contact-form">
+                <h2>💬 Invia un Messaggio</h2>
+                <form id="contactForm">
+                    <div class="form-group">
+                        <label for="name">Nome *</label>
+                        <input type="text" id="name" name="name" required placeholder="Il tuo nome">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email *</label>
+                        <input type="email" id="email" name="email" required placeholder="tua@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subject">Oggetto *</label>
+                        <select id="subject" name="subject" required>
+                            <option value="">Seleziona un argomento</option>
+                            <option value="support">🛠️ Supporto Tecnico</option>
+                            <option value="sales">💰 Informazioni Vendite</option>
+                            <option value="billing">💳 Fatturazione/Rimborsi</option>
+                            <option value="feature">✨ Richiesta Funzionalità</option>
+                            <option value="bug">🐛 Segnalazione Bug</option>
+                            <option value="partnership">🤝 Partnership</option>
+                            <option value="other">📝 Altro</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="message">Messaggio *</label>
+                        <textarea id="message" name="message" required placeholder="Descrivi la tua richiesta..."></textarea>
+                    </div>
+
+                    <button type="submit" class="submit-btn">📤 Invia Messaggio</button>
+                    
+                    <div id="successMessage" class="success-message">
+                        ✅ Messaggio inviato con successo! Ti risponderemo entro 24 ore.
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Business Hours -->
+        <div class="business-hours">
+            <h2>🕐 Orari di Supporto</h2>
+            <p style="font-size: 1.1rem; opacity: 0.9;">Rispondiamo alle email 7 giorni su 7</p>
+            
+            <div class="hours-grid">
+                <div class="hours-item">
+                    <strong>📧 Email Support</strong>
+                    <p>Sempre disponibile</p>
+                    <p>Risposta: 12-48h</p>
+                </div>
+                
+                <div class="hours-item">
+                    <strong>📞 Phone (Business)</strong>
+                    <p>Lun-Ven: 9:00-18:00</p>
+                    <p>Solo clienti Business</p>
+                </div>
+                
+                <div class="hours-item">
+                    <strong>💬 Live Chat</strong>
+                    <p>Coming Soon!</p>
+                    <p>Disponibile prossimamente</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>
+                <a href="/">Home</a>
+                <a href="/privacy.html">Privacy</a>
+                <a href="/terms.html">Termini</a>
+                <a href="/refund.html">Rimborsi</a>
+                <a href="/faq.html">FAQ</a>
+            </p>
+            <p style="margin-top: 20px; color: #a0aec0;">&copy; 2025 MessageFlow by Mercury Marketing. Tutti i diritti riservati.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Form handling
+        document.getElementById('contactForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                subject: document.getElementById('subject').value,
+                message: document.getElementById('message').value
+            };
+            
+            // In produzione, invia a un endpoint API
+            // Per ora, mostra solo messaggio di successo
+            console.log('Form submitted:', formData);
+            
+            // Mostra messaggio successo
+            document.getElementById('successMessage').style.display = 'block';
+            
+            // Reset form
+            this.reset();
+            
+            // Nascondi messaggio dopo 5 secondi
+            setTimeout(() => {
+                document.getElementById('successMessage').style.display = 'none';
+            }, 5000);
+            
+            // In produzione, crea mailto link
+            const mailtoLink = `mailto:support@massageflow.it?subject=${encodeURIComponent(formData.subject + ' - ' + formData.name)}&body=${encodeURIComponent(formData.message + '\n\nDa: ' + formData.email)}`;
+            window.location.href = mailtoLink;
+        });
+    </script>
+</body>
+</html>

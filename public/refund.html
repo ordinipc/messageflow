@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Politica Rimborsi | MessageFlow</title>
+    <meta name="description" content="Politica rimborsi e garanzia soddisfatti o rimborsati di MessageFlow">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.8;
+            color: #2d3748;
+            background: #f7fafc;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #4a5568;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #667eea;
+        }
+
+        /* Container */
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        /* Breadcrumb */
+        .breadcrumb {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+            color: #718096;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        /* Content */
+        .content {
+            background: white;
+            padding: 50px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+        }
+
+        .last-updated {
+            color: #718096;
+            font-size: 0.95rem;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        h2 {
+            color: #2d3748;
+            font-size: 1.8rem;
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            color: #2d3748;
+            font-size: 1.3rem;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        p {
+            margin-bottom: 20px;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin: 20px 0;
+            padding-left: 30px;
+        }
+
+        li {
+            margin: 10px 0;
+        }
+
+        strong {
+            color: #2d3748;
+        }
+
+        .highlight-box {
+            background: #ebf8ff;
+            border-left: 4px solid #667eea;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 10px;
+        }
+
+        .highlight-box h3 {
+            margin-top: 0;
+            color: #667eea;
+        }
+
+        .warning-box {
+            background: #fff5f5;
+            border-left: 4px solid #f56565;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 10px;
+        }
+
+        .success-box {
+            background: #f0fff4;
+            border-left: 4px solid #48bb78;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 10px;
+        }
+
+        a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .cta-box {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        .cta-box h2 {
+            color: white;
+            margin-top: 0;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 15px 35px;
+            background: white;
+            color: #667eea;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 700;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+
+        /* Footer */
+        .footer {
+            background: #2d3748;
+            color: white;
+            padding: 40px 0 20px;
+            margin-top: 60px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            text-align: center;
+        }
+
+        .footer a {
+            color: #a0aec0;
+            text-decoration: none;
+            margin: 0 15px;
+        }
+
+        .footer a:hover {
+            color: white;
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .content {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="logo">💬 MessageFlow</a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/#features">Features</a></li>
+                    <li><a href="/#pricing">Prezzi</a></li>
+                    <li><a href="/faq.html">FAQ</a></li>
+                    <li><a href="/contact.html">Contatti</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <div class="container">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="/">Home</a>
+            <span>›</span>
+            <span>Politica Rimborsi</span>
+        </div>
+
+        <div class="content">
+            <h1>💰 Politica Rimborsi</h1>
+            <p class="last-updated">Ultimo aggiornamento: 13 Novembre 2025</p>
+
+            <div class="success-box">
+                <h3>✅ Garanzia Soddisfatti o Rimborsati 30 Giorni</h3>
+                <p><strong>Crediamo nella qualità del nostro prodotto.</strong> Per questo offriamo una garanzia completa di 30 giorni. Se MessageFlow non soddisfa le tue aspettative per qualsiasi motivo, ti rimborsiamo al 100%, senza fare domande.</p>
+            </div>
+
+            <h2>📋 Condizioni di Rimborso</h2>
+            
+            <h3>🎯 Quando Puoi Richiedere un Rimborso</h3>
+            <p>Hai diritto al rimborso completo se:</p>
+            <ul>
+                <li><strong>Entro 30 giorni dall'acquisto</strong> - La richiesta deve essere effettuata entro 30 giorni dalla data di acquisto</li>
+                <li><strong>Problemi tecnici irrisolvibili</strong> - Il prodotto non funziona correttamente e il nostro supporto non è riuscito a risolvere il problema</li>
+                <li><strong>Prodotto non conforme</strong> - Le funzionalità dichiarate non corrispondono a quelle effettive</li>
+                <li><strong>Insoddisfazione generale</strong> - Non sei soddisfatto del prodotto per qualsiasi motivo personale</li>
+            </ul>
+
+            <h3>⚠️ Quando NON È Possibile Richiedere un Rimborso</h3>
+            <ul>
+                <li><strong>Dopo 30 giorni dall'acquisto</strong> - La garanzia scade dopo questo periodo</li>
+                <li><strong>Uso improprio</strong> - Modifiche non autorizzate o uso contrario ai termini di servizio</li>
+                <li><strong>Acquisto doppio</strong> - Se hai già ricevuto un rimborso per lo stesso prodotto in passato</li>
+                <li><strong>Chargeback fraudolenti</strong> - Se apri un contestazione con la banca senza prima contattarci</li>
+            </ul>
+
+            <h2>🔄 Come Richiedere un Rimborso</h2>
+            
+            <div class="highlight-box">
+                <h3>Procedura Semplice in 3 Passi</h3>
+                <ol>
+                    <li><strong>Contattaci via Email</strong>
+                        <p>Invia una richiesta a: <a href="mailto:support@massageflow.it">support@massageflow.it</a></p>
+                    </li>
+                    <li><strong>Fornisci le Informazioni</strong>
+                        <ul>
+                            <li>Codice licenza</li>
+                            <li>Email usata per l'acquisto</li>
+                            <li>Motivo del rimborso (opzionale, ci aiuta a migliorare)</li>
+                        </ul>
+                    </li>
+                    <li><strong>Ricevi il Rimborso</strong>
+                        <p>Processato entro 5-7 giorni lavorativi sul metodo di pagamento originale</p>
+                    </li>
+                </ol>
+            </div>
+
+            <h2>⏱️ Tempi di Elaborazione</h2>
+            <ul>
+                <li><strong>Conferma richiesta:</strong> Entro 24 ore (giorni lavorativi)</li>
+                <li><strong>Elaborazione rimborso:</strong> 2-3 giorni lavorativi</li>
+                <li><strong>Accredito sul conto:</strong> 5-7 giorni lavorativi dalla data di elaborazione (dipende dalla tua banca)</li>
+            </ul>
+
+            <p><strong>Nota:</strong> I tempi possono variare in base al metodo di pagamento e alla tua istituzione finanziaria.</p>
+
+            <h2>💳 Metodo di Rimborso</h2>
+            <p>Il rimborso viene sempre effettuato utilizzando lo <strong>stesso metodo di pagamento</strong> con cui hai effettuato l'acquisto:</p>
+            <ul>
+                <li><strong>Carta di credito/debito:</strong> Accredito sulla stessa carta</li>
+                <li><strong>PayPal:</strong> Accredito sul tuo account PayPal</li>
+                <li><strong>Altri metodi:</strong> Contattaci per dettagli specifici</li>
+            </ul>
+
+            <h2>📊 Rimborsi Parziali</h2>
+            <p>In alcune circostanze specifiche, potremmo offrire rimborsi parziali:</p>
+            <ul>
+                <li><strong>Upgrade:</strong> Se passi da Pro a Business, ti rimborsiamo la differenza</li>
+                <li><strong>Promozioni:</strong> Se acquisti senza codice sconto e ne scopri uno valido entro 7 giorni, ti accreditiamo la differenza</li>
+            </ul>
+
+            <h2>🚫 Cosa Succede Dopo il Rimborso</h2>
+            <p>Una volta processato il rimborso:</p>
+            <ul>
+                <li>La tua <strong>licenza viene disattivata</strong></li>
+                <li>Non avrai più accesso agli aggiornamenti futuri</li>
+                <li>Il file scaricato continuerà a funzionare localmente (non possiamo cancellarlo dal tuo dispositivo)</li>
+                <li>Potrai riacquistare in futuro, ma la garanzia 30 giorni sarà valida solo per il nuovo acquisto</li>
+            </ul>
+
+            <div class="warning-box">
+                <h3>⚠️ Abuso della Politica di Rimborso</h3>
+                <p>Ci riserviamo il diritto di rifiutare rimborsi in caso di:</p>
+                <ul>
+                    <li>Richieste ripetute multiple sullo stesso account</li>
+                    <li>Evidenti abusi del sistema (es. uso prolungato seguito da richiesta sistematica di rimborso)</li>
+                    <li>Chargeback fraudolenti aperti senza preavviso</li>
+                </ul>
+                <p><strong>Nota:</strong> Questi casi sono estremamente rari. Il 99% delle richieste legittime viene approvato immediatamente.</p>
+            </div>
+
+            <h2>🤝 Alternativa al Rimborso: Supporto</h2>
+            <p>Prima di richiedere un rimborso, ti invitiamo a <strong>contattare il nostro supporto</strong>. Spesso i problemi tecnici possono essere risolti rapidamente, e vogliamo assicurarci che tu possa sfruttare al massimo MessageFlow.</p>
+            
+            <p>Il nostro team può aiutarti con:</p>
+            <ul>
+                <li>Problemi di installazione</li>
+                <li>Configurazione personalizzata</li>
+                <li>Training one-to-one (clienti Business)</li>
+                <li>Ottimizzazione del workflow</li>
+            </ul>
+
+            <h2>📞 Contatti per Rimborsi</h2>
+            <p><strong>Email:</strong> <a href="mailto:support@massageflow.it">support@massageflow.it</a></p>
+            <p><strong>Oggetto email:</strong> "Richiesta Rimborso - [Il tuo codice licenza]"</p>
+            <p><strong>Tempo di risposta:</strong> Entro 24 ore (giorni lavorativi)</p>
+
+            <h2>🔐 Protezione Acquirente</h2>
+            <p>Oltre alla nostra garanzia 30 giorni, sei protetto anche da:</p>
+            <ul>
+                <li><strong>Stripe Buyer Protection</strong> - Il processore di pagamenti offre ulteriore protezione</li>
+                <li><strong>Protezione carta di credito</strong> - La tua banca può offrire ulteriori garanzie</li>
+                <li><strong>Legge italiana sul consumo</strong> - Diritto di recesso secondo normativa vigente</li>
+            </ul>
+
+            <h2>❓ Domande Frequenti</h2>
+            
+            <h3>Posso provare MessageFlow prima di acquistare?</h3>
+            <p>Attualmente non offriamo una versione di prova, ma la nostra <strong>garanzia 30 giorni</strong> funziona essenzialmente come un periodo di prova completo. Puoi acquistare, testare tutte le funzionalità, e se non sei soddisfatto, richiedere il rimborso.</p>
+
+            <h3>Cosa succede se richiedo il rimborso dopo 30 giorni?</h3>
+            <p>La garanzia standard scade dopo 30 giorni. Tuttavia, valutiamo ogni caso individualmente. Se ci sono circostanze eccezionali, contattaci comunque - faremo del nostro meglio per aiutarti.</p>
+
+            <h3>Posso riacquistare dopo un rimborso?</h3>
+            <p>Sì, puoi riacquistare in qualsiasi momento. La garanzia 30 giorni si applica al nuovo acquisto.</p>
+
+            <h3>Il rimborso include le spese di transazione?</h3>
+            <p>Sì, ricevi il <strong>100% dell'importo pagato</strong>. Le eventuali commissioni Stripe vengono assorbite da noi.</p>
+
+            <div class="cta-box">
+                <h2>Hai Bisogno di Aiuto?</h2>
+                <p>Prima di richiedere un rimborso, prova a contattare il nostro supporto. Siamo qui per aiutarti!</p>
+                <a href="/contact.html" class="btn">📧 Contatta il Supporto</a>
+            </div>
+
+            <h2>📄 Documenti Correlati</h2>
+            <ul>
+                <li><a href="/terms.html">Termini di Servizio</a></li>
+                <li><a href="/privacy.html">Privacy Policy</a></li>
+                <li><a href="/faq.html">Domande Frequenti</a></li>
+            </ul>
+
+            <div class="last-updated" style="margin-top: 50px; border-top: 2px solid #e2e8f0; padding-top: 20px; border-bottom: none;">
+                <p><strong>Modifiche a questa politica:</strong> Ci riserviamo il diritto di modificare questa politica in qualsiasi momento. Le modifiche sostanziali verranno comunicate via email ai clienti esistenti. L'uso continuato del servizio dopo le modifiche costituisce accettazione dei nuovi termini.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>
+                <a href="/">Home</a>
+                <a href="/privacy.html">Privacy</a>
+                <a href="/terms.html">Termini</a>
+                <a href="/faq.html">FAQ</a>
+                <a href="/contact.html">Contatti</a>
+            </p>
+            <p style="margin-top: 20px; color: #a0aec0;">&copy; 2025 MessageFlow by Mercury Marketing. Tutti i diritti riservati.</p>
+        </div>
+    </footer>
+</body>
+</html>
