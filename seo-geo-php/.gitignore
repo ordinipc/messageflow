@@ -1,0 +1,4 @@
+# Dati generati a runtime: database, upload e file di correzione.
+storage/*
+!storage/.htaccess
+!storage/.gitkeep
