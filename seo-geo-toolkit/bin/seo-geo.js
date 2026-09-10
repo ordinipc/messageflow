@@ -28,6 +28,7 @@ const { buildContentPlan } = require('../src/fix/content-plan');
 const { toCsv } = require('../src/report/csv');
 const { reportAudit, reportTriage } = require('../src/report/markdown');
 const { buildHtmlReport } = require('../src/report/html');
+const { buildArtifact } = require('../src/report/artifact');
 
 function parseArgs(argv) {
   const out = { cmd: argv[2] || 'all', input: '', config: path.join(__dirname, '..', 'config.json'), out: path.join(__dirname, '..', 'output') };
@@ -258,6 +259,10 @@ function main() {
 
   // Report HTML
   scritti.push(write(path.join(args.out, 'report.html'), buildHtmlReport({ audit, triage, linkPlan, metaPlan, contentPlan, cfg })));
+
+  // Variante della dashboard senza wrapper <html>: è il formato richiesto per
+  // pubblicarla come pagina web condivisibile.
+  scritti.push(write(path.join(args.out, 'dashboard-pubblicabile.html'), buildArtifact({ audit, triage, linkPlan, metaPlan })));
 
   // Istruzioni
   scritti.push(write(path.join(args.out, 'LEGGIMI.md'), istruzioni({ audit, triage, linkPlan, metaPlan, redirects, cfg })));
