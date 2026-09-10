@@ -150,6 +150,25 @@ class Html {
 	}
 
 	/**
+	 * Ripulisce l HTML prodotto dal modello prima di mostrarlo a schermo.
+	 *
+	 * Il testo arriva da un modello linguistico: non è codice di cui fidarsi.
+	 * Si tolgono script, stili, iframe, gestori di eventi e URL javascript:
+	 * prima di stamparlo nella pagina del gestionale.
+	 *
+	 * @param string $html Markup.
+	 * @return string
+	 */
+	public static function sanifica( $html ) {
+		$out = preg_replace( '#<(script|style|iframe|object|embed|form|input)\b[\s\S]*?</\1>#i', '', (string) $html );
+		$out = preg_replace( '#<(script|style|iframe|object|embed|form|input|link|meta)\b[^>]*>#i', '', (string) $out );
+		$out = preg_replace( '/\son[a-z]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', (string) $out );
+		$out = preg_replace( '/(href|src)\s*=\s*("|\')\s*javascript:[^"\']*\2/i', '$1="#"', (string) $out );
+
+		return (string) $out;
+	}
+
+	/**
 	 * Primo paragrafo con un minimo di sostanza.
 	 *
 	 * @param string $html Markup.

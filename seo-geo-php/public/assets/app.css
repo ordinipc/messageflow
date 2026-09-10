@@ -191,3 +191,13 @@ pre.mono { background: var(--basso-bg); padding: 12px 14px; border-radius: 4px; 
 	.campo-confronto { grid-template-columns: 1fr; gap: 6px; }
 	.campo-confronto .etichetta { padding-top: 8px; }
 }
+
+/* Testo di una bozza. */
+.testo-bozza { max-width: 68ch; }
+.testo-bozza h2 { font-size: 18px; margin: 22px 0 8px; }
+.testo-bozza h3 { font-size: 15.5px; margin: 18px 0 6px; }
+.testo-bozza p, .testo-bozza li { font-size: 15px; }
+.testo-bozza ul, .testo-bozza ol { padding-left: 20px; }
+.testo-bozza table { border: 1px solid var(--linea); margin: 14px 0; min-width: 0; }
+.testo-bozza th, .testo-bozza td { border-bottom: 1px solid var(--linea-2); padding: 8px 11px; }
+.testo-bozza img { max-width: 100%; height: auto; }

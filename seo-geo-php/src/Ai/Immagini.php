@@ -34,7 +34,7 @@ class Immagini {
 	public static function candidati( Db $db, $auditId, array $opzioni = array() ) {
 		$sql = "SELECT id, wp_id, titolo, slug, url, focus_keyword AS focus, tipo
 				FROM documento
-				WHERE audit_id = ? AND ( ha_thumbnail = 0 OR ha_thumbnail IS NULL ) AND tipo = 'post'
+				WHERE audit_id = ? AND ha_thumbnail = 0 AND tipo = 'post'
 				ORDER BY parole DESC";
 
 		$righe = $db->all( $sql, array( $auditId ) );

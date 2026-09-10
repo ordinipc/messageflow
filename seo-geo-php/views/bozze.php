@@ -108,6 +108,19 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 </form>
 <?php endif; ?>
 
+<?php if ( ! empty( $immagini['ignoti'] ) ) : ?>
+	<section class="scheda">
+		<h2>Immagini in evidenza: dato non disponibile</h2>
+		<p class="guida">
+			Questa analisi è stata fatta con una versione precedente del programma, che non
+			registrava quali articoli hanno già un'immagine in evidenza: <?php echo num( $immagini['ignoti'] ); ?> contenuti
+			risultano senza informazione. Rilancia l'analisi caricando di nuovo l'export
+			(<a href="?p=nuovo">Nuova analisi</a>): il conteggio diventa esatto e non paghi
+			immagini per articoli che ce l'hanno già.
+		</p>
+	</section>
+<?php endif; ?>
+
 <?php if ( $pronto && $immagini['mancanti'] > 0 ) : ?>
 <form class="scheda" method="post" action="?p=genera">
 	<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
@@ -176,7 +189,8 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 					</td>
 					<td class="num">
 						<?php if ( 'ok' === $b['stato'] ) : ?>
-							<a href="?p=download&amp;id=<?php echo (int) $audit['id']; ?>&amp;d=bozze&amp;f=<?php echo e( $b['slug'] ); ?>.html">scarica</a>
+							<a href="?p=bozza&amp;b=<?php echo (int) $b['id']; ?>">apri</a> ·
+							<a href="?p=bozza&amp;b=<?php echo (int) $b['id']; ?>&amp;scarica=1">scarica</a>
 						<?php endif; ?>
 					</td>
 				</tr>

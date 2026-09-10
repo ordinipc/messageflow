@@ -158,6 +158,8 @@ class Rewriter {
 
 				$db->run( 'DELETE FROM bozza WHERE audit_id = ? AND documento_id = ?', array( $auditId, $a['doc_id'] ) );
 
+				$nome_file = $a['slug'] . '.html';
+
 				$db->insert(
 					'bozza',
 					array(
@@ -178,11 +180,12 @@ class Rewriter {
 						'token_in'         => 0,
 						'token_out'        => 0,
 						'errore'           => '',
+						'file'             => $nome_file,
 						'creato_il'        => date( 'Y-m-d H:i:s' ),
 					)
 				);
 
-				file_put_contents( $cartella . '/' . $a['slug'] . '.html', self::fileBozza( $dati, $a, $modello ) );
+				file_put_contents( $cartella . '/' . $nome_file, self::fileBozza( $dati, $a, $modello ) );
 				$fatte++;
 			} catch ( Throwable $e ) {
 				$db->insert(
@@ -309,6 +312,8 @@ class Rewriter {
 
 				$db->run( 'DELETE FROM bozza WHERE audit_id = ? AND documento_id = ?', array( $auditId, $vincitore['doc_id'] ) );
 
+				$nome_file = $vincitore['slug'] . '-accorpato.html';
+
 				$db->insert(
 					'bozza',
 					array(
@@ -330,11 +335,12 @@ class Rewriter {
 						'token_in'         => 0,
 						'token_out'        => 0,
 						'errore'           => '',
+						'file'             => $nome_file,
 						'creato_il'        => date( 'Y-m-d H:i:s' ),
 					)
 				);
 
-				file_put_contents( $cartella . '/' . $vincitore['slug'] . '-accorpato.html', self::fileBozza( $dati, $vincitore, $modello ) );
+				file_put_contents( $cartella . '/' . $nome_file, self::fileBozza( $dati, $vincitore, $modello ) );
 				$fatti++;
 			} catch ( Throwable $e ) {
 				$falliti++;
@@ -362,7 +368,7 @@ class Rewriter {
 	 * @param string $modello  Modello usato.
 	 * @return string
 	 */
-	private static function fileBozza( array $dati, array $articolo, $modello ) {
+	public static function fileBozza( array $dati, array $articolo, $modello ) {
 		$esc = static fn( $v ) => htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' );
 
 		$faq = '';

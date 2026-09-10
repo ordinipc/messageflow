@@ -9,6 +9,7 @@ require_once __DIR__ . '/../src/Autoload.php';
 
 use SeoGeo\Ai\Gemini;
 use SeoGeo\Ai\Immagini;
+use SeoGeo\Ai\Rewriter as Riscrittura;
 use SeoGeo\Ai\Rewriter;
 use SeoGeo\Audit;
 use SeoGeo\Bridge\WordPress;
@@ -216,7 +217,57 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 					. ( $limite ? ' Verifica il risultato sul sito, poi applica il resto.' : '' );
 				break;
 
-			case 'anteprima':
+			case 'bozza':
+		$idb   = (int) ( $_GET['b'] ?? 0 );
+		$bozza = $db->one(
+			'SELECT b.*, d.titolo AS titolo_originale, d.url AS url_originale, d.parole AS parole_originali, d.slug
+			 FROM bozza b JOIN documento d ON d.id = b.documento_id WHERE b.id = ?',
+			array( $idb )
+		);
+
+		if ( ! $bozza ) {
+			http_response_code( 404 );
+			exit( 'Bozza non trovata.' );
+		}
+
+		// Il file si ricostruisce dai dati salvati: anche se è stato cancellato
+		// o rinominato, il download continua a funzionare.
+		$contenuto = Riscrittura::fileBozza(
+			array(
+				'titolo'           => $bozza['titolo'],
+				'meta_title'       => $bozza['meta_title'],
+				'meta_description' => $bozza['meta_description'],
+				'in_breve'         => $bozza['in_breve'],
+				'corpo_html'       => $bozza['corpo_html'],
+				'faq'              => json_decode( (string) $bozza['faq'], true ) ?: array(),
+				'da_verificare'    => json_decode( (string) $bozza['da_verificare'], true ) ?: array(),
+			),
+			array( 'titolo' => $bozza['titolo_originale'], 'url' => $bozza['url_originale'] ),
+			$bozza['modello']
+		);
+
+		if ( isset( $_GET['scarica'] ) ) {
+			$nome = $bozza['file'] ?: ( $bozza['slug'] . '.html' );
+
+			header( 'Content-Type: text/html; charset=utf-8' );
+			header( 'Content-Disposition: attachment; filename="' . $nome . '"' );
+			header( 'Content-Length: ' . strlen( $contenuto ) );
+			echo $contenuto;
+			exit;
+		}
+
+		vista(
+			'bozza',
+			array(
+				'titolo'    => 'Bozza: ' . $bozza['titolo'],
+				'bozza'     => $bozza,
+				'contenuto' => $contenuto,
+				'audit_id'  => (int) $bozza['audit_id'],
+			)
+		);
+		break;
+
+	case 'anteprima':
 		$id    = (int) ( $_GET['id'] ?? 0 );
 		$audit = $db->one( 'SELECT * FROM audit WHERE id = ?', array( $id ) );
 
@@ -673,6 +724,56 @@ switch ( $pagina ) {
 		);
 		break;
 
+	case 'bozza':
+		$idb   = (int) ( $_GET['b'] ?? 0 );
+		$bozza = $db->one(
+			'SELECT b.*, d.titolo AS titolo_originale, d.url AS url_originale, d.parole AS parole_originali, d.slug
+			 FROM bozza b JOIN documento d ON d.id = b.documento_id WHERE b.id = ?',
+			array( $idb )
+		);
+
+		if ( ! $bozza ) {
+			http_response_code( 404 );
+			exit( 'Bozza non trovata.' );
+		}
+
+		// Il file si ricostruisce dai dati salvati: anche se è stato cancellato
+		// o rinominato, il download continua a funzionare.
+		$contenuto = Riscrittura::fileBozza(
+			array(
+				'titolo'           => $bozza['titolo'],
+				'meta_title'       => $bozza['meta_title'],
+				'meta_description' => $bozza['meta_description'],
+				'in_breve'         => $bozza['in_breve'],
+				'corpo_html'       => $bozza['corpo_html'],
+				'faq'              => json_decode( (string) $bozza['faq'], true ) ?: array(),
+				'da_verificare'    => json_decode( (string) $bozza['da_verificare'], true ) ?: array(),
+			),
+			array( 'titolo' => $bozza['titolo_originale'], 'url' => $bozza['url_originale'] ),
+			$bozza['modello']
+		);
+
+		if ( isset( $_GET['scarica'] ) ) {
+			$nome = $bozza['file'] ?: ( $bozza['slug'] . '.html' );
+
+			header( 'Content-Type: text/html; charset=utf-8' );
+			header( 'Content-Disposition: attachment; filename="' . $nome . '"' );
+			header( 'Content-Length: ' . strlen( $contenuto ) );
+			echo $contenuto;
+			exit;
+		}
+
+		vista(
+			'bozza',
+			array(
+				'titolo'    => 'Bozza: ' . $bozza['titolo'],
+				'bozza'     => $bozza,
+				'contenuto' => $contenuto,
+				'audit_id'  => (int) $bozza['audit_id'],
+			)
+		);
+		break;
+
 	case 'anteprima':
 		$id    = (int) ( $_GET['id'] ?? 0 );
 		$audit = $db->one( 'SELECT * FROM audit WHERE id = ?', array( $id ) );
@@ -816,7 +917,11 @@ switch ( $pagina ) {
 				'errori'    => (int) ( $_GET['errori'] ?? 0 ),
 				'gruppi'    => count( Rewriter::gruppi( $db, $id ) ),
 				'immagini'  => array(
-					'mancanti' => (int) $db->one( "SELECT COUNT(*) n FROM documento WHERE audit_id = ? AND ( ha_thumbnail = 0 OR ha_thumbnail IS NULL ) AND tipo = 'post'", array( $id ) )['n'],
+					'mancanti' => (int) $db->one( "SELECT COUNT(*) n FROM documento WHERE audit_id = ? AND ha_thumbnail = 0 AND tipo = 'post'", array( $id ) )['n'],
+					// Le analisi precedenti all aggiornamento non registravano
+					// l immagine in evidenza: senza quel dato il conteggio sarebbe
+					// gonfiato e si pagherebbero immagini già presenti.
+					'ignoti'   => (int) $db->one( "SELECT COUNT(*) n FROM documento WHERE audit_id = ? AND ha_thumbnail IS NULL AND tipo = 'post'", array( $id ) )['n'],
 					'generate' => is_dir( Immagini::cartella( $id ) ) ? count( glob( Immagini::cartella( $id ) . '/*.*' ) ) : 0,
 				),
 				'wp_pronto' => ( new WordPress( $cfg['wordpress'] ) )->pronto(),
