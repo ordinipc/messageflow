@@ -1,0 +1,83 @@
+{
+  "$schema": "./sources.schema.md",
+  "note": "Elenco fonti pubbliche. 'verificata: false' significa che l'URL va confermato con `npm run bandi -- doctor` sulla propria rete: i portali della PA cambiano indirizzo con una certa frequenza.",
+  "sources": [
+    {
+      "id": "gazzetta-ufficiale-concorsi",
+      "nome": "Gazzetta Ufficiale - 4ª Serie Speciale Concorsi ed Esami",
+      "tipo": "rss",
+      "url": "https://www.gazzettaufficiale.it/rss/S4",
+      "livello": "misto",
+      "attiva": true,
+      "verificata": false,
+      "note": "Pubblica i concorsi di scuole statali, università ed enti pubblici."
+    },
+    {
+      "id": "mur-bandi",
+      "nome": "MUR - Bandi reclutamento docenti e ricercatori universitari",
+      "tipo": "html",
+      "url": "https://bandi.mur.gov.it/",
+      "livello": "universita",
+      "attiva": true,
+      "verificata": false,
+      "note": "Portale ministeriale dei bandi di ateneo (ex bandi.miur.it)."
+    },
+    {
+      "id": "inpa-portale",
+      "nome": "inPA - Portale del reclutamento",
+      "tipo": "html",
+      "url": "https://www.inpa.gov.it/bandi-e-avvisi/",
+      "livello": "misto",
+      "attiva": true,
+      "verificata": false,
+      "note": "Molte pagine sono generate lato client: se doctor segnala 0 link, usare l'endpoint di ricerca del portale come fonte 'json'."
+    },
+    {
+      "id": "mim-news",
+      "nome": "Ministero dell'Istruzione e del Merito - Notizie",
+      "tipo": "html",
+      "url": "https://www.mim.gov.it/web/guest/news",
+      "livello": "scuola",
+      "attiva": true,
+      "verificata": false,
+      "note": "Concorsi docenti, ordinanze supplenze, GPS."
+    },
+    {
+      "id": "euraxess-italia",
+      "nome": "EURAXESS - Posizioni di ricerca in Italia",
+      "tipo": "rss",
+      "url": "https://euraxess.ec.europa.eu/jobs/search/rss?f%5B0%5D=country%3AItaly",
+      "livello": "universita",
+      "attiva": false,
+      "verificata": false,
+      "note": "Posizioni accademiche in Italia pubblicate sul portale europeo. Attivare dopo verifica dell'URL del feed."
+    },
+    {
+      "id": "usr-lombardia",
+      "nome": "USR Lombardia - Avvisi",
+      "tipo": "html",
+      "url": "https://usr.istruzione.lombardia.gov.it/",
+      "livello": "scuola",
+      "attiva": true,
+      "verificata": false
+    },
+    {
+      "id": "usr-lazio",
+      "nome": "USR Lazio - Avvisi",
+      "tipo": "html",
+      "url": "https://www.usrlazio.it/",
+      "livello": "scuola",
+      "attiva": true,
+      "verificata": false
+    },
+    {
+      "id": "usr-veneto",
+      "nome": "USR Veneto - Avvisi",
+      "tipo": "html",
+      "url": "https://www.istruzioneveneto.gov.it/",
+      "livello": "scuola",
+      "attiva": false,
+      "verificata": false
+    }
+  ]
+}

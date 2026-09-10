@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Gazzetta Ufficiale - Concorsi ed Esami</title>
+    <item>
+      <title><![CDATA[Concorso pubblico, per titoli ed esami, per la copertura di 1 posto di ricercatore a tempo determinato, settore concorsuale 09/H1]]></title>
+      <link>https://example.gov.it/concorso/1</link>
+      <description>Universit&#224; degli Studi di Bologna. Le domande devono pervenire entro il 30 aprile 2026.</description>
+      <pubDate>Tue, 10 Mar 2026 09:00:00 +0100</pubDate>
+      <guid>https://example.gov.it/concorso/1</guid>
+    </item>
+    <item>
+      <title>Concorso per 3 posti di collaboratore scolastico, personale ATA</title>
+      <link>https://example.gov.it/concorso/2</link>
+      <description>Istituto Comprensivo Manzoni</description>
+      <pubDate>Wed, 11 Mar 2026 09:00:00 +0100</pubDate>
+    </item>
+    <item>
+      <title>Avviso di selezione per titoli per incarichi di insegnamento a contratto</title>
+      <link>https://example.gov.it/concorso/3</link>
+      <description>Politecnico di Milano - scadenza 15/05/2026 ore 12:00</description>
+      <pubDate>Thu, 12 Mar 2026 09:00:00 +0100</pubDate>
+    </item>
+  </channel>
+</rss>

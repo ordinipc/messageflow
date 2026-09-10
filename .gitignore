@@ -6,3 +6,10 @@ node_modules/
 bandi/.cache/
 bandi/data/bandi.json
 bandi/sources.local.json
+
+# Dati e configurazione della versione PHP
+bandi-php/config.php
+bandi-php/sources.local.json
+bandi-php/data/bandi.json
+bandi-php/cache/*.json
+bandi-php/cache/host-*.txt

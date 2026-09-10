@@ -15,10 +15,13 @@ messageflow-website/
 ├── server.js               # Backend Node.js + Stripe
 ├── package.json            # Dipendenze npm
 ├── .env.example            # Template variabili ambiente
-├── bandi/                  # Aggregatore bandi per docenti e insegnanti
+├── bandi/                  # Aggregatore bandi per docenti (versione Node.js)
 │   ├── cli.js              # Comandi: run, list, export, sources, doctor
 │   ├── sources.json        # Fonti pubbliche (GU, MUR, inPA, MIM, USR…)
 │   └── lib/                # Fetch educato, parser, classificatore, archivio
+├── bandi-php/              # Stessa applicazione in PHP + MySQL (hosting condivisi)
+│   ├── index.php           # Elenco pubblico, api.php, cron.php, install.php
+│   └── lib/                # Porting PHP delle stesse librerie
 └── templates/
     └── messageflow-pro-template.html  # Template versione Pro
 ```
@@ -65,6 +68,10 @@ npm run bandi -- list --entro 30        # bandi in scadenza entro 30 giorni
 
 Con il server avviato è disponibile anche l'elenco web su `/bandi` e l'API su `/api/bandi`.
 Documentazione completa, fonti e note d'uso corretto: **[bandi/README.md](./bandi/README.md)**.
+
+**Hosting PHP classico?** In `bandi-php/` c'è la stessa applicazione riscritta in PHP puro
+con MySQL (o file JSON), installabile via FTP senza Node e senza Composer:
+**[bandi-php/README.md](./bandi-php/README.md)**.
 
 ---
 

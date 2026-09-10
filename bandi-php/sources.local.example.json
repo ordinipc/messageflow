@@ -1,0 +1,45 @@
+{
+  "note": "Copia questo file in bandi/sources.local.json e inserisci le tue fonti (la tua scuola, il tuo ateneo, il tuo USP). Il file locale non viene versionato e ha la precedenza su sources.json a parità di id.",
+  "sources": [
+    {
+      "id": "ic-verdi-albo",
+      "nome": "IC Verdi - Albo online",
+      "tipo": "html",
+      "url": "https://www.icverdi.edu.it/albo-online/",
+      "livello": "scuola",
+      "attiva": true
+    },
+    {
+      "id": "unimi-bandi",
+      "nome": "Università di Milano - Bandi docenti",
+      "tipo": "rss",
+      "url": "https://www.unimi.it/it/rss/bandi.xml",
+      "livello": "universita",
+      "attiva": true
+    },
+    {
+      "id": "portale-json-esempio",
+      "nome": "Esempio di fonte con API JSON",
+      "tipo": "json",
+      "url": "https://portale.example.it/api/bandi?size=100",
+      "jsonPath": "data.items",
+      "urlTemplate": "https://portale.example.it/bando/{id}",
+      "campi": {
+        "titolo": "oggetto",
+        "url": "codice",
+        "descrizione": "descrizioneBreve",
+        "data": "dataPubblicazione",
+        "scadenza": "dataScadenza"
+      },
+      "livello": "misto",
+      "attiva": false
+    },
+    {
+      "id": "mim-news",
+      "nome": "Esempio: disattivare una fonte predefinita usandone lo stesso id",
+      "tipo": "html",
+      "url": "https://www.mim.gov.it/web/guest/news",
+      "attiva": false
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+# Protegge configurazione, librerie, archivio e cache da accessi diretti dal web.
+<FilesMatch "^(config\.php|config\.example\.php|sources\.local\.json)$">
+    Require all denied
+</FilesMatch>
+
+RedirectMatch 403 ^.*/(lib|data|cache|tests)/.*$
+
+Options -Indexes
