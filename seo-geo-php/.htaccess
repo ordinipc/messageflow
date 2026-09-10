@@ -1,0 +1,30 @@
+# La radice pubblica dell applicazione è la cartella public/.
+# Questa regola la serve anche quando il progetto è caricato in una
+# sottocartella dello spazio web (per esempio /seo/), senza dover spostare file
+# né cambiare la document root.
+#
+# Se l hosting non consente le riscritture (AllowOverride None) questo file
+# viene ignorato: in quel caso interviene index.php, che reindirizza a public/.
+
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+
+	# La home della cartella apre l applicazione.
+	RewriteRule ^$ public/index.php [L]
+
+	# Tutto il resto (fogli di stile, download, pagine) viene servito da public/,
+	# senza mai rientrare in un ciclo su se stesso.
+	RewriteCond %{REQUEST_URI} !/public/
+	RewriteRule ^((?!public/).*)$ public/$1 [L]
+</IfModule>
+
+<IfModule mod_dir.c>
+	DirectoryIndex index.php index.html
+</IfModule>
+
+# Le cartelle di lavoro non devono essere raggiungibili dal web.
+<IfModule mod_authz_core.c>
+	<FilesMatch "\.(sqlite|sqlite-wal|sqlite-shm)$">
+		Require all denied
+	</FilesMatch>
+</IfModule>

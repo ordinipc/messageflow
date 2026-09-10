@@ -19,14 +19,28 @@ php -d upload_max_filesize=64M -d post_max_size=64M -S localhost:8000 -t public
 
 Poi apri <http://localhost:8000>.
 
-### Su hosting
+### Su hosting (via FTP)
 
-1. Carica la cartella sul server.
-2. Fai puntare il dominio (o il sottodominio) alla sottocartella `public/`.
-   Se non puoi cambiare la document root, sposta il contenuto di `public/`
-   nella radice e correggi i `require` in cima a `index.php`.
-3. Dai permessi di scrittura a `storage/` (755 o 775).
-4. Apri il sito: il database viene creato al primo avvio.
+1. Carica l'intera cartella nello spazio web, per esempio in `/seo/`.
+2. Dai permessi di scrittura a `storage/` (775).
+3. Apri **`https://tuodominio.it/seo/`**.
+
+Non c'è nessuna procedura di installazione da lanciare: il database e le tabelle
+si creano da soli alla prima apertura.
+
+L'applicazione vera vive in `public/`; nella radice ci sono un `.htaccess` che la
+serve direttamente e un `index.php` che reindirizza quando le riscritture Apache
+non sono attive. Se l'hosting non usa Apache (Nginx, LiteSpeed senza `.htaccess`)
+apri direttamente **`https://tuodominio.it/seo/public/`**: funziona in ogni caso.
+
+**Prima di tutto:** apri `https://tuodominio.it/seo/verifica.php` (oppure
+`/seo/public/verifica.php`). È una pagina di sola diagnosi che controlla versione
+di PHP, estensioni, permessi di `storage/` e limiti di caricamento, e ti dice
+l'indirizzo esatto da usare.
+
+Per far puntare un dominio o un sottodominio direttamente all'app, imposta come
+document root la cartella `public/`: è la configurazione più pulita perché lascia
+codice e dati fuori dalla portata del web.
 
 ### Database
 
@@ -146,10 +160,13 @@ Il plugin ignora i segnaposto non compilati, quindi non stampa mai dati finti.
 ## Struttura del progetto
 
 ```
+index.php                   reindirizza a public/ (per le installazioni in sottocartella)
+.htaccess                   serve public/ come radice quando Apache lo consente
 config.php                  dati aziendali, database, soglie SEO
 schema.sql                  schema MySQL (opzionale)
 cli/audit.php               interfaccia a riga di comando
 public/index.php            front controller web
+public/verifica.php         diagnosi dei requisiti del server
 public/assets/app.css       interfaccia
 views/                      layout e pagine
 src/

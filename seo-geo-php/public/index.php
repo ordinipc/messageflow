@@ -19,7 +19,23 @@ use SeoGeo\WxrParser;
 session_start();
 
 $cfg = require __DIR__ . '/../config.php';
-$db  = new Db( $cfg['database'] );
+
+try {
+	$db = new Db( $cfg['database'] );
+} catch ( Throwable $e ) {
+	// Quasi sempre significa che storage/ non è scrivibile: senza un messaggio
+	// chiaro qui l utente vedrebbe solo una pagina bianca.
+	http_response_code( 500 );
+
+	echo '<!doctype html><meta charset="utf-8"><title>Configurazione da completare</title>'
+		. '<link rel="stylesheet" href="assets/app.css">'
+		. '<main class="contenitore"><section class="intestazione"><h1>Il database non è raggiungibile</h1>'
+		. '<p class="guida">' . htmlspecialchars( $e->getMessage(), ENT_QUOTES ) . '</p></section>'
+		. '<section class="scheda"><p>Con SQLite (impostazione predefinita) il motivo è quasi sempre che la cartella '
+		. '<code>storage/</code> non è scrivibile: impostale i permessi <code>775</code> via FTP o dal pannello dell hosting.</p>'
+		. '<p><a class="bottone" href="verifica.php">Apri la verifica dei requisiti</a></p></section></main>';
+	exit;
+}
 
 /**
  * Scorciatoia per l escape dell output.

@@ -1,0 +1,45 @@
+SEO & GEO AUDIT - come si avvia
+===============================
+
+NON c'è nessun installatore da eseguire: il database si crea da solo.
+
+1) Carica questa cartella nello spazio web (per esempio in /seo/).
+
+2) Dai permessi di scrittura 775 alla cartella  storage/
+
+3) Apri nel browser:
+
+       https://tuodominio.it/seo/
+
+   Se vedi un elenco di file o un errore 403, il tuo hosting non applica
+   il file .htaccess: apri allora direttamente
+
+       https://tuodominio.it/seo/public/
+
+4) In caso di dubbi apri la pagina di diagnosi:
+
+       https://tuodominio.it/seo/verifica.php
+       (oppure  https://tuodominio.it/seo/public/verifica.php )
+
+   Controlla versione di PHP, estensioni, permessi e limiti di caricamento
+   e ti indica l'indirizzo esatto da usare.
+
+Perché l'index non è in questa cartella
+---------------------------------------
+Il codice vero sta in  public/ : è la cartella che il web deve vedere,
+mentre  src/  storage/  config.php  restano fuori portata. In questa
+radice trovi comunque un index.php che ti reindirizza automaticamente.
+
+Uso
+---
+- "Nuova analisi" -> carica il file XML di WordPress
+  (WordPress: Strumenti -> Esporta -> Tutti i contenuti)
+- L'analisi dura pochi secondi; poi scarichi il plugin e i CSV.
+
+Da riga di comando (se l'hosting la mette a disposizione):
+
+       php cli/audit.php export.xml
+
+Prima di usare i file generati: apri config.php e compila tutti i campi
+DA_COMPILARE (telefono, indirizzo, CAP, partita IVA, coordinate, scheda
+Google Business, autore). Senza quei dati lo schema locale resta incompleto.
