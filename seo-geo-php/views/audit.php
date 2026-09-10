@@ -127,6 +127,12 @@ $scaricabili = array(
 </section>
 
 <section class="scheda">
+	<h2>Applica sul sito</h2>
+	<p class="guida">Se il plugin è installato e collegato, il gestionale scrive meta, bozze, redirect e categorie direttamente su WordPress.</p>
+	<p><a class="bottone" href="?p=collega&amp;id=<?php echo (int) $audit['id']; ?>">Apri il collegamento</a></p>
+</section>
+
+<section class="scheda">
 	<h2>Riscrittura assistita</h2>
 	<p class="guida">Genera le bozze dei contenuti da riscrivere partendo dalle schede dell'audit, con Google Gemini. Le bozze restano in attesa di revisione: nulla viene pubblicato.</p>
 	<p><a class="bottone" href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>">Apri la riscrittura</a></p>

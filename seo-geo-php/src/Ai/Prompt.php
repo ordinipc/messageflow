@@ -171,6 +171,77 @@ TXT;
 	}
 
 	/**
+	 * Prompt per l accorpamento di più articoli sovrapposti.
+	 *
+	 * @param array $vincitore Articolo che resta.
+	 * @param array $assorbiti Articoli che confluiscono.
+	 * @param array $link      Link interni da inserire.
+	 * @param array $cfg       Configurazione.
+	 * @return string
+	 */
+	public static function accorpamento( array $vincitore, array $assorbiti, array $link, array $cfg ) {
+		$citta   = $cfg['seo']['cittaPrincipale'];
+		$keyword = $vincitore['focus'] ?: $vincitore['titolo'];
+
+		$fonti = 'ARTICOLO PRINCIPALE (resta online, questo è il suo URL: ' . $vincitore['url'] . ")
+"
+			. 'Titolo: ' . $vincitore['titolo'] . "\n---\n" . Text::truncate( $vincitore['testo'], 5000 ) . "\n---\n\n";
+
+		foreach ( $assorbiti as $i => $a ) {
+			$fonti .= 'ARTICOLO DA ASSORBIRE ' . ( $i + 1 ) . ' (verrà eliminato con un redirect 301 verso il principale)' . "\n"
+				. 'Titolo: ' . $a['titolo'] . "\n---\n" . Text::truncate( $a['testo'], 3500 ) . "\n---\n\n";
+		}
+
+		$elencoLink = '';
+		foreach ( $link as $anchor => $url ) {
+			$elencoLink .= sprintf( "- %s → %s\n", $anchor, $url );
+		}
+		if ( '' === $elencoLink ) {
+			$elencoLink = "- nessuno\n";
+		}
+
+		$quanti = count( $assorbiti );
+
+		return <<<TXT
+Questi {$quanti} articoli più il principale competono per la stessa ricerca su Google:
+si tolgono forza a vicenda e nessuno si posiziona. Vanno fusi in un unico articolo,
+più completo di ognuno dei precedenti.
+
+FOCUS KEYWORD DELL ARTICOLO UNIFICATO: {$keyword}
+LUNGHEZZA OBIETTIVO: 1.400-1.800 parole
+
+COSA DEVI FARE
+- Tieni tutto ciò che ha valore in ciascuna fonte: se due spiegano la stessa cosa in modo
+  diverso, tieni la versione migliore e integra i dettagli dell altra.
+- Elimina le ripetizioni: nel testo finale ogni concetto compare una volta sola.
+- Organizza per sezioni tematiche, non per fonte: chi legge non deve accorgersi
+  che il testo nasce da più articoli.
+- Se le fonti si contraddicono, scegli la versione più prudente e segnala il punto
+  con [DA VERIFICARE: due fonti in contrasto su ...].
+- Apri con un blocco di sintesi di 40-60 parole.
+- Chiudi con 5 domande frequenti che coprano le domande di tutte le fonti.
+- Cita {$citta} dove è pertinente.
+
+LINK INTERNI DA INSERIRE
+{$elencoLink}
+FONTI DA FONDERE
+
+{$fonti}
+Rispondi SOLO con un oggetto JSON con questa struttura esatta:
+{
+  "titolo": "titolo dell articolo unificato, max 65 caratteri",
+  "meta_title": "title SEO, max 60 caratteri",
+  "meta_description": "meta description fra 140 e 158 caratteri",
+  "in_breve": "blocco di sintesi di 40-60 parole",
+  "corpo_html": "corpo in HTML con <h2>, <h3>, <p>, <ul>, <table>, <a href>. Nessun <h1>.",
+  "faq": [{"domanda": "...", "risposta": "..."}],
+  "da_verificare": ["dati reali da inserire"],
+  "note": "cosa hai preso da ciascuna fonte, una riga"
+}
+TXT;
+	}
+
+	/**
 	 * Prompt per le sole meta di una pagina.
 	 *
 	 * @param array $doc Documento.

@@ -81,6 +81,10 @@ return array(
 		// usare la variabile d ambiente GEMINI_API_KEY, che non finisce nei backup.
 		'chiave'             => 'DA_COMPILARE',
 		'modello'            => 'gemini-2.5-flash',
+		// Generazione delle immagini in evidenza: richiede un progetto Google
+		// con fatturazione attiva. Se il modello non è disponibile sul tuo piano,
+		// cambia qui il nome senza toccare il codice.
+		'modello_immagini'   => 'gemini-2.5-flash-image',
 		'temperatura'        => 0.7,
 		'max_token'          => 8192,
 		'timeout'            => 120,
@@ -89,6 +93,13 @@ return array(
 		// Prezzi in euro per milione di token: aggiornali con quelli del tuo
 		// piano, servono solo per la stima mostrata prima di lanciare.
 		'prezzo_per_milione' => array( 'input' => 0.10, 'output' => 0.40 ),
+	),
+
+	// Collegamento con il sito WordPress: permette di applicare le correzioni
+	// direttamente, senza copiare e incollare. Il token si genera nel plugin.
+	'wordpress' => array(
+		'url'   => 'https://maxdigitalinnovation.it',
+		'token' => 'DA_COMPILARE',
 	),
 
 	'seo' => array(

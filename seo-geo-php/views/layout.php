@@ -22,6 +22,7 @@
 		<a class="marchio" href="?p=home">SEO &amp; GEO <span>Audit</span></a>
 		<nav>
 			<a href="?p=home">Audit archiviati</a>
+			<a href="?p=impostazioni">Impostazioni</a>
 			<a href="verifica.php">Requisiti</a>
 			<a class="bottone" href="?p=nuovo">Nuova analisi</a>
 		</nav>

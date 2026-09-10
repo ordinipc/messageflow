@@ -42,6 +42,14 @@ Per far puntare un dominio o un sottodominio direttamente all'app, imposta come
 document root la cartella `public/`: è la configurazione più pulita perché lascia
 codice e dati fuori dalla portata del web.
 
+### Impostazioni
+
+Dalla voce **Impostazioni** in alto si configurano dal browser chiave API, dati aziendali,
+autore, parametri SEO e collegamento a WordPress. Quello che salvi finisce in
+`storage/impostazioni.json` (permessi 600, cartella non raggiungibile dal web) e si
+sovrappone a `config.php`: non serve più modificare file via FTP, e un aggiornamento del
+programma non cancella i tuoi dati.
+
 ### Database
 
 SQLite è l'impostazione predefinita e non richiede nulla: il file nasce da solo in
@@ -229,6 +237,78 @@ garantisce posizionamenti. Riscrive testi: è una parte del lavoro, non tutto il
 
 ---
 
+## Applicare le correzioni sul sito (collegamento con il plugin)
+
+Il gestionale non si limita a produrre file: parla direttamente con il plugin installato
+su WordPress e scrive lì.
+
+### Come si collega
+
+1. Su WordPress apri **SEO &amp; GEO** nel menu: nel riquadro *Collegamento con il gestionale*
+   trovi indirizzo del sito e token (il token si genera con un clic).
+2. Incollali in **Impostazioni → Collegamento al sito WordPress**.
+3. Apri la scheda dell'audit → **Applica sul sito**: se il collegamento funziona vedi nome
+   del sito, versione di WordPress, numero di contenuti e quali plugin SEO sono attivi.
+
+Il canale è una API REST del plugin (`/wp-json/mdi-seo/v1/…`) autenticata con il token in
+un'intestazione `X-MDI-Token`. Il token vale come una password: si può rigenerare in
+qualsiasi momento dalla bacheca.
+
+### Cosa si può applicare
+
+| Operazione | Cosa fa | Reversibile |
+|---|---|---|
+| Meta ottimizzate | Scrive title, description, focus keyword ed estratto sui campi di Rank Math | Sì: i valori precedenti restano da parte, un pulsante li ripristina |
+| Anteprima meta | Mostra il confronto prima/dopo senza scrivere nulla | Non modifica niente |
+| Bozze | Crea articoli in stato **Bozza** collegati agli originali | I contenuti pubblicati non vengono mai toccati |
+| Redirect 301 | Attiva la tabella dei redirect (slug accorciati, articoli eliminati o accorpati) | Sì, si riapplica una tabella vuota |
+| Categorie | Riassegna le categorie agli articoli classificati fuori tema | Manualmente |
+| Immagini | Carica l'immagine in libreria e la imposta come immagine in evidenza | Manualmente |
+
+Le riscritture non sovrascrivono mai il testo pubblicato: diventano bozze nuove, che una
+persona confronta con l'originale e pubblica quando è soddisfatta.
+
+---
+
+## Cannibalizzazione: fondere gli articoli che competono fra loro
+
+Quando più articoli puntano alla stessa ricerca si tolgono forza a vicenda e nessuno si
+posiziona. Il triage li raggruppa, il modulo AI li fonde.
+
+```bash
+php cli/riscrivi.php 1 --accorpa --stima     # mostra i gruppi, senza chiamare l'API
+php cli/riscrivi.php 1 --accorpa --limite=3  # fonde tre gruppi
+```
+
+Il modello riceve **tutti i testi del gruppo** e ne produce uno solo: tiene quello che ha
+valore in ciascuno, elimina le ripetizioni, organizza per sezioni tematiche e segnala con
+un segnaposto i punti dove le fonti si contraddicono. Gli articoli assorbiti vanno poi
+reindirizzati con un 301 sul principale — i redirect sono già calcolati e si attivano dalla
+pagina *Applica sul sito*.
+
+---
+
+## Immagini in evidenza mancanti
+
+```bash
+php cli/riscrivi.php 1 --immagini --stima          # quanti articoli ne sono privi
+php cli/riscrivi.php 1 --immagini --limite=5       # genera e salva in storage/
+php cli/riscrivi.php 1 --immagini --limite=5 --invia   # e le carica sul sito
+```
+
+Le immagini sono orizzontali, senza testo, senza logo e senza volti riconoscibili (i modelli
+rendono male il testo dentro le immagini, e un titolo storto su un'immagine in evidenza si
+nota subito). Vengono salvate in `storage/export/audit-<n>/immagini/` e, con `--invia` o con
+la casella corrispondente nell'interfaccia, caricate in libreria media e impostate come
+immagine in evidenza con un alt descrittivo.
+
+Due avvertenze oneste: la generazione di immagini **richiede un progetto Google con
+fatturazione attiva** (sul piano gratuito l'API risponde con un errore di quota), e per una
+web agency le foto dei lavori veri valgono più di qualsiasi immagine generata. Questo serve
+a coprire l'archivio storico, non a sostituire il portfolio.
+
+---
+
 ## Struttura del progetto
 
 ```
@@ -252,10 +332,12 @@ src/
 ├── Rules/                  le 65 regole, un file per area
 ├── Audit.php               esecuzione delle regole, punteggi, salvataggio
 ├── Triage.php              classificazione editoriale
-├── Ai/                     client Gemini, prompt, generazione delle bozze
+├── Ai/                     client Gemini, prompt, bozze, accorpamenti, immagini
+├── Bridge/                 client verso le API REST del plugin
+├── Impostazioni.php        configurazione modificabile dal browser
 ├── Fix/                    meta, link interni, dati strutturati, llms.txt
 └── Export.php              CSV, file per i crawler, assemblaggio del plugin
-plugin-wordpress/           sorgenti del plugin generato
+plugin-wordpress/           sorgenti del plugin generato (incluse le rotte REST)
 storage/                    database, upload e file generati (in sola scrittura)
 ```
 

@@ -20,6 +20,7 @@ class MDI_Admin {
 	 * @return void
 	 */
 	public static function init() {
+		add_action( 'admin_post_mdi_genera_token', array( __CLASS__, 'genera_token' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'conflict_notice' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'config_notice' ) );
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
@@ -91,6 +92,61 @@ class MDI_Admin {
 	}
 
 	/**
+	 * Rigenera il token e torna alla pagina del plugin.
+	 *
+	 * @return void
+	 */
+	public static function genera_token() {
+		if ( ! current_user_can( 'manage_options' ) || ! check_admin_referer( 'mdi_genera_token' ) ) {
+			wp_die( 'Operazione non consentita.' );
+		}
+
+		MDI_Api::token( true );
+
+		wp_safe_redirect( admin_url( 'admin.php?page=mdi-seo-geo&token=nuovo' ) );
+		exit;
+	}
+
+	/**
+	 * Blocco con il token e l indirizzo da incollare nel gestionale.
+	 *
+	 * @return void
+	 */
+	public static function sezione_collegamento() {
+		$token = MDI_Api::token();
+
+		echo '<h2>Collegamento con il gestionale</h2>';
+		echo '<p>Incolla questi due valori nelle impostazioni dell applicazione SEO &amp; GEO Audit: '
+			. 'da lì potrai applicare meta, bozze, categorie, redirect e immagini senza copiare e incollare.</p>';
+
+		echo '<table class="widefat striped" style="max-width:820px"><tbody>';
+		printf(
+			'<tr><td style="width:180px"><strong>Indirizzo del sito</strong></td><td><code>%s</code></td></tr>',
+			esc_html( untrailingslashit( home_url() ) )
+		);
+		printf(
+			'<tr><td><strong>Token</strong></td><td><code style="user-select:all">%s</code></td></tr>',
+			esc_html( $token )
+		);
+		printf(
+			'<tr><td><strong>Endpoint</strong></td><td><code>%s</code></td></tr>',
+			esc_html( rest_url( MDI_Api::NAMESPACE_API . '/stato' ) )
+		);
+		echo '</tbody></table>';
+
+		printf(
+			'<p><form method="post" action="%s" onsubmit="return confirm(\'Rigenerare il token? Il gestionale andrà ricollegato.\')">'
+				. '%s<input type="hidden" name="action" value="mdi_genera_token">'
+				. '<button type="submit" class="button">Genera un token nuovo</button></form></p>',
+			esc_url( admin_url( 'admin-post.php' ) ),
+			wp_nonce_field( 'mdi_genera_token', '_wpnonce', true, false )
+		);
+
+		echo '<p class="description">Il token vale come una password: chi lo possiede può modificare meta e creare bozze. '
+			. 'Rigeneralo se pensi sia stato esposto.</p>';
+	}
+
+	/**
 	 * Pagina di riepilogo.
 	 *
 	 * @return void
@@ -118,6 +174,9 @@ class MDI_Admin {
 		}
 
 		echo '</table>';
+
+		self::sezione_collegamento();
+
 		echo '<h2>Verifiche consigliate</h2><ol>';
 		echo '<li>Apri <a href="' . esc_url( home_url( '/llms.txt' ) ) . '" target="_blank" rel="noopener">/llms.txt</a> e verifica che risponda.</li>';
 		echo '<li>Controlla i dati strutturati con il <a href="https://search.google.com/test/rich-results" target="_blank" rel="noopener">Rich Results Test</a>.</li>';

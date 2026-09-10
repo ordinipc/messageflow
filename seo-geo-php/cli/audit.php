@@ -18,7 +18,7 @@ use SeoGeo\Site;
 use SeoGeo\Triage;
 use SeoGeo\WxrParser;
 
-$cfg = require __DIR__ . '/../config.php';
+$cfg = \SeoGeo\Impostazioni::carica( require __DIR__ . '/../config.php' );
 
 $file = $argv[1] ?? '';
 

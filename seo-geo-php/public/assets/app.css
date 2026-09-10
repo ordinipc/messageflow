@@ -154,3 +154,25 @@ form.scheda input[type="file"] { display: block; margin-bottom: 12px; font-size:
 	.area .barra { display: none; }
 	.elenco-due { columns: 1; }
 }
+
+/* Moduli delle impostazioni. */
+.griglia { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+.campo { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.campo label { font-weight: 600; font-size: 14px; }
+.campo input, .campo textarea, .campo select {
+	padding: 9px 12px; border: 1px solid var(--linea); border-radius: 4px;
+	background: var(--superficie); color: var(--inchiostro); font: inherit; font-size: 14.5px; width: 100%;
+}
+.campo input:focus-visible, .campo textarea:focus-visible { outline: 2px solid var(--accento); outline-offset: 1px; }
+.campo small { color: var(--inchiostro-3); font-size: 12.5px; }
+.campo small a { color: var(--accento); }
+.campo.mancante label::after { content: " · da compilare"; color: var(--alto); font-weight: 400; font-size: 12px; }
+.campo.mancante input { border-color: var(--alto); background: var(--alto-bg); }
+.avviso.ok-bg { background: var(--ok-bg); color: var(--ok); }
+pre.mono { background: var(--basso-bg); padding: 12px 14px; border-radius: 4px; overflow-x: auto; font-size: 13px; }
+
+/* Azioni sul sito collegato. */
+.azioni { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.azioni form { margin: 0; }
+.bottone.chiaro { background: var(--superficie); color: var(--inchiostro-2); border: 1px solid var(--linea); }
+.bottone.chiaro:hover { border-color: var(--inchiostro-3); filter: none; }

@@ -20,9 +20,15 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 	<p class="guida">Le bozze partono dalle schede dell'audit: scaletta per intento di ricerca, lunghezza obiettivo, link interni da inserire. <strong>Nulla viene pubblicato</strong>: i testi restano qui in attesa di revisione.</p>
 </section>
 
+<?php if ( $errore ) : ?><p class="avviso grave"><?php echo e( $errore ); ?></p><?php endif; ?>
+
 <?php if ( $fatte || $errori ) : ?>
-	<p class="avviso <?php echo $errori ? 'grave' : ''; ?>">
-		Ultimo lotto: <?php echo (int) $fatte; ?> bozze generate<?php echo $errori ? ', ' . (int) $errori . ' errori' : ''; ?>.
+	<?php
+	$etichette = array( 'accorpa' => 'accorpamenti', 'immagini' => 'immagini', 'articoli' => 'bozze' );
+	$cosa      = $etichette[ $tipo ] ?? 'bozze';
+	?>
+	<p class="avviso <?php echo $errori ? 'grave' : 'ok-bg'; ?>">
+		Ultimo lotto: <?php echo (int) $fatte; ?> <?php echo e( $cosa ); ?><?php echo $errori ? ', ' . (int) $errori . ' errori' : ''; ?>.
 	</p>
 <?php endif; ?>
 
@@ -76,6 +82,66 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 	<p class="nota">Su hosting condiviso conviene restare su 3-5 per volta. Da riga di comando non c'è limite: <code>php cli/riscrivi.php <?php echo (int) $audit['id']; ?> --limite=50</code></p>
 
 	<button class="bottone" type="submit">Genera bozze</button>
+</form>
+<?php endif; ?>
+
+<?php if ( $pronto && $gruppi > 0 ) : ?>
+<form class="scheda" method="post" action="?p=genera">
+	<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+	<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
+	<input type="hidden" name="tipo" value="accorpa">
+
+	<h2>Cannibalizzazione: <?php echo num( $gruppi ); ?> gruppi da fondere</h2>
+	<p class="guida">
+		Questi articoli competono fra loro per la stessa ricerca e si tolgono forza a vicenda.
+		Il modello riceve tutti i testi del gruppo e ne produce uno solo, più completo di ciascuno:
+		tiene quello che ha valore, elimina le ripetizioni e segnala le contraddizioni fra le fonti.
+		Gli articoli assorbiti vanno poi reindirizzati con un 301 sul principale — i redirect sono già
+		calcolati in <a href="?p=collega&amp;id=<?php echo (int) $audit['id']; ?>">Applica sul sito</a>.
+	</p>
+
+	<label for="quante_gruppi">Quanti gruppi in questo lotto</label>
+	<input id="quante_gruppi" type="number" name="quante" value="3" min="1" max="10" style="width:110px;padding:8px;border:1px solid var(--linea);border-radius:4px">
+	<p class="nota">Un accorpamento richiede più tempo di una riscrittura: il modello legge fino a quattro articoli interi.</p>
+
+	<button class="bottone" type="submit">Fondi i gruppi</button>
+</form>
+<?php endif; ?>
+
+<?php if ( $pronto && $immagini['mancanti'] > 0 ) : ?>
+<form class="scheda" method="post" action="?p=genera">
+	<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+	<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
+	<input type="hidden" name="tipo" value="immagini">
+
+	<h2>Immagini in evidenza: <?php echo num( $immagini['mancanti'] ); ?> mancanti</h2>
+	<p class="guida">
+		Senza immagine in evidenza mancano og:image e twitter:image: le condivisioni social non hanno
+		anteprima e Google Discover esclude la pagina. Le immagini vengono generate in formato
+		orizzontale, senza testo e senza logo, e salvate in <code>storage/export/audit-<?php echo (int) $audit['id']; ?>/immagini/</code>.
+		<?php if ( $immagini['generate'] ) : ?>
+			Finora ne sono state generate <strong><?php echo num( $immagini['generate'] ); ?></strong>.
+		<?php endif; ?>
+	</p>
+
+	<label for="quante_img">Quante immagini in questo lotto</label>
+	<input id="quante_img" type="number" name="quante" value="3" min="1" max="10" style="width:110px;padding:8px;border:1px solid var(--linea);border-radius:4px">
+
+	<?php if ( $wp_pronto ) : ?>
+		<label style="display:flex;gap:8px;align-items:center;margin:10px 0;font-weight:400">
+			<input type="checkbox" name="invia" value="1" checked>
+			Caricale subito sul sito e impostale come immagine in evidenza
+		</label>
+	<?php endif; ?>
+
+	<p class="nota">
+		La generazione di immagini richiede un progetto Google con fatturazione attiva: sul piano gratuito
+		l'API risponde con un errore di quota. Un avvertimento onesto: per una web agency le foto dei
+		lavori veri valgono più di qualsiasi immagine generata — questo serve a coprire l'archivio storico,
+		non a sostituire il portfolio.
+	</p>
+
+	<button class="bottone" type="submit">Genera immagini</button>
 </form>
 <?php endif; ?>
 

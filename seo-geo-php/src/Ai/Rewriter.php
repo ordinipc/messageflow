@@ -216,6 +216,145 @@ class Rewriter {
 	}
 
 	/**
+	 * Gruppi di articoli che si contendono la stessa ricerca.
+	 *
+	 * Si ricostruiscono dai redirect calcolati dal triage: tutti gli articoli
+	 * che puntano allo stesso URL confluiscono in quell articolo.
+	 *
+	 * @param Db  $db      Database.
+	 * @param int $auditId Audit.
+	 * @return array[] Elenco di gruppi con 'vincitore' e 'assorbiti'.
+	 */
+	public static function gruppi( Db $db, $auditId ) {
+		$righe = $db->all(
+			"SELECT t.redirect_a, t.categoria, d.id AS doc_id, d.wp_id, d.titolo, d.url, d.slug,
+					d.testo, d.parole, d.percorso, d.focus_keyword AS focus
+			 FROM triage t JOIN documento d ON d.id = t.documento_id
+			 WHERE t.audit_id = ? AND t.categoria = 'accorpare' AND t.redirect_a <> ''",
+			array( $auditId )
+		);
+
+		$per_destinazione = array();
+
+		foreach ( $righe as $r ) {
+			$per_destinazione[ $r['redirect_a'] ][] = $r;
+		}
+
+		$gruppi = array();
+
+		foreach ( $per_destinazione as $url => $assorbiti ) {
+			$vincitore = $db->one(
+				'SELECT id AS doc_id, wp_id, titolo, url, slug, testo, parole, percorso, focus_keyword AS focus
+				 FROM documento WHERE audit_id = ? AND url = ?',
+				array( $auditId, $url )
+			);
+
+			if ( ! $vincitore ) {
+				continue;
+			}
+
+			$gruppi[] = array( 'vincitore' => $vincitore, 'assorbiti' => $assorbiti );
+		}
+
+		return $gruppi;
+	}
+
+	/**
+	 * Fonde i gruppi di articoli sovrapposti in un unico testo.
+	 *
+	 * @param Db     $db      Database.
+	 * @param Gemini $gemini  Client.
+	 * @param int    $auditId Audit.
+	 * @param array  $cfg     Configurazione.
+	 * @param array  $opzioni 'limite', 'cartella', 'su_progresso', 'secondi_max'.
+	 * @return array
+	 */
+	public static function consolida( Db $db, Gemini $gemini, $auditId, array $cfg, array $opzioni = array() ) {
+		$gruppi     = self::gruppi( $db, $auditId );
+		$istruzioni = Prompt::istruzioni( $cfg );
+		$modello    = $cfg['ai']['modello'] ?? 'gemini-2.5-flash';
+		$cartella   = $opzioni['cartella'] ?? dirname( __DIR__, 2 ) . '/storage/export/audit-' . (int) $auditId . '/bozze';
+		$progresso  = $opzioni['su_progresso'] ?? null;
+
+		if ( ! empty( $opzioni['limite'] ) ) {
+			$gruppi = array_slice( $gruppi, 0, (int) $opzioni['limite'] );
+		}
+
+		if ( ! is_dir( $cartella ) ) {
+			mkdir( $cartella, 0775, true );
+		}
+
+		$fatti    = 0;
+		$falliti  = 0;
+		$scadenza = isset( $opzioni['secondi_max'] ) ? time() + (int) $opzioni['secondi_max'] : null;
+
+		foreach ( $gruppi as $gruppo ) {
+			if ( $scadenza && time() > $scadenza ) {
+				break;
+			}
+
+			$vincitore = $gruppo['vincitore'];
+
+			try {
+				$link = self::linkSuggeriti( $db, $auditId, $vincitore['percorso'] );
+				$dati = $gemini->generaJson( $istruzioni, Prompt::accorpamento( $vincitore, $gruppo['assorbiti'], $link, $cfg ) );
+
+				$corpo = (string) ( $dati['corpo_html'] ?? '' );
+
+				if ( '' === trim( $corpo ) ) {
+					throw new \RuntimeException( 'il modello non ha restituito il corpo dell articolo' );
+				}
+
+				$titoli_assorbiti = implode( ', ', array_column( $gruppo['assorbiti'], 'titolo' ) );
+
+				$db->run( 'DELETE FROM bozza WHERE audit_id = ? AND documento_id = ?', array( $auditId, $vincitore['doc_id'] ) );
+
+				$db->insert(
+					'bozza',
+					array(
+						'audit_id'         => $auditId,
+						'documento_id'     => (int) $vincitore['doc_id'],
+						'wp_id'            => $vincitore['wp_id'],
+						'stato'            => 'ok',
+						'modello'          => $modello,
+						'titolo'           => (string) ( $dati['titolo'] ?? $vincitore['titolo'] ),
+						'meta_title'       => (string) ( $dati['meta_title'] ?? '' ),
+						'meta_description' => (string) ( $dati['meta_description'] ?? '' ),
+						'in_breve'         => (string) ( $dati['in_breve'] ?? '' ),
+						'corpo_html'       => $corpo,
+						'faq'              => json_encode( $dati['faq'] ?? array(), JSON_UNESCAPED_UNICODE ),
+						'da_verificare'    => json_encode( $dati['da_verificare'] ?? array(), JSON_UNESCAPED_UNICODE ),
+						'note'             => 'Accorpa ' . count( $gruppo['assorbiti'] ) . ' articoli: ' . $titoli_assorbiti
+							. '. ' . (string) ( $dati['note'] ?? '' ),
+						'parole'           => Text::wordCount( Html::stripTags( $corpo ) ),
+						'token_in'         => 0,
+						'token_out'        => 0,
+						'errore'           => '',
+						'creato_il'        => date( 'Y-m-d H:i:s' ),
+					)
+				);
+
+				file_put_contents( $cartella . '/' . $vincitore['slug'] . '-accorpato.html', self::fileBozza( $dati, $vincitore, $modello ) );
+				$fatti++;
+			} catch ( Throwable $e ) {
+				$falliti++;
+			}
+
+			if ( $progresso ) {
+				$progresso( $vincitore, $fatti, $falliti, count( $gruppi ) );
+			}
+		}
+
+		return array(
+			'gruppi'   => count( $gruppi ),
+			'generate' => $fatti,
+			'fallite'  => $falliti,
+			'consumo'  => $gemini->consumo(),
+			'cartella' => $cartella,
+		);
+	}
+
+	/**
 	 * File HTML della bozza, pronto da incollare nell editor di WordPress.
 	 *
 	 * @param array  $dati     Risposta del modello.

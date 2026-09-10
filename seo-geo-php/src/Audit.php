@@ -216,6 +216,7 @@ class Audit {
 				// Il testo resta nel database: serve ai prompt del modulo AI senza
 				// dover rileggere ogni volta l export da 10 MB.
 				'testo'           => $d['testo'],
+				'ha_thumbnail'    => '' !== $d['thumbnail'] ? 1 : 0,
 			);
 		}
 		$db->insertMany( 'documento', $documenti );

@@ -25,6 +25,12 @@ class Gemini {
 	 * @return string
 	 */
 	private function endpointBase() {
+		$da_ambiente = getenv( 'GEMINI_ENDPOINT' );
+
+		if ( $da_ambiente ) {
+			return (string) $da_ambiente;
+		}
+
 		return (string) ( $this->cfg['endpoint'] ?? self::ENDPOINT );
 	}
 
@@ -193,6 +199,70 @@ class Gemini {
 		}
 
 		return $dati;
+	}
+
+	/**
+	 * Genera un immagine.
+	 *
+	 * @param string $descrizione Prompt visivo.
+	 * @param array  $opzioni     'modello'.
+	 * @return array{0:string,1:string} Tipo MIME e contenuto binario.
+	 * @throws RuntimeException Se la generazione non riesce.
+	 */
+	public function generaImmagine( $descrizione, array $opzioni = array() ) {
+		if ( ! $this->pronto() ) {
+			throw new RuntimeException( 'Chiave API Gemini mancante: impostala nelle impostazioni del gestionale.' );
+		}
+
+		$modello  = $opzioni['modello'] ?? ( $this->cfg['modello_immagini'] ?? 'gemini-2.5-flash-image' );
+		$endpoint = sprintf( $this->endpointBase(), rawurlencode( $modello ) );
+
+		$corpo = array(
+			'contents' => array(
+				array(
+					'role'  => 'user',
+					'parts' => array( array( 'text' => $descrizione ) ),
+				),
+			),
+		);
+
+		list( $stato, $risposta, $errore_rete ) = $this->chiama( $endpoint, $corpo );
+
+		if ( 0 === $stato ) {
+			throw new RuntimeException( 'Connessione a Gemini non riuscita: ' . $errore_rete );
+		}
+
+		$dati = json_decode( $risposta, true );
+
+		if ( $stato >= 400 ) {
+			$messaggio = $this->messaggioErrore( $stato, $dati );
+
+			// La generazione di immagini richiede un progetto con fatturazione attiva.
+			if ( 429 === $stato || false !== stripos( $messaggio, 'quota' ) || false !== stripos( $messaggio, 'billing' ) ) {
+				$messaggio .= ' La generazione di immagini non rientra nel piano gratuito: serve un progetto Google con fatturazione attiva.';
+			}
+
+			throw new RuntimeException( $messaggio );
+		}
+
+		foreach ( (array) ( $dati['candidates'][0]['content']['parts'] ?? array() ) as $parte ) {
+			if ( isset( $parte['inlineData']['data'] ) ) {
+				$binario = base64_decode( $parte['inlineData']['data'], true );
+
+				if ( false !== $binario && strlen( $binario ) > 1024 ) {
+					$this->consumo['chiamate']++;
+					$this->consumo['token_in']  += (int) ( $dati['usageMetadata']['promptTokenCount'] ?? 0 );
+					$this->consumo['token_out'] += (int) ( $dati['usageMetadata']['candidatesTokenCount'] ?? 0 );
+
+					return array( (string) ( $parte['inlineData']['mimeType'] ?? 'image/png' ), $binario );
+				}
+			}
+		}
+
+		throw new RuntimeException(
+			'Il modello non ha restituito un immagine. Verifica che "' . $modello . '" sia un modello di generazione immagini '
+			. 'disponibile sul tuo piano: puoi cambiarlo nelle impostazioni.'
+		);
 	}
 
 	/**

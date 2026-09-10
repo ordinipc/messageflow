@@ -75,6 +75,7 @@ require_once MDI_SEO_GEO_DIR . 'includes/class-mdi-schema.php';
 require_once MDI_SEO_GEO_DIR . 'includes/class-mdi-links.php';
 require_once MDI_SEO_GEO_DIR . 'includes/class-mdi-media.php';
 require_once MDI_SEO_GEO_DIR . 'includes/class-mdi-ai.php';
+require_once MDI_SEO_GEO_DIR . 'includes/class-mdi-api.php';
 require_once MDI_SEO_GEO_DIR . 'includes/class-mdi-admin.php';
 
 add_action(
@@ -85,6 +86,7 @@ add_action(
 		MDI_Links::init();
 		MDI_Media::init();
 		MDI_AI::init();
+		MDI_Api::init();
 		MDI_Admin::init();
 	}
 );
