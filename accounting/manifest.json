@@ -1,0 +1,112 @@
+{
+    "name": "Contabilità Pro",
+    "short_name": "Contabilità",
+    "description": "Gestionale fatturazione - Fatture, XML/SDI, Export Commercialista",
+    "start_url": "/app/accounting/?page=dashboard",
+    "scope": "/app/accounting/",
+    "display": "standalone",
+    "orientation": "any",
+    "background_color": "#38a169",
+    "theme_color": "#38a169",
+    "categories": [
+        "business",
+        "finance"
+    ],
+    "lang": "it",
+    "icons": [
+        {
+            "src": "icons/icon-72.png",
+            "sizes": "72x72",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icons/icon-96.png",
+            "sizes": "96x96",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icons/icon-128.png",
+            "sizes": "128x128",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icons/icon-144.png",
+            "sizes": "144x144",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icons/icon-152.png",
+            "sizes": "152x152",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icons/icon-384.png",
+            "sizes": "384x384",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Preventivi",
+            "short_name": "Preventivi",
+            "url": "/app/accounting/?page=quotes",
+            "icons": [
+                {
+                    "src": "icons/icon-96.png",
+                    "sizes": "96x96"
+                }
+            ]
+        },
+        {
+            "name": "Fatture",
+            "short_name": "Fatture",
+            "url": "/app/accounting/?page=invoices",
+            "icons": [
+                {
+                    "src": "icons/icon-96.png",
+                    "sizes": "96x96"
+                }
+            ]
+        },
+        {
+            "name": "Clienti",
+            "short_name": "Clienti",
+            "url": "/app/accounting/?page=clients",
+            "icons": [
+                {
+                    "src": "icons/icon-96.png",
+                    "sizes": "96x96"
+                }
+            ]
+        },
+        {
+            "name": "Export",
+            "short_name": "Export",
+            "url": "/app/accounting/?page=export",
+            "icons": [
+                {
+                    "src": "icons/icon-96.png",
+                    "sizes": "96x96"
+                }
+            ]
+        }
+    ]
+}
