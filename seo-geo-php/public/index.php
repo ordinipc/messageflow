@@ -7,6 +7,8 @@
 
 require_once __DIR__ . '/../src/Autoload.php';
 
+use SeoGeo\Ai\Gemini;
+use SeoGeo\Ai\Rewriter;
 use SeoGeo\Audit;
 use SeoGeo\Db;
 use SeoGeo\Export;
@@ -148,6 +150,44 @@ if ( 'analizza' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	exit;
 }
 
+// ------------------------------------------------------- Generazione bozze AI
+if ( 'genera' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Token di sessione non valido: ricarica la pagina e riprova.' );
+	}
+
+	$id      = (int) ( $_POST['id'] ?? 0 );
+	$quante  = max( 1, min( 25, (int) ( $_POST['quante'] ?? $cfg['ai']['articoli_per_volta'] ) ) );
+	$gemini  = new Gemini( $cfg['ai'] );
+
+	if ( ! $gemini->pronto() ) {
+		header( 'Location: ?p=bozze&id=' . $id . '&esito=chiave' );
+		exit;
+	}
+
+	set_time_limit( 0 );
+
+	// Si lavora a lotti con un tetto di tempo: su hosting condiviso una
+	// generazione lunga verrebbe interrotta dal server a metà.
+	$limite_php = (int) ini_get( 'max_execution_time' );
+	$budget     = $limite_php > 0 ? max( 20, $limite_php - 15 ) : 90;
+
+	$esito = Rewriter::esegui(
+		$db,
+		$gemini,
+		$id,
+		$cfg,
+		array(
+			'limite'      => $quante,
+			'secondi_max' => $budget,
+		)
+	);
+
+	header( 'Location: ?p=bozze&id=' . $id . '&fatte=' . (int) $esito['generate'] . '&errori=' . (int) $esito['fallite'] );
+	exit;
+}
+
 // ------------------------------------------------------------------- Download
 if ( 'download' === $pagina ) {
 	$id   = (int) ( $_GET['id'] ?? 0 );
@@ -250,6 +290,39 @@ switch ( $pagina ) {
 				'articoli' => $db->all( $sql, $params ),
 				'conteggi' => $db->all( 'SELECT categoria, COUNT(*) n FROM triage WHERE audit_id = ? GROUP BY categoria', array( $id ) ),
 				'filtro'   => $filtro,
+			)
+		);
+		break;
+
+	case 'bozze':
+		$id    = (int) ( $_GET['id'] ?? 0 );
+		$audit = $db->one( 'SELECT * FROM audit WHERE id = ?', array( $id ) );
+
+		if ( ! $audit ) {
+			http_response_code( 404 );
+			exit( 'Audit non trovato.' );
+		}
+
+		$gemini    = new Gemini( $cfg['ai'] );
+		$candidati = Rewriter::candidati( $db, $id, array() );
+
+		vista(
+			'bozze',
+			array(
+				'titolo'    => 'Riscrittura assistita',
+				'audit'     => $audit,
+				'cfg'       => $cfg,
+				'pronto'    => $gemini->pronto(),
+				'stima'     => Rewriter::stima( $candidati, $cfg['ai'] ),
+				'bozze'     => $db->all(
+					'SELECT b.*, d.url, d.slug, d.parole AS parole_originali
+					 FROM bozza b JOIN documento d ON d.id = b.documento_id
+					 WHERE b.audit_id = ? ORDER BY b.id DESC',
+					array( $id )
+				),
+				'esito'     => $_GET['esito'] ?? '',
+				'fatte'     => (int) ( $_GET['fatte'] ?? 0 ),
+				'errori'    => (int) ( $_GET['errori'] ?? 0 ),
 			)
 		);
 		break;

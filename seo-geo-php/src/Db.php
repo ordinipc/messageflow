@@ -165,6 +165,28 @@ class Db {
 				slug_cambiato INT
 			)$suff",
 
+			"CREATE TABLE IF NOT EXISTS bozza (
+				id $pk,
+				audit_id INT NOT NULL,
+				documento_id INT NOT NULL,
+				wp_id $vc,
+				stato $vc,
+				modello $vc,
+				titolo $txt,
+				meta_title $txt,
+				meta_description $txt,
+				in_breve $txt,
+				corpo_html $txt,
+				faq $txt,
+				da_verificare $txt,
+				note $txt,
+				parole INT,
+				token_in INT,
+				token_out INT,
+				errore $txt,
+				creato_il $vc
+			)$suff",
+
 			"CREATE TABLE IF NOT EXISTS link_piano (
 				id $pk,
 				audit_id INT NOT NULL,
@@ -182,13 +204,49 @@ class Db {
 			$this->pdo->exec( $sql );
 		}
 
+		// Colonne introdotte dopo il primo rilascio: aggiunte solo se mancanti,
+		// così un database esistente continua a funzionare senza reinstallazione.
+		$this->aggiungiColonna( 'documento', 'testo', $txt );
+
 		foreach ( array(
 			'CREATE INDEX IF NOT EXISTS idx_doc_audit ON documento (audit_id)',
 			'CREATE INDEX IF NOT EXISTS idx_ril_audit ON rilievo (audit_id)',
 			'CREATE INDEX IF NOT EXISTS idx_occ_ril ON occorrenza (rilievo_id)',
 			'CREATE INDEX IF NOT EXISTS idx_tri_audit ON triage (audit_id)',
+			'CREATE INDEX IF NOT EXISTS idx_boz_audit ON bozza (audit_id)',
 		) as $sql ) {
 			$this->pdo->exec( $sql );
+		}
+	}
+
+	/**
+	 * Aggiunge una colonna se non esiste già.
+	 *
+	 * @param string $tabella Tabella.
+	 * @param string $colonna Colonna.
+	 * @param string $tipo    Tipo SQL.
+	 * @return void
+	 */
+	private function aggiungiColonna( $tabella, $colonna, $tipo ) {
+		try {
+			if ( 'sqlite' === $this->driver ) {
+				$colonne = $this->pdo->query( "PRAGMA table_info($tabella)" )->fetchAll();
+				foreach ( $colonne as $c ) {
+					if ( $c['name'] === $colonna ) {
+						return;
+					}
+				}
+			} else {
+				$esiste = $this->pdo->query( "SHOW COLUMNS FROM `$tabella` LIKE " . $this->pdo->quote( $colonna ) )->fetch();
+				if ( $esiste ) {
+					return;
+				}
+			}
+
+			$this->pdo->exec( "ALTER TABLE $tabella ADD COLUMN $colonna $tipo" );
+		} catch ( \Throwable $e ) {
+			// La tabella potrebbe non esistere ancora al primo avvio: nessun problema.
+			return;
 		}
 	}
 

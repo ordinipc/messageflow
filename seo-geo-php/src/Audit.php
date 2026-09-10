@@ -213,6 +213,9 @@ class Audit {
 				'gulpease'        => $d['gulpease'],
 				'pubblicato'      => substr( (string) $d['data'], 0, 10 ),
 				'modificato'      => substr( (string) $d['modificato'], 0, 10 ),
+				// Il testo resta nel database: serve ai prompt del modulo AI senza
+				// dover rileggere ogni volta l export da 10 MB.
+				'testo'           => $d['testo'],
 			);
 		}
 		$db->insertMany( 'documento', $documenti );

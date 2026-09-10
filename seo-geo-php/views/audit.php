@@ -126,6 +126,12 @@ $scaricabili = array(
 	</div>
 </section>
 
+<section class="scheda">
+	<h2>Riscrittura assistita</h2>
+	<p class="guida">Genera le bozze dei contenuti da riscrivere partendo dalle schede dell'audit, con Google Gemini. Le bozze restano in attesa di revisione: nulla viene pubblicato.</p>
+	<p><a class="bottone" href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>">Apri la riscrittura</a></p>
+</section>
+
 <?php $zip = __DIR__ . '/../storage/export/audit-' . (int) $audit['id'] . '/mdi-seo-geo-booster.zip'; ?>
 <?php if ( is_file( $zip ) ) : ?>
 <section class="scheda">

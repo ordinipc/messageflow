@@ -73,6 +73,24 @@ return array(
 		),
 	),
 
+	// Modulo di riscrittura assistita. Le bozze non vengono mai pubblicate
+	// automaticamente: restano in attesa di revisione.
+	'ai' => array(
+		'provider'           => 'gemini',
+		// Chiave da https://aistudio.google.com/apikey — in alternativa si può
+		// usare la variabile d ambiente GEMINI_API_KEY, che non finisce nei backup.
+		'chiave'             => 'DA_COMPILARE',
+		'modello'            => 'gemini-2.5-flash',
+		'temperatura'        => 0.7,
+		'max_token'          => 8192,
+		'timeout'            => 120,
+		'tentativi'          => 3,
+		'articoli_per_volta' => 5,
+		// Prezzi in euro per milione di token: aggiornali con quelli del tuo
+		// piano, servono solo per la stima mostrata prima di lanciare.
+		'prezzo_per_milione' => array( 'input' => 0.10, 'output' => 0.40 ),
+	),
+
 	'seo' => array(
 		'brandSuffix'             => 'Max Digital Innovation',
 		'cittaPrincipale'         => 'Palermo',

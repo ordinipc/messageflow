@@ -157,6 +157,78 @@ Il plugin ignora i segnaposto non compilati, quindi non stampa mai dati finti.
 
 ---
 
+## Riscrittura assistita con Gemini (modulo AI)
+
+Il resto del programma è deterministico: regole, soglie, algoritmi. Questo modulo è
+l'unica parte che chiama un modello, e serve per la sola cosa che un algoritmo non può
+fare — scrivere i 220 articoli che l'audit segnala come troppo deboli.
+
+### Come funziona
+
+Le bozze non partono da un prompt generico: partono dalle schede già prodotte
+dall'audit. Per ogni articolo il modulo passa al modello l'intento di ricerca rilevato,
+la scaletta H2 corrispondente, la lunghezza obiettivo, i link interni da inserire con il
+loro anchor e il testo attuale come base di contenuto. Il modello esegue una strategia
+già decisa, non la inventa.
+
+### La regola sui dati
+
+Le istruzioni di sistema vietano di inventare numeri, percentuali, prezzi, nomi di
+clienti, premi e risultati. Dove servirebbe un dato reale il modello scrive
+`[DA VERIFICARE: descrizione del dato]` e prosegue. Ogni bozza arriva con l'elenco dei
+dati da inserire prima di pubblicare. È il vincolo più importante del modulo: un numero
+inventato su un sito aziendale è un problema legale, non un difetto di stile.
+
+### Nulla viene pubblicato
+
+Le bozze restano nel database e come file HTML in `storage/export/audit-<n>/bozze/`.
+Non esiste una funzione che le mandi su WordPress. Pubblicare in massa testo generato
+senza revisione è esattamente ciò che le linee guida antispam di Google chiamano abuso
+di contenuti scalati — e il sito analizzato mostra già quel profilo.
+
+### Configurazione
+
+Crea una chiave su <https://aistudio.google.com/apikey>, poi in `config.php`:
+
+```php
+'ai' => array(
+	'provider'           => 'gemini',
+	'chiave'             => 'la-tua-chiave',
+	'modello'            => 'gemini-2.5-flash',
+	'articoli_per_volta' => 5,
+	'prezzo_per_milione' => array( 'input' => 0.10, 'output' => 0.40 ),
+),
+```
+
+Meglio ancora: lascia `chiave` vuota ed esporta la variabile d'ambiente
+`GEMINI_API_KEY`, così la chiave non finisce nei backup del sito. I prezzi servono solo
+alla stima mostrata prima di lanciare: aggiornali con quelli del tuo piano.
+
+### Uso
+
+Dall'interfaccia web: nella scheda dell'audit, **Riscrittura assistita**. Si procede a
+lotti (3-5 articoli per volta su hosting condiviso) per non superare il tempo massimo di
+esecuzione: ogni articolo richiede 10-30 secondi.
+
+Da riga di comando, senza limiti di tempo:
+
+```bash
+php cli/riscrivi.php 1 --stima                    # quanto costerebbe, senza chiamare l'API
+php cli/riscrivi.php 1 --limite=5                 # genera 5 bozze
+php cli/riscrivi.php 1 --categoria=accorpare      # solo una categoria del triage
+php cli/riscrivi.php 1 --limite=50 --rigenera     # rifà anche quelle già fatte
+```
+
+La coda è ordinata per resa: prima gli articoli con intento transazionale e commerciale,
+poi gli informativi, dai più corti ai più lunghi.
+
+### Cosa il modulo non fa
+
+Non genera backlink, non crea recensioni, non aumenta l'autorità del dominio e non
+garantisce posizionamenti. Riscrive testi: è una parte del lavoro, non tutto il lavoro.
+
+---
+
 ## Struttura del progetto
 
 ```
@@ -165,6 +237,7 @@ index.php                   reindirizza a public/ (per le installazioni in sotto
 config.php                  dati aziendali, database, soglie SEO
 schema.sql                  schema MySQL (opzionale)
 cli/audit.php               interfaccia a riga di comando
+cli/riscrivi.php            generazione delle bozze con Gemini
 public/index.php            front controller web
 public/verifica.php         diagnosi dei requisiti del server
 public/assets/app.css       interfaccia
@@ -179,6 +252,7 @@ src/
 ├── Rules/                  le 65 regole, un file per area
 ├── Audit.php               esecuzione delle regole, punteggi, salvataggio
 ├── Triage.php              classificazione editoriale
+├── Ai/                     client Gemini, prompt, generazione delle bozze
 ├── Fix/                    meta, link interni, dati strutturati, llms.txt
 └── Export.php              CSV, file per i crawler, assemblaggio del plugin
 plugin-wordpress/           sorgenti del plugin generato
