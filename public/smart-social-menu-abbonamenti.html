@@ -1,0 +1,502 @@
+<title>Smart Social Menu — Piani</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500;6..96,700&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#f4f1e9;
+  --paper-2:#ebe6d9;
+  --paper-3:#e2dccb;
+  --ink:#17140b;
+  --ink-soft:#4a4436;
+  --ink-dim:#7d7566;
+  --line:#ddd6c4;
+  --line-soft:#e8e2d3;
+  --brass:#a9871a;
+  --brass-bright:#c9a227;
+  --verde:#22483d;
+  --verde-ink:#f1ece0;
+  --card:#fffdf7;
+  --shadow:0 1px 0 rgba(23,20,11,.05);
+  --step--1:.8125rem;
+  --step-0:1rem;
+  --step-1:1.25rem;
+  --step-2:1.65rem;
+  --step-3:2.3rem;
+  --step-4:3.2rem;
+  --maxw:1120px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#13110c;
+    --paper-2:#1b1810;
+    --paper-3:#241f15;
+    --ink:#f2ecdd;
+    --ink-soft:#c6bda9;
+    --ink-dim:#8f8674;
+    --line:#332c1f;
+    --line-soft:#282216;
+    --brass:#d9b13a;
+    --brass-bright:#e5c352;
+    --verde:#1c3a31;
+    --verde-ink:#e8f0e9;
+    --card:#1a170f;
+    --shadow:0 1px 0 rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#13110c;
+  --paper-2:#1b1810;
+  --paper-3:#241f15;
+  --ink:#f2ecdd;
+  --ink-soft:#c6bda9;
+  --ink-dim:#8f8674;
+  --line:#332c1f;
+  --line-soft:#282216;
+  --brass:#d9b13a;
+  --brass-bright:#e5c352;
+  --verde:#1c3a31;
+  --verde-ink:#e8f0e9;
+  --card:#1a170f;
+  --shadow:0 1px 0 rgba(0,0,0,.4);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Karla","Segoe UI",system-ui,-apple-system,sans-serif;
+  font-size:var(--step-0);
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:"Bodoni Moda",Georgia,"Times New Roman",serif;font-weight:400;text-wrap:balance;margin:0}
+p{margin:0}
+a{color:inherit}
+.wrap{width:100%;max-width:var(--maxw);margin-inline:auto;padding-inline:20px}
+.eyebrow{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.6875rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);
+}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- topbar ---------- */
+.topbar{border-bottom:1px solid var(--line);background:var(--paper)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-block:14px}
+.brand{display:flex;align-items:baseline;gap:9px;margin-right:auto}
+.brand b{font-family:"Bodoni Moda",Georgia,serif;font-weight:500;font-size:1.2rem;letter-spacing:-.01em}
+.brand span{font-family:"IBM Plex Mono",monospace;font-size:.625rem;letter-spacing:.16em;text-transform:uppercase;color:var(--brass)}
+.topnav{display:flex;gap:20px;font-size:var(--step--1);color:var(--ink-soft)}
+.topnav a{text-decoration:none}
+.topnav a:hover{color:var(--brass)}
+
+/* ---------- hero ---------- */
+.hero .wrap{
+  display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);
+  gap:52px;align-items:center;padding-block:64px 56px;
+}
+.hero h1{font-size:var(--step-4);line-height:1.03;letter-spacing:-.015em;margin-block:14px 18px}
+.hero h1 em{font-style:italic;color:var(--brass)}
+.lede{font-size:1.0625rem;color:var(--ink-soft);max-width:52ch}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center}
+.btn{
+  display:inline-block;padding:11px 22px;border-radius:2px;text-decoration:none;
+  font-weight:600;font-size:var(--step--1);letter-spacing:.02em;border:1px solid transparent;
+}
+.btn-primary{background:var(--verde);color:var(--verde-ink);border-color:var(--verde)}
+.btn-primary:hover{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.btn-ghost{border-color:var(--line);color:var(--ink)}
+.btn-ghost:hover{border-color:var(--brass);color:var(--brass)}
+.hero-note{font-size:var(--step--1);color:var(--ink-dim)}
+
+/* dish mock */
+.mock{
+  background:var(--card);border:1px solid var(--line);border-radius:3px;padding:20px 20px 16px;
+  box-shadow:var(--shadow);
+}
+.mock-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line-soft);padding-bottom:10px;margin-bottom:6px}
+.mock-head b{font-family:"Bodoni Moda",serif;font-weight:500;font-size:1rem}
+.dish{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px dotted var(--line)}
+.dish:last-of-type{border-bottom:0}
+.rank{
+  font-family:"IBM Plex Mono",monospace;font-size:.625rem;color:var(--brass);
+  border:1px solid var(--line);border-radius:2px;padding:2px 5px;
+}
+.dish-name{font-size:.875rem;line-height:1.3}
+.dish-name small{display:block;color:var(--ink-dim);font-size:.6875rem}
+.score{font-family:"IBM Plex Mono",monospace;font-size:.75rem;color:var(--ink-soft)}
+.mock-foot{margin-top:12px;font-family:"IBM Plex Mono",monospace;font-size:.625rem;letter-spacing:.06em;color:var(--ink-dim);text-transform:uppercase}
+
+/* ---------- strip ---------- */
+.strip{background:var(--verde);color:var(--verde-ink)}
+.strip .wrap{display:flex;flex-wrap:wrap;gap:14px 40px;padding-block:16px;font-size:var(--step--1)}
+.strip span{display:flex;align-items:center;gap:8px}
+.strip b{font-family:"IBM Plex Mono",monospace;font-weight:500;color:var(--brass-bright)}
+
+/* ---------- pricing ---------- */
+.section{padding-block:70px}
+.section-head{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;justify-content:space-between;margin-bottom:34px}
+.section-head h2{font-size:var(--step-3);line-height:1.1;letter-spacing:-.01em}
+.section-head p{color:var(--ink-soft);font-size:var(--step--1);max-width:46ch;margin-top:8px}
+
+.toggle{display:inline-flex;border:1px solid var(--line);border-radius:2px;background:var(--card);overflow:hidden}
+.toggle button{
+  font:inherit;font-size:var(--step--1);font-weight:600;letter-spacing:.02em;
+  background:transparent;color:var(--ink-soft);border:0;padding:10px 18px;cursor:pointer;
+}
+.toggle button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.toggle button:focus-visible{outline:2px solid var(--brass);outline-offset:-2px}
+.save{font-family:"IBM Plex Mono",monospace;font-size:.6875rem;color:var(--brass);display:block;margin-top:8px;letter-spacing:.06em}
+
+.plans{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--line);background:var(--card)}
+.plan{padding:26px 22px 24px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:14px}
+.plan:last-child{border-right:0}
+.plan-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px;min-height:22px}
+.plan h3{font-size:var(--step-2);line-height:1;letter-spacing:-.01em}
+.tag{
+  font-family:"IBM Plex Mono",monospace;font-size:.5625rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--verde-ink);background:var(--verde);padding:3px 7px;border-radius:2px;white-space:nowrap;
+}
+.plan-desc{font-size:var(--step--1);color:var(--ink-soft);min-height:3.2em}
+.price{display:flex;align-items:baseline;gap:6px;border-top:1px dotted var(--line);padding-top:14px}
+.price .amount{font-family:"Bodoni Moda",serif;font-size:2.4rem;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.price .per{font-size:.75rem;color:var(--ink-dim);font-family:"IBM Plex Mono",monospace}
+.price-sub{font-size:.6875rem;color:var(--ink-dim);font-family:"IBM Plex Mono",monospace;margin-top:-6px;min-height:1.2em}
+.limits{display:flex;flex-direction:column;gap:4px;font-family:"IBM Plex Mono",monospace;font-size:.6875rem;color:var(--ink-soft)}
+.limits div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted var(--line-soft);padding-bottom:4px}
+.feat{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;font-size:var(--step--1);color:var(--ink-soft)}
+.feat li{display:grid;grid-template-columns:14px 1fr;gap:8px;align-items:start;line-height:1.4}
+.feat li::before{content:"";width:7px;height:7px;margin-top:.5em;border:1px solid var(--brass);background:var(--brass);border-radius:1px}
+.feat li.inherit::before{background:transparent}
+.plan .btn{margin-top:auto;text-align:center}
+.plan-featured{background:var(--paper-2)}
+
+.disclaimer{
+  margin-top:18px;font-size:var(--step--1);color:var(--ink-soft);
+  border-left:2px solid var(--brass);padding:10px 0 10px 14px;max-width:78ch;
+}
+.disclaimer code{font-family:"IBM Plex Mono",monospace;font-size:.8125em;background:var(--paper-3);padding:1px 5px;border-radius:2px}
+
+/* ---------- table ---------- */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);background:var(--card)}
+table{border-collapse:collapse;width:100%;min-width:680px;font-size:var(--step--1)}
+caption{text-align:left;padding:16px 18px 0;color:var(--ink-dim);font-size:.6875rem;font-family:"IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase}
+th,td{padding:9px 14px;text-align:left;border-bottom:1px solid var(--line-soft)}
+thead th{
+  font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:.6875rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-dim);border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--card);
+}
+tbody th{font-weight:500;color:var(--ink)}
+td{text-align:center;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+td.yes{color:var(--brass);font-weight:700}
+td.no{color:var(--ink-dim)}
+tr.group th{
+  font-family:"IBM Plex Mono",monospace;font-size:.625rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--brass);background:var(--paper-2);border-bottom:1px solid var(--line);
+}
+tr.group td{background:var(--paper-2)}
+
+/* ---------- faq ---------- */
+.faq{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 44px}
+.faq h3{font-size:1.0625rem;font-family:"Karla",sans-serif;font-weight:700;margin-bottom:6px}
+.faq p{font-size:var(--step--1);color:var(--ink-soft)}
+
+/* ---------- cta + footer ---------- */
+.cta{background:var(--ink);color:var(--paper)}
+.cta .wrap{padding-block:56px;display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between}
+.cta h2{font-size:var(--step-3);line-height:1.1;color:var(--paper)}
+.cta p{color:var(--paper-3);font-size:var(--step--1);margin-top:8px;max-width:44ch}
+.cta .btn-primary{background:var(--brass-bright);border-color:var(--brass-bright);color:#17140b}
+.cta .btn-primary:hover{background:var(--paper);border-color:var(--paper);color:#17140b}
+footer{border-top:1px solid var(--line);background:var(--paper)}
+footer .wrap{padding-block:26px;display:flex;flex-wrap:wrap;gap:12px 32px;justify-content:space-between;font-size:.75rem;color:var(--ink-dim);font-family:"IBM Plex Mono",monospace}
+
+@media (max-width:940px){
+  .hero .wrap{grid-template-columns:1fr;gap:36px;padding-block:44px 40px}
+  .plans{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .plan{border-bottom:1px solid var(--line)}
+  .plan:nth-child(2){border-right:0}
+  .plan:nth-child(3),.plan:nth-child(4){border-bottom:0}
+  .faq{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  :root{--step-4:2.4rem;--step-3:1.85rem}
+  .plans{grid-template-columns:1fr}
+  .plan{border-right:0}
+  .plan:last-child{border-bottom:0}
+  .section{padding-block:48px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand"><b>Smart Social Menu</b><span>SaaS</span></div>
+    <nav class="topnav">
+      <a href="#piani">Piani</a>
+      <a href="#confronto">Confronto</a>
+      <a href="#domande">Domande</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow">Menu digitale · Smart Boost · Social</p>
+      <h1>Il menu al tavolo non è un PDF. È il tuo <em>venditore</em>.</h1>
+      <p class="lede">Ogni piatto riceve un punteggio, ricalcolato ogni quindici minuti su margine, contesto e comportamento reale dei clienti. Il menu si riordina da solo: in alto va quello che conviene proporre adesso.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#piani">Vedi i piani</a>
+        <a class="btn btn-ghost" href="#confronto">Confronta le funzioni</a>
+        <span class="hero-note">14 giorni di prova · senza carta</span>
+      </div>
+    </div>
+
+    <aside class="mock" aria-label="Esempio di riordino Smart Boost">
+      <div class="mock-head"><b>Alla carta — Cena</b><span class="eyebrow">Giovedì 20:40</span></div>
+      <div class="dish"><span class="rank">01</span><span class="dish-name">Tagliatelle al ragù bianco<small>margine alto · in stagione</small></span><span class="score num">92</span></div>
+      <div class="dish"><span class="rank">02</span><span class="dish-name">Battuta di fassona<small>foto + video · 41 preferiti</small></span><span class="score num">87</span></div>
+      <div class="dish"><span class="rank">03</span><span class="dish-name">Baccalà mantecato<small>spinta manuale del titolare</small></span><span class="score num">81</span></div>
+      <div class="dish"><span class="rank">04</span><span class="dish-name">Insalata di farro<small>visto 220 volte, aperto 9</small></span><span class="score num">34</span></div>
+      <p class="mock-foot">product_scores · aggiornato 4 min fa</p>
+    </aside>
+  </div>
+</section>
+
+<div class="strip">
+  <div class="wrap">
+    <span><b>14</b> allergeni UE gestiti per piatto</span>
+    <span><b>15 min</b> tra un ricalcolo Smart Boost e l'altro</span>
+    <span><b>60 gg</b> di eventi grezzi, poi solo aggregati</span>
+    <span><b>PHP + MySQL</b> gira anche su hosting condiviso</span>
+  </div>
+</div>
+
+<section class="section" id="piani">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Abbonamento per sede</p>
+        <h2>Quattro piani, uno per ogni fase del locale</h2>
+        <p>Si parte dal menu digitale e si sale solo quando serve. Il cambio piano è immediato e i dati restano dove sono.</p>
+      </div>
+      <div>
+        <div class="toggle" role="group" aria-label="Ciclo di fatturazione">
+          <button type="button" id="bill-monthly" data-cycle="monthly" aria-pressed="true">Mensile</button>
+          <button type="button" id="bill-yearly" data-cycle="yearly" aria-pressed="false">Annuale</button>
+        </div>
+        <span class="save">Annuale = 2 mesi in omaggio</span>
+      </div>
+    </div>
+
+    <div class="plans">
+      <article class="plan">
+        <div class="plan-top"><h3>Start</h3></div>
+        <p class="plan-desc">Menu digitale, QR, allergeni, analytics base. Il minimo per stare online bene.</p>
+        <div class="price"><span class="amount num" data-monthly="29" data-yearly="24">29</span><span class="per">€ / mese</span></div>
+        <p class="price-sub" data-monthly="fatturato ogni mese" data-yearly="290 € / anno">fatturato ogni mese</p>
+        <div class="limits">
+          <div><span>Sedi</span><span class="num">1</span></div>
+          <div><span>Prodotti</span><span class="num">60</span></div>
+          <div><span>Prova</span><span class="num">14 giorni</span></div>
+        </div>
+        <ul class="feat">
+          <li>Menu digitale e categorie</li>
+          <li>QR Code e redirect NFC</li>
+          <li>Gestione allergeni</li>
+          <li>Analytics base</li>
+        </ul>
+        <a class="btn btn-ghost" href="#">Inizia la prova</a>
+      </article>
+
+      <article class="plan plan-featured">
+        <div class="plan-top"><h3>Growth</h3><span class="tag">Il più scelto</span></div>
+        <p class="plan-desc">Smart Boost, social, contenuti dei clienti, multilingua e reputazione Google.</p>
+        <div class="price"><span class="amount num" data-monthly="79" data-yearly="66">79</span><span class="per">€ / mese</span></div>
+        <p class="price-sub" data-monthly="fatturato ogni mese" data-yearly="790 € / anno">fatturato ogni mese</p>
+        <div class="limits">
+          <div><span>Sedi</span><span class="num">1</span></div>
+          <div><span>Prodotti</span><span class="num">300</span></div>
+          <div><span>Prova</span><span class="num">14 giorni</span></div>
+        </div>
+        <ul class="feat">
+          <li class="inherit">Tutto il piano Start</li>
+          <li>Smart Boost e Margin Engine</li>
+          <li>Social Menu, stories, UGC</li>
+          <li>Multilingua con traduzione AI</li>
+          <li>Google Reputation e Social Studio</li>
+        </ul>
+        <a class="btn btn-primary" href="#">Inizia la prova</a>
+      </article>
+
+      <article class="plan">
+        <div class="plan-top"><h3>Intelligence</h3></div>
+        <p class="plan-desc">Menu Brain, A/B test, creator tracking e menu personalizzato sul singolo cliente.</p>
+        <div class="price"><span class="amount num" data-monthly="149" data-yearly="124">149</span><span class="per">€ / mese</span></div>
+        <p class="price-sub" data-monthly="fatturato ogni mese" data-yearly="1.490 € / anno">fatturato ogni mese</p>
+        <div class="limits">
+          <div><span>Sedi</span><span class="num">3</span></div>
+          <div><span>Prodotti</span><span class="num">1.000</span></div>
+          <div><span>Prova</span><span class="num">su richiesta</span></div>
+        </div>
+        <ul class="feat">
+          <li class="inherit">Tutto il piano Growth</li>
+          <li>Menu Brain (suggerimenti AI)</li>
+          <li>A/B test su foto e descrizioni</li>
+          <li>Creator tracking e attribuzione</li>
+          <li>Personalizzazione avanzata</li>
+        </ul>
+        <a class="btn btn-ghost" href="#">Parla con noi</a>
+      </article>
+
+      <article class="plan">
+        <div class="plan-top"><h3>Enterprise</h3></div>
+        <p class="plan-desc">Gruppi e catene: multisede, API pubblica, white label, POS ed esperienza al tavolo.</p>
+        <div class="price"><span class="amount num" data-monthly="249" data-yearly="207">249</span><span class="per">€ / mese, da</span></div>
+        <p class="price-sub" data-monthly="preventivo su numero di sedi" data-yearly="preventivo su numero di sedi">preventivo su numero di sedi</p>
+        <div class="limits">
+          <div><span>Sedi</span><span class="num">illimitate</span></div>
+          <div><span>Prodotti</span><span class="num">illimitati</span></div>
+          <div><span>Onboarding</span><span class="num">assistito</span></div>
+        </div>
+        <ul class="feat">
+          <li class="inherit">Tutto il piano Intelligence</li>
+          <li>Multisede e ruoli di gruppo</li>
+          <li>API pubblica e webhook</li>
+          <li>White label e dominio tuo</li>
+          <li>Integrazione POS, ordini al tavolo</li>
+        </ul>
+        <a class="btn btn-ghost" href="#">Chiedi un preventivo</a>
+      </article>
+    </div>
+
+    <p class="disclaimer">Gli importi qui sopra sono una proposta commerciale, non sono cablati nel software: nel database i quattro piani esistono già con <code>price_monthly = 0</code> e si impostano da Amministrazione → Fatturazione, insieme ai giorni di prova. Le funzioni e i limiti mostrati sono invece quelli reali della tabella <code>plan_features</code>.</p>
+  </div>
+</section>
+
+<section class="section" id="confronto" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Confronto completo</p>
+        <h2>Cosa include ogni piano</h2>
+      </div>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <caption>26 funzioni · 4 gruppi · valori letti da plan_features</caption>
+        <thead>
+          <tr><th scope="col">Funzione</th><th scope="col">Start</th><th scope="col">Growth</th><th scope="col">Intelligence</th><th scope="col">Enterprise</th></tr>
+        </thead>
+        <tbody>
+          <tr class="group"><th colspan="5" scope="colgroup">Base</th></tr>
+          <tr><th scope="row">Menu digitale</th><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">QR Code</th><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Gestione allergeni</th><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Analytics base</th><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Numero di sedi</th><td>1</td><td>1</td><td>3</td><td>illimitate</td></tr>
+          <tr><th scope="row">Numero di prodotti</th><td>60</td><td>300</td><td>1.000</td><td>illimitati</td></tr>
+
+          <tr class="group"><th colspan="5" scope="colgroup">Crescita</th></tr>
+          <tr><th scope="row">Smart Boost</th><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Margin Engine</th><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Multilingua</th><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Traduzione AI</th><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Social Menu e stories</th><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Contenuti dei clienti (UGC)</th><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Recensioni interne</th><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Analytics avanzate</th><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Google Reputation</th><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Social Studio</th><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+
+          <tr class="group"><th colspan="5" scope="colgroup">Intelligenza</th></tr>
+          <tr><th scope="row">Menu Brain</th><td class="no">—</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">A/B test</th><td class="no">—</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Creator tracking</th><td class="no">—</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Personalizzazione avanzata</th><td class="no">—</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+
+          <tr class="group"><th colspan="5" scope="colgroup">Gruppi e catene</th></tr>
+          <tr><th scope="row">Multisede</th><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">API pubblica</th><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">White label</th><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Dominio personalizzato</th><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Integrazione POS</th><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td></tr>
+          <tr><th scope="row">Table experience (ordini, chiamata cameriere)</th><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="domande" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head">
+      <div><p class="eyebrow">Domande ricorrenti</p><h2>Prima di attivare</h2></div>
+    </div>
+    <div class="faq">
+      <div>
+        <h3>La prova richiede la carta?</h3>
+        <p>No. Start e Growth hanno 14 giorni di prova senza metodo di pagamento. Alla scadenza il menu resta online in sola lettura finché non scegli un piano.</p>
+      </div>
+      <div>
+        <h3>Posso cambiare piano dopo?</h3>
+        <p>Sì, da Amministrazione → Fatturazione, in qualsiasi momento. Il passaggio è immediato e l'importo viene riproporzionato sul periodo rimanente.</p>
+      </div>
+      <div>
+        <h3>Cosa succede se supero i prodotti del piano?</h3>
+        <p>I piatti già pubblicati restano online. Il pannello ti avvisa e blocca solo la creazione di nuovi prodotti finché non passi al piano superiore.</p>
+      </div>
+      <div>
+        <h3>Dove stanno i dati dei clienti?</h3>
+        <p>Sul tuo hosting: la piattaforma è PHP e MySQL, senza servizi esterni obbligatori. Gli eventi grezzi si cancellano dopo 60 giorni, la retention è configurabile ed è previsto l'export GDPR.</p>
+      </div>
+      <div>
+        <h3>Il pagamento come funziona?</h3>
+        <p>Stripe Checkout, carta o SEPA, fattura automatica. Se Stripe non è configurato, il piano si attiva comunque a mano dal pannello.</p>
+      </div>
+      <div>
+        <h3>Servono più sedi con menu diversi?</h3>
+        <p>Intelligence arriva a 3 sedi. Da lì in poi Enterprise: sedi illimitate, ruoli di gruppo e menu ereditati dall'organizzazione.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="wrap">
+    <div>
+      <h2>Metti online il primo menu in venti minuti</h2>
+      <p>Importi il listino da CSV, carichi copertina e logo, pubblichi. Il QR è già pronto dalla creazione della sede.</p>
+    </div>
+    <a class="btn btn-primary" href="#piani">Inizia dalla prova gratuita</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Smart Social Menu — piattaforma SaaS multi-tenant per menu digitali</span>
+    <span>Prezzi IVA esclusa · per sede · configurabili dal pannello</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var buttons = document.querySelectorAll('.toggle button');
+  function apply(cycle) {
+    document.querySelectorAll('.amount').forEach(function (el) {
+      el.textContent = el.getAttribute('data-' + cycle);
+    });
+    document.querySelectorAll('.price-sub').forEach(function (el) {
+      el.textContent = el.getAttribute('data-' + cycle);
+    });
+    buttons.forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-cycle') === cycle));
+    });
+  }
+  buttons.forEach(function (b) {
+    b.addEventListener('click', function () { apply(b.getAttribute('data-cycle')); });
+  });
+})();
+</script>
