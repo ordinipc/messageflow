@@ -20,12 +20,15 @@
  * @param string $classe     Classe del pulsante.
  * @return void
  */
-function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone' ) {
+function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', $limite = null ) {
 	?>
 	<form method="post" action="?p=applica" <?php echo $conferma ? 'onsubmit="return confirm(' . "'" . e( $conferma ) . "'" . ')"' : ''; ?>>
 		<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
 		<input type="hidden" name="id" value="<?php echo (int) $id; ?>">
 		<input type="hidden" name="azione" value="<?php echo e( $azione ); ?>">
+		<?php if ( null !== $limite ) : ?>
+			<input type="hidden" name="limite" value="<?php echo (int) $limite; ?>">
+		<?php endif; ?>
 		<button class="<?php echo e( $classe ); ?>" type="submit"><?php echo e( $etichetta ); ?></button>
 	</form>
 	<?php
@@ -84,9 +87,12 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone' )
 	<section class="scheda">
 		<h2>Meta ottimizzate</h2>
 		<p class="guida">Scrive title, meta description, focus keyword ed estratto sui campi di Rank Math per <?php echo num( $conteggi['meta'] ); ?> contenuti. Prima di scrivere, il plugin mette da parte i valori attuali: l'operazione si può annullare.</p>
+		<p class="nota">Il modo sensato di procedere: <strong>anteprima</strong> per leggere il confronto, poi <strong>prova su 5 contenuti</strong> e controlla su WordPress che title e description siano quelli giusti, infine applica a tutti.</p>
 		<div class="azioni">
 			<?php azione( $audit['id'], 'meta_anteprima', 'Anteprima (non scrive nulla)', '', 'bottone chiaro' ); ?>
-			<?php azione( $audit['id'], 'meta', 'Applica le meta', 'Applicare le meta ottimizzate su ' . $conteggi['meta'] . ' contenuti? I valori attuali verranno conservati per poterli ripristinare.' ); ?>
+			<a class="bottone chiaro" href="?p=anteprima&amp;id=<?php echo (int) $audit['id']; ?>">Vedi il confronto</a>
+			<?php azione( $audit['id'], 'meta', 'Prova su 5 contenuti', 'Applicare le meta ai primi 5 contenuti? I valori attuali verranno conservati.', 'bottone chiaro', 5 ); ?>
+			<?php azione( $audit['id'], 'meta', 'Applica a tutti', 'Applicare le meta ottimizzate su ' . $conteggi['meta'] . ' contenuti? I valori attuali verranno conservati per poterli ripristinare.' ); ?>
 			<?php azione( $audit['id'], 'annulla', 'Annulla e ripristina', 'Ripristinare le meta precedenti su tutti i contenuti?', 'bottone chiaro' ); ?>
 		</div>
 	</section>

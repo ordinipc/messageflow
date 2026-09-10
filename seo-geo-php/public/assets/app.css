@@ -176,3 +176,18 @@ pre.mono { background: var(--basso-bg); padding: 12px 14px; border-radius: 4px; 
 .azioni form { margin: 0; }
 .bottone.chiaro { background: var(--superficie); color: var(--inchiostro-2); border: 1px solid var(--linea); }
 .bottone.chiaro:hover { border-color: var(--inchiostro-3); filter: none; }
+
+/* Confronto prima/dopo. */
+.confronto h2 { font-size: 16px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.confronto h2 .sotto { font-weight: 400; }
+.campo-confronto { display: grid; grid-template-columns: 130px minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; padding: 9px 0; border-top: 1px solid var(--linea-2); }
+.campo-confronto .etichetta { padding-top: 2px; }
+.campo-confronto .prima, .campo-confronto .dopo { font-size: 14px; padding: 8px 11px; border-radius: 4px; }
+.campo-confronto .prima { background: var(--basso-bg); color: var(--inchiostro-3); }
+.campo-confronto .dopo { background: var(--ok-bg); color: var(--inchiostro); }
+.campo-confronto .conta { display: block; font-size: 11.5px; color: var(--inchiostro-3); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.campo-confronto em { color: var(--inchiostro-3); }
+@media (max-width: 760px) {
+	.campo-confronto { grid-template-columns: 1fr; gap: 6px; }
+	.campo-confronto .etichetta { padding-top: 8px; }
+}

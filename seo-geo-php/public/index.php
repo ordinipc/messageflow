@@ -171,30 +171,119 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 
 			case 'meta':
 			case 'meta_anteprima':
+				// Con un limite si prova su pochi contenuti prima di toccare tutto:
+				// è il modo sensato di verificare sul proprio sito.
+				$limite = max( 0, min( 500, (int) ( $_POST['limite'] ?? 0 ) ) );
+
 				$righe = $db->all(
 					'SELECT d.wp_id AS id, m.title_nuovo AS title, m.description_nuova AS description,
 							m.excerpt_nuovo AS excerpt, d.focus_keyword AS focus
 					 FROM meta_piano m JOIN documento d ON d.id = m.documento_id
-					 WHERE m.audit_id = ?',
+					 WHERE m.audit_id = ?
+					 ORDER BY d.tipo DESC, d.parole DESC'
+					. ( $limite ? ' LIMIT ' . $limite : '' ),
 					array( $id )
 				);
 
 				$anteprima = ( 'meta_anteprima' === $azione );
 				$fatti     = 0;
+				$confronto = array();
 
 				// Si spedisce a blocchi: un unica richiesta con 326 contenuti
 				// supererebbe i limiti di memoria e di tempo di molti hosting.
 				foreach ( array_chunk( $righe, 80 ) as $blocco ) {
-					$esito  = $ponte->inviaMeta( $blocco, $anteprima );
-					$fatti += (int) ( $esito['aggiornati'] ?? 0 );
+					$esito     = $ponte->inviaMeta( $blocco, $anteprima );
+					$fatti    += (int) ( $esito['aggiornati'] ?? 0 );
+					$confronto = array_merge( $confronto, (array) ( $esito['dettaglio'] ?? array() ) );
 				}
 
-				$messaggio = $anteprima
-					? 'Anteprima eseguita su ' . count( $righe ) . ' contenuti: il sito non è stato modificato.'
-					: "Meta aggiornate su $fatti contenuti.";
+				if ( $anteprima ) {
+					// Il confronto va su file: in sessione occuperebbe troppo e
+					// così resta consultabile anche dopo aver chiuso il browser.
+					Export::scrivi(
+						__DIR__ . '/../storage/export/audit-' . $id . '/anteprima-meta.json',
+						json_encode(
+							array( 'quando' => date( 'Y-m-d H:i:s' ), 'righe' => $confronto ),
+							JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+						)
+					);
+
+					header( 'Location: ?p=anteprima&id=' . $id );
+					exit;
+				}
+
+				$messaggio = "Meta aggiornate su $fatti contenuti."
+					. ( $limite ? ' Verifica il risultato sul sito, poi applica il resto.' : '' );
 				break;
 
-			case 'collega':
+			case 'anteprima':
+		$id    = (int) ( $_GET['id'] ?? 0 );
+		$audit = $db->one( 'SELECT * FROM audit WHERE id = ?', array( $id ) );
+
+		if ( ! $audit ) {
+			http_response_code( 404 );
+			exit( 'Audit non trovato.' );
+		}
+
+		$file      = __DIR__ . '/../storage/export/audit-' . $id . '/anteprima-meta.json';
+		$dal_sito  = is_file( $file ) ? json_decode( (string) file_get_contents( $file ), true ) : null;
+		$righe     = array();
+		$sorgente  = 'sito';
+
+		if ( is_array( $dal_sito ) && ! empty( $dal_sito['righe'] ) ) {
+			foreach ( $dal_sito['righe'] as $r ) {
+				$righe[] = array(
+					'id'     => $r['id'] ?? 0,
+					'titolo' => $r['titolo'] ?? '',
+					'url'    => '',
+					'campi'  => array(
+						'Title SEO'        => array( $r['prima']['rank_math_title'] ?? '', $r['dopo']['rank_math_title'] ?? '' ),
+						'Meta description' => array( $r['prima']['rank_math_description'] ?? '', $r['dopo']['rank_math_description'] ?? '' ),
+						'Focus keyword'    => array( $r['prima']['rank_math_focus_keyword'] ?? '', $r['dopo']['rank_math_focus_keyword'] ?? '' ),
+						'Estratto'         => array( $r['prima']['post_excerpt'] ?? '', $r['dopo']['post_excerpt'] ?? '' ),
+					),
+				);
+			}
+		} else {
+			// Nessuna anteprima dal sito: si mostra il confronto con i valori
+			// letti dall export, che è comunque quello che verrà scritto.
+			$sorgente = 'export';
+
+			foreach ( $db->all(
+				'SELECT d.wp_id, d.titolo, d.url, d.seo_title, d.seo_description, d.focus_keyword,
+						m.title_nuovo, m.description_nuova, m.excerpt_nuovo
+				 FROM meta_piano m JOIN documento d ON d.id = m.documento_id
+				 WHERE m.audit_id = ?',
+				array( $id )
+			) as $r ) {
+				$righe[] = array(
+					'id'     => $r['wp_id'],
+					'titolo' => $r['titolo'],
+					'url'    => $r['url'],
+					'campi'  => array(
+						'Title SEO'        => array( $r['seo_title'], $r['title_nuovo'] ),
+						'Meta description' => array( $r['seo_description'], $r['description_nuova'] ),
+						'Focus keyword'    => array( $r['focus_keyword'], $r['focus_keyword'] ),
+						'Estratto'         => array( '', $r['excerpt_nuovo'] ),
+					),
+				);
+			}
+		}
+
+		vista(
+			'anteprima',
+			array(
+				'titolo'   => 'Anteprima delle modifiche',
+				'audit'    => $audit,
+				'righe'    => $righe,
+				'sorgente' => $sorgente,
+				'quando'   => $dal_sito['quando'] ?? '',
+				'solo'     => isset( $_GET['tutti'] ) ? 'tutti' : 'modificati',
+			)
+		);
+		break;
+
+	case 'collega':
 		$id    = (int) ( $_GET['id'] ?? 0 );
 		$audit = $db->one( 'SELECT * FROM audit WHERE id = ?', array( $id ) );
 
@@ -580,6 +669,73 @@ switch ( $pagina ) {
 				'token_wp_mascherato' => Impostazioni::mascherata( $salvate['wordpress']['token'] ?? '' ),
 				'salvato'             => isset( $_GET['salvato'] ) ? 'Impostazioni salvate.' : '',
 				'errore'              => isset( $_GET['errore'] ) ? (string) $_GET['errore'] : '',
+			)
+		);
+		break;
+
+	case 'anteprima':
+		$id    = (int) ( $_GET['id'] ?? 0 );
+		$audit = $db->one( 'SELECT * FROM audit WHERE id = ?', array( $id ) );
+
+		if ( ! $audit ) {
+			http_response_code( 404 );
+			exit( 'Audit non trovato.' );
+		}
+
+		$file      = __DIR__ . '/../storage/export/audit-' . $id . '/anteprima-meta.json';
+		$dal_sito  = is_file( $file ) ? json_decode( (string) file_get_contents( $file ), true ) : null;
+		$righe     = array();
+		$sorgente  = 'sito';
+
+		if ( is_array( $dal_sito ) && ! empty( $dal_sito['righe'] ) ) {
+			foreach ( $dal_sito['righe'] as $r ) {
+				$righe[] = array(
+					'id'     => $r['id'] ?? 0,
+					'titolo' => $r['titolo'] ?? '',
+					'url'    => '',
+					'campi'  => array(
+						'Title SEO'        => array( $r['prima']['rank_math_title'] ?? '', $r['dopo']['rank_math_title'] ?? '' ),
+						'Meta description' => array( $r['prima']['rank_math_description'] ?? '', $r['dopo']['rank_math_description'] ?? '' ),
+						'Focus keyword'    => array( $r['prima']['rank_math_focus_keyword'] ?? '', $r['dopo']['rank_math_focus_keyword'] ?? '' ),
+						'Estratto'         => array( $r['prima']['post_excerpt'] ?? '', $r['dopo']['post_excerpt'] ?? '' ),
+					),
+				);
+			}
+		} else {
+			// Nessuna anteprima dal sito: si mostra il confronto con i valori
+			// letti dall export, che è comunque quello che verrà scritto.
+			$sorgente = 'export';
+
+			foreach ( $db->all(
+				'SELECT d.wp_id, d.titolo, d.url, d.seo_title, d.seo_description, d.focus_keyword,
+						m.title_nuovo, m.description_nuova, m.excerpt_nuovo
+				 FROM meta_piano m JOIN documento d ON d.id = m.documento_id
+				 WHERE m.audit_id = ?',
+				array( $id )
+			) as $r ) {
+				$righe[] = array(
+					'id'     => $r['wp_id'],
+					'titolo' => $r['titolo'],
+					'url'    => $r['url'],
+					'campi'  => array(
+						'Title SEO'        => array( $r['seo_title'], $r['title_nuovo'] ),
+						'Meta description' => array( $r['seo_description'], $r['description_nuova'] ),
+						'Focus keyword'    => array( $r['focus_keyword'], $r['focus_keyword'] ),
+						'Estratto'         => array( '', $r['excerpt_nuovo'] ),
+					),
+				);
+			}
+		}
+
+		vista(
+			'anteprima',
+			array(
+				'titolo'   => 'Anteprima delle modifiche',
+				'audit'    => $audit,
+				'righe'    => $righe,
+				'sorgente' => $sorgente,
+				'quando'   => $dal_sito['quando'] ?? '',
+				'solo'     => isset( $_GET['tutti'] ) ? 'tutti' : 'modificati',
 			)
 		);
 		break;

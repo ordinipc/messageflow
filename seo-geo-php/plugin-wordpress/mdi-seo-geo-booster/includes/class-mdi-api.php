@@ -213,7 +213,9 @@ class MDI_Api {
 				'anteprima' => $anteprima,
 				'aggiornati' => $fatti,
 				'saltati'   => $saltati,
-				'dettaglio' => array_slice( $dettaglio, 0, 50 ),
+				// Il confronto torna per intero: è quello che il gestionale mostra
+				// nella pagina di anteprima. I blocchi arrivano già limitati.
+				'dettaglio' => array_slice( $dettaglio, 0, 200 ),
 			)
 		);
 	}
