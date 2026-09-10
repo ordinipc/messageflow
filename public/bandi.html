@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bandi per docenti e insegnanti | Scuole e Università italiane</title>
+    <meta name="description" content="Elenco aggiornato dei bandi, concorsi e avvisi per professori, ricercatori e insegnanti pubblicati da scuole, università e ministeri italiani.">
+    <meta name="robots" content="noindex">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --dark: #1a202c;
+            --light: #f7fafc;
+            --success: #48bb78;
+            --danger: #f56565;
+            --warning: #dd6b20;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: var(--dark);
+            line-height: 1.6;
+            background: var(--light);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: #fff;
+            padding: 48px 20px 40px;
+        }
+
+        .wrap { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+        header h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); margin-bottom: 8px; }
+        header p { opacity: .92; max-width: 62ch; }
+
+        .filtri {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin: -28px auto 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            box-shadow: 0 8px 24px rgba(26, 32, 44, .08);
+            max-width: 1000px;
+        }
+
+        .filtri select, .filtri input {
+            font: inherit;
+            padding: 9px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fff;
+            min-width: 150px;
+            flex: 1 1 150px;
+        }
+
+        .filtri input:focus, .filtri select:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+        .stato { color: #4a5568; font-size: .92rem; margin-bottom: 14px; }
+
+        .bando {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--primary);
+            border-radius: 10px;
+            padding: 16px 18px;
+            margin-bottom: 12px;
+        }
+
+        .bando h2 { font-size: 1.03rem; line-height: 1.4; margin-bottom: 6px; }
+        .bando a { color: #4c51bf; text-decoration: none; }
+        .bando a:hover { text-decoration: underline; }
+        .meta { color: #4a5568; font-size: .88rem; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+
+        .tag {
+            display: inline-block;
+            font-size: .74rem;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #edf2f7;
+            color: #2d3748;
+        }
+
+        .tag.universita { background: #e6f0ff; color: #2c5282; }
+        .tag.scuola { background: #e6fffa; color: #22543d; }
+        .scadenza { font-weight: 600; }
+        .scadenza.urgente { color: var(--danger); }
+        .scadenza.vicina { color: var(--warning); }
+        .vuoto { background: #fff; border: 1px dashed var(--border); border-radius: 10px; padding: 32px; text-align: center; color: #4a5568; }
+        footer { padding: 28px 20px 48px; color: #4a5568; font-size: .85rem; text-align: center; }
+        main { padding-bottom: 24px; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="wrap">
+            <h1>Bandi per docenti e insegnanti</h1>
+            <p>Concorsi, supplenze, chiamate e incarichi di insegnamento raccolti dalle fonti ufficiali di scuole, università e ministeri italiani.</p>
+        </div>
+    </header>
+
+    <div class="filtri wrap">
+        <select id="livello" aria-label="Livello">
+            <option value="">Tutti i livelli</option>
+            <option value="universita">Università / AFAM</option>
+            <option value="scuola">Scuola</option>
+        </select>
+        <select id="categoria" aria-label="Tipo di bando">
+            <option value="">Tutte le tipologie</option>
+            <option value="concorso">Concorso</option>
+            <option value="supplenza">Supplenza / MAD</option>
+            <option value="ricerca">Ricerca / assegni</option>
+            <option value="chiamata">Chiamata / mobilità</option>
+            <option value="contratto">Incarico a contratto</option>
+            <option value="formazione">Formazione / PNRR</option>
+        </select>
+        <select id="entro" aria-label="Scadenza">
+            <option value="">Qualsiasi scadenza</option>
+            <option value="7">Entro 7 giorni</option>
+            <option value="15">Entro 15 giorni</option>
+            <option value="30">Entro 30 giorni</option>
+        </select>
+        <input id="cerca" type="search" placeholder="Cerca (ente, materia, classe A-28…)" aria-label="Cerca">
+    </div>
+
+    <main class="wrap">
+        <p class="stato" id="stato">Caricamento…</p>
+        <div id="risultati"></div>
+    </main>
+
+    <footer class="wrap">
+        Dati raccolti automaticamente dalle fonti pubbliche configurate. Verificare sempre il bando originale sul sito dell'ente prima di presentare domanda.
+    </footer>
+
+    <script>
+        const elencoEl = document.getElementById('risultati');
+        const statoEl = document.getElementById('stato');
+        const filtri = ['livello', 'categoria', 'entro', 'cerca'].map((id) => document.getElementById(id));
+
+        function formatData(iso) {
+            if (!iso) return null;
+            const data = new Date(iso);
+            return Number.isNaN(data.getTime()) ? null : data.toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
+        }
+
+        function giorniResidui(iso) {
+            if (!iso) return null;
+            return Math.ceil((new Date(iso) - new Date()) / 86400000);
+        }
+
+        function tag(testo, classe) {
+            const elemento = document.createElement('span');
+            elemento.className = classe ? `tag ${classe}` : 'tag';
+            elemento.textContent = testo;
+            return elemento;
+        }
+
+        function testo(contenuto, classe) {
+            const elemento = document.createElement('span');
+            if (classe) elemento.className = classe;
+            elemento.textContent = contenuto;
+            return elemento;
+        }
+
+        function scadenzaNodo(bando) {
+            const data = formatData(bando.scadenza);
+            if (!data) return testo('Scadenza non rilevata');
+
+            const giorni = giorniResidui(bando.scadenza);
+            const classe = giorni <= 3 ? 'scadenza urgente' : giorni <= 10 ? 'scadenza vicina' : 'scadenza';
+            return testo(`Scade il ${data}${giorni >= 0 ? ` · ${giorni} gg` : ' · scaduto'}`, classe);
+        }
+
+        function card(bando) {
+            const elemento = document.createElement('article');
+            elemento.className = 'bando';
+
+            const titolo = document.createElement('h2');
+            const link = document.createElement('a');
+            // I dati arrivano da pagine esterne: solo http(s) e sempre come testo, mai come HTML.
+            link.href = /^https?:\/\//i.test(bando.url || '') ? bando.url : '#';
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = bando.titolo || 'Bando senza titolo';
+            titolo.appendChild(link);
+
+            const meta = document.createElement('div');
+            meta.className = 'meta';
+
+            const livello = bando.livello === 'universita' ? 'Università'
+                : bando.livello === 'scuola' ? 'Scuola'
+                : 'Da classificare';
+
+            meta.append(tag(livello, bando.livello), tag(bando.categoria || 'altro'));
+            if (bando.ente) meta.append(testo(bando.ente));
+            if ((bando.classiConcorso || []).length) meta.append(testo(`Classi: ${bando.classiConcorso.join(', ')}`));
+            if ((bando.ssd || []).length) meta.append(testo(`SSD: ${bando.ssd.join(', ')}`));
+            meta.append(scadenzaNodo(bando), testo(`Fonte: ${bando.fonteNome || bando.fonte || 'n.d.'}`));
+
+            elemento.append(titolo, meta);
+            return elemento;
+        }
+
+        async function carica() {
+            const parametri = new URLSearchParams();
+            const [livello, categoria, entro, cerca] = filtri.map((el) => el.value.trim());
+            if (livello) parametri.set('livello', livello);
+            if (categoria) parametri.set('categoria', categoria);
+            if (entro) parametri.set('entro', entro);
+            if (cerca) parametri.set('cerca', cerca);
+
+            statoEl.textContent = 'Caricamento…';
+            elencoEl.innerHTML = '';
+
+            try {
+                const risposta = await fetch('/api/bandi?' + parametri.toString());
+                if (!risposta.ok) throw new Error('HTTP ' + risposta.status);
+                const dati = await risposta.json();
+
+                if (!dati.bandi || dati.bandi.length === 0) {
+                    elencoEl.innerHTML = '<div class="vuoto">Nessun bando trovato con questi filtri. Esegui <code>npm run bandi -- run</code> per aggiornare l\'archivio.</div>';
+                    statoEl.textContent = '0 risultati';
+                    return;
+                }
+
+                const frammento = document.createDocumentFragment();
+                for (const bando of dati.bandi) frammento.appendChild(card(bando));
+                elencoEl.appendChild(frammento);
+
+                const aggiornato = formatData(dati.aggiornatoIl);
+                statoEl.textContent = `${dati.totale} risultati${aggiornato ? ` · archivio aggiornato al ${aggiornato}` : ''}`;
+            } catch (errore) {
+                statoEl.textContent = '';
+                elencoEl.innerHTML = '<div class="vuoto">Archivio non disponibile. Avvia il server e lancia <code>npm run bandi -- run</code>.</div>';
+            }
+        }
+
+        let attesa;
+        for (const campo of filtri) {
+            campo.addEventListener('input', () => {
+                clearTimeout(attesa);
+                attesa = setTimeout(carica, 250);
+            });
+        }
+
+        carica();
+    </script>
+</body>
+</html>

@@ -15,6 +15,10 @@ messageflow-website/
 ├── server.js               # Backend Node.js + Stripe
 ├── package.json            # Dipendenze npm
 ├── .env.example            # Template variabili ambiente
+├── bandi/                  # Aggregatore bandi per docenti e insegnanti
+│   ├── cli.js              # Comandi: run, list, export, sources, doctor
+│   ├── sources.json        # Fonti pubbliche (GU, MUR, inPA, MIM, USR…)
+│   └── lib/                # Fetch educato, parser, classificatore, archivio
 └── templates/
     └── messageflow-pro-template.html  # Template versione Pro
 ```
@@ -44,6 +48,23 @@ messageflow-website/
 - 🔍 Sitemap ready
 - 📊 Google Analytics ready
 - 💬 Open Graph per social media
+
+---
+
+## 🎓 Aggregatore bandi scuola e università
+
+Modulo indipendente che **rileva i bandi per professori e insegnanti** pubblicati da
+scuole, università, USR e ministeri: li filtra (esclude ATA, appalti e forniture),
+ne estrae scadenza, ente e classe di concorso, e segnala solo le novità.
+
+```bash
+npm run bandi:doctor                    # verifica che le fonti rispondano
+npm run bandi -- run --approfondisci    # raccoglie e archivia i nuovi bandi
+npm run bandi -- list --entro 30        # bandi in scadenza entro 30 giorni
+```
+
+Con il server avviato è disponibile anche l'elenco web su `/bandi` e l'API su `/api/bandi`.
+Documentazione completa, fonti e note d'uso corretto: **[bandi/README.md](./bandi/README.md)**.
 
 ---
 

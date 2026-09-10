@@ -581,6 +581,19 @@ app.get('/cancel', (req, res) => {
     `);
 });
 
+// ==================== AGGREGATORE BANDI DOCENTI ====================
+// Modulo indipendente: se non è disponibile, il resto del sito continua a funzionare.
+try {
+    const bandiRouter = require('./bandi/lib/router');
+    app.use('/api/bandi', bandiRouter());
+    app.get('/bandi', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'bandi.html'));
+    });
+    console.log('📚 Aggregatore bandi attivo su /bandi e /api/bandi');
+} catch (error) {
+    console.warn('⚠️  Aggregatore bandi non caricato:', error.message);
+}
+
 // Gestione errori 404
 app.use((req, res) => {
     res.status(404).send('<h1>404 - Pagina Non Trovata</h1>');

@@ -1,0 +1,8 @@
+node_modules/
+.env
+*.log
+
+# Dati generati dall'aggregatore bandi
+bandi/.cache/
+bandi/data/bandi.json
+bandi/sources.local.json
