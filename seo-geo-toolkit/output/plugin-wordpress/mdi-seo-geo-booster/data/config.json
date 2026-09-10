@@ -1,0 +1,133 @@
+{
+ "_istruzioni": "Compila i campi contrassegnati con DA_COMPILARE prima di generare i fix definitivi: alimentano schema LocalBusiness, footer NAP, pagina Contatti, llms.txt. Senza questi dati il local SEO non può funzionare.",
+ "azienda": {
+  "nome": "Max Digital Innovation",
+  "nomeLegale": "DA_COMPILARE (ragione sociale completa)",
+  "descrizioneBreve": "Agenzia di comunicazione e web agency a Palermo: siti web, e-commerce, video, social media e strategie digitali per PMI.",
+  "descrizioneEstesa": "Max Digital Innovation è una web agency di Palermo che affianca piccole e medie imprese siciliane nella crescita digitale: realizzazione di siti web e e-commerce, produzione video, gestione dei social media, graphic design, naming, sviluppo di CRM e gestionali, stampe digitali.",
+  "fondazione": "DA_COMPILARE (anno, es. 2019)",
+  "partitaIva": "DA_COMPILARE (11 cifre)",
+  "telefono": "DA_COMPILARE (es. +39 091 1234567)",
+  "cellulare": "DA_COMPILARE (es. +39 333 1234567)",
+  "email": "info@maxdigitalinnovation.it",
+  "whatsapp": "DA_COMPILARE (numero in formato 393331234567)",
+  "indirizzo": {
+   "via": "DA_COMPILARE (es. Via Roma 123)",
+   "citta": "Palermo",
+   "provincia": "PA",
+   "cap": "DA_COMPILARE (es. 90133)",
+   "regione": "Sicilia",
+   "nazione": "IT",
+   "latitudine": "DA_COMPILARE (es. 38.115688)",
+   "longitudine": "DA_COMPILARE (es. 13.361267)"
+  },
+  "orari": [
+   {
+    "giorni": [
+     "Monday",
+     "Tuesday",
+     "Wednesday",
+     "Thursday",
+     "Friday"
+    ],
+    "apre": "09:00",
+    "chiude": "18:00"
+   }
+  ],
+  "areaServita": [
+   "Palermo",
+   "Monreale",
+   "Bagheria",
+   "Carini",
+   "Cefalù",
+   "Termini Imerese",
+   "Partinico",
+   "Misilmeri",
+   "Sicilia"
+  ],
+  "fasciaPrezzo": "€€",
+  "profili": {
+   "googleBusiness": "DA_COMPILARE (URL scheda Google Business)",
+   "instagram": "https://www.instagram.com/maxdigitalinnovation",
+   "facebook": "DA_COMPILARE",
+   "linkedin": "DA_COMPILARE",
+   "youtube": "DA_COMPILARE",
+   "tiktok": "DA_COMPILARE"
+  },
+  "logo": "https://maxdigitalinnovation.it/wp-content/uploads/2026/08/Logo_Bianco_01.svg",
+  "immagineFallback": "https://maxdigitalinnovation.it/wp-content/uploads/og-default.jpg"
+ },
+ "autori": [
+  {
+   "loginWordPress": "Maxdigitalinnovation26@",
+   "nome": "DA_COMPILARE (nome)",
+   "cognome": "DA_COMPILARE (cognome)",
+   "ruolo": "DA_COMPILARE (es. Founder e Digital Strategist)",
+   "bio": "DA_COMPILARE (2-3 frasi con anni di esperienza e specializzazione)",
+   "linkedin": "DA_COMPILARE"
+  }
+ ],
+ "seo": {
+  "brandSuffix": "Max Digital Innovation",
+  "cittaPrincipale": "Palermo",
+  "titleMax": 60,
+  "descMin": 140,
+  "descMax": 158,
+  "slugMax": 60,
+  "linkInterniPerArticolo": 4,
+  "dominiNofollow": [
+   "linktr.ee",
+   "www.instagram.com",
+   "instagram.com",
+   "www.youtube.com",
+   "youtube.com",
+   "wa.me",
+   "www.facebook.com",
+   "facebook.com",
+   "tiktok.com",
+   "www.tiktok.com"
+  ],
+  "paginePilastro": [
+   {
+    "slug": "servizi-digitali-palermo",
+    "keyword": "servizi digitali Palermo"
+   },
+   {
+    "slug": "realizzazione-siti-web-a-palermo",
+    "keyword": "realizzazione siti web Palermo"
+   },
+   {
+    "slug": "gestione-social-media-palermo",
+    "keyword": "gestione social media Palermo"
+   },
+   {
+    "slug": "digital-marketing-palermo",
+    "keyword": "digital marketing Palermo"
+   },
+   {
+    "slug": "produzione-video-palermo",
+    "keyword": "produzione video Palermo"
+   },
+   {
+    "slug": "realizzazione-e-commerce-palermo",
+    "keyword": "e-commerce Palermo"
+   },
+   {
+    "slug": "graphic-design-palermo",
+    "keyword": "graphic design Palermo"
+   },
+   {
+    "slug": "sviluppo-crm-gestionali-palermo",
+    "keyword": "sviluppo CRM Palermo"
+   },
+   {
+    "slug": "naming-palermo",
+    "keyword": "naming Palermo"
+   },
+   {
+    "slug": "stampe-digitali-palermo",
+    "keyword": "stampe digitali Palermo"
+   }
+  ]
+ }
+}

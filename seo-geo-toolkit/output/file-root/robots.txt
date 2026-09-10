@@ -1,0 +1,111 @@
+# robots.txt - Max Digital Innovation
+# Generato da seo-geo-toolkit. Obiettivo: massima visibilità su motori
+# di ricerca classici e su motori generativi (AI Overviews, ChatGPT, Perplexity).
+
+User-agent: *
+Allow: /
+Disallow: /wp-admin/
+Allow: /wp-admin/admin-ajax.php
+Disallow: /wp-login.php
+Disallow: /?s=
+Disallow: /search/
+Disallow: /*?replytocom=
+Disallow: /*?utm_
+Disallow: /carrello/
+Disallow: /checkout/
+Disallow: /grazie/
+
+# --- Crawler dei motori generativi: ammessi esplicitamente ---
+# Essere leggibili da questi bot è la condizione per essere citati nelle risposte AI.
+# OpenAI - addestramento e ricerca
+User-agent: GPTBot
+Allow: /
+Disallow: /wp-admin/
+
+# OpenAI - ChatGPT Search
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /wp-admin/
+
+# OpenAI - navigazione su richiesta utente
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /wp-admin/
+
+# Anthropic - Claude
+User-agent: ClaudeBot
+Allow: /
+Disallow: /wp-admin/
+
+# Anthropic - navigazione su richiesta utente
+User-agent: Claude-User
+Allow: /
+Disallow: /wp-admin/
+
+# Anthropic - legacy
+User-agent: anthropic-ai
+Allow: /
+Disallow: /wp-admin/
+
+# Perplexity
+User-agent: PerplexityBot
+Allow: /
+Disallow: /wp-admin/
+
+# Perplexity - navigazione su richiesta utente
+User-agent: Perplexity-User
+Allow: /
+Disallow: /wp-admin/
+
+# Google Gemini / AI Overviews
+User-agent: Google-Extended
+Allow: /
+Disallow: /wp-admin/
+
+# Apple Intelligence
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /wp-admin/
+
+# Microsoft Bing / Copilot
+User-agent: Bingbot
+Allow: /
+Disallow: /wp-admin/
+
+# Amazon
+User-agent: Amazonbot
+Allow: /
+Disallow: /wp-admin/
+
+# Meta AI
+User-agent: meta-externalagent
+Allow: /
+Disallow: /wp-admin/
+
+# ByteDance / TikTok
+User-agent: Bytespider
+Allow: /
+Disallow: /wp-admin/
+
+# Common Crawl (usato da molti modelli)
+User-agent: CCBot
+Allow: /
+Disallow: /wp-admin/
+
+# DuckDuckGo AI
+User-agent: DuckAssistBot
+Allow: /
+Disallow: /wp-admin/
+
+# You.com
+User-agent: YouBot
+Allow: /
+Disallow: /wp-admin/
+
+# --- Risorse per i crawler ---
+Sitemap: https://maxdigitalinnovation.it/sitemap_index.xml
+Sitemap: https://maxdigitalinnovation.it/page-sitemap.xml
+Sitemap: https://maxdigitalinnovation.it/post-sitemap.xml
+
+# Guida ai contenuti per i modelli linguistici
+# https://maxdigitalinnovation.it/llms.txt

@@ -1,0 +1,9 @@
+# ai.txt - preferenze di utilizzo dei contenuti
+Owner: Max Digital Innovation
+Contact: info@maxdigitalinnovation.it
+Canonical: https://maxdigitalinnovation.it/
+Usage-search: allow
+Usage-ai-answers: allow
+Usage-training: allow-with-attribution
+Attribution: "Max Digital Innovation - https://maxdigitalinnovation.it"
+Updated: 2026-09-10

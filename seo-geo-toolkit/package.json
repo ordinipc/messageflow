@@ -1,0 +1,16 @@
+{
+  "name": "seo-geo-toolkit",
+  "version": "1.0.0",
+  "description": "Audit e correzione automatica dei problemi SEO e GEO di un sito WordPress a partire dall'export WXR",
+  "main": "bin/seo-geo.js",
+  "bin": { "seo-geo": "bin/seo-geo.js" },
+  "scripts": {
+    "audit": "node bin/seo-geo.js audit",
+    "triage": "node bin/seo-geo.js triage",
+    "fix": "node bin/seo-geo.js all",
+    "test": "node test/smoke.js"
+  },
+  "engines": { "node": ">=18" },
+  "license": "MIT",
+  "private": true
+}

@@ -1,0 +1,195 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": [
+        "Organization",
+        "ProfessionalService"
+      ],
+      "@id": "https://maxdigitalinnovation.it/#organization",
+      "name": "Max Digital Innovation",
+      "legalName": "Max Digital Innovation",
+      "url": "https://maxdigitalinnovation.it/",
+      "description": "Agenzia di comunicazione e web agency a Palermo: siti web, e-commerce, video, social media e strategie digitali per PMI.",
+      "email": "info@maxdigitalinnovation.it",
+      "priceRange": "€€",
+      "logo": {
+        "@type": "ImageObject",
+        "@id": "https://maxdigitalinnovation.it/#logo",
+        "url": "https://maxdigitalinnovation.it/wp-content/uploads/2026/08/Logo_Bianco_01.svg"
+      },
+      "image": {
+        "@id": "https://maxdigitalinnovation.it/#logo"
+      },
+      "areaServed": [
+        {
+          "@type": "City",
+          "name": "Palermo"
+        },
+        {
+          "@type": "City",
+          "name": "Monreale"
+        },
+        {
+          "@type": "City",
+          "name": "Bagheria"
+        },
+        {
+          "@type": "City",
+          "name": "Carini"
+        },
+        {
+          "@type": "City",
+          "name": "Cefalù"
+        },
+        {
+          "@type": "City",
+          "name": "Termini Imerese"
+        },
+        {
+          "@type": "City",
+          "name": "Partinico"
+        },
+        {
+          "@type": "City",
+          "name": "Misilmeri"
+        },
+        {
+          "@type": "City",
+          "name": "Sicilia"
+        }
+      ],
+      "knowsAbout": [
+        "Realizzazione siti web",
+        "E-commerce",
+        "SEO locale",
+        "Social media marketing",
+        "Produzione video",
+        "Graphic design",
+        "Naming",
+        "CRM e gestionali",
+        "Stampa digitale"
+      ],
+      "sameAs": [
+        "https://www.instagram.com/maxdigitalinnovation"
+      ],
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday"
+          ],
+          "opens": "09:00",
+          "closes": "18:00"
+        }
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://maxdigitalinnovation.it/#website",
+      "url": "https://maxdigitalinnovation.it/",
+      "name": "Max Digital Innovation",
+      "description": "Agenzia di comunicazione e web agency a Palermo: siti web, e-commerce, video, social media e strategie digitali per PMI.",
+      "inLanguage": "it-IT",
+      "publisher": {
+        "@id": "https://maxdigitalinnovation.it/#organization"
+      },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://maxdigitalinnovation.it/?s={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://maxdigitalinnovation.it/#/schema/person/max-digital-innovation",
+      "name": "Max Digital Innovation",
+      "worksFor": {
+        "@id": "https://maxdigitalinnovation.it/#organization"
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://maxdigitalinnovation.it/servizi-digitali-palermo/#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://maxdigitalinnovation.it/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Servizi digitali Palermo",
+          "item": "https://maxdigitalinnovation.it/servizi-digitali-palermo/"
+        }
+      ]
+    },
+    {
+      "@type": "Service",
+      "@id": "https://maxdigitalinnovation.it/servizi-digitali-palermo/#service",
+      "name": "Servizi digitali Palermo",
+      "serviceType": "servizi digitali",
+      "description": "Scopri i servizi digitali di Max Digital Innovation: web, social, video, e-commerce, branding, digital marketing e soluzioni per far crescere il tuo brand.",
+      "provider": {
+        "@id": "https://maxdigitalinnovation.it/#organization"
+      },
+      "areaServed": [
+        {
+          "@type": "City",
+          "name": "Palermo"
+        },
+        {
+          "@type": "City",
+          "name": "Monreale"
+        },
+        {
+          "@type": "City",
+          "name": "Bagheria"
+        },
+        {
+          "@type": "City",
+          "name": "Carini"
+        },
+        {
+          "@type": "City",
+          "name": "Cefalù"
+        },
+        {
+          "@type": "City",
+          "name": "Termini Imerese"
+        },
+        {
+          "@type": "City",
+          "name": "Partinico"
+        },
+        {
+          "@type": "City",
+          "name": "Misilmeri"
+        },
+        {
+          "@type": "City",
+          "name": "Sicilia"
+        }
+      ],
+      "audience": {
+        "@type": "BusinessAudience",
+        "name": "PMI e professionisti"
+      },
+      "offers": {
+        "@type": "Offer",
+        "availability": "https://schema.org/InStock",
+        "priceCurrency": "EUR",
+        "url": "https://maxdigitalinnovation.it/servizi-digitali-palermo/"
+      }
+    }
+  ]
+}
