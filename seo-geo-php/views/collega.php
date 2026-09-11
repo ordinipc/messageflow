@@ -5,6 +5,7 @@
  * @package SeoGeoAudit
  * @var array  $audit        Riga audit.
  * @var bool   $pronto       Collegamento configurato.
+ * @var array[] $archivio     Analisi archiviate da cui ripescare le meta.
  * @var array  $stato        Risposta del sito.
  * @var string $errore_stato Errore della prova di collegamento.
  * @var array  $conteggi     Quantità per ogni operazione.
@@ -164,6 +165,37 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 			<?php azione( $audit['id'], 'annulla_pagine', 'Ripristina solo le pagine', 'Riportare le pagine alle meta precedenti?', 'bottone chiaro' ); ?>
 			<?php azione( $audit['id'], 'annulla', 'Annulla tutto e ripristina', 'Ripristinare le meta precedenti su tutti i contenuti?', 'bottone chiaro' ); ?>
 		</div>
+	</section>
+
+	<section class="scheda">
+		<h2>Riporta indietro da un analisi archiviata</h2>
+		<p class="guida">
+			Seconda rete di sicurezza, che non dipende dal plugin: ogni analisi conserva title,
+			description e parola chiave come erano sul sito quel giorno. La prima di tutte viene
+			dall export XML, cioè da prima di qualsiasi modifica. Da qui si rimettono sul sito.
+		</p>
+
+		<?php if ( ! empty( $archivio ) ) : ?>
+			<form method="post" action="?p=applica" onsubmit="return confirm('Riportare title e description come erano in quell analisi?')">
+				<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+				<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
+				<input type="hidden" name="azione" value="ripristina_analisi">
+				<div class="campo">
+					<label for="da_audit">Analisi da cui ripescare</label>
+					<select id="da_audit" name="da_audit">
+						<?php foreach ( $archivio as $voce ) : ?>
+							<option value="<?php echo (int) $voce['id']; ?>">
+								<?php echo e( substr( (string) $voce['creato_il'], 0, 16 ) ); ?> —
+								<?php echo num( $voce['contenuti'] ); ?> contenuti<?php echo 1 === (int) $voce['id'] ? ' (la prima, dall export XML)' : ''; ?>
+							</option>
+						<?php endforeach; ?>
+					</select>
+				</div>
+				<button class="bottone chiaro" type="submit">Rimetti quei title e description</button>
+			</form>
+		<?php else : ?>
+			<p class="nota">Nessuna analisi archiviata da cui ripescare.</p>
+		<?php endif; ?>
 	</section>
 
 	<section class="scheda">

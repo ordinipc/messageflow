@@ -1009,6 +1009,11 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		vista(
 			'collega',
 			array(
+				'archivio'  => $db->all(
+					'SELECT a.id, a.creato_il, (SELECT COUNT(*) FROM documento d WHERE d.audit_id = a.id) AS contenuti
+					 FROM audit a WHERE a.sito_url = (SELECT sito_url FROM audit WHERE id = ?) ORDER BY a.id ASC LIMIT 20',
+					array( $id )
+				),
 				'titolo'       => 'Applica sul sito',
 				'audit'        => $audit,
 				'cfg'          => $cfg,
@@ -1112,6 +1117,53 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 
 				$esito     = $ponte->inviaCategorie( $assegnazioni );
 				$messaggio = ( (int) ( $esito['assegnate'] ?? 0 ) ) . ' articoli ricategorizzati.';
+				break;
+
+			case 'ripristina_analisi':
+				// Seconda rete di sicurezza, indipendente dal plugin: ogni
+				// analisi archiviata contiene title, description e focus come
+				// erano sul sito quel giorno. La prima di tutte viene
+				// dall export XML, cioè da prima di qualsiasi modifica.
+				$da = (int) ( $_POST['da_audit'] ?? 0 );
+
+				if ( ! $da || ! $db->one( 'SELECT id FROM audit WHERE id = ?', array( $da ) ) ) {
+					throw new RuntimeException( 'Analisi di partenza non trovata.' );
+				}
+
+				$righe = array();
+
+				foreach ( $db->all(
+					"SELECT wp_id, seo_title, seo_description, focus_keyword FROM documento
+					 WHERE audit_id = ? AND wp_id <> '' AND ( seo_title <> '' OR seo_description <> '' )",
+					array( $da )
+				) as $riga ) {
+					$righe[] = array(
+						'id'          => $riga['wp_id'],
+						'title'       => $riga['seo_title'],
+						'description' => $riga['seo_description'],
+						'excerpt'     => '',
+						'focus'       => $riga['focus_keyword'],
+					);
+				}
+
+				if ( ! $righe ) {
+					throw new RuntimeException( 'In quell analisi non risultano title e description da rimettere.' );
+				}
+
+				$fatti = 0;
+
+				// A blocchi, come per l invio: rimettere trecento contenuti in
+				// una richiesta sola esaurirebbe il tempo di esecuzione.
+				foreach ( array_chunk( $righe, 40 ) as $blocco ) {
+					$esito  = $ponte->inviaMeta( $blocco, false );
+					$fatti += (int) ( $esito['aggiornati'] ?? 0 );
+				}
+
+				$messaggio = sprintf(
+					'%d contenuti riportati a title e description dell analisi del %s.',
+					$fatti,
+					substr( (string) $db->one( 'SELECT creato_il FROM audit WHERE id = ?', array( $da ) )['creato_il'], 0, 10 )
+				);
 				break;
 
 			case 'annulla':
@@ -1797,6 +1849,11 @@ switch ( $pagina ) {
 		vista(
 			'collega',
 			array(
+				'archivio'  => $db->all(
+					'SELECT a.id, a.creato_il, (SELECT COUNT(*) FROM documento d WHERE d.audit_id = a.id) AS contenuti
+					 FROM audit a WHERE a.sito_url = (SELECT sito_url FROM audit WHERE id = ?) ORDER BY a.id ASC LIMIT 20',
+					array( $id )
+				),
 				'titolo'       => 'Applica sul sito',
 				'audit'        => $audit,
 				'cfg'          => $cfg,

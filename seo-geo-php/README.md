@@ -670,6 +670,25 @@ Il secondo non è una finta rete: esegue il codice del plugin con le funzioni di
 WordPress sostituite da versioni in memoria, così gli errori di logica vengono
 a galla. Ogni errore trovato in produzione diventa una verifica in questi file.
 
+## Il file XML come backup
+
+L'export WXR di WordPress (Strumenti → Esporta → Tutti i contenuti) contiene testo, title,
+description, parole chiave, categorie e tag di ogni contenuto: come *archivio* dei dati va
+benissimo, ed è quello da cui nasce la prima analisi.
+
+Quello che **non** contiene: i file delle immagini (solo i loro indirizzi), il tema, i plugin
+e tutte le impostazioni del sito.
+
+E soprattutto: **non è un ripristino**. L'importatore di WordPress salta i contenuti che
+esistono già invece di sovrascriverli, quindi reimportare l'export non annulla niente — al
+massimo crea doppioni. Per tornare indietro servono altre strade:
+
+1. *Collegamento → Annulla* — il plugin conserva i valori precedenti di ogni contenuto toccato;
+2. *Collegamento → Riporta indietro da un analisi archiviata* — ogni analisi conserva title,
+   description e parola chiave come erano quel giorno, e la prima viene dall'export XML, cioè
+   da prima di qualsiasi modifica. Si sceglie da quale analisi ripescare e si rimettono sul sito;
+3. il backup del database dell'hosting, che è l'unico ripristino completo.
+
 ## Cosa si può disfare, e cosa no
 
 | Operazione | Si torna indietro? | Come |
