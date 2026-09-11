@@ -369,8 +369,8 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				'conteggi'     => array(
 					'meta'      => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
 					'bozze'     => (int) $db->one( "SELECT COUNT(*) n FROM bozza WHERE audit_id = ? AND stato = 'ok'", array( $id ) )['n'],
-					'redirect'  => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ? AND slug_cambiato = 1', array( $id ) )['n']
-						+ (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
+					'redirect'      => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
+					'redirect_slug' => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ? AND slug_cambiato = 1', array( $id ) )['n'],
 					'categorie' => (int) $db->one( "SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id WHERE r.audit_id = ? AND r.regola = 'TAX-03'", array( $id ) )['n'],
 				),
 			)
@@ -407,16 +407,29 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 			case 'redirect':
 				$righe = array();
 
-				foreach ( $db->all( 'SELECT m.slug_nuovo, d.percorso FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND m.slug_cambiato = 1', array( $id ) ) as $r ) {
-					$righe[] = array( 'da' => $r['percorso'], 'a' => rtrim( $cfg['wordpress']['url'], '/' ) . '/' . $r['slug_nuovo'] . '/' );
-				}
-
+				// Obbligatori: gli URL che spariscono davvero (contenuti eliminati
+				// o assorbiti in un altro articolo).
 				foreach ( $db->all( "SELECT t.redirect_a, d.percorso FROM triage t JOIN documento d ON d.id = t.documento_id WHERE t.audit_id = ? AND t.redirect_a <> ''", array( $id ) ) as $r ) {
 					$righe[] = array( 'da' => $r['percorso'], 'a' => $r['redirect_a'] );
 				}
 
+				$obbligatori = count( $righe );
+				$con_slug    = ! empty( $_POST['slug'] );
+
+				// Facoltativi: gli slug accorciati. Cambiare URL a un articolo che
+				// resta online è un costo certo per un guadagno marginale, quindi
+				// non succede se non lo si chiede esplicitamente.
+				if ( $con_slug ) {
+					foreach ( $db->all( 'SELECT m.slug_nuovo, d.percorso FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND m.slug_cambiato = 1', array( $id ) ) as $r ) {
+						$righe[] = array( 'da' => $r['percorso'], 'a' => rtrim( $cfg['wordpress']['url'], '/' ) . '/' . $r['slug_nuovo'] . '/' );
+					}
+				}
+
 				$esito     = $ponte->inviaRedirect( $righe );
-				$messaggio = ( (int) ( $esito['redirect'] ?? 0 ) ) . ' redirect 301 attivi sul sito.';
+				$attivi    = (int) ( $esito['redirect'] ?? 0 );
+				$messaggio = $con_slug
+					? "$attivi redirect attivi: $obbligatori per i contenuti rimossi più quelli degli slug accorciati. Ricorda di cambiare davvero gli slug in WordPress, altrimenti i redirect non servono a niente."
+					: "$attivi redirect attivi, solo per i contenuti eliminati o accorpati. Gli slug degli articoli che restano online non sono stati toccati.";
 				break;
 
 			case 'categorie':
@@ -876,8 +889,8 @@ switch ( $pagina ) {
 				'conteggi'     => array(
 					'meta'      => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
 					'bozze'     => (int) $db->one( "SELECT COUNT(*) n FROM bozza WHERE audit_id = ? AND stato = 'ok'", array( $id ) )['n'],
-					'redirect'  => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ? AND slug_cambiato = 1', array( $id ) )['n']
-						+ (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
+					'redirect'      => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
+					'redirect_slug' => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ? AND slug_cambiato = 1', array( $id ) )['n'],
 					'categorie' => (int) $db->one( "SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id WHERE r.audit_id = ? AND r.regola = 'TAX-03'", array( $id ) )['n'],
 				),
 			)

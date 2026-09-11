@@ -20,7 +20,7 @@
  * @param string $classe     Classe del pulsante.
  * @return void
  */
-function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', $limite = null ) {
+function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', $limite = null, $extra = array() ) {
 	?>
 	<form method="post" action="?p=applica" <?php echo $conferma ? 'onsubmit="return confirm(' . "'" . e( $conferma ) . "'" . ')"' : ''; ?>>
 		<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
@@ -29,6 +29,9 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 		<?php if ( null !== $limite ) : ?>
 			<input type="hidden" name="limite" value="<?php echo (int) $limite; ?>">
 		<?php endif; ?>
+		<?php foreach ( $extra as $chiave => $valore ) : ?>
+			<input type="hidden" name="<?php echo e( $chiave ); ?>" value="<?php echo e( $valore ); ?>">
+		<?php endforeach; ?>
 		<button class="<?php echo e( $classe ); ?>" type="submit"><?php echo e( $etichetta ); ?></button>
 	</form>
 	<?php
@@ -113,8 +116,20 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 
 	<section class="scheda">
 		<h2>Redirect 301</h2>
-		<p class="guida">Attiva <?php echo num( $conteggi['redirect'] ); ?> redirect sul sito: slug accorciati e articoli da eliminare o accorpare. Vanno impostati <strong>prima</strong> di cestinare qualsiasi contenuto.</p>
-		<div class="azioni"><?php azione( $audit['id'], 'redirect', 'Attiva i redirect' ); ?></div>
+		<p class="guida">
+			Un redirect serve quando un URL sparisce davvero. Gli articoli riscritti restano
+			al loro indirizzo e non ne hanno bisogno.
+		</p>
+
+		<ul>
+			<li><strong><?php echo num( $conteggi['redirect'] ); ?> obbligatori</strong> — contenuti eliminati o assorbiti in un altro articolo. Vanno impostati <strong>prima</strong> di cestinare.</li>
+			<li><strong><?php echo num( $conteggi['redirect_slug'] ); ?> facoltativi</strong> — slug accorciati su articoli che restano online. Guadagno marginale, costo certo: attivali solo se hai deciso di cambiare davvero quegli indirizzi in WordPress.</li>
+		</ul>
+
+		<div class="azioni">
+			<?php azione( $audit['id'], 'redirect', 'Attiva i ' . $conteggi['redirect'] . ' obbligatori' ); ?>
+			<?php azione( $audit['id'], 'redirect', 'Attiva anche gli slug accorciati', 'Attivare anche i ' . $conteggi['redirect_slug'] . ' redirect degli slug? Poi dovrai cambiare quegli slug in WordPress, altrimenti non servono a niente.', 'bottone chiaro', null, array( 'slug' => '1' ) ); ?>
+		</div>
 	</section>
 
 	<section class="scheda">
