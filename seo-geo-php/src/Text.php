@@ -29,6 +29,9 @@ class Text {
 		'da', 'dal', 'dalla', 'a', 'al', 'alla', 'ai', 'agli', 'alle', 'in', 'nel', 'nella', 'nei', 'negli', 'nelle',
 		'con', 'col', 'su', 'sul', 'sulla', 'per', 'tra', 'fra', 'il', 'lo', 'la', 'i', 'gli', 'le', 'un', 'uno', 'una',
 		'anche', 'come', 'piu', 'più', 'ogni', 'quando', 'dove', 'mentre', 'oppure', 'inoltre', 'ovvero', 'cioè',
+		// Aggettivi possessivi: un titolo che finisce con "per la Tua" è
+		// tagliato quanto uno che finisce con "per la".
+		'tuo', 'tua', 'tuoi', 'tue', 'suo', 'sua', 'suoi', 'sue', 'nostro', 'nostra', 'nostri', 'nostre',
 	);
 
 	/**

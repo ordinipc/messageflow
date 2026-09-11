@@ -120,7 +120,7 @@ class Meta {
 		$candidati = array();
 		if ( '' !== $kw ) {
 			if ( $kwPrefisso && $restoPulito ) {
-				$candidati[] = $kw . ': ' . Text::truncate( $resto, $max - mb_strlen( $kw ) - 2 );
+				$candidati[] = $kw . ': ' . Text::polishClause( Text::truncate( $resto, $max - mb_strlen( $kw ) - 2 ) );
 			}
 			if ( '' !== $beneficio ) {
 				$candidati[] = $kw . ': ' . $beneficio;
@@ -161,9 +161,11 @@ class Meta {
 			}
 		}
 
+		// Quando si taglia, si taglia a fine concetto: un title che finisce con
+		// "per la Tua" è una frase monca, e in Google si legge per quello che è.
 		if ( null === $scelto ) {
 			foreach ( $candidati as $c ) {
-				$d = Text::truncate( $dedup( $c ), $max );
+				$d = Text::polishClause( Text::truncate( $dedup( $c ), $max ) );
 				if ( mb_strlen( $d ) >= 25 ) {
 					$scelto = $d;
 					break;
@@ -172,14 +174,17 @@ class Meta {
 		}
 
 		if ( null === $scelto ) {
-			$scelto = Text::truncate( $dedup( $attuale ), $max );
+			$scelto = Text::polishClause( Text::truncate( $dedup( $attuale ), $max ) );
 		}
 
 		if ( mb_strlen( $scelto ) + mb_strlen( $brand ) + 3 <= $max && false === mb_stripos( $scelto, $brand ) ) {
 			$scelto .= ' | ' . $brand;
 		}
 
-		$scelto = trim( $scelto );
+		// Rete finale: da qualunque ramo arrivi, un title non esce mai monco.
+		// Su un titolo ben formato questa riga non cambia niente, perché non
+		// finisce con una preposizione o un possessivo.
+		$scelto = trim( Text::polishClause( $scelto ) );
 
 		return array( $scelto, $scelto !== $attuale );
 	}

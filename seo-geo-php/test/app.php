@@ -615,6 +615,94 @@ verifica( 'e non ci sono autori con i loro dati', ! isset( $pacchetto['autori'] 
 
 verifica( 'l elenco di cosa resta fuori è mostrato all utente', count( \SeoGeo\Diagnostica::esclusi() ) >= 5 );
 
+// --- Indirizzi cambiati -----------------------------------------------------
+// Un contenuto rinominato lascia indietro il vecchio indirizzo, che da quel
+// momento dà 404. Nessuno se ne accorgeva.
+echo "\nIndirizzi cambiati\n";
+
+$fileDb3 = sys_get_temp_dir() . '/prova-redir-' . getmypid() . '.sqlite';
+@unlink( $fileDb3 );
+$db3 = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileDb3 ) );
+
+$sito = 'https://esempio.it';
+$a1   = $db3->insert( 'audit', array( 'sito_nome' => 'P', 'sito_url' => $sito, 'creato_il' => '2026-09-01 10:00:00', 'punteggio' => 40 ) );
+$a2   = $db3->insert( 'audit', array( 'sito_nome' => 'P', 'sito_url' => $sito, 'creato_il' => '2026-09-11 10:00:00', 'punteggio' => 50 ) );
+
+// Stesso contenuto, indirizzo diverso.
+$db3->insert( 'documento', array( 'audit_id' => $a1, 'wp_id' => '7388', 'titolo' => 'Video a Palermo', 'percorso' => '/perche-ogni-attivita-video-2', 'tipo' => 'post', 'stato' => 'publish' ) );
+$db3->insert( 'documento', array( 'audit_id' => $a2, 'wp_id' => '7388', 'titolo' => 'Video a Palermo', 'percorso' => '/perche-le-attivita-video', 'tipo' => 'post', 'stato' => 'publish' ) );
+
+// Contenuto rimasto fermo.
+$db3->insert( 'documento', array( 'audit_id' => $a1, 'wp_id' => '99', 'titolo' => 'Fermo', 'percorso' => '/fermo', 'tipo' => 'post', 'stato' => 'publish' ) );
+$db3->insert( 'documento', array( 'audit_id' => $a2, 'wp_id' => '99', 'titolo' => 'Fermo', 'percorso' => '/fermo', 'tipo' => 'post', 'stato' => 'publish' ) );
+
+// Contenuto nuovo, che prima non c era: non è un cambio di indirizzo.
+$db3->insert( 'documento', array( 'audit_id' => $a2, 'wp_id' => '500', 'titolo' => 'Nuovo', 'percorso' => '/nuovo', 'tipo' => 'post', 'stato' => 'publish' ) );
+
+$cambiati = \SeoGeo\Redirezioni::cambiati( $db3, $sito );
+
+verifica( 'trova il contenuto che ha cambiato indirizzo', 1 === count( $cambiati ), count( $cambiati ) . ' trovati' );
+verifica( 'con il vecchio indirizzo giusto', '/perche-ogni-attivita-video-2' === $cambiati[0]['da'] );
+verifica( 'e con il nuovo', '/perche-le-attivita-video' === $cambiati[0]['a'] );
+verifica( 'il confronto è per identificativo, non per indirizzo', '7388' === $cambiati[0]['wp_id'] );
+verifica( 'un contenuto nuovo non viene scambiato per uno spostato', array() === array_filter( $cambiati, static fn( $c ) => '500' === $c['wp_id'] ) );
+
+// La barra finale non è un cambio di indirizzo.
+$a3 = $db3->insert( 'audit', array( 'sito_nome' => 'P', 'sito_url' => 'https://altro.it', 'creato_il' => '2026-09-01 10:00:00', 'punteggio' => 40 ) );
+$a4 = $db3->insert( 'audit', array( 'sito_nome' => 'P', 'sito_url' => 'https://altro.it', 'creato_il' => '2026-09-11 10:00:00', 'punteggio' => 40 ) );
+$db3->insert( 'documento', array( 'audit_id' => $a3, 'wp_id' => '1', 'titolo' => 'X', 'percorso' => '/pagina/', 'tipo' => 'post', 'stato' => 'publish' ) );
+$db3->insert( 'documento', array( 'audit_id' => $a4, 'wp_id' => '1', 'titolo' => 'X', 'percorso' => '/pagina', 'tipo' => 'post', 'stato' => 'publish' ) );
+
+verifica( 'la barra finale non conta come cambio', array() === \SeoGeo\Redirezioni::cambiati( $db3, 'https://altro.it' ) );
+
+// Con una sola analisi non c è niente da confrontare.
+$a5 = $db3->insert( 'audit', array( 'sito_nome' => 'P', 'sito_url' => 'https://solo.it', 'creato_il' => '2026-09-11 10:00:00', 'punteggio' => 40 ) );
+verifica( 'con una sola analisi non inventa niente', array() === \SeoGeo\Redirezioni::cambiati( $db3, 'https://solo.it' ) );
+
+@unlink( $fileDb3 );
+
+// --- Title tagliati a metà --------------------------------------------------
+// Sul sito vero erano quattordici, e li aveva scritti questo programma.
+echo "\nTitle tagliati a metà\n";
+
+$cfgT = require __DIR__ . '/../config.php';
+
+$monchi = array(
+	'Web agency a Palermo: La Guida Completa per Far Crescere la tua attività commerciale',
+	'Digital Agency a Palermo: La Soluzione Completa per la Tua azienda che cresce',
+	'Piano di Marketing: Guida Completa per il Successo del Tuo progetto aziendale',
+);
+
+$tagliati = 0;
+
+foreach ( $monchi as $titolo ) {
+	list( $title ) = \SeoGeo\Fix\Meta::title(
+		array( 'titolo' => $titolo, 'slug' => 'x', 'testo' => str_repeat( 'testo di prova ', 60 ), 'seo_title' => '', 'seo_desc' => '', 'primo_paragrafo' => '', 'estratto' => '', 'focus' => '' ),
+		$cfgT
+	);
+
+	if ( preg_match( '/\b(per|la|il|del|della|tuo|tua|i|le|un|una|di|da|con)\s*$/i', $title ) ) {
+		$tagliati++;
+	}
+
+	if ( mb_strlen( $title ) > $cfgT['seo']['titleMax'] ) {
+		$tagliati++;
+	}
+}
+
+verifica( 'nessun title esce monco o troppo lungo', 0 === $tagliati, $tagliati . ' difettosi' );
+
+verifica(
+	'un possessivo finale viene tolto come una preposizione',
+	'Marketing a Palermo: Strategie per' !== \SeoGeo\Text::polishClause( 'Marketing a Palermo: Strategie per la Tua' )
+		&& false === stripos( \SeoGeo\Text::polishClause( 'Marketing a Palermo: Strategie per la Tua' ), 'per la Tua' )
+);
+
+verifica(
+	'un titolo ben formato non viene toccato',
+	'Agenzia web a Palermo: siti che portano clienti' === \SeoGeo\Text::polishClause( 'Agenzia web a Palermo: siti che portano clienti' )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

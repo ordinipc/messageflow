@@ -17,6 +17,7 @@ use SeoGeo\Coda;
 use SeoGeo\Db;
 use SeoGeo\Diagnosi;
 use SeoGeo\Diagnostica;
+use SeoGeo\Redirezioni;
 use SeoGeo\Export;
 use SeoGeo\Impostazioni;
 use SeoGeo\Fix\InternalLinks;
@@ -1048,6 +1049,7 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		vista(
 			'collega',
 			array(
+				'cambiati'  => Redirezioni::cambiati( $db, $audit['sito_url'] ),
 				'archivio'  => $db->all(
 					'SELECT a.id, a.creato_il, (SELECT COUNT(*) FROM documento d WHERE d.audit_id = a.id) AS contenuti
 					 FROM audit a WHERE a.sito_url = (SELECT sito_url FROM audit WHERE id = ?) ORDER BY a.id ASC LIMIT 20',
@@ -1156,6 +1158,29 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 
 				$esito     = $ponte->inviaCategorie( $assegnazioni );
 				$messaggio = ( (int) ( $esito['assegnate'] ?? 0 ) ) . ' articoli ricategorizzati.';
+				break;
+
+			case 'redirect_cambiati':
+				// Un contenuto rinominato lascia indietro il suo vecchio
+				// indirizzo: senza un 301 i link che arrivano da fuori si
+				// perdono, e la posizione in Google riparte da zero.
+				$cambiati = Redirezioni::cambiati( $db, $audit['sito_url'] );
+
+				if ( ! $cambiati ) {
+					throw new RuntimeException( 'Nessun indirizzo è cambiato fra le ultime due analisi.' );
+				}
+
+				$righe = array();
+
+				foreach ( $cambiati as $riga ) {
+					$righe[] = array( 'da' => $riga['da'], 'a' => rtrim( $audit['sito_url'], '/' ) . $riga['a'] );
+				}
+
+				$esito     = $ponte->inviaRedirect( $righe );
+				$messaggio = sprintf(
+					'%d indirizzi vecchi ora rimandano a quelli nuovi. Attenzione: questo sostituisce la tabella dei redirect sul sito.',
+					count( $righe )
+				);
 				break;
 
 			case 'ripristina_analisi':
@@ -1901,6 +1926,7 @@ switch ( $pagina ) {
 		vista(
 			'collega',
 			array(
+				'cambiati'  => Redirezioni::cambiati( $db, $audit['sito_url'] ),
 				'archivio'  => $db->all(
 					'SELECT a.id, a.creato_il, (SELECT COUNT(*) FROM documento d WHERE d.audit_id = a.id) AS contenuti
 					 FROM audit a WHERE a.sito_url = (SELECT sito_url FROM audit WHERE id = ?) ORDER BY a.id ASC LIMIT 20',

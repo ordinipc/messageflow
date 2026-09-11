@@ -670,6 +670,19 @@ Il secondo non è una finta rete: esegue il codice del plugin con le funzioni di
 WordPress sostituite da versioni in memoria, così gli errori di logica vengono
 a galla. Ogni errore trovato in produzione diventa una verifica in questi file.
 
+## Indirizzi cambiati
+
+Quando un contenuto viene rinominato e cambia slug, il vecchio indirizzo comincia a dare 404:
+i link che arrivano da fuori si perdono e la posizione guadagnata in Google riparte da zero.
+Non lo fa il programma — lo fa chi modifica un articolo in WordPress — ma nessuno se ne accorge
+finché non è tardi.
+
+Il gestionale conserva l'indirizzo di ogni contenuto a ogni analisi. Confrontando le ultime due
+per **identificativo di WordPress** (l'unica cosa che non cambia quando si rinomina), trova i
+contenuti spostati e li mostra in *Collegamento*, con il pulsante che crea i 301 dal vecchio
+indirizzo al nuovo. Il plugin li applica solo sulle pagine che danno 404, quindi non
+interferisce con niente di quello che già funziona.
+
 ## Mandare i dati a chi sviluppa
 
 Menù **Diagnostica**. Un dump del database di WordPress pesa centinaia di megabyte e contiene
