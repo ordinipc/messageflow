@@ -46,7 +46,7 @@ function campo( $nome, $etichetta, $valore, $nota = '', $tipo = 'text' ) {
 <?php if ( $salvato ) : ?><p class="avviso ok-bg"><?php echo e( $salvato ); ?></p><?php endif; ?>
 <?php if ( $errore ) : ?><p class="avviso grave"><?php echo e( $errore ); ?></p><?php endif; ?>
 
-<form method="post" action="?p=salva-impostazioni">
+<form method="post" action="?p=salva-impostazioni" enctype="multipart/form-data">
 	<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
 
 	<section class="scheda">
@@ -150,13 +150,40 @@ function campo( $nome, $etichetta, $valore, $nota = '', $tipo = 'text' ) {
 				<li>Ultimo passo, quello che si dimenticano tutti: in <a href="https://search.google.com/search-console/users" target="_blank" rel="noopener">Search Console → Impostazioni → Utenti e autorizzazioni</a> aggiungi come utente l indirizzo dell account di servizio (finisce per <code>.iam.gserviceaccount.com</code>), con permesso <strong>Con limitazioni</strong>: basta e avanza, legge soltanto.</li>
 			</ol>
 			<p class="nota">
+				<strong>Se non si salva in nessuno dei due modi</strong>, il firewall dell hosting sta bloccando la
+				richiesta: carica il file per FTP dentro la cartella <code>storage/</code> e rinominalo
+				<code>google.json</code>. Il programma lo legge da lì senza che debba passare dal browser.
+			</p>
+			<p class="nota">
 				La chiave resta sul tuo server, in <code>storage/impostazioni.json</code>, leggibile solo dal proprietario.
 				Dà accesso in sola lettura ai dati di Search Console: non può modificare né il sito né l account Google.
 			</p>
 		</details>
 
+		<?php if ( $google_messaggio ) : ?>
+			<p class="avviso ok-bg"><?php echo e( $google_messaggio ); ?></p>
+		<?php endif; ?>
+
+		<?php if ( $google_errore ) : ?>
+			<p class="avviso grave"><?php echo e( $google_errore ); ?></p>
+		<?php endif; ?>
+
+		<?php if ( $google_da_file ) : ?>
+			<p class="avviso ok-bg">Chiave letta da <code>storage/google.json</code>.</p>
+		<?php endif; ?>
+
 		<div class="campo">
-			<label for="g_chiave_json">Chiave dell account di servizio (contenuto del file JSON)</label>
+			<label for="g_chiave_file">Chiave dell account di servizio (carica il file JSON)</label>
+			<input id="g_chiave_file" type="file" name="g_chiave_file" accept="application/json,.json">
+			<small>
+				Il file scaricato da Google Cloud, senza aprirlo. È la strada più affidabile: diversi hosting
+				hanno un firewall che blocca i moduli contenenti una chiave privata, e in quel caso il campo
+				qui sotto non arriverebbe mai al server.
+			</small>
+		</div>
+
+		<div class="campo">
+			<label for="g_chiave_json">Oppure incolla qui il contenuto del file</label>
 			<textarea id="g_chiave_json" name="g_chiave_json" rows="4" placeholder="<?php echo $google_configurato ? 'Chiave già salvata: lascia vuoto per non cambiarla' : '{ &quot;type&quot;: &quot;service_account&quot;, ... }'; ?>"></textarea>
 			<small>
 				<?php if ( $google_account ) : ?>

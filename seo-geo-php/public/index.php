@@ -1009,7 +1009,29 @@ if ( 'salva-impostazioni' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] )
 		? $token_wp
 		: ( $salvate['wordpress']['token'] ?? '' );
 
+	// La chiave può arrivare incollata o come file: su diversi hosting il
+	// firewall blocca i moduli che contengono una chiave privata, e il file
+	// caricato passa dove il campo di testo viene respinto.
 	$chiave_google = $campo( 'g_chiave_json' );
+	$caricata      = $_FILES['g_chiave_file'] ?? null;
+
+	if ( $caricata && UPLOAD_ERR_OK === $caricata['error'] && $caricata['size'] > 0 ) {
+		$chiave_google = (string) file_get_contents( $caricata['tmp_name'] );
+	}
+
+	$errore_chiave = '';
+
+	if ( '' !== $chiave_google ) {
+		// Meglio accorgersene adesso che fra tre giorni: se il file non è
+		// quello giusto, lo si dice subito e non lo si salva.
+		try {
+			\SeoGeo\Google\ServiceAccount::daJson( $chiave_google );
+		} catch ( Throwable $e ) {
+			$errore_chiave = $e->getMessage();
+			$chiave_google = '';
+		}
+	}
+
 	$nuove['google']['chiave_json'] = '' !== $chiave_google
 		? $chiave_google
 		: ( $salvate['google']['chiave_json'] ?? '' );
@@ -1035,7 +1057,22 @@ if ( 'salva-impostazioni' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] )
 			}
 		}
 
-		header( 'Location: ?p=impostazioni&salvato=1' . $esito_invio );
+		// Si rilegge dal disco: è l unica prova che il salvataggio è andato a
+		// buon fine davvero, e non che lo abbiamo solo creduto.
+		$riletta = Impostazioni::chiaveGoogle( $aggiornata );
+		$esito_chiave = '';
+
+		if ( '' !== $errore_chiave ) {
+			$esito_chiave = '&chiave_errore=' . rawurlencode( $errore_chiave );
+		} elseif ( '' !== $chiave_google && trim( $riletta ) !== trim( $chiave_google ) ) {
+			$esito_chiave = '&chiave_errore=' . rawurlencode(
+				'La chiave Google non è stata scritta su disco: controlla i permessi di storage/ (775) oppure carica il file per FTP in storage/google.json'
+			);
+		} elseif ( '' !== $chiave_google ) {
+			$esito_chiave = '&chiave=' . rawurlencode( \SeoGeo\Google\ServiceAccount::daJson( $riletta )['client_email'] );
+		}
+
+		header( 'Location: ?p=impostazioni&salvato=1' . $esito_invio . $esito_chiave );
 	} catch ( Throwable $e ) {
 		header( 'Location: ?p=impostazioni&errore=' . rawurlencode( $e->getMessage() ) );
 	}
@@ -1222,6 +1259,12 @@ switch ( $pagina ) {
 				'indirizzo_base'      => indirizzo_base(),
 				'token_wp_mascherato' => Impostazioni::mascherata( $salvate['wordpress']['token'] ?? '' ),
 				'google_configurato'  => Prestazioni::configurata( $cfg ),
+				'google_da_file'      => '' === trim( (string) ( $salvate['google']['chiave_json'] ?? '' ) )
+					&& is_file( Impostazioni::fileChiaveGoogle() ),
+				'google_messaggio'    => isset( $_GET['chiave'] )
+					? 'Chiave Google salvata e verificata. Account: ' . $_GET['chiave']
+					: '',
+				'google_errore'       => (string) ( $_GET['chiave_errore'] ?? '' ),
 				'google_account'      => google_indirizzo_account( $cfg ),
 				'salvato'             => isset( $_GET['google'] )
 					? (string) $_GET['google']

@@ -321,6 +321,18 @@ Search Console API attiva, e quell account va aggiunto fra gli utenti della prop
 Search Console. La chiave resta sul tuo server, dà accesso in sola lettura, e non può modificare
 né il sito né l account Google.
 
+La chiave si può consegnare in tre modi, in ordine di preferenza:
+
+1. **caricando il file JSON** scaricato da Google Cloud (Impostazioni → Search Console);
+2. **incollandone il contenuto** nel campo di testo;
+3. **mettendola per FTP** in `storage/google.json`.
+
+Il terzo modo esiste per una ragione concreta: su parecchi hosting condivisi il firewall
+applicativo blocca le richieste che contengono una chiave privata, e un salvataggio dal browser
+non arriverebbe mai al server. Se succede, il file per FTP aggira il problema senza discussioni.
+La chiave viene comunque verificata prima di essere accettata: un ID client OAuth al posto di un
+account di servizio, per dire, viene riconosciuto e spiegato.
+
 Da riga di comando, per il cron:
 
 ```bash

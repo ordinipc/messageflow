@@ -151,6 +151,37 @@ class Impostazioni {
 	}
 
 	/**
+	 * Chiave dell account di servizio Google, da dovunque sia stata messa.
+	 *
+	 * Si accetta anche un file caricato per FTP in storage/google.json: su
+	 * parecchi hosting il firewall blocca i moduli che contengono una chiave
+	 * privata, e in quel caso incollarla nel browser non funzionerebbe mai.
+	 *
+	 * @param array $cfg Configurazione completa.
+	 * @return string Contenuto JSON, vuoto se non c è.
+	 */
+	public static function chiaveGoogle( array $cfg = array() ) {
+		$salvata = (string) ( $cfg['google']['chiave_json'] ?? self::salvate()['google']['chiave_json'] ?? '' );
+
+		if ( '' !== trim( $salvata ) ) {
+			return $salvata;
+		}
+
+		$file = dirname( __DIR__ ) . '/storage/google.json';
+
+		return is_file( $file ) ? (string) file_get_contents( $file ) : '';
+	}
+
+	/**
+	 * Percorso del file alternativo per la chiave Google.
+	 *
+	 * @return string
+	 */
+	public static function fileChiaveGoogle() {
+		return dirname( __DIR__ ) . '/storage/google.json';
+	}
+
+	/**
 	 * Ricorda l indirizzo pubblico del gestionale.
 	 *
 	 * Serve al plugin: il pulsante "Analizza" dentro WordPress deve sapere chi

@@ -184,6 +184,55 @@ verifica(
 	'sc-domain:sito.it' === \SeoGeo\Search\Prestazioni::chiaveSito( array( 'google' => array( 'proprieta' => 'sc-domain:sito.it' ) ) )
 );
 
+// --- Da dove arriva la chiave di Google ------------------------------------
+// Su parecchi hosting il firewall blocca i moduli che contengono una chiave
+// privata: deve esserci una strada che non passa dal browser.
+echo "\nChiave di Google\n";
+
+$fileChiave = \SeoGeo\Impostazioni::fileChiaveGoogle();
+$esisteva   = is_file( $fileChiave );
+$copia      = $esisteva ? file_get_contents( $fileChiave ) : null;
+
+@unlink( $fileChiave );
+
+verifica(
+	'senza niente da nessuna parte la chiave è vuota',
+	'' === \SeoGeo\Impostazioni::chiaveGoogle( array( 'google' => array( 'chiave_json' => '' ) ) )
+);
+
+file_put_contents( $fileChiave, '{"type":"service_account","da":"file"}' );
+
+verifica(
+	'in mancanza d altro si legge storage/google.json',
+	false !== strpos( \SeoGeo\Impostazioni::chiaveGoogle( array( 'google' => array( 'chiave_json' => '' ) ) ), '"da":"file"' )
+);
+
+verifica(
+	'la chiave salvata dalle impostazioni ha la precedenza sul file',
+	false !== strpos(
+		\SeoGeo\Impostazioni::chiaveGoogle( array( 'google' => array( 'chiave_json' => '{"da":"impostazioni"}' ) ) ),
+		'impostazioni'
+	)
+);
+
+verifica(
+	'con la sola chiave nel file il collegamento risulta configurato',
+	\SeoGeo\Search\Prestazioni::configurata(
+		array( 'google' => array( 'chiave_json' => '', 'proprieta' => 'sc-domain:sito.it' ) )
+	)
+);
+
+verifica(
+	'senza proprietà non basta la chiave',
+	! \SeoGeo\Search\Prestazioni::configurata( array( 'google' => array( 'chiave_json' => '', 'proprieta' => '' ) ) )
+);
+
+@unlink( $fileChiave );
+
+if ( $esisteva ) {
+	file_put_contents( $fileChiave, $copia );
+}
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

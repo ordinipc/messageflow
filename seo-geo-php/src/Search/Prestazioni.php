@@ -30,12 +30,12 @@ class Prestazioni {
 	 */
 	public static function client( array $cfg ) {
 		$google = $cfg['google'] ?? array();
-		$json   = (string) ( $google['chiave_json'] ?? '' );
+		$json   = Impostazioni::chiaveGoogle( $cfg );
 
 		if ( '' === trim( $json ) ) {
 			throw new RuntimeException(
 				'Manca la chiave dell account di servizio Google. Impostazioni → Search Console: '
-				. 'incolla lì il file JSON scaricato da Google Cloud.'
+				. 'incollala, caricala come file, oppure mettila per FTP in storage/google.json'
 			);
 		}
 
@@ -76,10 +76,8 @@ class Prestazioni {
 	 * @return bool
 	 */
 	public static function configurata( array $cfg ) {
-		$google = $cfg['google'] ?? array();
-
-		return '' !== trim( (string) ( $google['chiave_json'] ?? '' ) )
-			&& '' !== trim( (string) ( $google['proprieta'] ?? '' ) );
+		return '' !== trim( Impostazioni::chiaveGoogle( $cfg ) )
+			&& '' !== trim( (string) ( $cfg['google']['proprieta'] ?? '' ) );
 	}
 
 	/**
