@@ -292,6 +292,21 @@ aprire niente.
 
 ---
 
+## Perché questa pagina non si vede
+
+Menù **Controlla una pagina**: si incolla un indirizzo e il programma interroga tre fonti —
+il sito (stato, categorie, robots, canonica, parole, se una bozza è in attesa, se le meta sono
+state toccate), Google tramite l'ispezione URL di Search Console, e quello che l'analisi stessa
+ha detto e fatto su quel contenuto. Legge soltanto, non modifica niente.
+
+Riconosce e spiega: contenuto nel cestino, bozza non pubblicata, data futura, contenuto
+privato o protetto da password, `noindex`, canonica che punta altrove, contenuto svuotato da
+una riscrittura finita male, doppione che Google ha deduplicato in favore di un gemello,
+pagina vista ma non indicizzata. Ogni causa dice **cosa fare**, non solo cosa non va.
+
+Serve a non passare un pomeriggio a indovinare: nove volte su dieci la risposta è una riga
+sola, e viene da chi la sa davvero.
+
 ## Search Console: i dati veri
 
 Finché il programma legge solo il sito, il punteggio è una previsione: dice cosa è sbagliato

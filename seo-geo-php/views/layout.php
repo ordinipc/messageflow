@@ -23,6 +23,7 @@
 		<nav>
 			<a href="?p=home">Audit archiviati</a>
 			<a href="?p=prestazioni">Rendimento</a>
+			<a href="?p=controlla">Controlla una pagina</a>
 			<a href="?p=impostazioni">Impostazioni</a>
 			<a href="verifica.php">Requisiti</a>
 			<a class="bottone" href="?p=nuovo">Nuova analisi</a>

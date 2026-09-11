@@ -220,3 +220,13 @@ pre.mono { background: var(--basso-bg); padding: 12px 14px; border-radius: 4px; 
 .elenco-azioni { list-style: none; padding: 0; margin: 0 0 14px; display: grid; gap: 6px; }
 .elenco-azioni li { padding: 8px 12px; background: var(--carta); border: 1px solid var(--linea); border-radius: 4px; font-size: 14px; }
 .elenco-azioni strong { font-variant-numeric: tabular-nums; }
+
+/* Diagnosi di una pagina */
+.causa { padding: 12px 0; border-top: 1px solid var(--linea-2); }
+.causa:first-of-type { border-top: 0; padding-top: 0; }
+.causa .tag { margin-bottom: 6px; }
+.causa p { margin: 4px 0 0; }
+table.widefat { width: 100%; border-collapse: collapse; }
+table.widefat td { padding: 7px 0; border-top: 1px solid var(--linea-2); font-size: 14px; vertical-align: top; }
+table.widefat tr:first-child td { border-top: 0; }
+table.widefat td:first-child { color: var(--inchiostro-3); width: 42%; }

@@ -174,10 +174,22 @@ function wp_insert_post( $dati, $errore = false ) {
 }
 
 function get_posts( $argomenti ) {
+	$tipi  = (array) ( $argomenti['post_type'] ?? array( 'post' ) );
+	$stati = (array) ( $argomenti['post_status'] ?? array( 'publish' ) );
 	$trovati = array();
 
 	foreach ( $GLOBALS['wp']['post'] as $id => $post ) {
-		if ( isset( $argomenti['post_status'] ) && $post->post_status !== $argomenti['post_status'] ) {
+		if ( ! in_array( $post->post_status, $stati, true ) && ! in_array( 'any', $stati, true ) ) {
+			continue;
+		}
+
+		if ( ! in_array( $post->post_type, $tipi, true ) && ! in_array( 'any', $tipi, true ) ) {
+			continue;
+		}
+
+		// Ricerca per slug: è così che si trova un contenuto che non è più
+		// pubblico, e quindi non ha più un indirizzo valido.
+		if ( isset( $argomenti['name'] ) && ( $post->post_name ?? '' ) !== $argomenti['name'] ) {
 			continue;
 		}
 
@@ -190,6 +202,14 @@ function get_posts( $argomenti ) {
 		}
 
 		$trovati[] = $id;
+	}
+
+	$quanti = (int) ( $argomenti['numberposts'] ?? $argomenti['posts_per_page'] ?? 0 );
+
+	if ( $quanti > 0 ) {
+		$trovati = array_slice( $trovati, (int) ( $argomenti['offset'] ?? 0 ), $quanti );
+	} elseif ( isset( $argomenti['offset'] ) ) {
+		$trovati = array_slice( $trovati, (int) $argomenti['offset'] );
 	}
 
 	return $trovati;
@@ -489,6 +509,16 @@ function is_main_query() {
 
 function get_queried_object_id() {
 	return (int) ( $GLOBALS['wp']['singolo'] ?? 0 );
+}
+
+function url_to_postid( $url ) {
+	foreach ( $GLOBALS['wp']['post'] as $id => $post ) {
+		if ( 'publish' === $post->post_status && get_permalink( $id ) === $url ) {
+			return (int) $id;
+		}
+	}
+
+	return 0;
 }
 
 function get_permalink( $id = 0 ) {

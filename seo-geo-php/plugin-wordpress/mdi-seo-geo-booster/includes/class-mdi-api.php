@@ -119,6 +119,11 @@ class MDI_Api {
 			'callback' => array( __CLASS__, 'annulla_meta' ),
 		) );
 
+		register_rest_route( self::NAMESPACE_API, '/contenuto', $comune + array(
+			'methods'  => 'GET',
+			'callback' => array( __CLASS__, 'contenuto' ),
+		) );
+
 		register_rest_route( self::NAMESPACE_API, '/conteggi', $comune + array(
 			'methods'  => 'GET',
 			'callback' => array( __CLASS__, 'conteggi' ),
@@ -403,6 +408,110 @@ class MDI_Api {
 				'ok'        => true,
 				'compilati' => $compilati,
 				'mancanti'  => $mancanti,
+			)
+		);
+	}
+
+	/**
+	 * Stato attuale di un singolo contenuto, cercato per indirizzo o per id.
+	 *
+	 * Serve a rispondere alla domanda "perché questa pagina non si vede?" con
+	 * quello che il sito sa davvero, invece che con una supposizione.
+	 *
+	 * @param WP_REST_Request $richiesta Richiesta con 'id' oppure 'url'.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function contenuto( $richiesta ) {
+		$id  = (int) $richiesta->get_param( 'id' );
+		$url = (string) $richiesta->get_param( 'url' );
+
+		if ( ! $id && '' !== $url ) {
+			$id = (int) url_to_postid( $url );
+
+			// url_to_postid non trova i contenuti che non sono più pubblici:
+			// quelli si cercano per slug, ed è proprio il caso che interessa.
+			if ( ! $id ) {
+				$slug = trim( (string) wp_parse_url( $url, PHP_URL_PATH ), '/' );
+				$slug = substr( strrchr( '/' . $slug, '/' ), 1 );
+
+				if ( '' !== $slug ) {
+					$trovati = get_posts(
+						array(
+							'name'        => $slug,
+							'post_type'   => array( 'post', 'page' ),
+							'post_status' => array( 'publish', 'draft', 'pending', 'future', 'private', 'trash' ),
+							'numberposts' => 1,
+							'fields'      => 'ids',
+						)
+					);
+
+					$id = $trovati ? (int) $trovati[0] : 0;
+				}
+			}
+		}
+
+		if ( ! $id ) {
+			return new WP_Error( 'mdi_non_trovato', 'Nessun contenuto trovato per questo indirizzo.', array( 'status' => 404 ) );
+		}
+
+		$post = get_post( $id );
+
+		if ( ! $post ) {
+			return new WP_Error( 'mdi_non_trovato', 'Contenuto non trovato.', array( 'status' => 404 ) );
+		}
+
+		$categorie = array();
+
+		foreach ( (array) get_the_category( $id ) as $categoria ) {
+			$categorie[] = $categoria->name;
+		}
+
+		$robots = get_post_meta( $id, 'rank_math_robots', true );
+
+		if ( is_array( $robots ) ) {
+			$robots = implode( ',', array_filter( $robots, 'is_scalar' ) );
+		}
+
+		return rest_ensure_response(
+			array(
+				'ok'          => true,
+				'wp_id'       => (string) $id,
+				'titolo'      => get_the_title( $id ),
+				'link'        => get_permalink( $id ),
+				'slug'        => $post->post_name,
+				'tipo'        => $post->post_type,
+				'stato'       => $post->post_status,
+				'password'    => '' !== (string) $post->post_password,
+				'data'        => $post->post_date,
+				'modificato'  => $post->post_modified,
+				'futuro'      => 'future' === $post->post_status,
+				'categorie'   => $categorie,
+				'parole'      => str_word_count( wp_strip_all_tags( (string) $post->post_content ) ),
+				'robots'      => (string) $robots,
+				'canonica'    => (string) get_post_meta( $id, 'rank_math_canonical_url', true ),
+				'in_mappa'    => (bool) array_filter(
+					(array) mdi_seo_geo_data( 'meta-map' ),
+					static function ( $riga ) use ( $id ) {
+						return (int) ( $riga['id'] ?? 0 ) === $id;
+					}
+				),
+				'noindex_mappa' => (bool) array_filter(
+					(array) mdi_seo_geo_data( 'meta-map' ),
+					static function ( $riga ) use ( $id ) {
+						return (int) ( $riga['id'] ?? 0 ) === $id && ! empty( $riga['noindex'] );
+					}
+				),
+				'bozza_pronta'  => (bool) get_posts(
+					array(
+						'post_type'   => $post->post_type,
+						'post_status' => 'draft',
+						'meta_key'    => self::META_BOZZA_DI,
+						'meta_value'  => (string) $id,
+						'numberposts' => 1,
+						'fields'      => 'ids',
+					)
+				),
+				'meta_toccate'  => (bool) get_post_meta( $id, self::META_BACKUP, true ),
 			)
 		);
 	}

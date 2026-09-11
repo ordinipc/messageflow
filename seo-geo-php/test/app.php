@@ -515,6 +515,67 @@ verifica( 'sessanta articoli diventano due blocchi da quaranta', 2 === ( $conteg
 
 @unlink( $fileDb2 );
 
+// --- Perché una pagina non si vede -----------------------------------------
+echo "\nDiagnosi di una pagina\n";
+
+$cause = new ReflectionMethod( \SeoGeo\Diagnosi::class, 'cause' );
+$cause->setAccessible( true );
+
+$diagnosi = static function ( $sito, $google = null ) use ( $cause ) {
+	return $cause->invoke( null, array( 'url' => 'https://esempio.it/pagina/', 'sito' => $sito, 'google' => $google, 'nostro' => null ) );
+};
+
+$sano = array( 'stato' => 'publish', 'parole' => 800, 'robots' => '', 'canonica' => '', 'slug' => 'pagina', 'password' => false );
+
+verifica( 'una pagina sana non genera allarmi', array() === $diagnosi( $sano ) );
+
+$trovate = static fn( $c, $pezzo ) => array() !== array_filter( $c, static fn( $x ) => false !== stripos( $x['titolo'], $pezzo ) );
+
+verifica( 'il cestino viene riconosciuto', $trovate( $diagnosi( array( 'stato' => 'trash' ) + $sano ), 'cestino' ) );
+verifica( 'una bozza non pubblicata viene riconosciuta', $trovate( $diagnosi( array( 'stato' => 'draft' ) + $sano ), 'bozza' ) );
+verifica( 'una data futura viene riconosciuta', $trovate( $diagnosi( array( 'stato' => 'future' ) + $sano ), 'programmato' ) );
+verifica( 'un contenuto privato viene riconosciuto', $trovate( $diagnosi( array( 'stato' => 'private' ) + $sano ), 'privato' ) );
+verifica( 'la password viene riconosciuta', $trovate( $diagnosi( array( 'password' => true ) + $sano ), 'password' ) );
+verifica( 'il noindex viene riconosciuto', $trovate( $diagnosi( array( 'robots' => 'noindex,nofollow' ) + $sano ), 'noindex' ) );
+verifica( 'un contenuto svuotato viene riconosciuto', $trovate( $diagnosi( array( 'parole' => 12 ) + $sano ), 'quasi vuoto' ) );
+verifica(
+	'una canonica che punta altrove viene riconosciuta',
+	$trovate( $diagnosi( array( 'canonica' => 'https://esempio.it/un-altra/' ) + $sano ), 'un altra pagina' )
+);
+verifica(
+	'una canonica che punta a sé stessa non è un problema',
+	! $trovate( $diagnosi( array( 'canonica' => 'https://esempio.it/pagina/' ) + $sano ), 'un altra pagina' )
+);
+
+// Il caso vero: due articoli gemelli, Google ne mostra uno solo.
+$doppione = $diagnosi(
+	$sano,
+	array(
+		'stato'           => 'NEUTRAL',
+		'copertura'       => 'Duplicata: Google ha scelto una pagina canonica diversa da quella specificata dall utente',
+		'canonica_google' => 'https://esempio.it/articolo-gemello/',
+	)
+);
+
+verifica( 'il doppione secondo Google viene riconosciuto', $trovate( $doppione, 'doppione' ) );
+verifica( 'e dice quale pagina Google ha scelto al suo posto', false !== strpos( $doppione[0]['spiegazione'], 'articolo-gemello' ) );
+verifica( 'e propone di accorpare', false !== stripos( $doppione[0]['rimedio'], 'accorpa' ) );
+
+$non_indicizzata = $diagnosi( $sano, array( 'stato' => 'NEUTRAL', 'copertura' => 'Scansionata, attualmente non indicizzata', 'canonica_google' => 'https://esempio.it/pagina/' ) );
+verifica( 'la pagina vista ma non indicizzata viene riconosciuta', $trovate( $non_indicizzata, 'non l ha indicizzata' ) );
+
+$indicizzata = $diagnosi( $sano, array( 'stato' => 'PASS', 'copertura' => 'Inviata e indicizzata', 'canonica_google' => 'https://esempio.it/pagina/' ) );
+verifica( 'una pagina indicizzata non genera allarmi', array() === $indicizzata );
+
+// Più problemi insieme: si elencano tutti, dal sito prima e da Google poi.
+$molti = $diagnosi(
+	array( 'stato' => 'draft', 'parole' => 5, 'robots' => 'noindex', 'canonica' => '', 'slug' => 'pagina', 'password' => true ),
+	array( 'stato' => 'NEUTRAL', 'copertura' => 'Scansionata, attualmente non indicizzata', 'canonica_google' => 'https://esempio.it/pagina/' )
+);
+
+verifica( 'i problemi vengono elencati tutti, non solo il primo', count( $molti ) >= 4, count( $molti ) . ' cause' );
+verifica( 'ogni causa dice anche cosa fare', array() === array_filter( $molti, static fn( $c ) => '' === trim( $c['rimedio'] ) ) );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

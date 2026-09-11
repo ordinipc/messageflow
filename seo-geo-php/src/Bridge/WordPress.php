@@ -91,6 +91,16 @@ class WordPress {
 	 *
 	 * @return array
 	 */
+	/**
+	 * Stato attuale di un singolo contenuto.
+	 *
+	 * @param string $url Indirizzo del contenuto.
+	 * @return array
+	 */
+	public function contenuto( $url ) {
+		return $this->chiama( 'GET', '/contenuto?url=' . rawurlencode( $url ) );
+	}
+
 	public function menu() {
 		return $this->chiama( 'GET', '/menu' );
 	}

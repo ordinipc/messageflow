@@ -77,7 +77,9 @@ if ( false !== strpos( $percorso, 'urlInspection' ) ) {
 					'verdict'         => 'NEUTRAL',
 					'coverageState'   => 'Scansionata, attualmente non indicizzata',
 					'lastCrawlTime'   => '2026-08-30T04:12:00Z',
-					'googleCanonical' => 'https://esempio.it/articolo-9/',
+					'googleCanonical' => false !== strpos( (string) ( $corpo['inspectionUrl'] ?? '' ), 'video-2' )
+						? 'https://esempio.it/perche-ogni-attivita-dovrebbe-pubblicare-video/'
+						: 'https://esempio.it/articolo-9/',
 					'robotsTxtState'  => 'ALLOWED',
 				),
 			),

@@ -15,6 +15,7 @@ use SeoGeo\Audit;
 use SeoGeo\Bridge\WordPress;
 use SeoGeo\Coda;
 use SeoGeo\Db;
+use SeoGeo\Diagnosi;
 use SeoGeo\Export;
 use SeoGeo\Impostazioni;
 use SeoGeo\Fix\InternalLinks;
@@ -1506,6 +1507,41 @@ switch ( $pagina ) {
 			)
 		);
 		break;
+
+	case 'controlla':
+		$url   = trim( (string) ( $_POST['url'] ?? $_GET['url'] ?? '' ) );
+		$esito = null;
+
+		if ( '' !== $url && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+			if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+				http_response_code( 400 );
+				exit( 'Token di sessione non valido: ricarica la pagina e riprova.' );
+			}
+
+			$console = null;
+
+			if ( Prestazioni::configurata( $cfg ) ) {
+				try {
+					$console = Prestazioni::client( $cfg );
+				} catch ( Throwable $e ) {
+					$console = null;
+				}
+			}
+
+			$esito = Diagnosi::esegui( $db, $cfg, $url, new WordPress( $cfg['wordpress'] ), $console );
+		}
+
+		vista(
+			'controlla',
+			array(
+				'titolo' => 'Perché questa pagina non si vede',
+				'url'    => $url,
+				'esito'  => $esito,
+				'google' => Prestazioni::configurata( $cfg ),
+			)
+		);
+		break;
+
 
 	case 'prestazioni':
 		$sito     = chiave_sito( $cfg );
