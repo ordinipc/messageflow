@@ -670,6 +670,21 @@ Il secondo non è una finta rete: esegue il codice del plugin con le funzioni di
 WordPress sostituite da versioni in memoria, così gli errori di logica vengono
 a galla. Ogni errore trovato in produzione diventa una verifica in questi file.
 
+## Cosa si può disfare, e cosa no
+
+| Operazione | Si torna indietro? | Come |
+|---|---|---|
+| Meta (title, description, estratto) | sì | il plugin conserva i valori precedenti · *Collegamento → Annulla* |
+| Categorie riassegnate | sì, dalla 1.6.0 | copia salvata prima di sostituire · stesso pulsante |
+| Riscritture | sì | restano bozze separate finché non le pubblichi tu |
+| Riscrittura pubblicata | sì | WordPress conserva la revisione precedente |
+| Contenuti cestinati | sì | cestino di WordPress, finché non lo si svuota |
+| Immagini generate | sì | si eliminano dalla libreria media, ma la spesa resta |
+| Dati aziendali, llms.txt, schema | non serve | sono ricalcolati e si sovrascrivono da soli |
+
+Il plugin, disattivato, smette di applicare tutto quello che fa a runtime — schema, robots,
+llms.txt, link automatici — senza lasciare tracce nel contenuto.
+
 ## Sicurezza
 
 - `storage/` e `src/` contengono un `.htaccess` che ne blocca l'accesso diretto su Apache.

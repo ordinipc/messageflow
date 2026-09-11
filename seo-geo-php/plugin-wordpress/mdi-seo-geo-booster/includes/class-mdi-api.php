@@ -27,6 +27,7 @@ class MDI_Api {
 	const OPZIONE_CONFIG   = 'mdi_seo_geo_config';
 	const META_BACKUP   = '_mdi_backup_meta';
 	const META_BOZZA_DI = '_mdi_bozza_di';
+	const META_CATEGORIE = '_mdi_backup_categorie';
 
 	/**
 	 * Aggancia le rotte e il gestore dei redirect.
@@ -633,24 +634,45 @@ class MDI_Api {
 
 		foreach ( $ids as $id ) {
 			$id     = (int) $id;
-			$backup = get_post_meta( $id, self::META_BACKUP, true );
+			$backup    = get_post_meta( $id, self::META_BACKUP, true );
+			$categorie = get_post_meta( $id, self::META_CATEGORIE, true );
 
-			if ( ! $backup ) {
+			// Un contenuto può aver avuto solo le categorie cambiate: senza
+			// questo, il ripristino lo saltava.
+			if ( ! $backup && ! $categorie ) {
 				continue;
 			}
 
-			$prima = json_decode( $backup, true );
+			$prima = $backup ? json_decode( $backup, true ) : array();
 
 			if ( ! is_array( $prima ) ) {
-				continue;
+				$prima = array();
 			}
 
-			foreach ( array( 'rank_math_title', 'rank_math_description', 'rank_math_focus_keyword' ) as $chiave ) {
-				update_post_meta( $id, $chiave, $prima[ $chiave ] ?? '' );
+			if ( $backup && $prima ) {
+				foreach ( array( 'rank_math_title', 'rank_math_description', 'rank_math_focus_keyword' ) as $chiave ) {
+					update_post_meta( $id, $chiave, $prima[ $chiave ] ?? '' );
+				}
 			}
 
-			wp_update_post( array( 'ID' => $id, 'post_excerpt' => $prima['post_excerpt'] ?? '' ) );
-			delete_post_meta( $id, self::META_BACKUP );
+			// Anche le categorie tornano come erano, se erano state cambiate.
+			$categorie = get_post_meta( $id, self::META_CATEGORIE, true );
+
+			if ( $categorie ) {
+				$elenco = json_decode( $categorie, true );
+
+				if ( is_array( $elenco ) && $elenco ) {
+					wp_set_post_categories( $id, array_map( 'intval', $elenco ) );
+				}
+
+				delete_post_meta( $id, self::META_CATEGORIE );
+			}
+
+			if ( $backup && $prima ) {
+				wp_update_post( array( 'ID' => $id, 'post_excerpt' => $prima['post_excerpt'] ?? '' ) );
+				delete_post_meta( $id, self::META_BACKUP );
+			}
+
 			$ripristinati++;
 		}
 
@@ -891,6 +913,15 @@ class MDI_Api {
 				$id_termine = (int) $creato['term_id'];
 			} else {
 				$id_termine = (int) $termine->term_id;
+			}
+
+			// Prima di sostituire si annota com era: wp_set_post_categories
+			// cancella tutte le categorie precedenti, e senza questa riga non
+			// ci sarebbe modo di tornare indietro.
+			$prima = wp_get_post_categories( $id );
+
+			if ( $prima && ! get_post_meta( $id, self::META_CATEGORIE, true ) ) {
+				update_post_meta( $id, self::META_CATEGORIE, wp_json_encode( array_map( 'intval', $prima ) ) );
 			}
 
 			wp_set_post_categories( $id, array( $id_termine ) );

@@ -517,6 +517,33 @@ if ( ! defined( 'WPSEO_VERSION' ) ) {
 verifica( 'con Yoast o Rank Math punta alla loro', false !== strpos( MDI_AI::url_sitemap(), '/sitemap_index.xml' ) );
 verifica( 'e robots.txt dichiara la stessa sitemap', false !== strpos( MDI_AI::robots_txt( '', true ), MDI_AI::url_sitemap() ) );
 
+// --- Ripristino delle categorie --------------------------------------------
+// wp_set_post_categories cancella tutte le categorie precedenti: senza una
+// copia, quella riassegnazione non si poteva annullare in nessun modo.
+echo "\nRipristino delle categorie\n";
+
+stub_crea_post( 810, 'Articolo con categorie sue', '<p>Testo.</p>' );
+wp_set_post_categories( 810, array( 3, 7 ) );
+
+MDI_Api::assegna_categoria( new WP_REST_Request( array( 'assegnazioni' => array( array( 'id' => 810, 'categoria' => 'Nuova categoria' ) ) ) ) );
+
+verifica( 'la categoria viene sostituita', array( 3, 7 ) !== wp_get_post_categories( 810 ) );
+verifica( 'e quelle di prima vengono messe da parte', '' !== get_post_meta( 810, MDI_Api::META_CATEGORIE, true ) );
+
+$esito = MDI_Api::annulla_meta( new WP_REST_Request( array( 'ids' => array( 810 ) ) ) );
+
+verifica( 'il ripristino conta anche chi aveva solo le categorie cambiate', 1 === ( $esito['ripristinati'] ?? 0 ) );
+verifica( 'le categorie tornano quelle di prima', array( 3, 7 ) === wp_get_post_categories( 810 ) );
+verifica( 'e la copia viene rimossa', '' === get_post_meta( 810, MDI_Api::META_CATEGORIE, true ) );
+
+// Due giri di riassegnazione non devono sovrascrivere la copia originale.
+wp_set_post_categories( 810, array( 3, 7 ) );
+MDI_Api::assegna_categoria( new WP_REST_Request( array( 'assegnazioni' => array( array( 'id' => 810, 'categoria' => 'Prima' ) ) ) ) );
+MDI_Api::assegna_categoria( new WP_REST_Request( array( 'assegnazioni' => array( array( 'id' => 810, 'categoria' => 'Seconda' ) ) ) ) );
+MDI_Api::annulla_meta( new WP_REST_Request( array( 'ids' => array( 810 ) ) ) );
+
+verifica( 'dopo due riassegnazioni si torna comunque all originale', array( 3, 7 ) === wp_get_post_categories( 810 ) );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );
