@@ -64,6 +64,7 @@ function campo( $nome, $etichetta, $valore, $nota = '', $tipo = 'text' ) {
 			<?php campo( 'ai_modello', 'Modello per i testi', $ai['modello'], 'Consigliato <code>gemini-2.5-flash</code>: rapido ed economico. Per testi più curati <code>gemini-2.5-pro</code>.' ); ?>
 			<?php campo( 'ai_modello_immagini', 'Modello per le immagini', $ai['modello_immagini'] ?? 'gemini-2.5-flash-image', 'Richiede un progetto Google con fatturazione attiva.' ); ?>
 			<?php campo( 'ai_articoli_per_volta', 'Articoli per lotto', $ai['articoli_per_volta'], 'Da 3 a 5 su hosting condiviso, per non superare il tempo massimo di esecuzione.', 'number' ); ?>
+			<?php campo( 'ai_max_token', 'Spazio massimo per risposta (token)', $ai['max_token'] ?? 16384, 'Se una riscrittura arriva tagliata a metà, alza questo valore: sui modelli 2.5 anche il ragionamento consuma questo budget.', 'number' ); ?>
 			<?php campo( 'ai_prezzo_input', 'Prezzo per milione di token in ingresso (€)', $ai['prezzo_per_milione']['input'], 'Serve solo alla stima mostrata prima di generare.' ); ?>
 			<?php campo( 'ai_prezzo_output', 'Prezzo per milione di token in uscita (€)', $ai['prezzo_per_milione']['output'] ); ?>
 		</div>

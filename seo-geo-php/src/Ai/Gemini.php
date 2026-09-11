@@ -40,6 +40,12 @@ class Gemini {
 	/** @var array Contatori dell ultima sessione. */
 	private $consumo = array( 'chiamate' => 0, 'token_in' => 0, 'token_out' => 0 );
 
+	/** @var bool L ultima risposta si è fermata per limite di lunghezza. */
+	private $troncata = false;
+
+	/** @var int Token di ragionamento consumati dall ultima risposta. */
+	private $pensiero = 0;
+
 	/**
 	 * @param array $cfg Sezione 'ai' della configurazione.
 	 */
@@ -163,8 +169,15 @@ class Gemini {
 			$this->consumo['chiamate']++;
 			$this->consumo['token_in']  += (int) ( $dati['usageMetadata']['promptTokenCount'] ?? 0 );
 			$this->consumo['token_out'] += (int) ( $dati['usageMetadata']['candidatesTokenCount'] ?? 0 );
+			$this->pensiero              = (int) ( $dati['usageMetadata']['thoughtsTokenCount'] ?? 0 );
 
-			if ( 'MAX_TOKENS' === $fine ) {
+			// Chi ha chiesto JSON deve poter distinguere una risposta tagliata
+			// da una malformata: aggiungere una nota dentro il testo la
+			// renderebbe illeggibile e la farebbe scambiare per un errore di
+			// formato, che è esattamente quello che succedeva.
+			$this->troncata = ( 'MAX_TOKENS' === $fine );
+
+			if ( 'MAX_TOKENS' === $fine && empty( $opzioni['json'] ) ) {
 				$testo .= "\n\n[TESTO TRONCATO: alza max_token nella configurazione]";
 			}
 
@@ -184,21 +197,47 @@ class Gemini {
 	 * @throws RuntimeException Se la risposta non è JSON valido.
 	 */
 	public function generaJson( $istruzioni, $richiesta, array $opzioni = array() ) {
-		$testo = $this->genera( $istruzioni, $richiesta, $opzioni + array( 'json' => true ) );
-		$dati  = json_decode( $testo, true );
+		$tetto = (int) ( $opzioni['max_token'] ?? $this->cfg['max_token'] ?? 8192 );
 
-		if ( ! is_array( $dati ) ) {
-			// Alcune risposte arrivano incapsulate in un blocco di codice.
-			if ( preg_match( '/```(?:json)?\s*([\s\S]*?)```/', $testo, $m ) ) {
-				$dati = json_decode( trim( $m[1] ), true );
+		// Due giri al massimo: se la prima risposta si è fermata a metà per
+		// mancanza di spazio, non è un problema di formato e riprovare identici
+		// darebbe lo stesso risultato. Si raddoppia il budget e si rifà.
+		for ( $giro = 1; $giro <= 2; $giro++ ) {
+			$testo = $this->genera( $istruzioni, $richiesta, $opzioni + array( 'json' => true, 'max_token' => $tetto ) );
+			$dati  = json_decode( $testo, true );
+
+			if ( ! is_array( $dati ) ) {
+				// Alcune risposte arrivano incapsulate in un blocco di codice.
+				if ( preg_match( '/```(?:json)?\s*([\s\S]*?)```/', $testo, $m ) ) {
+					$dati = json_decode( trim( $m[1] ), true );
+				}
+			}
+
+			if ( is_array( $dati ) ) {
+				return $dati;
+			}
+
+			if ( ! $this->troncata ) {
+				throw new RuntimeException(
+					'Risposta non in formato JSON: ' . mb_substr( $testo, 0, 200 )
+				);
+			}
+
+			if ( 1 === $giro ) {
+				$tetto = min( 65536, $tetto * 2 );
 			}
 		}
 
-		if ( ! is_array( $dati ) ) {
-			throw new RuntimeException( 'Risposta non in formato JSON: ' . mb_substr( $testo, 0, 200 ) );
-		}
-
-		return $dati;
+		throw new RuntimeException(
+			sprintf(
+				'Il modello ha esaurito lo spazio per rispondere: la risposta si è fermata a metà anche con %s token. '
+				. '%sAlza "max_token" nelle impostazioni, oppure usa un modello con risposta più lunga.',
+				number_format( $tetto, 0, ',', '.' ),
+				$this->pensiero
+					? sprintf( 'Di questi, %s sono stati spesi in ragionamento prima di scrivere. ', number_format( $this->pensiero, 0, ',', '.' ) )
+					: ''
+			)
+		);
 	}
 
 	/**

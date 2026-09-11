@@ -1173,6 +1173,7 @@ if ( 'salva-impostazioni' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] )
 			'modello'            => $campo( 'ai_modello' ) ?: 'gemini-2.5-flash',
 			'modello_immagini'   => $campo( 'ai_modello_immagini' ) ?: 'gemini-2.5-flash-image',
 			'articoli_per_volta' => max( 1, min( 25, (int) $campo( 'ai_articoli_per_volta' ) ) ),
+			'max_token'          => max( 2048, min( 65536, (int) ( $campo( 'ai_max_token' ) ?: 16384 ) ) ),
 			'prezzo_per_milione' => array(
 				'input'  => (float) str_replace( ',', '.', $campo( 'ai_prezzo_input' ) ),
 				'output' => (float) str_replace( ',', '.', $campo( 'ai_prezzo_output' ) ),

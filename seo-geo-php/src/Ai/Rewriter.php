@@ -145,8 +145,18 @@ class Rewriter {
 		$errori  = array();
 		$scadenza = isset( $opzioni['secondi_max'] ) ? time() + (int) $opzioni['secondi_max'] : null;
 
+		// Zero candidati e tempo scaduto sono cose diverse, e chi legge il
+		// registro deve poterle distinguere: "il modello non ha prodotto la
+		// bozza" le confondeva in un unica frase che dava la colpa al modello.
+		if ( ! $articoli ) {
+			$errori[] = ! empty( $opzioni['solo_documento'] )
+				? 'questo contenuto ha già una bozza pronta: aprila dall elenco delle bozze, oppure rigenerala da lì'
+				: 'nessun articolo da riscrivere: o hanno già tutti una bozza, o il triage non ne ha segnalato nessuno';
+		}
+
 		foreach ( $articoli as $a ) {
 			if ( $scadenza && time() > $scadenza ) {
+				$errori[] = 'tempo massimo raggiunto prima di arrivare a "' . Text::truncate( $a['titolo'], 40 ) . '": riprova, riparte da qui';
 				break; // Su hosting condiviso conviene fermarsi prima del limite di esecuzione.
 			}
 
@@ -311,8 +321,15 @@ class Rewriter {
 		$errori   = array();
 		$scadenza = isset( $opzioni['secondi_max'] ) ? time() + (int) $opzioni['secondi_max'] : null;
 
+		if ( ! $gruppi ) {
+			$errori[] = ! empty( $opzioni['solo_documento'] )
+				? 'per questo contenuto non risulta più un gruppo da accorpare: forse la fusione è già stata fatta'
+				: 'nessun gruppo di articoli da accorpare';
+		}
+
 		foreach ( $gruppi as $gruppo ) {
 			if ( $scadenza && time() > $scadenza ) {
+				$errori[] = 'tempo massimo raggiunto: riprova, riparte da qui';
 				break;
 			}
 

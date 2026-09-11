@@ -35,6 +35,22 @@ function verifica( $descrizione, $condizione, $dettaglio = '' ) {
 }
 
 /**
+ * Esegue una funzione e restituisce il messaggio dell eccezione.
+ *
+ * @param callable $azione Codice da eseguire.
+ * @return string Vuoto se non ha sollevato nulla.
+ */
+function errore_di( callable $azione ) {
+	try {
+		$azione();
+	} catch ( Throwable $e ) {
+		return $e->getMessage();
+	}
+
+	return '';
+}
+
+/**
  * Costruisce un sito minimo con un solo contenuto.
  *
  * @param array $meta Meta del contenuto.
@@ -342,6 +358,73 @@ list( $descPiena )   = \SeoGeo\Fix\Meta::description( $pieno, $cfgMeta );
 
 verifica( 'con del testo vero il title resta pieno di senso', mb_strlen( $titoloPieno ) >= 30 && mb_strlen( $titoloPieno ) <= $cfgMeta['seo']['titleMax'], $titoloPieno );
 verifica( 'e la description arriva alla lunghezza utile con il contenuto', mb_strlen( $descPiena ) >= 140, mb_strlen( $descPiena ) . ' caratteri' );
+
+// --- Risposte del modello tagliate a metà ----------------------------------
+// In produzione arrivava "Risposta non in formato JSON: { "titolo": ..." con
+// dentro del JSON perfettamente valido: era solo finito lo spazio.
+echo "\nRisposte del modello\n";
+
+$porta   = 8873;
+$mock    = proc_open(
+	sprintf( 'php -S 127.0.0.1:%d %s', $porta, escapeshellarg( __DIR__ . '/mock/gemini.php' ) ),
+	array( 1 => array( 'file', '/dev/null', 'w' ), 2 => array( 'file', '/dev/null', 'w' ) ),
+	$tubi
+);
+
+for ( $i = 0; $i < 50; $i++ ) {
+	$prova = @fsockopen( '127.0.0.1', $porta, $n, $m, 0.1 );
+
+	if ( $prova ) {
+		fclose( $prova );
+		break;
+	}
+
+	usleep( 100000 );
+}
+
+$base = 'http://127.0.0.1:' . $porta . '/gemini.php?modo=%s&m=';
+
+$cliente = static function ( $modo, $tetto = 8192 ) use ( $base ) {
+	return new \SeoGeo\Ai\Gemini(
+		array(
+			'chiave'    => 'prova',
+			'endpoint'  => sprintf( $base, $modo ),
+			'modello'   => 'gemini-2.5-flash',
+			'max_token' => $tetto,
+			'tentativi' => 1,
+		)
+	);
+};
+
+$dati = $cliente( 'completo' )->generaJson( 'istruzioni', 'richiesta' );
+verifica( 'una risposta intera viene letta', isset( $dati['corpo_html'] ) );
+
+// Il caso vero: prima risposta tagliata, seconda intera col budget raddoppiato.
+$dati = $cliente( 'tronca' )->generaJson( 'istruzioni', 'richiesta' );
+verifica( 'una risposta tagliata fa riprovare con più spazio, e la seconda riesce', isset( $dati['corpo_html'] ) );
+
+$messaggio = errore_di( static fn() => $cliente( 'sempre-tronca' )->generaJson( 'istruzioni', 'richiesta' ) );
+verifica( 'se lo spazio non basta mai lo dice chiaramente', false !== stripos( $messaggio, 'esaurito lo spazio' ), $messaggio );
+verifica( 'e non dà la colpa al formato', false === stripos( $messaggio, 'non in formato JSON' ), $messaggio );
+verifica( 'e dice quanto è stato speso a ragionare', false !== stripos( $messaggio, 'ragionamento' ), $messaggio );
+verifica( 'e indica dove alzare il valore', false !== stripos( $messaggio, 'max_token' ), $messaggio );
+
+// Una risposta che JSON non è resta un errore di formato, senza riprovare.
+$messaggio = errore_di( static fn() => $cliente( 'non-json' )->generaJson( 'istruzioni', 'richiesta' ) );
+verifica( 'una risposta che non è JSON resta un errore di formato', false !== stripos( $messaggio, 'non in formato JSON' ), $messaggio );
+verifica( 'e mostra cosa ha risposto il modello', false !== stripos( $messaggio, 'Mi dispiace' ), $messaggio );
+
+// Il segnalino di troncatura non deve finire dentro una risposta JSON.
+$testo = $cliente( 'sempre-tronca' )->genera( 'istruzioni', 'richiesta', array( 'json' => true ) );
+verifica( 'in modalità JSON non viene aggiunta nessuna nota al testo', false === strpos( $testo, 'TESTO TRONCATO' ) );
+
+$testo = $cliente( 'sempre-tronca' )->genera( 'istruzioni', 'richiesta' );
+verifica( 'in modalità testo la nota resta, ed è utile', false !== strpos( $testo, 'TESTO TRONCATO' ) );
+
+if ( is_resource( $mock ) ) {
+	proc_terminate( $mock );
+	proc_close( $mock );
+}
 
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 

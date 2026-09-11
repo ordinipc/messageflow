@@ -427,6 +427,17 @@ video: usarla per articoli normali è fuori scopo.
 
 ---
 
+### Quando il modello si ferma a metà
+
+Sui modelli 2.5 il ragionamento consuma lo stesso budget della risposta: con uno spazio
+stretto, un articolo lungo arriva tagliato a metà e il JSON risulta incompleto. Non è un
+errore di formato, ed è inutile riprovare identici.
+
+Il programma se ne accorge dal `finishReason` della risposta e **riprova una volta sola con
+il doppio dello spazio**. Se non basta nemmeno allora, lo dice con i numeri in mano — quanto
+spazio è stato usato, quanto se n'è andato in ragionamento — invece di dare la colpa al
+formato. Il valore si alza da Impostazioni → *Spazio massimo per risposta*.
+
 ## Pilota automatico
 
 Un comando solo, e il programma esegue in sequenza tutto ciò che non richiede una

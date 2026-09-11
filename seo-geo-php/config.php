@@ -86,7 +86,10 @@ return array(
 		// cambia qui il nome senza toccare il codice.
 		'modello_immagini'   => 'gemini-2.5-flash-image',
 		'temperatura'        => 0.7,
-		'max_token'          => 8192,
+		// Spazio massimo per la risposta. Sui modelli 2.5 il ragionamento del
+		// modello consuma questo stesso budget prima di scrivere: con 8192 un
+		// articolo lungo si fermava a metà, e la risposta arrivava troncata.
+		'max_token'          => 16384,
 		'timeout'            => 120,
 		'tentativi'          => 3,
 		'articoli_per_volta' => 5,
