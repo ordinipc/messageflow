@@ -63,6 +63,58 @@ class Coda {
 	);
 
 	/**
+	 * Condizione SQL dei contenuti le cui meta sul sito sono diverse da quelle
+	 * previste.
+	 *
+	 * Riscrivere anche le trecento che sono già a posto non fa danno, ma è
+	 * lavoro inutile, allunga i tempi e nasconde quello che sta davvero
+	 * cambiando. Il confronto è con quello che il sito aveva quando è stato
+	 * letto l ultima volta.
+	 *
+	 * @return string
+	 */
+	private static function soloDaCambiare() {
+		return " AND ( TRIM(COALESCE(m.title_nuovo, '')) <> TRIM(COALESCE(d.seo_title, ''))
+				  OR TRIM(COALESCE(m.description_nuova, '')) <> TRIM(COALESCE(d.seo_description, '')) )";
+	}
+
+	/**
+	 * Quante meta cambierebbero davvero, per tipo di contenuto.
+	 *
+	 * @param Db     $db      Database.
+	 * @param int    $auditId Audit.
+	 * @param string $tipo    'post' oppure 'page'.
+	 * @return int
+	 */
+	public static function metaDaCambiare( Db $db, $auditId, $tipo = 'post' ) {
+		return (int) $db->one(
+			'SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id
+			 WHERE m.audit_id = ? AND d.tipo = ?' . self::soloDaCambiare(),
+			array( $auditId, $tipo )
+		)['n'];
+	}
+
+	/**
+	 * Le meta che cambierebbero, con il prima e il dopo.
+	 *
+	 * @param Db     $db      Database.
+	 * @param int    $auditId Audit.
+	 * @param string $tipo    Tipo di contenuto.
+	 * @param int    $limite  Quante restituirne.
+	 * @return array[]
+	 */
+	public static function anteprimaMeta( Db $db, $auditId, $tipo = 'post', $limite = 50 ) {
+		return $db->all(
+			'SELECT d.titolo, d.percorso, d.seo_title AS title_ora, m.title_nuovo AS title_dopo,
+					d.seo_description AS desc_ora, m.description_nuova AS desc_dopo
+			 FROM meta_piano m JOIN documento d ON d.id = m.documento_id
+			 WHERE m.audit_id = ? AND d.tipo = ?' . self::soloDaCambiare() . '
+			 ORDER BY m.id ASC LIMIT ' . (int) $limite,
+			array( $auditId, $tipo )
+		);
+	}
+
+	/**
 	 * Quanto costerà, prima di premere il pulsante.
 	 *
 	 * Non è un preventivo al centesimo: è l ordine di grandezza, che è quello
@@ -186,11 +238,7 @@ class Coda {
 
 		// 2. Meta degli articoli, a blocchi: la scrittura di centinaia di contenuti
 		// in una sola richiesta supererebbe i limiti di molti hosting.
-		$quanti_articoli = (int) $db->one(
-			"SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id
-			 WHERE m.audit_id = ? AND d.tipo = 'post'",
-			array( $auditId )
-		)['n'];
+		$quanti_articoli = self::metaDaCambiare( $db, $auditId, 'post' );
 
 		// Quaranta per volta invece di ottanta: su hosting condiviso un blocco
 		// grande esaurisce il tempo di esecuzione e il sito chiude la risposta
@@ -202,11 +250,7 @@ class Coda {
 
 		// Le pagine sono poche e scritte a mano: si toccano solo se richiesto.
 		if ( ! empty( $opzioni['pagine'] ) && $vuole( 'meta' ) ) {
-			$quante_pagine = (int) $db->one(
-				"SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id
-				 WHERE m.audit_id = ? AND d.tipo = 'page'",
-				array( $auditId )
-			)['n'];
+			$quante_pagine = self::metaDaCambiare( $db, $auditId, 'page' );
 
 			if ( $quante_pagine ) {
 				$aggiungi( 'meta_pagine', 0, sprintf( 'Meta delle %d pagine', $quante_pagine ) );
@@ -478,10 +522,14 @@ class Coda {
 					'SELECT d.wp_id AS id, m.title_nuovo AS title, m.description_nuova AS description,
 							m.excerpt_nuovo AS excerpt, d.focus_keyword AS focus
 					 FROM meta_piano m JOIN documento d ON d.id = m.documento_id
-					 WHERE m.audit_id = ? AND d.tipo = ?
+					 WHERE m.audit_id = ? AND d.tipo = ?' . self::soloDaCambiare() . '
 					 ORDER BY m.id ASC LIMIT 40 OFFSET ' . (int) $compito['riferimento'],
 					array( $auditId, $tipo_contenuto )
 				);
+
+				if ( ! $righe ) {
+					throw new SaltaCompito( 'le meta sul sito sono già quelle previste' );
+				}
 
 				$esito = $ponte->inviaMeta( $righe, false );
 

@@ -705,6 +705,41 @@ foreach ( $monchi as $titolo ) {
 
 verifica( 'nessun title esce monco o troppo lungo', 0 === $tagliati, $tagliati . ' difettosi' );
 
+// Il difetto vero era a monte: un title della lunghezza giusta ma tagliato
+// veniva accettato così com era, e restava in pagina.
+list( $rigenerato, $cambiato ) = \SeoGeo\Fix\Meta::title(
+	array(
+		'titolo'    => 'Digital Agency a Palermo: la soluzione completa per la tua azienda',
+		'slug'      => 'digital-agency-palermo',
+		'testo'     => str_repeat( 'agenzia digitale a Palermo che segue le aziende ', 40 ),
+		'seo_title' => 'Digital Agency a Palermo: La Soluzione Completa per la Tua',
+		'seo_desc'  => '', 'primo_paragrafo' => '', 'estratto' => '',
+		'focus'     => 'digital agency palermo',
+	),
+	$cfgT
+);
+
+verifica( 'un title già in pagina ma tagliato viene rifatto', $cambiato );
+verifica( 'e quello rifatto non è più monco', false === stripos( $rigenerato, 'per la Tua' ), $rigenerato );
+
+// La parola chiave dev essere dentro al title, altrimenti viene rifatto per
+// un motivo diverso: qui si sta verificando solo il taglio.
+$buono = 'Agenzia web Palermo: siti che portano clienti veri';
+
+list( $intatto, $toccato ) = \SeoGeo\Fix\Meta::title(
+	array(
+		'titolo'    => $buono,
+		'slug'      => 'agenzia-web-palermo',
+		'testo'     => str_repeat( 'realizziamo siti web a Palermo per le aziende ', 40 ),
+		'seo_title' => $buono,
+		'seo_desc'  => '', 'primo_paragrafo' => '', 'estratto' => '',
+		'focus'     => 'agenzia web palermo',
+	),
+	$cfgT
+);
+
+verifica( 'un title già buono resta com è', ! $toccato && $buono === $intatto, $intatto );
+
 verifica(
 	'un possessivo finale viene tolto come una preposizione',
 	'Marketing a Palermo: Strategie per' !== \SeoGeo\Text::polishClause( 'Marketing a Palermo: Strategie per la Tua' )

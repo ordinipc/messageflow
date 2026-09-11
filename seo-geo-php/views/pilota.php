@@ -12,6 +12,8 @@
  * @var array $ultime     Ultime operazioni eseguite.
  * @var array $previsione Quantità previste per ogni tipo.
  * @var array $stima      Token e costo stimati per i gruppi che passano dall AI.
+ * @var int   $meta_cambiano  Quante meta cambierebbero davvero.
+ * @var array $meta_anteprima Prima e dopo delle meta che cambiano.
  */
 
 // Una coda appena preparata dalle indicazioni di Google aspetta un avvio
@@ -129,7 +131,7 @@ $in_corso    = $stato['attesa'] > 0 && ! $da_avviare;
 		<?php
 		$gruppi = array(
 			'config'    => array( 'quanti' => 1, 'unita' => 'invio dei dati aziendali (telefono, P.IVA, indirizzo)', 'ai' => false ),
-			'meta'      => array( 'quanti' => $previsione['meta_articoli'], 'unita' => 'articoli con title e description ottimizzati', 'ai' => false ),
+			'meta'      => array( 'quanti' => $meta_cambiano, 'unita' => 'articoli con title o description da correggere', 'ai' => false ),
 			'struttura' => array( 'quanti' => $previsione['redirect'] + $previsione['categorie'], 'unita' => 'fra redirect 301 e categorie da correggere', 'ai' => false ),
 			'accorpa'   => array( 'quanti' => $previsione['gruppi'], 'unita' => 'gruppi di articoli che si cannibalizzano, da fondere', 'ai' => true ),
 			'bozza'     => array( 'quanti' => $previsione['riscritture'], 'unita' => 'articoli da riscrivere (restano bozze)', 'ai' => true ),
@@ -164,6 +166,30 @@ $in_corso    = $stato['attesa'] > 0 && ! $da_avviare;
 				</span>
 			</label>
 		<?php endforeach; ?>
+
+		<?php if ( ! empty( $meta_anteprima ) ) : ?>
+			<details>
+				<summary>Vedi quali <?php echo num( $meta_cambiano ); ?> title cambiano, e come</summary>
+				<div class="tabellabox" style="margin:12px 0">
+					<table>
+						<thead><tr><th>Contenuto</th><th>Ora</th><th>Dopo</th></tr></thead>
+						<tbody>
+						<?php foreach ( $meta_anteprima as $riga ) : ?>
+							<tr>
+								<td><?php echo e( $riga['titolo'] ); ?></td>
+								<td class="sotto"><?php echo e( $riga['title_ora'] ) ?: '—'; ?></td>
+								<td><?php echo e( $riga['title_dopo'] ); ?></td>
+							</tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+				</div>
+				<p class="nota">
+					Solo questi vengono riscritti: i contenuti che hanno già il title previsto non vengono
+					toccati. Se l elenco è vuoto, sul sito è già tutto come deve essere.
+				</p>
+			</details>
+		<?php endif; ?>
 
 		<h2>Opzioni</h2>
 

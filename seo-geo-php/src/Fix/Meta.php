@@ -95,7 +95,12 @@ class Meta {
 		$attuale = trim( $doc['seo_title'] ?: $doc['titolo'] );
 		$legale  = (bool) preg_match( '/privacy|cookie|termini|condizioni|note-legali/i', $doc['slug'] );
 
-		if ( mb_strlen( $attuale ) <= $max && mb_strlen( $attuale ) >= 30
+		// Un title della lunghezza giusta ma tagliato a metà non è un title
+		// buono: quattordici erano finiti in pagina proprio perché questo
+		// controllo guardava solo la lunghezza e la parola chiave.
+		$monco = $attuale !== Text::polishClause( $attuale );
+
+		if ( ! $monco && mb_strlen( $attuale ) <= $max && mb_strlen( $attuale ) >= 30
 			&& ( '' === $kw || false !== mb_stripos( $attuale, $kw ) ) ) {
 			return array( $attuale, false );
 		}

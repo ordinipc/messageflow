@@ -879,6 +879,8 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 					array( $id, Coda::ATTESA )
 				),
 				'stima'      => Coda::stima( $db, $id, $cfg ),
+				'meta_cambiano' => Coda::metaDaCambiare( $db, $id, 'post' ),
+				'meta_anteprima' => Coda::anteprimaMeta( $db, $id, 'post', 60 ),
 				'previsione' => array(
 					'meta'          => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
 					'meta_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post'", array( $id ) )['n'],
@@ -1763,6 +1765,8 @@ switch ( $pagina ) {
 					array( $id, Coda::ATTESA )
 				),
 				'stima'      => Coda::stima( $db, $id, $cfg ),
+				'meta_cambiano' => Coda::metaDaCambiare( $db, $id, 'post' ),
+				'meta_anteprima' => Coda::anteprimaMeta( $db, $id, 'post', 60 ),
 				'previsione' => array(
 					'meta'          => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
 					'meta_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post'", array( $id ) )['n'],
