@@ -483,7 +483,10 @@ if ( 'applica-segnali' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		exit;
 	}
 
-	$piano = Azioni::piano( Azioni::abbina( $db, $audit['id'], Prestazioni::segnali( $db, $ultima['id'], 500 ) ) );
+	$piano = Azioni::piano(
+		Azioni::abbina( $db, $audit['id'], Prestazioni::segnali( $db, $ultima['id'], 500 ) ),
+		array( 'pagine' => ! empty( $_POST['pagine'] ) )
+	);
 
 	if ( ! $piano ) {
 		header( 'Location: ?p=prestazioni&errore=' . rawurlencode( 'Nessuna indicazione di Google si traduce in una modifica automatica: guarda la colonna "Contenuto sul sito".' ) );
@@ -1105,9 +1108,23 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				break;
 
 			case 'annulla':
-				$ids = array_column( $db->all( 'SELECT d.wp_id FROM documento d WHERE d.audit_id = ?', array( $id ) ), 'wp_id' );
+			case 'annulla_pagine':
+				// Si può tornare indietro su tutto o solo sulle pagine: quelle
+				// sono scritte a mano e un ripristino mirato evita di buttare
+				// via anche le meta degli articoli, che invece vanno bene.
+				$solo_pagine = 'annulla_pagine' === $azione;
+
+				$ids = array_column(
+					$db->all(
+						'SELECT d.wp_id FROM documento d WHERE d.audit_id = ?' . ( $solo_pagine ? " AND d.tipo = 'page'" : '' ),
+						array( $id )
+					),
+					'wp_id'
+				);
+
 				$esito     = $ponte->annulla( $ids );
-				$messaggio = ( (int) ( $esito['ripristinati'] ?? 0 ) ) . ' contenuti riportati alle meta precedenti.';
+				$messaggio = ( (int) ( $esito['ripristinati'] ?? 0 ) )
+					. ( $solo_pagine ? ' pagine riportate' : ' contenuti riportati' ) . ' alle meta precedenti.';
 				break;
 
 			default:
@@ -1512,6 +1529,8 @@ switch ( $pagina ) {
 				'storico'      => $storico,
 				'segnali'      => $segnali_abbinati,
 				'piano'        => Azioni::piano( $segnali_abbinati ),
+				'piano_pagine' => Azioni::piano( $segnali_abbinati, array( 'pagine' => true ) ),
+				'pagine_fuori' => Azioni::pagineEscluse( $segnali_abbinati ),
 				'audit_id'     => $audit_corrente ? (int) $audit_corrente['id'] : 0,
 				'per_tipo'     => $ultima
 					? $db->all(

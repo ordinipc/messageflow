@@ -14,6 +14,8 @@
  * @var array[]    $storico     Rilevazioni recenti.
  * @var array[]    $segnali     Cose da fare.
  * @var array[]    $piano       Cose che si possono fare da sole.
+ * @var array[]    $piano_pagine Le stesse, contando anche le pagine.
+ * @var int        $pagine_fuori Pagine escluse dal piano.
  * @var int        $audit_id    Ultimo audit.
  * @var array[]    $per_tipo    Segnali raggruppati.
  * @var array[]    $pagine_top  Pagine con più impression.
@@ -186,8 +188,14 @@ function delta( $ora, $prima, $meglio = false ) {
 				?>
 
 				<p class="guida">
-					Di queste, <strong><?php echo num( count( $piano ) ); ?></strong> si possono applicare da sole:
+					Di queste, <strong><?php echo num( count( $piano ) ); ?></strong> <?php echo 1 === count( $piano ) ? 'si può applicare da sola' : 'si possono applicare da sole'; ?>:
 					il contenuto sul sito è stato riconosciuto, quindi il programma sa dove mettere le mani.
+					<?php if ( 1 === $pagine_fuori ) : ?>
+						Un altra riguarda una <strong>pagina</strong> e resta fuori: la tocca solo se lo chiedi qui sotto.
+					<?php elseif ( $pagine_fuori ) : ?>
+						Altre <strong><?php echo num( $pagine_fuori ); ?></strong> riguardano <strong>pagine</strong> e
+						restano fuori: le tocca solo se lo chiedi qui sotto.
+					<?php endif; ?>
 				</p>
 
 				<ul class="elenco-azioni">
@@ -198,6 +206,22 @@ function delta( $ora, $prima, $meglio = false ) {
 
 				<form method="post" action="?p=applica-segnali">
 					<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+
+					<?php if ( $pagine_fuori ) : ?>
+						<label class="scelta">
+							<input type="checkbox" name="pagine" value="1">
+							<span>
+								<strong><?php echo 1 === $pagine_fuori ? 'Tocca anche la pagina segnalata' : 'Tocca anche le ' . num( $pagine_fuori ) . ' pagine segnalate'; ?></strong>
+								<small>
+									Escluse di default: le pagine servizio sono poche e scritte a mano, e qui si
+									cambierebbero title e description senza che tu le veda prima. Con la casella
+									spuntata le operazioni diventano <?php echo num( count( $piano_pagine ) ); ?> invece
+									di <?php echo num( count( $piano ) ); ?>.
+								</small>
+							</span>
+						</label>
+					<?php endif; ?>
+
 					<button class="bottone" type="submit">Prepara le modifiche e vai al pilota</button>
 				</form>
 

@@ -371,6 +371,12 @@ corrispondono. Uniti, diventano modifiche che il pilota sa eseguire:
 *Pagina in calo* e *Google non la mostra mai* restano senza azione automatica: vogliono un
 occhio umano, e far riscrivere all'AI un problema che non ha capito peggiora le cose.
 
+**Le pagine restano fuori**, come nel resto del programma: sono poche e scritte a mano, e qui
+si cambierebbero title e description senza vederle prima. Il programma dice quante ne ha
+lasciate fuori e le include solo se lo si chiede con la casella apposita. Se sono già state
+toccate, *Collegamento → Annulla → Ripristina solo le pagine* le riporta indietro senza
+disfare il lavoro fatto sugli articoli.
+
 Un contenuto riceve un compito solo per giro, anche quando i segnali che lo riguardano sono
 due. Nella pagina Rendimento la colonna *Contenuto sul sito* dice quale articolo o pagina è
 stato riconosciuto: se resta vuota, il programma non tocca niente e lo dichiara.

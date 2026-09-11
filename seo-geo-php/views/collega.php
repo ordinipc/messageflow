@@ -155,8 +155,15 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 
 	<section class="scheda">
 		<h2>Annulla</h2>
-		<p class="guida">Riporta title, description ed estratto ai valori che c'erano prima, su tutto il sito.</p>
-		<div class="azioni"><?php azione( $audit['id'], 'annulla', 'Annulla e ripristina', 'Ripristinare le meta precedenti su tutti i contenuti?', 'bottone chiaro' ); ?></div>
+		<p class="guida">
+			Riporta title, description ed estratto ai valori che c'erano prima. Il ripristino delle sole
+			pagine serve quando gli articoli vanno bene e a essere state toccate per sbaglio sono le
+			pagine servizio, che di solito sono scritte a mano.
+		</p>
+		<div class="azioni">
+			<?php azione( $audit['id'], 'annulla_pagine', 'Ripristina solo le pagine', 'Riportare le pagine alle meta precedenti?', 'bottone chiaro' ); ?>
+			<?php azione( $audit['id'], 'annulla', 'Annulla tutto e ripristina', 'Ripristinare le meta precedenti su tutti i contenuti?', 'bottone chiaro' ); ?>
+		</div>
 	</section>
 
 	<section class="scheda">

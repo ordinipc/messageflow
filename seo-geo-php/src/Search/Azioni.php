@@ -107,9 +107,10 @@ class Azioni {
 	 * due volte sopra sé stessi.
 	 *
 	 * @param array $segnali Segnali già abbinati.
+	 * @param array $opzioni 'pagine' => true per toccare anche le pagine.
 	 * @return array[]
 	 */
-	public static function piano( array $segnali ) {
+	public static function piano( array $segnali, array $opzioni = array() ) {
 		$piano = array();
 		$presi = array();
 
@@ -117,6 +118,13 @@ class Azioni {
 			$azione = self::AZIONI[ $segnale['tipo'] ] ?? null;
 
 			if ( ! $azione || ! $segnale['documento_id'] || isset( $presi[ $segnale['documento_id'] ] ) ) {
+				continue;
+			}
+
+			// Le pagine servizio sono poche e scritte a mano: restano fuori a
+			// meno che non lo si chieda espressamente, come per il resto del
+			// programma. Vale anche quando è Google a segnalarle.
+			if ( 'page' === ( $segnale['tipo_sito'] ?? '' ) && empty( $opzioni['pagine'] ) ) {
 				continue;
 			}
 
@@ -139,6 +147,28 @@ class Azioni {
 		}
 
 		return $piano;
+	}
+
+	/**
+	 * Quante pagine sarebbero toccate, se lo si chiedesse.
+	 *
+	 * @param array $segnali Segnali già abbinati.
+	 * @return int
+	 */
+	public static function pagineEscluse( array $segnali ) {
+		$viste = array();
+
+		foreach ( $segnali as $segnale ) {
+			if ( ! isset( self::AZIONI[ $segnale['tipo'] ] ) || empty( $segnale['documento_id'] ) ) {
+				continue;
+			}
+
+			if ( 'page' === ( $segnale['tipo_sito'] ?? '' ) ) {
+				$viste[ $segnale['documento_id'] ] = true;
+			}
+		}
+
+		return count( $viste );
 	}
 
 	/**

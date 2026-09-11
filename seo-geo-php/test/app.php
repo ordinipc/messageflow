@@ -288,10 +288,22 @@ verifica( 'un indirizzo che non è sul sito resta senza contenuto', 0 === $segna
 
 $piano = \SeoGeo\Search\Azioni::piano( $segnali );
 
-verifica( 'dal segnale sul titolo esce un compito sulle meta', 'meta_mirata' === $piano[0]['compito'] );
-verifica( 'e si porta dietro la ricerca vera', 'agenzia web palermo' === $piano[0]['query'] );
-verifica( 'da "a un passo" esce una riscrittura', 'bozza' === $piano[1]['compito'] );
-verifica( 'i segnali senza azione automatica restano fuori', 2 === count( $piano ), count( $piano ) . ' compiti' );
+$tutto = \SeoGeo\Search\Azioni::piano( $segnali, array( 'pagine' => true ) );
+
+verifica( 'dal segnale sul titolo esce un compito sulle meta', 'meta_mirata' === $tutto[0]['compito'] );
+verifica( 'e si porta dietro la ricerca vera', 'agenzia web palermo' === $tutto[0]['query'] );
+verifica( 'da "a un passo" esce una riscrittura', 'bozza' === $tutto[1]['compito'] );
+verifica( 'i segnali senza azione automatica restano fuori', 1 === count( $piano ), count( $piano ) . ' compiti' );
+
+// Le pagine servizio sono scritte a mano: restano fuori se non le si chiede.
+// Qui il segnale sulle meta riguarda la pagina "Servizi".
+verifica( 'la pagina resta fuori dal piano automatico', 'bozza' === $piano[0]['compito'] || 'page' !== $segnali[0]['tipo_sito'] );
+verifica( 'nessun compito tocca una pagina', array() === array_filter( $piano, static fn( $v ) => 'Servizi' === $v['titolo_sito'] ) );
+verifica( 'ma il programma dice quante ne ha lasciate fuori', 1 === \SeoGeo\Search\Azioni::pagineEscluse( $segnali ) );
+
+$con_pagine = \SeoGeo\Search\Azioni::piano( $segnali, array( 'pagine' => true ) );
+verifica( 'chiedendolo espressamente le pagine rientrano', 2 === count( $con_pagine ), count( $con_pagine ) . ' compiti' );
+verifica( 'e fra queste c è la pagina Servizi', array() !== array_filter( $con_pagine, static fn( $v ) => 'Servizi' === $v['titolo_sito'] ) );
 
 // Stesso contenuto, due segnali: un compito solo, o si lavorerebbe due volte
 // sopra sé stessi nello stesso giro.
@@ -309,7 +321,8 @@ $doppio = \SeoGeo\Search\Azioni::piano(
 verifica( 'due segnali sullo stesso contenuto danno un compito solo', 1 === count( $doppio ) );
 verifica( 'e vince quello arrivato prima, cioè il più importante', 'bozza' === $doppio[0]['compito'] );
 
-$esito = \SeoGeo\Search\Azioni::inCoda( $db, $auditId, $piano );
+// Si mette in coda il piano completo: copre tutti e due i tipi di compito.
+$esito = \SeoGeo\Search\Azioni::inCoda( $db, $auditId, $tutto );
 $coda  = $db->all( 'SELECT * FROM coda WHERE audit_id = ? ORDER BY ordine', array( $auditId ) );
 
 verifica( 'il piano finisce nella coda del pilota', 2 === (int) $esito['totale'] && 2 === count( $coda ) );
@@ -317,7 +330,7 @@ verifica( 'la ricerca viene conservata nel compito', 'agenzia web palermo' === $
 verifica( 'il compito punta al documento, non all indirizzo', (string) $segnali[0]['documento_id'] === $coda[0]['riferimento'] );
 verifica( 'l etichetta dice cosa si sta per fare e su cosa', false !== strpos( $coda[0]['etichetta'], 'Servizi' ) );
 
-\SeoGeo\Search\Azioni::inCoda( $db, $auditId, $piano );
+\SeoGeo\Search\Azioni::inCoda( $db, $auditId, $tutto );
 verifica( 'ripreparare il piano non accumula compiti vecchi', 2 === count( $db->all( 'SELECT id FROM coda WHERE audit_id = ?', array( $auditId ) ) ) );
 
 @unlink( $fileDb );
