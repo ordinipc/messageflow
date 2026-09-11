@@ -11,6 +11,7 @@ use SeoGeo\Ai\Gemini;
 use SeoGeo\Ai\Immagini;
 use SeoGeo\Ai\Rewriter;
 use SeoGeo\Bridge\WordPress;
+use SeoGeo\Fix\Meta;
 use SeoGeo\Search\Prestazioni;
 use Throwable;
 
@@ -34,6 +35,7 @@ class Coda {
 		'config'        => 'Dati aziendali al sito',
 		'meta'          => 'Meta degli articoli',
 		'meta_pagine'   => 'Meta delle pagine',
+		'meta_mirata'   => 'Meta sulla ricerca vera',
 		'redirect'      => 'Redirect 301',
 		'categorie'     => 'Categorie',
 		'accorpa'       => 'Accorpamento',
@@ -70,6 +72,7 @@ class Coda {
 				'tipo'        => $tipo,
 				'riferimento' => (string) $riferimento,
 				'etichetta'   => $etichetta,
+				'origine'     => 'audit',
 				'stato'       => self::ATTESA,
 				'messaggio'   => '',
 				'creato_il'   => $ora,
@@ -342,7 +345,7 @@ class Coda {
 	 * @throws SaltaCompito Se l operazione non è applicabile.
 	 */
 	private static function eseguiCompito( Db $db, $auditId, array $cfg, array $compito, Gemini $gemini, WordPress $ponte ) {
-		$serve_sito = in_array( $compito['tipo'], array( 'config', 'meta', 'meta_pagine', 'redirect', 'categorie', 'applica_bozza', 'cestina' ), true );
+		$serve_sito = in_array( $compito['tipo'], array( 'config', 'meta', 'meta_pagine', 'meta_mirata', 'redirect', 'categorie', 'applica_bozza', 'cestina' ), true );
 
 		if ( $serve_sito && ! $ponte->pronto() ) {
 			throw new SaltaCompito( 'Collegamento a WordPress non configurato: indirizzo e token nelle Impostazioni.' );
@@ -382,6 +385,54 @@ class Coda {
 					(int) ( $esito['aggiornati'] ?? 0 ),
 					'page' === $tipo_contenuto ? 'pagine' : 'articoli'
 				);
+
+			case 'meta_mirata':
+				$documento = $db->one( 'SELECT * FROM documento WHERE id = ?', array( (int) $compito['riferimento'] ) );
+
+				if ( ! $documento ) {
+					throw new SaltaCompito( 'Contenuto non più presente.' );
+				}
+
+				// La parola chiave non è più quella indovinata leggendo il testo:
+				// è la ricerca per cui Google mostra davvero questa pagina.
+				$doc = array(
+					'titolo'          => (string) $documento['titolo'],
+					'slug'            => (string) $documento['slug'],
+					'testo'           => (string) $documento['testo'],
+					'seo_title'       => (string) $documento['seo_title'],
+					'seo_desc'        => (string) $documento['seo_description'],
+					'primo_paragrafo' => '',
+					'estratto'        => '',
+					'focus'           => (string) ( $compito['dettaglio'] ?: $documento['focus_keyword'] ),
+				);
+
+				list( $title )       = Meta::title( $doc, $cfg );
+				list( $description ) = Meta::description( $doc, $cfg );
+
+				$esito = $ponte->inviaMeta(
+					array(
+						array(
+							'id'          => $documento['wp_id'],
+							'title'       => $title,
+							'description' => $description,
+							'excerpt'     => '',
+							'focus'       => $doc['focus'],
+						),
+					),
+					false
+				);
+
+				if ( empty( $esito['aggiornati'] ) ) {
+					throw new \RuntimeException( 'il sito non ha accettato le meta' );
+				}
+
+				// Il piano resta allineato a quello che c è davvero sul sito.
+				$db->run(
+					'UPDATE meta_piano SET title_nuovo = ?, description_nuova = ? WHERE audit_id = ? AND documento_id = ?',
+					array( $title, $description, $auditId, (int) $documento['id'] )
+				);
+
+				return 'title e description riscritti su "' . $doc['focus'] . '"';
 
 			case 'redirect':
 				$righe = array();

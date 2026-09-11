@@ -39,16 +39,16 @@ if ( false !== strpos( $percorso, 'searchAnalytics/query' ) ) {
 
 	if ( array( 'page' ) === $dimensioni ) {
 		$tutte = array(
-			array( 'keys' => array( 'https://esempio.it/servizi/' ), 'clicks' => 40, 'impressions' => 900, 'ctr' => 0.044, 'position' => 6.2 ),
-			array( 'keys' => array( 'https://esempio.it/blog/guida/' ), 'clicks' => 2, 'impressions' => 500, 'ctr' => 0.004, 'position' => 12.8 ),
-			array( 'keys' => array( 'https://esempio.it/blog/vecchio/' ), 'clicks' => 0, 'impressions' => 60, 'ctr' => 0.0, 'position' => 31.0 ),
+			array( 'keys' => array( 'https://esempio.it/articolo-101/' ), 'clicks' => 40, 'impressions' => 900, 'ctr' => 0.044, 'position' => 6.2 ),
+			array( 'keys' => array( 'https://esempio.it/articolo-1/' ), 'clicks' => 2, 'impressions' => 500, 'ctr' => 0.004, 'position' => 12.8 ),
+			array( 'keys' => array( 'https://esempio.it/articolo-9/' ), 'clicks' => 0, 'impressions' => 60, 'ctr' => 0.0, 'position' => 31.0 ),
 		);
 	} else {
 		$tutte = array(
-			array( 'keys' => array( 'siti web palermo', 'https://esempio.it/blog/guida/' ), 'clicks' => 2, 'impressions' => 500, 'ctr' => 0.004, 'position' => 12.8 ),
-			array( 'keys' => array( 'siti web palermo', 'https://esempio.it/servizi/' ), 'clicks' => 5, 'impressions' => 400, 'ctr' => 0.0125, 'position' => 14.0 ),
-			array( 'keys' => array( 'agenzia web palermo', 'https://esempio.it/servizi/' ), 'clicks' => 3, 'impressions' => 800, 'ctr' => 0.00375, 'position' => 3.4 ),
-			array( 'keys' => array( 'niente', 'https://esempio.it/blog/vecchio/' ), 'clicks' => 0, 'impressions' => 4, 'ctr' => 0.0, 'position' => 44.0 ),
+			array( 'keys' => array( 'siti web palermo', 'https://esempio.it/articolo-1/' ), 'clicks' => 2, 'impressions' => 500, 'ctr' => 0.004, 'position' => 12.8 ),
+			array( 'keys' => array( 'siti web palermo', 'https://esempio.it/articolo-101/' ), 'clicks' => 5, 'impressions' => 400, 'ctr' => 0.0125, 'position' => 14.0 ),
+			array( 'keys' => array( 'agenzia web palermo', 'https://esempio.it/articolo-101/' ), 'clicks' => 3, 'impressions' => 800, 'ctr' => 0.00375, 'position' => 3.4 ),
+			array( 'keys' => array( 'niente', 'https://esempio.it/articolo-9/' ), 'clicks' => 0, 'impressions' => 4, 'ctr' => 0.0, 'position' => 44.0 ),
 		);
 	}
 
@@ -77,7 +77,7 @@ if ( false !== strpos( $percorso, 'urlInspection' ) ) {
 					'verdict'         => 'NEUTRAL',
 					'coverageState'   => 'Scansionata, attualmente non indicizzata',
 					'lastCrawlTime'   => '2026-08-30T04:12:00Z',
-					'googleCanonical' => 'https://esempio.it/blog/vecchio/',
+					'googleCanonical' => 'https://esempio.it/articolo-9/',
 					'robotsTxtState'  => 'ALLOWED',
 				),
 			),

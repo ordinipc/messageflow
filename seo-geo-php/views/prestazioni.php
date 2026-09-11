@@ -13,6 +13,8 @@
  * @var array|null $precedente  Rilevazione prima di quella.
  * @var array[]    $storico     Rilevazioni recenti.
  * @var array[]    $segnali     Cose da fare.
+ * @var array[]    $piano       Cose che si possono fare da sole.
+ * @var int        $audit_id    Ultimo audit.
  * @var array[]    $per_tipo    Segnali raggruppati.
  * @var array[]    $pagine_top  Pagine con più impression.
  * @var array[]    $query_top   Ricerche con più impression.
@@ -173,6 +175,44 @@ function delta( $ora, $prima, $meglio = false ) {
 			<p class="guida">
 				L ordine non è il mio: è quello dei numeri. In cima c è dove si guadagna di più con meno lavoro.
 			</p>
+
+			<?php if ( $piano ) : ?>
+				<?php
+				$per_compito = array();
+
+				foreach ( $piano as $voce ) {
+					$per_compito[ $voce['titolo'] ] = ( $per_compito[ $voce['titolo'] ] ?? 0 ) + 1;
+				}
+				?>
+
+				<p class="guida">
+					Di queste, <strong><?php echo num( count( $piano ) ); ?></strong> si possono applicare da sole:
+					il contenuto sul sito è stato riconosciuto, quindi il programma sa dove mettere le mani.
+				</p>
+
+				<ul class="elenco-azioni">
+					<?php foreach ( $per_compito as $titolo => $quanti ) : ?>
+						<li><strong><?php echo num( $quanti ); ?></strong> — <?php echo e( $titolo ); ?></li>
+					<?php endforeach; ?>
+				</ul>
+
+				<form method="post" action="?p=applica-segnali">
+					<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+					<button class="bottone" type="submit">Prepara le modifiche e vai al pilota</button>
+				</form>
+
+				<p class="nota">
+					Prepara la coda e ti porta al pilota automatico, dove la avvii e la segui. Le riscritture
+					passano dalle bozze: niente viene pubblicato senza che tu lo dica. Le meta invece vanno
+					sul sito subito, perché sono reversibili con un clic.
+				</p>
+			<?php else : ?>
+				<p class="nota">
+					Nessuna di queste indicazioni si traduce in una modifica automatica: o i contenuti non sono
+					stati riconosciuti (colonna <em>Contenuto sul sito</em>), o sono segnali che vogliono un occhio
+					umano, come le pagine in calo.
+				</p>
+			<?php endif; ?>
 		</section>
 
 		<div class="tabellabox">
@@ -180,7 +220,7 @@ function delta( $ora, $prima, $meglio = false ) {
 				<thead>
 					<tr>
 						<th>Cosa</th>
-						<th>Pagina</th>
+						<th>Contenuto sul sito</th>
 						<th class="num">Pos.</th>
 						<th class="num">Impr.</th>
 						<th class="num">Clic</th>
@@ -194,7 +234,17 @@ function delta( $ora, $prima, $meglio = false ) {
 							<div class="sotto"><?php echo e( $segnale['spiegazione'] ); ?></div>
 						</td>
 						<td>
-							<a href="<?php echo e( $segnale['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( ltrim( (string) parse_url( $segnale['url'], PHP_URL_PATH ), '/' ) ?: '/' ); ?></a>
+							<?php if ( ! empty( $segnale['titolo_sito'] ) ) : ?>
+								<strong><?php echo e( $segnale['titolo_sito'] ); ?></strong>
+								<div class="sotto">
+									<?php echo 'page' === $segnale['tipo_sito'] ? 'pagina' : 'articolo'; ?>
+									#<?php echo e( $segnale['wp_id'] ); ?> ·
+									<a href="<?php echo e( $segnale['url'] ); ?>" target="_blank" rel="noopener">apri</a>
+								</div>
+							<?php else : ?>
+								<a href="<?php echo e( $segnale['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( ltrim( (string) parse_url( $segnale['url'], PHP_URL_PATH ), '/' ) ?: '/' ); ?></a>
+								<div class="sotto">non abbinata a un contenuto: rifai l analisi del sito</div>
+							<?php endif; ?>
 						</td>
 						<td class="num"><?php echo $segnale['posizione'] > 0 ? number_format( (float) $segnale['posizione'], 1, ',', '' ) : '—'; ?></td>
 						<td class="num"><?php echo num( $segnale['impression'] ); ?></td>

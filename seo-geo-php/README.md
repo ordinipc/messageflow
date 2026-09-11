@@ -357,6 +357,29 @@ GET https://tuo-gestionale/index.php?p=api-prestazioni&token=…
 Lo trovi già scritto in Impostazioni → *Avviare l'analisi da un pulsante*. Una chiamata ogni
 dieci minuti al massimo; più spesso riceve `429` e non consuma la quota di Google.
 
+### Dalle indicazioni alle modifiche
+
+I segnali dicono cosa succede in Google; il collegamento con il sito dice a quale contenuto
+corrispondono. Uniti, diventano modifiche che il pilota sa eseguire:
+
+| Segnale | Compito | Cosa cambia sul sito |
+|---|---|---|
+| Ti vedono ma non ti cliccano | `meta_mirata` | title e description riscritti **usando la ricerca vera come parola chiave**, inviati subito |
+| A un passo dalla prima pagina | `bozza` | riscrittura del contenuto, caricata come bozza |
+| Due pagine competono | `accorpa` | fusione delle pagine in una sola, come bozza |
+
+*Pagina in calo* e *Google non la mostra mai* restano senza azione automatica: vogliono un
+occhio umano, e far riscrivere all'AI un problema che non ha capito peggiora le cose.
+
+Un contenuto riceve un compito solo per giro, anche quando i segnali che lo riguardano sono
+due. Nella pagina Rendimento la colonna *Contenuto sul sito* dice quale articolo o pagina è
+stato riconosciuto: se resta vuota, il programma non tocca niente e lo dichiara.
+
+Il pulsante **Prepara le modifiche e vai al pilota** scrive la coda e porta al pilota, che
+aspetta un avvio esplicito: queste operazioni costano e finiscono sul sito, non partono per
+il solo fatto che si è aperta una pagina. La coda nata dai dati di Google non viene
+ricostruita dall'audit — sarebbe cancellata.
+
 ### Cosa confronta, e quando
 
 Il confronto è automatico, e avviene su due piani diversi:

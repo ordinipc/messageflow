@@ -233,6 +233,116 @@ if ( $esisteva ) {
 	file_put_contents( $fileChiave, $copia );
 }
 
+// --- Dalle indicazioni di Google alle modifiche sul contenuto --------------
+// Un segnale dice "questa pagina è a un passo": serve sapere quale contenuto
+// del sito è, altrimenti non si può toccare niente.
+echo "\nDa Google al contenuto giusto\n";
+
+$fileDb = sys_get_temp_dir() . '/prova-azioni-' . getmypid() . '.sqlite';
+@unlink( $fileDb );
+$db = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileDb ) );
+
+$auditId = $db->insert(
+	'audit',
+	array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => date( 'Y-m-d H:i:s' ), 'punteggio' => 50 )
+);
+
+foreach ( array(
+	array( 'wp_id' => '10', 'titolo' => 'Guida ai siti web', 'percorso' => '/blog/guida/', 'url' => 'https://esempio.it/blog/guida/', 'tipo' => 'post' ),
+	array( 'wp_id' => '11', 'titolo' => 'Servizi', 'percorso' => '/servizi/', 'url' => 'https://esempio.it/servizi/', 'tipo' => 'page' ),
+) as $documento ) {
+	$db->insert( 'documento', $documento + array( 'audit_id' => $auditId, 'stato' => 'publish' ) );
+}
+
+$segnali = \SeoGeo\Search\Azioni::abbina(
+	$db,
+	$auditId,
+	array(
+		array( 'tipo' => 'titolo_che_non_rende', 'url' => 'https://esempio.it/servizi/', 'query' => 'agenzia web palermo', 'impression' => 800, 'posizione' => 3.4, 'priorita' => 90 ),
+		array( 'tipo' => 'quasi_prima_pagina', 'url' => 'https://www.esempio.it/blog/guida', 'query' => 'siti web palermo', 'impression' => 500, 'posizione' => 12.8, 'priorita' => 80 ),
+		array( 'tipo' => 'in_calo', 'url' => 'https://esempio.it/blog/guida/', 'query' => '', 'impression' => 500, 'posizione' => 12.8, 'priorita' => 75 ),
+		array( 'tipo' => 'mai_mostrata', 'url' => 'https://esempio.it/pagina-sconosciuta/', 'query' => '', 'impression' => 0, 'posizione' => 0, 'priorita' => 60 ),
+	)
+);
+
+verifica( 'il contenuto viene riconosciuto dall indirizzo', 'Servizi' === $segnali[0]['titolo_sito'] );
+verifica( 'e ne porta l identificativo di WordPress', '11' === $segnali[0]['wp_id'] );
+verifica( 'www e barra finale non impediscono il riconoscimento', 'Guida ai siti web' === $segnali[1]['titolo_sito'] );
+verifica( 'un indirizzo che non è sul sito resta senza contenuto', 0 === $segnali[3]['documento_id'] );
+
+$piano = \SeoGeo\Search\Azioni::piano( $segnali );
+
+verifica( 'dal segnale sul titolo esce un compito sulle meta', 'meta_mirata' === $piano[0]['compito'] );
+verifica( 'e si porta dietro la ricerca vera', 'agenzia web palermo' === $piano[0]['query'] );
+verifica( 'da "a un passo" esce una riscrittura', 'bozza' === $piano[1]['compito'] );
+verifica( 'i segnali senza azione automatica restano fuori', 2 === count( $piano ), count( $piano ) . ' compiti' );
+
+// Stesso contenuto, due segnali: un compito solo, o si lavorerebbe due volte
+// sopra sé stessi nello stesso giro.
+$doppio = \SeoGeo\Search\Azioni::piano(
+	\SeoGeo\Search\Azioni::abbina(
+		$db,
+		$auditId,
+		array(
+			array( 'tipo' => 'quasi_prima_pagina', 'url' => 'https://esempio.it/blog/guida/', 'query' => 'a', 'impression' => 500, 'posizione' => 12.0, 'priorita' => 90 ),
+			array( 'tipo' => 'cannibalizzazione', 'url' => 'https://esempio.it/blog/guida/', 'query' => 'b', 'impression' => 400, 'posizione' => 14.0, 'priorita' => 75 ),
+		)
+	)
+);
+
+verifica( 'due segnali sullo stesso contenuto danno un compito solo', 1 === count( $doppio ) );
+verifica( 'e vince quello arrivato prima, cioè il più importante', 'bozza' === $doppio[0]['compito'] );
+
+$esito = \SeoGeo\Search\Azioni::inCoda( $db, $auditId, $piano );
+$coda  = $db->all( 'SELECT * FROM coda WHERE audit_id = ? ORDER BY ordine', array( $auditId ) );
+
+verifica( 'il piano finisce nella coda del pilota', 2 === (int) $esito['totale'] && 2 === count( $coda ) );
+verifica( 'la ricerca viene conservata nel compito', 'agenzia web palermo' === $coda[0]['dettaglio'] );
+verifica( 'il compito punta al documento, non all indirizzo', (string) $segnali[0]['documento_id'] === $coda[0]['riferimento'] );
+verifica( 'l etichetta dice cosa si sta per fare e su cosa', false !== strpos( $coda[0]['etichetta'], 'Servizi' ) );
+
+\SeoGeo\Search\Azioni::inCoda( $db, $auditId, $piano );
+verifica( 'ripreparare il piano non accumula compiti vecchi', 2 === count( $db->all( 'SELECT id FROM coda WHERE audit_id = ?', array( $auditId ) ) ) );
+
+@unlink( $fileDb );
+
+// --- Qualità di quello che finisce sul sito --------------------------------
+// Queste meta ora vengono pubblicate senza passare da nessuno: quello che
+// prima era brutto, adesso è brutto in pagina.
+echo "\nQualità delle meta pubblicate\n";
+
+$cfgMeta = require __DIR__ . '/../config.php';
+
+$scarno = array(
+	'titolo' => 'Servizi', 'slug' => 'servizi', 'focus' => 'agenzia web palermo',
+	'testo'  => 'Servizi.', 'seo_title' => '', 'seo_desc' => '', 'primo_paragrafo' => '', 'estratto' => '',
+);
+
+list( $title ) = \SeoGeo\Fix\Meta::title( $scarno, $cfgMeta );
+verifica( 'su una pagina senza testo il title non inventa una promessa', false === stripos( $title, 'Guida pratica per le PMI' ), $title );
+verifica( 'ma la parola chiave c è comunque', false !== stripos( $title, 'agenzia web palermo' ), $title );
+
+list( $descrizione ) = \SeoGeo\Fix\Meta::description( $scarno, $cfgMeta );
+$inviti = 0;
+
+foreach ( array( 'Scopri come lavoriamo', 'Richiedi una consulenza', 'Parla con i nostri esperti', 'Contattaci per un preventivo' ) as $invito ) {
+	$inviti += false !== stripos( $descrizione, $invito ) ? 1 : 0;
+}
+
+verifica( 'la description non impila più inviti all azione', $inviti <= 1, $descrizione );
+
+$pieno = array(
+	'titolo' => 'Realizzazione siti web a Palermo', 'slug' => 'siti', 'focus' => 'agenzia web palermo',
+	'testo'  => str_repeat( 'Realizziamo siti web su misura per le aziende siciliane, curando grafica contenuti e velocità. ', 4 ),
+	'seo_title' => '', 'seo_desc' => '', 'primo_paragrafo' => '', 'estratto' => '',
+);
+
+list( $titoloPieno ) = \SeoGeo\Fix\Meta::title( $pieno, $cfgMeta );
+list( $descPiena )   = \SeoGeo\Fix\Meta::description( $pieno, $cfgMeta );
+
+verifica( 'con del testo vero il title resta pieno di senso', mb_strlen( $titoloPieno ) >= 30 && mb_strlen( $titoloPieno ) <= $cfgMeta['seo']['titleMax'], $titoloPieno );
+verifica( 'e la description arriva alla lunghezza utile con il contenuto', mb_strlen( $descPiena ) >= 140, mb_strlen( $descPiena ) . ' caratteri' );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

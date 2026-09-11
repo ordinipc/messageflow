@@ -13,7 +13,14 @@
  * @var array $previsione Quantità previste per ogni tipo.
  */
 
-$in_corso = $stato['attesa'] > 0;
+// Una coda appena preparata dalle indicazioni di Google aspetta un avvio
+// esplicito: riscritture e meta costano e vanno sul sito, non devono partire
+// solo perché si è aperta una pagina. Se invece qualcosa è già stato eseguito,
+// si riprende da dove ci si era fermati, come sempre.
+$coda_google = $coda_google ?? array();
+$mai_partita = ! empty( $coda_google ) && 0 === (int) $stato['fatto'] + (int) $stato['errore'] + (int) $stato['saltato'];
+$da_avviare  = $mai_partita && ! $attivo;
+$in_corso    = $stato['attesa'] > 0 && ! $da_avviare;
 
 ?>
 <section class="intestazione">
@@ -73,6 +80,39 @@ $in_corso = $stato['attesa'] > 0;
 				<button class="bottone chiaro" type="submit">Annulla quelle in coda</button>
 			</form>
 		</div>
+	</section>
+<?php elseif ( $da_avviare ) : ?>
+	<section class="scheda">
+		<h2>Pronto: <?php echo num( count( $coda_google ) ); ?> modifiche dalle indicazioni di Google</h2>
+		<p class="guida">
+			Questa coda non viene dall audit: viene dai dati di Search Console, e tocca solo i contenuti
+			per cui Google dice che c è qualcosa da guadagnare. Avviarla non la ricostruisce.
+		</p>
+
+		<div class="tabellabox" style="margin-bottom:16px">
+			<table>
+				<thead><tr><th>Operazione</th></tr></thead>
+				<tbody>
+				<?php foreach ( array_slice( $coda_google, 0, 40 ) as $riga ) : ?>
+					<tr><td><?php echo e( $riga['etichetta'] ); ?></td></tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+		</div>
+
+		<form method="post" action="?p=pilota-avvia-coda">
+			<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+			<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
+			<button class="bottone" type="submit">Avvia queste modifiche</button>
+		</form>
+
+		<p class="nota">
+			Le meta vanno sul sito subito e si annullano con un clic dal collegamento. Le riscritture
+			restano bozze: le leggi e le pubblichi tu.
+			Se invece vuoi il piano completo dell audit — tutti gli articoli, redirect, categorie —
+			<a href="?p=pilota&amp;id=<?php echo (int) $audit['id']; ?>&amp;piano=audit">preparalo da qui</a>:
+			sostituirà questa coda.
+		</p>
 	</section>
 <?php else : ?>
 	<form class="scheda" method="post" action="?p=pilota-avvia">

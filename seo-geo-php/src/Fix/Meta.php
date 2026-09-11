@@ -74,7 +74,11 @@ class Meta {
 			}
 		}
 
-		return 'Guida pratica per le PMI';
+		// Nessuna corrispondenza: su un testo abbastanza lungo si può ancora
+		// dire qualcosa di generico, su quattro parole no. "Guida pratica per
+		// le PMI" scritto sopra una pagina servizi è una promessa inventata, e
+		// adesso questi title finiscono sul sito da soli.
+		return mb_strlen( trim( (string) $testo ) ) >= 200 ? 'Guida pratica per le PMI' : '';
 	}
 
 	/**
@@ -118,7 +122,10 @@ class Meta {
 			if ( $kwPrefisso && $restoPulito ) {
 				$candidati[] = $kw . ': ' . Text::truncate( $resto, $max - mb_strlen( $kw ) - 2 );
 			}
-			$candidati[] = $kw . ': ' . $beneficio;
+			if ( '' !== $beneficio ) {
+				$candidati[] = $kw . ': ' . $beneficio;
+			}
+
 			$candidati[] = $kw . ' | ' . $brand;
 			$candidati[] = $kw;
 		}
@@ -238,21 +245,31 @@ class Meta {
 			$corpo = $prefisso . $corpo;
 		}
 
-		$cta = array(
-			' Scopri come lavoriamo a ' . $citta . '.',
-			' Richiedi una consulenza gratuita.',
-			' Parla con i nostri esperti.',
-			' Contattaci per un preventivo.',
-			' ' . $cfg['azienda']['nome'] . ', web agency a ' . $citta . '.',
-		);
+		// Un solo invito all azione, e solo se serve davvero ad arrivare alla
+		// lunghezza minima. Tre di fila uno dopo l altro non sono una
+		// description: sono riempitivo, e in Google si vedono per quello che sono.
+		if ( mb_strlen( $corpo ) < $min ) {
+			$cta = array_values(
+				array_filter(
+					array(
+						'' !== $citta ? ' Scopri come lavoriamo a ' . $citta . '.' : '',
+						' Richiedi una consulenza gratuita.',
+						'' !== $citta ? ' ' . $cfg['azienda']['nome'] . ', a ' . $citta . '.' : ' ' . $cfg['azienda']['nome'] . '.',
+					)
+				)
+			);
 
-		foreach ( $cta as $c ) {
-			if ( mb_strlen( $corpo ) >= $min ) {
-				break;
+			// Fra quelli che ci stanno si prende il più lungo: avvicina di più
+			// alla lunghezza utile senza doverne accodare un secondo.
+			$migliore = '';
+
+			foreach ( $cta as $c ) {
+				if ( mb_strlen( $corpo . $c ) <= $max && mb_strlen( $c ) > mb_strlen( $migliore ) ) {
+					$migliore = $c;
+				}
 			}
-			if ( mb_strlen( $corpo . $c ) <= $max ) {
-				$corpo .= $c;
-			}
+
+			$corpo .= $migliore;
 		}
 
 		$finale = trim( Text::truncate( $corpo, $max ) );

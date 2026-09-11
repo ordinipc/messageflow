@@ -20,6 +20,7 @@ use SeoGeo\Impostazioni;
 use SeoGeo\Fix\InternalLinks;
 use SeoGeo\Fix\Meta;
 use SeoGeo\Site;
+use SeoGeo\Search\Azioni;
 use SeoGeo\Search\Prestazioni;
 use SeoGeo\Search\Segnali;
 use SeoGeo\Sync\Sito as SitoRemoto;
@@ -467,6 +468,34 @@ if ( 'aggiorna-google' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	exit;
 }
 
+// ------------------ Dalle indicazioni di Google ai compiti del pilota
+if ( 'applica-segnali' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Token di sessione non valido: ricarica la pagina e riprova.' );
+	}
+
+	$audit  = $db->one( 'SELECT id FROM audit ORDER BY id DESC LIMIT 1' );
+	$ultima = Prestazioni::ultima( $db, Prestazioni::chiaveSito( $cfg ) );
+
+	if ( ! $audit || ! $ultima ) {
+		header( 'Location: ?p=prestazioni&errore=' . rawurlencode( 'Serve prima un analisi del sito e una lettura di Search Console.' ) );
+		exit;
+	}
+
+	$piano = Azioni::piano( Azioni::abbina( $db, $audit['id'], Prestazioni::segnali( $db, $ultima['id'], 500 ) ) );
+
+	if ( ! $piano ) {
+		header( 'Location: ?p=prestazioni&errore=' . rawurlencode( 'Nessuna indicazione di Google si traduce in una modifica automatica: guarda la colonna "Contenuto sul sito".' ) );
+		exit;
+	}
+
+	Azioni::inCoda( $db, $audit['id'], $piano );
+
+	header( 'Location: ?p=pilota&id=' . (int) $audit['id'] . '&da=google' );
+	exit;
+}
+
 // ----------------------- Rilevamento delle proprietà viste dall account
 if ( 'rileva-proprieta' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
@@ -612,6 +641,18 @@ if ( 'risincronizza' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 }
 
 // ------------------------------------------------------- Pilota automatico
+if ( 'pilota-avvia-coda' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Token di sessione non valido: ricarica la pagina e riprova.' );
+	}
+
+	// Si avvia la coda che c è già: rigenerarla dall audit cancellerebbe il
+	// piano costruito sulle indicazioni di Google.
+	header( 'Location: ?p=pilota&id=' . (int) ( $_POST['id'] ?? 0 ) . '&attivo=1' );
+	exit;
+}
+
 if ( 'pilota-avvia' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
 		http_response_code( 400 );
@@ -775,6 +816,13 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				'wp_pronto'  => $ponte->pronto(),
 				'stato'      => Coda::stato( $db, $id ),
 				'attivo'     => isset( $_GET['attivo'] ),
+				// Una coda preparata dalle indicazioni di Google non va
+				// ricostruita dall audit: la si avvia com è, o si perde.
+				// Con ?piano=audit si chiede espressamente il piano completo.
+				'coda_google' => isset( $_GET['piano'] ) ? array() : $db->all(
+					"SELECT tipo, etichetta FROM coda WHERE audit_id = ? AND stato = ? AND origine = 'google' ORDER BY ordine",
+					array( $id, Coda::ATTESA )
+				),
 				'ultime'     => $db->all(
 					'SELECT tipo, etichetta, stato, messaggio, eseguito_il FROM coda
 					 WHERE audit_id = ? AND stato <> ? ORDER BY eseguito_il DESC, id DESC LIMIT 40',
@@ -1438,6 +1486,14 @@ switch ( $pagina ) {
 	case 'prestazioni':
 		$sito     = chiave_sito( $cfg );
 		$ultima   = Prestazioni::ultima( $db, $sito );
+
+		// Le indicazioni di Google valgono qualcosa solo se si sa a quale
+		// contenuto del sito corrispondono: qui i due mondi vengono uniti.
+		$audit_corrente    = $db->one( 'SELECT id FROM audit ORDER BY id DESC LIMIT 1' );
+		$segnali_abbinati  = $ultima ? Prestazioni::segnali( $db, $ultima['id'] ) : array();
+		$segnali_abbinati  = $audit_corrente
+			? Azioni::abbina( $db, $audit_corrente['id'], $segnali_abbinati )
+			: array_map( static fn( $x ) => $x + array( 'documento_id' => 0, 'wp_id' => '', 'titolo_sito' => '', 'tipo_sito' => '' ), $segnali_abbinati );
 		$storico  = $db->all( 'SELECT * FROM gsc_rilevazione WHERE sito_url = ? ORDER BY id DESC LIMIT 12', array( $sito ) );
 
 		vista(
@@ -1453,7 +1509,9 @@ switch ( $pagina ) {
 				'ultima'       => $ultima,
 				'precedente'   => count( $storico ) > 1 ? $storico[1] : null,
 				'storico'      => $storico,
-				'segnali'      => $ultima ? Prestazioni::segnali( $db, $ultima['id'] ) : array(),
+				'segnali'      => $segnali_abbinati,
+				'piano'        => Azioni::piano( $segnali_abbinati ),
+				'audit_id'     => $audit_corrente ? (int) $audit_corrente['id'] : 0,
 				'per_tipo'     => $ultima
 					? $db->all(
 						'SELECT tipo, titolo, COUNT(*) quanti, SUM(impression) impression FROM gsc_segnale WHERE rilevazione_id = ? GROUP BY tipo, titolo ORDER BY impression DESC',
@@ -1494,6 +1552,13 @@ switch ( $pagina ) {
 				'wp_pronto'  => $ponte->pronto(),
 				'stato'      => Coda::stato( $db, $id ),
 				'attivo'     => isset( $_GET['attivo'] ),
+				// Una coda preparata dalle indicazioni di Google non va
+				// ricostruita dall audit: la si avvia com è, o si perde.
+				// Con ?piano=audit si chiede espressamente il piano completo.
+				'coda_google' => isset( $_GET['piano'] ) ? array() : $db->all(
+					"SELECT tipo, etichetta FROM coda WHERE audit_id = ? AND stato = ? AND origine = 'google' ORDER BY ordine",
+					array( $id, Coda::ATTESA )
+				),
 				'ultime'     => $db->all(
 					'SELECT tipo, etichetta, stato, messaggio, eseguito_il FROM coda
 					 WHERE audit_id = ? AND stato <> ? ORDER BY eseguito_il DESC, id DESC LIMIT 40',

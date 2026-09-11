@@ -215,3 +215,8 @@ pre.mono { background: var(--basso-bg); padding: 12px 14px; border-radius: 4px; 
 .autorizza ol.nota { margin: 0 0 12px; padding-left: 20px; }
 .autorizza ol.nota li { margin-bottom: 4px; }
 @media (max-width: 560px) { .autorizza .con-bottone { flex-direction: column; } }
+
+/* Elenco delle azioni applicabili */
+.elenco-azioni { list-style: none; padding: 0; margin: 0 0 14px; display: grid; gap: 6px; }
+.elenco-azioni li { padding: 8px 12px; background: var(--carta); border: 1px solid var(--linea); border-radius: 4px; font-size: 14px; }
+.elenco-azioni strong { font-variant-numeric: tabular-nums; }
