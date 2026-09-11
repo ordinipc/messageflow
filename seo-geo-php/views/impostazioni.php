@@ -136,6 +136,19 @@ function campo( $nome, $etichetta, $valore, $nota = '', $tipo = 'text' ) {
 			<?php campo( 'seo_link', 'Link interni per articolo', $cfg['seo']['linkInterniPerArticolo'], '', 'number' ); ?>
 			<?php campo( 'seo_soglia', 'Soglia qualità per "da mantenere"', $cfg['seo']['sogliaQualita'], 'Da 0 a 100. Più alta, più articoli finiscono fra quelli da riscrivere.', 'number' ); ?>
 		</div>
+
+		<label class="scelta">
+			<input type="checkbox" name="seo_link_pagine" value="1" <?php echo ! empty( $cfg['seo']['linkAutomaticiNellePagine'] ) ? 'checked' : ''; ?>>
+			<span>
+				<strong>Inserisci i link interni automatici anche nelle pagine</strong>
+				<small>
+					Spento, il plugin aggiunge link automatici solo negli articoli e lascia intatto il testo
+					delle pagine servizio. È l'unica cosa che il plugin cambia dentro il contenuto di una
+					pagina: dati strutturati, meta robots e alt delle immagini restano attivi ovunque, ma
+					non toccano quello che hai scritto.
+				</small>
+			</span>
+		</label>
 	</section>
 
 	<p><button class="bottone" type="submit">Salva impostazioni</button></p>

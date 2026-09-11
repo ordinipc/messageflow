@@ -682,6 +682,7 @@ if ( 'salva-impostazioni' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] )
 			'cittaPrincipale'        => $campo( 'seo_citta' ),
 			'linkInterniPerArticolo' => max( 0, min( 10, (int) $campo( 'seo_link' ) ) ),
 			'sogliaQualita'          => max( 0, min( 100, (int) $campo( 'seo_soglia' ) ) ),
+			'linkAutomaticiNellePagine' => ! empty( $_POST['seo_link_pagine'] ),
 		),
 	);
 

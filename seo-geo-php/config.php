@@ -110,6 +110,9 @@ return array(
 		'descMax'                 => 158,
 		'slugMax'                 => 60,
 		'linkInterniPerArticolo'  => 4,
+		// I link automatici entrano solo negli articoli: le pagine servizio sono
+		// poche e curate a mano, e non devono cambiare da sole.
+		'linkAutomaticiNellePagine' => false,
 		'sogliaQualita'           => 58,
 		'dominiNofollow'          => array( 'linktr.ee', 'instagram.com', 'youtube.com', 'wa.me', 'facebook.com', 'tiktok.com' ),
 		'paginePilastro'          => array(

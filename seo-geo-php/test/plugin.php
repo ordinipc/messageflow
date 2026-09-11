@@ -88,6 +88,49 @@ verifica( 'una configurazione malformata viene rifiutata', is_wp_error( $vuota )
 $stato_sito = MDI_Api::stato();
 verifica( 'lo stato dichiara che i dati aziendali sono arrivati', ! empty( $stato_sito['config'] ) && ! empty( $stato_sito['telefono'] ) );
 
+// --- Link automatici: articoli sì, pagine no -------------------------------
+echo "\nLink automatici nel contenuto\n";
+
+update_option(
+	MDI_Api::OPZIONE_CONFIG,
+	array(
+		'azienda' => array( 'nome' => 'Max Digital Innovation' ),
+		'seo'     => array(
+			'linkInterniPerArticolo'    => 4,
+			'linkAutomaticiNellePagine' => false,
+		),
+	),
+	false
+);
+
+// La mappa keyword → URL vive in data/internal-links.json: per il collaudo si
+// scrive davvero, così viene esercitato anche il caricamento del file.
+$file_link = MDI_SEO_GEO_DIR . 'data/internal-links.json';
+file_put_contents( $file_link, wp_json_encode( array( 'siti web a palermo' => 'https://esempio.it/realizzazione-siti-web-a-palermo/' ) ) );
+
+$testo = '<p>Realizziamo siti web a Palermo per le imprese del territorio.</p>';
+
+$GLOBALS['wp']['singolo']      = 10;
+$GLOBALS['wp']['tipo_singolo'] = 'page';
+$su_pagina = MDI_Links::auto_internal_links( $testo );
+
+$GLOBALS['wp']['tipo_singolo'] = 'post';
+$su_articolo = MDI_Links::auto_internal_links( $testo );
+
+verifica( 'nelle pagine il testo resta identico', $testo === $su_pagina );
+verifica( 'negli articoli il link viene inserito', false !== strpos( $su_articolo, 'realizzazione-siti-web-a-palermo' ) );
+
+// Con l interruttore acceso le pagine tornano a riceverli.
+$configurazione_link = get_option( MDI_Api::OPZIONE_CONFIG );
+$configurazione_link['seo']['linkAutomaticiNellePagine'] = true;
+update_option( MDI_Api::OPZIONE_CONFIG, $configurazione_link, false );
+
+$GLOBALS['wp']['tipo_singolo'] = 'page';
+verifica( 'con l interruttore acceso anche le pagine ricevono i link', false !== strpos( MDI_Links::auto_internal_links( $testo ), 'realizzazione-siti-web-a-palermo' ) );
+
+$GLOBALS['wp']['singolo'] = 0;
+unlink( $file_link );
+
 // --- Anteprima delle meta --------------------------------------------------
 echo "\nAnteprima delle meta\n";
 

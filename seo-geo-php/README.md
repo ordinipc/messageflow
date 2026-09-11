@@ -155,7 +155,9 @@ nel database:
 - meta robots con `max-image-preview:large`, `noindex` sulle pagine legali;
 - un unico grafo JSON-LD per pagina: Organization/ProfessionalService, WebSite, Person,
   BreadcrumbList, BlogPosting con `speakable`, Service, FAQPage estratto dagli H2/H3;
-- link interni automatici da mappa keyword → URL, senza toccare titoli e link esistenti;
+- link interni automatici da mappa keyword → URL, senza toccare titoli e link esistenti,
+  e **solo negli articoli**: il testo delle pagine servizio non viene alterato (interruttore
+  in Impostazioni per includerle);
 - blocco "Approfondimenti correlati" per recuperare le pagine orfane;
 - `rel="nofollow sponsored noopener"` sui domini che disperdono autorità;
 - alt, `loading`, `decoding` e `fetchpriority` sulle immagini;
@@ -277,6 +279,16 @@ Le pagine servizio sono poche, scritte a mano e di solito già a posto: il pilot
 tocca** se non glielo si chiede, e nell'interfaccia hanno una sezione propria con il numero
 di modifiche effettivamente proposte. Gli articoli sono centinaia e generati in serie: lì
 l'intervento automatico ha senso.
+
+Cosa tocca una pagina, in concreto:
+
+| Operazione | Pagine |
+|---|---|
+| Riscritture, accorpamenti, immagini generate | mai: riguardano solo gli articoli |
+| Ricategorizzazione, redirect, cestino | mai: riguardano solo gli articoli |
+| Meta (title, description, estratto) | solo dal pulsante dedicato, mai dal pilota senza spunta |
+| Link interni automatici nel testo | no, salvo interruttore in Impostazioni |
+| Dati strutturati, meta robots, alt, Open Graph | sì, e conviene: aggiungono informazioni senza cambiare una parola di quello che hai scritto |
 
 ### Le due opzioni che cambiano la natura del lavoro
 

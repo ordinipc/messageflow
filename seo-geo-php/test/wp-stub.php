@@ -422,7 +422,15 @@ function is_404() {
 }
 
 function is_singular( $tipo = '' ) {
-	return ! empty( $GLOBALS['wp']['singolo'] );
+	if ( empty( $GLOBALS['wp']['singolo'] ) ) {
+		return false;
+	}
+
+	if ( '' === $tipo ) {
+		return true;
+	}
+
+	return ( $GLOBALS['wp']['tipo_singolo'] ?? 'post' ) === $tipo;
 }
 
 function in_the_loop() {
@@ -479,3 +487,4 @@ function get_header() {}
 
 // Si carica il plugin vero e proprio: costanti, funzioni e tutte le classi.
 require_once MDI_PLUGIN_FILE;
+

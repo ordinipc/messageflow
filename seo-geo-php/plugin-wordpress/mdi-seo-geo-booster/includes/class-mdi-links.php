@@ -39,6 +39,12 @@ class MDI_Links {
 			return $content;
 		}
 
+		// Le pagine servizio sono scritte a mano: inserirci link in automatico
+		// ne altera il testo. Di norma si lasciano stare.
+		if ( ! is_singular( 'post' ) && ! mdi_seo_geo_cfg( 'seo.linkAutomaticiNellePagine', false ) ) {
+			return $content;
+		}
+
 		$mappa = mdi_seo_geo_data( 'internal-links' );
 
 		if ( empty( $mappa ) ) {
