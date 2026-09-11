@@ -343,6 +343,29 @@ php cli/prestazioni.php 90     # ultimi 90
 Una volta al giorno è più che sufficiente: Google consolida i dati con due o tre giorni di
 ritardo, e infatti il periodo analizzato si ferma a tre giorni fa.
 
+### llms.txt e ai.txt si aggiornano da soli
+
+Fino alla versione 1.3.0 del plugin erano file statici, fotografati al momento
+dell'ultima analisi: dopo qualche riscrittura raccontavano un sito che non esisteva
+più, e si aggiornavano solo reinstallando lo zip.
+
+Dalla 1.4.0 il plugin li compone dai contenuti pubblicati in quel momento, con una
+cache di un'ora che viene buttata a ogni pubblicazione, modifica o cestinata. Il file
+dichiara la propria data (`Aggiornato: 2026-09-11`) e la risposta porta
+l'intestazione `X-Mdi-Origine: dinamico`.
+
+Se mancano i dati aziendali il plugin non pubblica una mappa monca: ripiega sul file
+statico dentro lo zip (`X-Mdi-Origine: statico`). Anche l'indirizzo della sitemap non
+viene più dato per scontato: `/sitemap_index.xml` se sul sito c'è Rank Math o Yoast,
+`/wp-sitemap.xml` altrimenti — in `llms.txt` e in `robots.txt`.
+
+### La sitemap
+
+Non la genera questo programma e non deve: la fa WordPress, o il plugin SEO installato,
+e si aggiorna da sola a ogni pubblicazione. Va inviata **una volta** in Search Console,
+poi Google la rilegge per conto suo. La pagina Rendimento mostra quando l'ha fatto
+l'ultima volta, con errori e avvisi dichiarati da Google.
+
 ### Quello che non fa
 
 Non esiste un modo per cui un programma legga gli aggiornamenti dell algoritmo di Google e si

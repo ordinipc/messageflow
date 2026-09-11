@@ -283,6 +283,38 @@ function admin_url( $percorso = '' ) {
 	return 'https://esempio.it/wp-admin/' . $percorso;
 }
 
+// --- Transient (la cache a scadenza di WordPress) --------------------------
+
+define( 'HOUR_IN_SECONDS', 3600 );
+
+function set_transient( $chiave, $valore, $durata = 0 ) {
+	$GLOBALS['wp']['transient'][ $chiave ] = array( 'valore' => $valore, 'scade' => $durata ? time() + $durata : 0 );
+
+	return true;
+}
+
+function get_transient( $chiave ) {
+	$voce = $GLOBALS['wp']['transient'][ $chiave ] ?? null;
+
+	if ( ! $voce ) {
+		return false;
+	}
+
+	if ( $voce['scade'] && $voce['scade'] < time() ) {
+		unset( $GLOBALS['wp']['transient'][ $chiave ] );
+
+		return false;
+	}
+
+	return $voce['valore'];
+}
+
+function delete_transient( $chiave ) {
+	unset( $GLOBALS['wp']['transient'][ $chiave ] );
+
+	return true;
+}
+
 function untrailingslashit( $stringa ) {
 	return rtrim( $stringa, '/' );
 }

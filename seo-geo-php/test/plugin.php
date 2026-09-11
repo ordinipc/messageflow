@@ -33,6 +33,14 @@ function verifica( $descrizione, $condizione, $dettaglio = '' ) {
 
 echo "\n▶ Collaudo del plugin MDI SEO & GEO Booster\n\n";
 
+// Avvio come fa WordPress: senza questo nessuna classe aggancia i propri hook,
+// e tutta la parte che reagisce agli eventi del sito resterebbe non collaudata.
+foreach ( (array) ( $GLOBALS['wp']['azioni']['plugins_loaded'] ?? array() ) as $callback ) {
+	call_user_func( $callback );
+}
+
+verifica( 'il plugin aggancia i suoi hook all avvio', ! empty( $GLOBALS['wp']['azioni']['save_post'] ) );
+
 // Dati di partenza.
 stub_crea_post( 10, 'Articolo originale', '<h2>Sezione</h2><p>Testo.</p>' );
 stub_crea_post( 11, 'Secondo articolo' );
@@ -417,6 +425,97 @@ $html = ob_get_clean();
 verifica( 'un errore del gestionale viene riportato per intero', false !== strpos( $html, 'Token non valido.' ) );
 
 $_GET = array();
+
+// --- File per i motori generativi ------------------------------------------
+// Erano un istantanea congelata dentro lo zip: dopo qualche riscrittura
+// raccontavano un sito che non esisteva più.
+echo "\nFile per i motori generativi\n";
+
+MDI_AI::svuota_cache();
+
+// Senza dati aziendali non si pubblica una mappa monca: si ripiega sul file
+// statico, che almeno è stato scritto da qualcuno.
+delete_option_stub( MDI_Api::OPZIONE_CONFIG );
+verifica( 'senza dati aziendali non genera niente', '' === MDI_AI::genera( 'llms' ) );
+
+MDI_Api::salva_config(
+	new WP_REST_Request(
+		array(
+			'config' => array(
+				'azienda' => array(
+					'nome'             => 'Max Digital Innovation',
+					'email'            => 'info@esempio.it',
+					'telefono'         => '+39 091 000000',
+					'partitaIva'       => '01234567890',
+					'descrizioneBreve' => 'Web agency a Palermo.',
+					'indirizzo'        => array( 'via' => 'Via Roma 1', 'citta' => 'Palermo', 'provincia' => 'PA' ),
+				),
+			),
+		)
+	)
+);
+
+MDI_AI::svuota_cache();
+
+stub_crea_post( 700, 'Guida alla realizzazione di siti web', str_repeat( 'parola ', 400 ) );
+update_post_meta( 700, 'rank_math_description', 'Come si realizza un sito web che porta clienti.' );
+
+$GLOBALS['wp']['post'][701] = (object) array(
+	'ID' => 701, 'post_title' => 'Servizi digitali a Palermo', 'post_content' => str_repeat( 'servizio ', 300 ),
+	'post_excerpt' => '', 'post_status' => 'publish', 'post_type' => 'page', 'post_author' => 1,
+	'post_name' => 'servizi', 'post_date' => '2026-01-01 10:00:00', 'post_date_gmt' => '2026-01-01 09:00:00',
+	'post_modified_gmt' => '2026-03-01 09:00:00', 'post_parent' => 0, 'comment_status' => 'closed',
+);
+
+$llms = MDI_AI::genera( 'llms' );
+
+verifica( 'con i dati aziendali il file viene composto', '' !== $llms );
+verifica( 'porta il nome dell azienda', false !== strpos( $llms, 'Max Digital Innovation' ) );
+verifica( 'porta i dati di contatto', false !== strpos( $llms, '+39 091 000000' ) && false !== strpos( $llms, 'Via Roma 1' ) );
+verifica( 'elenca gli articoli pubblicati adesso', false !== strpos( $llms, 'Guida alla realizzazione di siti web' ) );
+verifica( 'elenca le pagine come servizi', false !== strpos( $llms, 'Servizi digitali a Palermo' ) );
+verifica( 'usa la description SEO quando c è', false !== strpos( $llms, 'Come si realizza un sito web che porta clienti.' ) );
+verifica( 'dichiara la data di aggiornamento', false !== strpos( $llms, 'Aggiornato: ' . gmdate( 'Y-m-d' ) ) );
+
+// La cache serve a non ricomporre il file a ogni visita di un crawler.
+stub_crea_post( 702, 'Articolo pubblicato dopo', str_repeat( 'testo ', 300 ) );
+verifica( 'il file viene servito dalla cache', false === strpos( MDI_AI::genera( 'llms' ), 'Articolo pubblicato dopo' ) );
+
+// Ma una modifica ai contenuti la butta via.
+foreach ( (array) ( $GLOBALS['wp']['azioni']['save_post'] ?? array() ) as $callback ) {
+	call_user_func( $callback, 702 );
+}
+
+verifica( 'pubblicare un contenuto invalida la cache', false !== strpos( MDI_AI::genera( 'llms' ), 'Articolo pubblicato dopo' ) );
+
+$pieno = MDI_AI::genera( 'llms-full' );
+verifica( 'la versione completa contiene i testi', false !== strpos( $pieno, '# Contenuti completi' ) );
+verifica( 'e i contenuti lunghi ci sono', false !== strpos( $pieno, 'Guida alla realizzazione di siti web' ) );
+
+stub_crea_post( 703, 'Troppo corto', 'tre parole soltanto' );
+MDI_AI::svuota_cache();
+
+// Il titolo compare comunque nell indice: quello che non deve comparire è la
+// sua scheda nella parte dei testi completi.
+$completo = MDI_AI::genera( 'llms-full' );
+$testi    = substr( $completo, (int) strpos( $completo, '# Contenuti completi' ) );
+
+verifica( 'i contenuti sotto le 200 parole restano fuori dai testi completi', false === strpos( $testi, '## Troppo corto' ) );
+verifica( 'ma restano nell indice delle guide', false !== strpos( $completo, 'Troppo corto' ) );
+
+$ai = MDI_AI::genera( 'ai' );
+verifica( 'ai.txt dichiara il proprietario', false !== strpos( $ai, 'Owner: Max Digital Innovation' ) );
+verifica( 'ai.txt chiede attribuzione per l addestramento', false !== strpos( $ai, 'Usage-training: allow-with-attribution' ) );
+
+// L indirizzo della sitemap dipende da chi la genera: non si indovina.
+verifica( 'senza plugin SEO punta alla sitemap di WordPress', false !== strpos( MDI_AI::url_sitemap(), '/wp-sitemap.xml' ) );
+
+if ( ! defined( 'WPSEO_VERSION' ) ) {
+	define( 'WPSEO_VERSION', '1.0' );
+}
+
+verifica( 'con Yoast o Rank Math punta alla loro', false !== strpos( MDI_AI::url_sitemap(), '/sitemap_index.xml' ) );
+verifica( 'e robots.txt dichiara la stessa sitemap', false !== strpos( MDI_AI::robots_txt( '', true ), MDI_AI::url_sitemap() ) );
 
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
