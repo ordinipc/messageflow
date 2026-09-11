@@ -439,6 +439,82 @@ if ( is_resource( $mock ) ) {
 	proc_close( $mock );
 }
 
+// --- Scelta di cosa far fare al pilota -------------------------------------
+// "Genera le immagini mancanti" non deve trascinarsi dietro duecento
+// riscritture: erano finite in coda 522 operazioni al posto di 289 immagini.
+echo "\nScelta delle operazioni del pilota\n";
+
+$fileDb2 = sys_get_temp_dir() . '/prova-coda-' . getmypid() . '.sqlite';
+@unlink( $fileDb2 );
+$db2 = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileDb2 ) );
+
+$auditId2 = $db2->insert(
+	'audit',
+	array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => date( 'Y-m-d H:i:s' ), 'punteggio' => 50 )
+);
+
+for ( $i = 1; $i <= 3; $i++ ) {
+	$doc = $db2->insert(
+		'documento',
+		array( 'audit_id' => $auditId2, 'wp_id' => (string) $i, 'titolo' => 'Articolo ' . $i, 'percorso' => '/a' . $i . '/', 'tipo' => 'post', 'stato' => 'publish', 'ha_thumbnail' => 0 )
+	);
+
+	$db2->insert( 'meta_piano', array( 'audit_id' => $auditId2, 'documento_id' => $doc, 'title_nuovo' => 'T', 'description_nuova' => 'D' ) );
+	$db2->insert( 'triage', array( 'audit_id' => $auditId2, 'documento_id' => $doc, 'categoria' => 'riscrivere', 'qualita' => 40, 'redirect_a' => '' ) );
+}
+
+$cfgProva = \SeoGeo\Impostazioni::carica( require __DIR__ . '/../config.php' );
+
+$conteggi = static function ( $db, $id ) {
+	$fuori = array();
+
+	foreach ( $db->all( 'SELECT tipo, COUNT(*) n FROM coda WHERE audit_id = ? GROUP BY tipo', array( $id ) ) as $riga ) {
+		$fuori[ $riga['tipo'] ] = (int) $riga['n'];
+	}
+
+	return $fuori;
+};
+
+\SeoGeo\Coda::prepara( $db2, $auditId2, $cfgProva, array( 'includi' => array( 'immagine' ), 'immagini' => true ) );
+$solo_immagini = $conteggi( $db2, $auditId2 );
+
+verifica( 'chiedendo le sole immagini si mettono in coda solo quelle', array( 'immagine' ) === array_keys( $solo_immagini ), implode( ', ', array_keys( $solo_immagini ) ) );
+verifica( 'e sono tutte quelle che mancano', 3 === ( $solo_immagini['immagine'] ?? 0 ) );
+
+\SeoGeo\Coda::prepara( $db2, $auditId2, $cfgProva, array( 'includi' => array( 'meta' ) ) );
+$solo_meta = $conteggi( $db2, $auditId2 );
+
+verifica( 'chiedendo le sole meta non parte nessuna riscrittura', ! isset( $solo_meta['bozza'] ) && ! isset( $solo_meta['immagine'] ) );
+verifica( 'e nemmeno i dati aziendali o i redirect', ! isset( $solo_meta['config'] ) && ! isset( $solo_meta['redirect'] ) );
+
+\SeoGeo\Coda::prepara( $db2, $auditId2, $cfgProva, array( 'includi' => array( 'config', 'struttura' ) ) );
+$senza_ai = $conteggi( $db2, $auditId2 );
+
+verifica( 'le operazioni gratuite si possono fare da sole', isset( $senza_ai['config'], $senza_ai['redirect'], $senza_ai['categorie'] ) );
+verifica( 'senza toccare niente che costi', ! isset( $senza_ai['bozza'] ) && ! isset( $senza_ai['immagine'] ) && ! isset( $senza_ai['meta'] ) );
+
+// Senza indicazioni si comporta come sempre: le chiamate esistenti non cambiano.
+\SeoGeo\Coda::prepara( $db2, $auditId2, $cfgProva, array() );
+$tutto_come_prima = $conteggi( $db2, $auditId2 );
+
+verifica( 'senza scelta esplicita si fa tutto come prima', isset( $tutto_come_prima['config'], $tutto_come_prima['meta'], $tutto_come_prima['redirect'] ) );
+verifica( 'ma le immagini restano fuori se non richieste', ! isset( $tutto_come_prima['immagine'] ) );
+
+// I blocchi delle meta si sono dimezzati: 40 per volta invece di 80.
+for ( $i = 4; $i <= 60; $i++ ) {
+	$doc = $db2->insert(
+		'documento',
+		array( 'audit_id' => $auditId2, 'wp_id' => (string) $i, 'titolo' => 'Articolo ' . $i, 'percorso' => '/a' . $i . '/', 'tipo' => 'post', 'stato' => 'publish', 'ha_thumbnail' => 1 )
+	);
+
+	$db2->insert( 'meta_piano', array( 'audit_id' => $auditId2, 'documento_id' => $doc, 'title_nuovo' => 'T', 'description_nuova' => 'D' ) );
+}
+
+\SeoGeo\Coda::prepara( $db2, $auditId2, $cfgProva, array( 'includi' => array( 'meta' ) ) );
+verifica( 'sessanta articoli diventano due blocchi da quaranta', 2 === ( $conteggi( $db2, $auditId2 )['meta'] ?? 0 ) );
+
+@unlink( $fileDb2 );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

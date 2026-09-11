@@ -119,14 +119,42 @@ $in_corso    = $stato['attesa'] > 0 && ! $da_avviare;
 		<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
 		<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
 
-		<h2>Cosa farà</h2>
-		<ul>
-			<li><strong><?php echo num( $previsione['meta'] ); ?></strong> <strong>articoli</strong> con title, meta description ed estratto ottimizzati</li>
-			<li><strong><?php echo num( $previsione['redirect'] ); ?></strong> redirect 301 per i contenuti rimossi o accorpati</li>
-			<li><strong><?php echo num( $previsione['categorie'] ); ?></strong> articoli ricategorizzati</li>
-			<li><strong><?php echo num( $previsione['gruppi'] ); ?></strong> gruppi di articoli che si cannibalizzano, fusi in uno solo</li>
-			<li><strong><?php echo num( $previsione['riscritture'] ); ?></strong> articoli riscritti e caricati sul sito come bozze</li>
-		</ul>
+		<h2>Cosa far fare</h2>
+		<p class="guida">
+			Spunta solo quello che vuoi adesso. Le prime tre non costano niente e vanno sul sito subito;
+			le altre tre passano dall AI, quindi consumano e vanno scelte apposta.
+		</p>
+
+		<?php
+		$gruppi = array(
+			'config'    => array( 'quanti' => 1, 'unita' => 'invio dei dati aziendali (telefono, P.IVA, indirizzo)', 'ai' => false ),
+			'meta'      => array( 'quanti' => $previsione['meta_articoli'], 'unita' => 'articoli con title e description ottimizzati', 'ai' => false ),
+			'struttura' => array( 'quanti' => $previsione['redirect'] + $previsione['categorie'], 'unita' => 'fra redirect 301 e categorie da correggere', 'ai' => false ),
+			'accorpa'   => array( 'quanti' => $previsione['gruppi'], 'unita' => 'gruppi di articoli che si cannibalizzano, da fondere', 'ai' => true ),
+			'bozza'     => array( 'quanti' => $previsione['riscritture'], 'unita' => 'articoli da riscrivere (restano bozze)', 'ai' => true ),
+			'immagine'  => array( 'quanti' => $previsione['immagini'], 'unita' => 'immagini in evidenza da generare', 'ai' => true ),
+		);
+		?>
+
+		<?php foreach ( $gruppi as $chiave => $g ) : ?>
+			<?php if ( ! $g['quanti'] ) { continue; } ?>
+			<label class="scelta">
+				<input type="checkbox" name="includi[]" value="<?php echo e( $chiave ); ?>" <?php echo $g['ai'] ? '' : 'checked'; ?>>
+				<span>
+					<strong><?php echo num( $g['quanti'] ); ?> — <?php echo e( $g['unita'] ); ?></strong>
+					<small>
+						<?php if ( 'immagine' === $chiave ) : ?>
+							Una richiesta a pagamento per ciascuna: richiede un progetto Google con fatturazione
+							attiva, ed è la voce che costa di più. Spuntala da sola se vuoi solo queste.
+						<?php elseif ( $g['ai'] ) : ?>
+							Passa dal modello AI: <?php echo 1 === $g['quanti'] ? 'una richiesta' : num( $g['quanti'] ) . ' richieste, una per contenuto'; ?>.
+						<?php else : ?>
+							Nessun costo: sono correzioni calcolate dal programma.
+						<?php endif; ?>
+					</small>
+				</span>
+			</label>
+		<?php endforeach; ?>
 
 		<h2>Opzioni</h2>
 
@@ -139,14 +167,6 @@ $in_corso    = $stato['attesa'] > 0 && ! $da_avviare;
 					<?php echo num( $previsione['cambi_pagine'] ); ?> di esse. Sono escluse di default —
 					se le hai curate tu, non c'è motivo di farle riscrivere a un algoritmo.
 				</small>
-			</span>
-		</label>
-
-		<label class="scelta">
-			<input type="checkbox" name="immagini" value="1">
-			<span>
-				<strong>Genera le <?php echo num( $previsione['immagini'] ); ?> immagini in evidenza mancanti</strong>
-				<small>Richiede un progetto Google con fatturazione attiva. Aggiunge tempo e costo.</small>
 			</span>
 		</label>
 

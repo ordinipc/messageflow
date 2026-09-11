@@ -267,6 +267,7 @@ class WordPress {
 
 		$risposta = curl_exec( $ch );
 		$stato    = (int) curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+		$durata   = (float) curl_getinfo( $ch, CURLINFO_TOTAL_TIME );
 		$errore   = curl_error( $ch );
 		curl_close( $ch );
 
@@ -295,7 +296,29 @@ class WordPress {
 		}
 
 		if ( ! is_array( $dati ) ) {
-			throw new RuntimeException( 'Risposta non valida dal sito: ' . mb_substr( (string) $risposta, 0, 200 ) );
+			// Corpo vuoto con stato 200: WordPress è morto durante l elaborazione
+			// senza riuscire a scrivere niente. Dirlo come "risposta non valida"
+			// lasciava l utente davanti a un messaggio che finiva nel nulla.
+			if ( '' === trim( (string) $risposta ) ) {
+				throw new RuntimeException(
+					sprintf(
+						'Il sito ha chiuso la risposta senza scrivere niente (stato %d, dopo %s secondi). '
+						. 'Di solito è il tempo massimo di esecuzione o la memoria di PHP, su un blocco di contenuti troppo grande: '
+						. 'riprova, il pilota riparte da questo punto con lo stesso blocco. Se ricapita sempre nello stesso punto, '
+						. 'chiedi all hosting di alzare max_execution_time e memory_limit.',
+						$stato,
+						number_format( $durata, 1, ',', '' )
+					)
+				);
+			}
+
+			throw new RuntimeException(
+				sprintf(
+					'Risposta non leggibile dal sito (stato %d): %s',
+					$stato,
+					mb_substr( trim( (string) $risposta ), 0, 200 )
+				)
+			);
 		}
 
 		return $dati;

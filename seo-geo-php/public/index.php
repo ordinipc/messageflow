@@ -664,12 +664,18 @@ if ( 'pilota-avvia' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 
 	$id = (int) ( $_POST['id'] ?? 0 );
 
+	// Si esegue solo quello che è stato spuntato: prima la casella delle
+	// immagini si aggiungeva a tutto il resto, e chi voleva le sole immagini
+	// si ritrovava in coda anche duecento riscritture.
+	$includi = array_values( array_intersect( array_keys( Coda::GRUPPI ), (array) ( $_POST['includi'] ?? array() ) ) );
+
 	Coda::prepara(
 		$db,
 		$id,
 		$cfg,
 		array(
-			'immagini' => ! empty( $_POST['immagini'] ),
+			'includi'  => $includi,
+			'immagini' => in_array( 'immagine', $includi, true ),
 			'pubblica' => ! empty( $_POST['pubblica'] ),
 			'cestina'  => ! empty( $_POST['cestina'] ),
 			'pagine'   => ! empty( $_POST['pagine'] ),

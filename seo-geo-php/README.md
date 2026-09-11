@@ -446,6 +446,21 @@ formato. Il valore si alza da Impostazioni → *Spazio massimo per risposta*.
 
 ## Pilota automatico
 
+Prima di avviarlo si sceglie **cosa** fargli fare, voce per voce, con i numeri davanti:
+
+| Gruppo | Costo |
+|---|---|
+| Dati aziendali al sito | nessuno |
+| Meta degli articoli | nessuno |
+| Redirect 301 e categorie | nessuno |
+| Accorpamento degli articoli che si cannibalizzano | una richiesta AI per gruppo |
+| Riscrittura degli articoli | una richiesta AI per articolo |
+| Immagini in evidenza mancanti | una richiesta a pagamento per immagine |
+
+Le prime tre sono spuntate di partenza, le altre no: si scelgono apposta. Spuntando solo le
+immagini si mettono in coda **solo** quelle — prima la casella delle immagini si aggiungeva
+al piano intero, e chi voleva 289 immagini si ritrovava 522 operazioni, riscritture comprese.
+
 Un comando solo, e il programma esegue in sequenza tutto ciò che non richiede una
 decisione umana: meta, redirect, categorie, accorpamenti degli articoli che si
 cannibalizzano, riscritture, immagini. Lavora a giri brevi per stare dentro i limiti di

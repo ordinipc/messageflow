@@ -46,6 +46,23 @@ class Coda {
 	);
 
 	/**
+	 * Gruppi di operazioni che si possono scegliere singolarmente.
+	 *
+	 * Servono perché "genera le immagini mancanti" non deve trascinarsi dietro
+	 * duecento riscritture: sono lavori diversi, con costi diversi.
+	 *
+	 * @var array<string,array>
+	 */
+	const GRUPPI = array(
+		'config'    => array( 'titolo' => 'Dati aziendali al sito', 'costo' => false ),
+		'meta'      => array( 'titolo' => 'Meta degli articoli', 'costo' => false ),
+		'struttura' => array( 'titolo' => 'Redirect 301 e categorie', 'costo' => false ),
+		'accorpa'   => array( 'titolo' => 'Accorpamento degli articoli che si cannibalizzano', 'costo' => true ),
+		'bozza'     => array( 'titolo' => 'Riscrittura degli articoli', 'costo' => true ),
+		'immagine'  => array( 'titolo' => 'Immagini in evidenza mancanti', 'costo' => true ),
+	);
+
+	/**
 	 * Costruisce la coda a partire dal piano dell audit.
 	 *
 	 * @param Db    $db      Database.
@@ -65,6 +82,13 @@ class Coda {
 		$gemini  = new Gemini( $cfg['ai'] );
 		$ai_ok   = $gemini->pronto();
 
+		// Senza indicazioni si fa tutto come prima: le chiamate già scritte
+		// altrove non devono cambiare comportamento.
+		$includi = isset( $opzioni['includi'] ) ? (array) $opzioni['includi'] : array_keys( self::GRUPPI );
+		$vuole   = static function ( $gruppo ) use ( $includi ) {
+			return in_array( $gruppo, $includi, true );
+		};
+
 		$aggiungi = static function ( $tipo, $riferimento, $etichetta ) use ( &$righe, &$ordine, $auditId, $ora ) {
 			$righe[] = array(
 				'audit_id'    => $auditId,
@@ -82,7 +106,9 @@ class Coda {
 
 		// 1. I dati aziendali per primi: schema LocalBusiness, footer e llms.txt
 		// dipendono da questi, e il plugin da solo non li conosce.
-		$aggiungi( 'config', '', 'Invio dei dati aziendali al sito' );
+		if ( $vuole( 'config' ) ) {
+			$aggiungi( 'config', '', 'Invio dei dati aziendali al sito' );
+		}
 
 		// 2. Meta degli articoli, a blocchi: la scrittura di centinaia di contenuti
 		// in una sola richiesta supererebbe i limiti di molti hosting.
@@ -92,13 +118,16 @@ class Coda {
 			array( $auditId )
 		)['n'];
 
-		for ( $offset = 0; $offset < $quanti_articoli; $offset += 80 ) {
-			$fino = min( $quanti_articoli, $offset + 80 );
+		// Quaranta per volta invece di ottanta: su hosting condiviso un blocco
+		// grande esaurisce il tempo di esecuzione e il sito chiude la risposta
+		// a metà, facendo fallire l intero blocco.
+		for ( $offset = 0; $vuole( 'meta' ) && $offset < $quanti_articoli; $offset += 40 ) {
+			$fino = min( $quanti_articoli, $offset + 40 );
 			$aggiungi( 'meta', $offset, sprintf( 'Meta degli articoli da %d a %d', $offset + 1, $fino ) );
 		}
 
 		// Le pagine sono poche e scritte a mano: si toccano solo se richiesto.
-		if ( ! empty( $opzioni['pagine'] ) ) {
+		if ( ! empty( $opzioni['pagine'] ) && $vuole( 'meta' ) ) {
 			$quante_pagine = (int) $db->one(
 				"SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id
 				 WHERE m.audit_id = ? AND d.tipo = 'page'",
@@ -111,12 +140,14 @@ class Coda {
 		}
 
 		// 2. Redirect obbligatori e categorie.
-		$aggiungi( 'redirect', '', 'Redirect 301 dei contenuti rimossi o accorpati' );
-		$aggiungi( 'categorie', '', 'Riassegnazione delle categorie fuori tema' );
+		if ( $vuole( 'struttura' ) ) {
+			$aggiungi( 'redirect', '', 'Redirect 301 dei contenuti rimossi o accorpati' );
+			$aggiungi( 'categorie', '', 'Riassegnazione delle categorie fuori tema' );
+		}
 
 		// 3. Accorpamenti: prima le fusioni, poi le riscritture singole.
 		if ( $ai_ok ) {
-			foreach ( Rewriter::gruppi( $db, $auditId ) as $gruppo ) {
+			foreach ( $vuole( 'accorpa' ) ? Rewriter::gruppi( $db, $auditId ) : array() as $gruppo ) {
 				$aggiungi(
 					'accorpa',
 					$gruppo['vincitore']['doc_id'],
@@ -127,7 +158,7 @@ class Coda {
 			// Se Search Console è collegata, l ordine lo decidono i dati veri:
 			// prima gli articoli che Google mostra già e su cui c è più da
 			// guadagnare, poi tutti gli altri nell ordine editoriale.
-			$candidati = Rewriter::candidati( $db, $auditId, array() );
+			$candidati = $vuole( 'bozza' ) ? Rewriter::candidati( $db, $auditId, array() ) : array();
 			$priorita  = Prestazioni::prioritaPerUrl( $db, Prestazioni::chiaveSito( $cfg ) );
 
 			if ( $priorita ) {
@@ -145,7 +176,7 @@ class Coda {
 				);
 			}
 
-			if ( ! empty( $opzioni['immagini'] ) ) {
+			if ( ! empty( $opzioni['immagini'] ) && $vuole( 'immagine' ) ) {
 				foreach ( Immagini::candidati( $db, $auditId, array() ) as $documento ) {
 					$aggiungi( 'immagine', $documento['id'], 'Immagine per "' . Text::truncate( $documento['titolo'], 60 ) . '"' );
 				}
@@ -374,7 +405,7 @@ class Coda {
 							m.excerpt_nuovo AS excerpt, d.focus_keyword AS focus
 					 FROM meta_piano m JOIN documento d ON d.id = m.documento_id
 					 WHERE m.audit_id = ? AND d.tipo = ?
-					 ORDER BY m.id ASC LIMIT 80 OFFSET ' . (int) $compito['riferimento'],
+					 ORDER BY m.id ASC LIMIT 40 OFFSET ' . (int) $compito['riferimento'],
 					array( $auditId, $tipo_contenuto )
 				);
 
