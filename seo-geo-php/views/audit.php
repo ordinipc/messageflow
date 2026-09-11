@@ -127,7 +127,13 @@ $scaricabili = array(
 </section>
 
 <section class="scheda">
-	<h2>Applica sul sito</h2>
+	<h2>Pilota automatico</h2>
+	<p class="guida">Esegue da solo, una dopo l'altra, tutte le correzioni che non richiedono una decisione umana: meta, redirect, categorie, accorpamenti e riscritture. Un pulsante, poi lascia fare.</p>
+	<p><a class="bottone" href="?p=pilota&amp;id=<?php echo (int) $audit['id']; ?>">Apri il pilota automatico</a></p>
+</section>
+
+<section class="scheda">
+	<h2>Applica sul sito (operazione per operazione)</h2>
 	<p class="guida">Se il plugin è installato e collegato, il gestionale scrive meta, bozze, redirect e categorie direttamente su WordPress.</p>
 	<p><a class="bottone" href="?p=collega&amp;id=<?php echo (int) $audit['id']; ?>">Apri il collegamento</a></p>
 </section>

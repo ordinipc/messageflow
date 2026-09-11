@@ -117,6 +117,16 @@ class MDI_Api {
 			'methods'  => 'POST',
 			'callback' => array( __CLASS__, 'annulla_meta' ),
 		) );
+
+		register_rest_route( self::NAMESPACE_API, '/applica-bozza', $comune + array(
+			'methods'  => 'POST',
+			'callback' => array( __CLASS__, 'applica_bozza' ),
+		) );
+
+		register_rest_route( self::NAMESPACE_API, '/cestina', $comune + array(
+			'methods'  => 'POST',
+			'callback' => array( __CLASS__, 'cestina' ),
+		) );
 	}
 
 	/**
@@ -352,6 +362,112 @@ class MDI_Api {
 				'originale' => $originale,
 			)
 		);
+	}
+
+	/**
+	 * Pubblica una bozza dentro l articolo originale.
+	 *
+	 * Il testo della bozza sostituisce quello dell articolo che è già online, che
+	 * così conserva URL, data e storia su Google. WordPress salva in automatico
+	 * una revisione del testo precedente: si torna indietro dall editor, voce
+	 * "Revisioni". La copia in stato Bozza viene poi rimossa.
+	 *
+	 * @param WP_REST_Request $richiesta Richiesta con 'id' dell articolo originale.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function applica_bozza( $richiesta ) {
+		$originale = (int) $richiesta->get_param( 'id' );
+		$post      = get_post( $originale );
+
+		if ( ! $post ) {
+			return new WP_Error( 'mdi_post_assente', 'Articolo non trovato: ' . $originale, array( 'status' => 404 ) );
+		}
+
+		$bozze = get_posts(
+			array(
+				'post_type'   => $post->post_type,
+				'post_status' => 'draft',
+				'meta_key'    => self::META_BOZZA_DI,
+				'meta_value'  => (string) $originale,
+				'numberposts' => 1,
+				'fields'      => 'ids',
+			)
+		);
+
+		if ( empty( $bozze ) ) {
+			return new WP_Error( 'mdi_bozza_assente', 'Nessuna bozza collegata a questo articolo.', array( 'status' => 404 ) );
+		}
+
+		$id_bozza = (int) $bozze[0];
+		$bozza    = get_post( $id_bozza );
+
+		if ( ! $bozza || '' === trim( (string) $bozza->post_content ) ) {
+			return new WP_Error( 'mdi_bozza_vuota', 'La bozza è vuota.', array( 'status' => 400 ) );
+		}
+
+		$aggiornato = wp_update_post(
+			array(
+				'ID'           => $originale,
+				'post_title'   => $bozza->post_title ?: $post->post_title,
+				'post_content' => $bozza->post_content,
+			),
+			true
+		);
+
+		if ( is_wp_error( $aggiornato ) ) {
+			return $aggiornato;
+		}
+
+		foreach ( array( 'rank_math_title', 'rank_math_description' ) as $chiave ) {
+			$valore = get_post_meta( $id_bozza, $chiave, true );
+
+			if ( '' !== $valore ) {
+				update_post_meta( $originale, $chiave, $valore );
+			}
+		}
+
+		wp_delete_post( $id_bozza, true );
+
+		return rest_ensure_response(
+			array(
+				'ok'        => true,
+				'articolo'  => $originale,
+				'modifica'  => admin_url( 'post.php?post=' . $originale . '&action=edit' ),
+			)
+		);
+	}
+
+	/**
+	 * Sposta nel cestino i contenuti indicati.
+	 *
+	 * Il cestino di WordPress è reversibile: i contenuti restano recuperabili
+	 * finché non vengono eliminati definitivamente a mano.
+	 *
+	 * @param WP_REST_Request $richiesta Richiesta con 'ids'.
+	 * @return WP_REST_Response
+	 */
+	public static function cestina( $richiesta ) {
+		$ids       = (array) $richiesta->get_param( 'ids' );
+		$cestinati = 0;
+		$saltati   = 0;
+
+		foreach ( $ids as $id ) {
+			$id = (int) $id;
+
+			if ( ! get_post( $id ) ) {
+				$saltati++;
+				continue;
+			}
+
+			// Mai l eliminazione definitiva: solo il cestino, da cui si recupera.
+			if ( wp_trash_post( $id ) ) {
+				$cestinati++;
+			} else {
+				$saltati++;
+			}
+		}
+
+		return rest_ensure_response( array( 'ok' => true, 'cestinati' => $cestinati, 'saltati' => $saltati ) );
 	}
 
 	/**

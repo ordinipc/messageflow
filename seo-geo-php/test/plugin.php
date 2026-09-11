@@ -139,6 +139,32 @@ verifica( 'una bozza senza corpo viene rifiutata', is_wp_error( $vuota ) );
 $assente = MDI_Api::crea_bozza( new WP_REST_Request( array( 'id' => 4242, 'corpo_html' => '<p>x</p>' ) ) );
 verifica( 'una bozza su un articolo inesistente viene rifiutata', is_wp_error( $assente ) );
 
+// --- Pubblicazione della bozza nell articolo originale ---------------------
+echo "\nPubblicazione della bozza\n";
+
+$prima_del_testo = get_post( 10 )->post_content;
+$esito           = MDI_Api::applica_bozza( new WP_REST_Request( array( 'id' => 10 ) ) );
+
+verifica( 'la bozza viene riversata nell articolo originale', ! is_wp_error( $esito ) && false !== strpos( get_post( 10 )->post_content, 'Testo riscritto' ) );
+verifica( 'il titolo passa dalla bozza', 'Versione riscritta' === get_post( 10 )->post_title );
+verifica( 'le meta della bozza passano all originale', 'Title della bozza' === get_post_meta( 10, 'rank_math_title', true ) );
+verifica( 'l articolo originale resta pubblicato', 'publish' === get_post( 10 )->post_status );
+verifica( 'la copia in bozza viene rimossa', null === get_post( $id_bozza ) );
+verifica( 'l URL non cambia: si aggiorna lo stesso articolo', 10 === (int) $esito['articolo'] );
+
+$senza = MDI_Api::applica_bozza( new WP_REST_Request( array( 'id' => 11 ) ) );
+verifica( 'senza bozza collegata l operazione viene rifiutata', is_wp_error( $senza ) );
+
+// --- Cestino ----------------------------------------------------------------
+echo "\nCestino\n";
+
+stub_crea_post( 20, 'Da eliminare' );
+$esito = MDI_Api::cestina( new WP_REST_Request( array( 'ids' => array( 20, 9999 ) ) ) );
+
+verifica( 'il contenuto finisce nel cestino', 'trash' === get_post( 20 )->post_status );
+verifica( 'il contenuto resta recuperabile, non è eliminato', null !== get_post( 20 ) );
+verifica( 'gli id inesistenti vengono contati a parte', 1 === $esito['cestinati'] && 1 === $esito['saltati'] );
+
 // --- Categorie -------------------------------------------------------------
 echo "\nCategorie\n";
 

@@ -42,6 +42,11 @@ class Rewriter {
 
 		$parametri = array_merge( array( $auditId ), array_values( $categorie ) );
 
+		if ( ! empty( $opzioni['solo_documento'] ) ) {
+			$sql        .= ' AND d.id = ?';
+			$parametri[] = (int) $opzioni['solo_documento'];
+		}
+
 		if ( empty( $opzioni['rigenera'] ) ) {
 			$sql .= " AND d.id NOT IN (SELECT documento_id FROM bozza WHERE audit_id = ? AND stato = 'ok')";
 			$parametri[] = $auditId;
@@ -137,6 +142,7 @@ class Rewriter {
 
 		$fatte   = 0;
 		$fallite = 0;
+		$errori  = array();
 		$scadenza = isset( $opzioni['secondi_max'] ) ? time() + (int) $opzioni['secondi_max'] : null;
 
 		foreach ( $articoli as $a ) {
@@ -202,6 +208,9 @@ class Rewriter {
 					)
 				);
 				$fallite++;
+				// Il motivo va restituito a chi ha chiamato: "non ha prodotto la
+				// bozza" non dice se manca la chiave, se è finita la quota o altro.
+				$errori[] = $e->getMessage();
 			}
 
 			if ( $progresso ) {
@@ -213,6 +222,7 @@ class Rewriter {
 			'candidati' => count( $articoli ),
 			'generate'  => $fatte,
 			'fallite'   => $fallite,
+			'errori'    => $errori,
 			'consumo'   => $gemini->consumo(),
 			'cartella'  => $cartella,
 		);
@@ -275,6 +285,15 @@ class Rewriter {
 	public static function consolida( Db $db, Gemini $gemini, $auditId, array $cfg, array $opzioni = array() ) {
 		$gruppi     = self::gruppi( $db, $auditId );
 		$istruzioni = Prompt::istruzioni( $cfg );
+
+		if ( ! empty( $opzioni['solo_documento'] ) ) {
+			$gruppi = array_values(
+				array_filter(
+					$gruppi,
+					static fn( $g ) => (int) $g['vincitore']['doc_id'] === (int) $opzioni['solo_documento']
+				)
+			);
+		}
 		$modello    = $cfg['ai']['modello'] ?? 'gemini-2.5-flash';
 		$cartella   = $opzioni['cartella'] ?? dirname( __DIR__, 2 ) . '/storage/export/audit-' . (int) $auditId . '/bozze';
 		$progresso  = $opzioni['su_progresso'] ?? null;
@@ -289,6 +308,7 @@ class Rewriter {
 
 		$fatti    = 0;
 		$falliti  = 0;
+		$errori   = array();
 		$scadenza = isset( $opzioni['secondi_max'] ) ? time() + (int) $opzioni['secondi_max'] : null;
 
 		foreach ( $gruppi as $gruppo ) {
@@ -344,6 +364,7 @@ class Rewriter {
 				$fatti++;
 			} catch ( Throwable $e ) {
 				$falliti++;
+				$errori[] = $e->getMessage();
 			}
 
 			if ( $progresso ) {
@@ -355,6 +376,7 @@ class Rewriter {
 			'gruppi'   => count( $gruppi ),
 			'generate' => $fatti,
 			'fallite'  => $falliti,
+			'errori'   => $errori,
 			'consumo'  => $gemini->consumo(),
 			'cartella' => $cartella,
 		);

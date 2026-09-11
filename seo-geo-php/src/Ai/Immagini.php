@@ -34,10 +34,16 @@ class Immagini {
 	public static function candidati( Db $db, $auditId, array $opzioni = array() ) {
 		$sql = "SELECT id, wp_id, titolo, slug, url, focus_keyword AS focus, tipo
 				FROM documento
-				WHERE audit_id = ? AND ha_thumbnail = 0 AND tipo = 'post'
-				ORDER BY parole DESC";
+				WHERE audit_id = ? AND ha_thumbnail = 0 AND tipo = 'post'";
 
-		$righe = $db->all( $sql, array( $auditId ) );
+		$parametri = array( $auditId );
+
+		if ( ! empty( $opzioni['solo_documento'] ) ) {
+			$sql        .= ' AND id = ?';
+			$parametri[] = (int) $opzioni['solo_documento'];
+		}
+
+		$righe = $db->all( $sql . ' ORDER BY parole DESC', $parametri );
 
 		if ( empty( $opzioni['rigenera'] ) ) {
 			$cartella = $opzioni['cartella'] ?? self::cartella( $auditId );

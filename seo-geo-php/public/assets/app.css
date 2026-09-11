@@ -201,3 +201,9 @@ pre.mono { background: var(--basso-bg); padding: 12px 14px; border-radius: 4px; 
 .testo-bozza table { border: 1px solid var(--linea); margin: 14px 0; min-width: 0; }
 .testo-bozza th, .testo-bozza td { border-bottom: 1px solid var(--linea-2); padding: 8px 11px; }
 .testo-bozza img { max-width: 100%; height: auto; }
+
+/* Opzioni del pilota automatico. */
+.scelta { display: flex; gap: 11px; align-items: flex-start; padding: 13px 0; border-top: 1px solid var(--linea-2); }
+.scelta input { margin-top: 3px; flex: none; width: 17px; height: 17px; }
+.scelta small { display: block; color: var(--inchiostro-3); font-size: 13px; margin-top: 3px; max-width: 72ch; }
+.scelta code { font-size: 12.5px; }

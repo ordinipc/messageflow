@@ -190,6 +190,22 @@ function get_posts( $argomenti ) {
 	return $trovati;
 }
 
+function wp_delete_post( $id, $forza = false ) {
+	unset( $GLOBALS['wp']['post'][ (int) $id ] );
+
+	return true;
+}
+
+function wp_trash_post( $id ) {
+	if ( ! isset( $GLOBALS['wp']['post'][ (int) $id ] ) ) {
+		return false;
+	}
+
+	$GLOBALS['wp']['post'][ (int) $id ]->post_status = 'trash';
+
+	return true;
+}
+
 function wp_count_posts( $tipo = 'post' ) {
 	$n = 0;
 

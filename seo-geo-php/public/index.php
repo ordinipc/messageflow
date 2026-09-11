@@ -13,6 +13,7 @@ use SeoGeo\Ai\Rewriter as Riscrittura;
 use SeoGeo\Ai\Rewriter;
 use SeoGeo\Audit;
 use SeoGeo\Bridge\WordPress;
+use SeoGeo\Coda;
 use SeoGeo\Db;
 use SeoGeo\Export;
 use SeoGeo\Impostazioni;
@@ -154,6 +155,66 @@ if ( 'analizza' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	exit;
 }
 
+// ------------------------------------------------------- Pilota automatico
+if ( 'pilota-avvia' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Token di sessione non valido: ricarica la pagina e riprova.' );
+	}
+
+	$id = (int) ( $_POST['id'] ?? 0 );
+
+	Coda::prepara(
+		$db,
+		$id,
+		$cfg,
+		array(
+			'immagini' => ! empty( $_POST['immagini'] ),
+			'pubblica' => ! empty( $_POST['pubblica'] ),
+			'cestina'  => ! empty( $_POST['cestina'] ),
+		)
+	);
+
+	header( 'Location: ?p=pilota&id=' . $id . '&attivo=1' );
+	exit;
+}
+
+if ( 'pilota-ferma' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Token di sessione non valido.' );
+	}
+
+	$id = (int) ( $_POST['id'] ?? 0 );
+	$db->run( 'DELETE FROM coda WHERE audit_id = ? AND stato = ?', array( $id, Coda::ATTESA ) );
+
+	header( 'Location: ?p=pilota&id=' . $id );
+	exit;
+}
+
+if ( 'pilota-esegui' === $pagina ) {
+	header( 'Content-Type: application/json; charset=utf-8' );
+
+	if ( ! hash_equals( token(), $_GET['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		echo json_encode( array( 'errore' => 'Sessione scaduta: ricarica la pagina.' ) );
+		exit;
+	}
+
+	$id = (int) ( $_GET['id'] ?? 0 );
+
+	set_time_limit( 0 );
+	ignore_user_abort( false );
+
+	// Un giro corto: il browser richiama subito dopo, e una eventuale
+	// interruzione della connessione lascia la coda in ordine.
+	$limite_php = (int) ini_get( 'max_execution_time' );
+	$budget     = $limite_php > 0 ? max( 10, min( 25, $limite_php - 10 ) ) : 25;
+
+	echo json_encode( Coda::esegui( $db, $id, $cfg, $budget ), JSON_UNESCAPED_UNICODE );
+	exit;
+}
+
 // -------------------------------------------- Applicazione sul sito WordPress
 if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
@@ -217,7 +278,47 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 					. ( $limite ? ' Verifica il risultato sul sito, poi applica il resto.' : '' );
 				break;
 
-			case 'bozza':
+			case 'pilota':
+		$id    = (int) ( $_GET['id'] ?? 0 );
+		$audit = $db->one( 'SELECT * FROM audit WHERE id = ?', array( $id ) );
+
+		if ( ! $audit ) {
+			http_response_code( 404 );
+			exit( 'Audit non trovato.' );
+		}
+
+		$gemini = new Gemini( $cfg['ai'] );
+		$ponte  = new WordPress( $cfg['wordpress'] );
+
+		vista(
+			'pilota',
+			array(
+				'titolo'     => 'Pilota automatico',
+				'audit'      => $audit,
+				'cfg'        => $cfg,
+				'ai_pronto'  => $gemini->pronto(),
+				'wp_pronto'  => $ponte->pronto(),
+				'stato'      => Coda::stato( $db, $id ),
+				'attivo'     => isset( $_GET['attivo'] ),
+				'ultime'     => $db->all(
+					'SELECT tipo, etichetta, stato, messaggio, eseguito_il FROM coda
+					 WHERE audit_id = ? AND stato <> ? ORDER BY eseguito_il DESC, id DESC LIMIT 40',
+					array( $id, Coda::ATTESA )
+				),
+				'previsione' => array(
+					'meta'      => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
+					'redirect'  => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
+					'categorie' => (int) $db->one( "SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id WHERE r.audit_id = ? AND r.regola = 'TAX-03'", array( $id ) )['n'],
+					'riscritture' => count( Riscrittura::candidati( $db, $id, array() ) ),
+					'gruppi'    => count( Riscrittura::gruppi( $db, $id ) ),
+					'immagini'  => count( Immagini::candidati( $db, $id, array() ) ),
+					'cestino'   => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND categoria = 'eliminare'", array( $id ) )['n'],
+				),
+			)
+		);
+		break;
+
+	case 'bozza':
 		$idb   = (int) ( $_GET['b'] ?? 0 );
 		$bozza = $db->one(
 			'SELECT b.*, d.titolo AS titolo_originale, d.url AS url_originale, d.parole AS parole_originali, d.slug
@@ -733,6 +834,46 @@ switch ( $pagina ) {
 				'token_wp_mascherato' => Impostazioni::mascherata( $salvate['wordpress']['token'] ?? '' ),
 				'salvato'             => isset( $_GET['salvato'] ) ? 'Impostazioni salvate.' : '',
 				'errore'              => isset( $_GET['errore'] ) ? (string) $_GET['errore'] : '',
+			)
+		);
+		break;
+
+	case 'pilota':
+		$id    = (int) ( $_GET['id'] ?? 0 );
+		$audit = $db->one( 'SELECT * FROM audit WHERE id = ?', array( $id ) );
+
+		if ( ! $audit ) {
+			http_response_code( 404 );
+			exit( 'Audit non trovato.' );
+		}
+
+		$gemini = new Gemini( $cfg['ai'] );
+		$ponte  = new WordPress( $cfg['wordpress'] );
+
+		vista(
+			'pilota',
+			array(
+				'titolo'     => 'Pilota automatico',
+				'audit'      => $audit,
+				'cfg'        => $cfg,
+				'ai_pronto'  => $gemini->pronto(),
+				'wp_pronto'  => $ponte->pronto(),
+				'stato'      => Coda::stato( $db, $id ),
+				'attivo'     => isset( $_GET['attivo'] ),
+				'ultime'     => $db->all(
+					'SELECT tipo, etichetta, stato, messaggio, eseguito_il FROM coda
+					 WHERE audit_id = ? AND stato <> ? ORDER BY eseguito_il DESC, id DESC LIMIT 40',
+					array( $id, Coda::ATTESA )
+				),
+				'previsione' => array(
+					'meta'      => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
+					'redirect'  => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
+					'categorie' => (int) $db->one( "SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id WHERE r.audit_id = ? AND r.regola = 'TAX-03'", array( $id ) )['n'],
+					'riscritture' => count( Riscrittura::candidati( $db, $id, array() ) ),
+					'gruppi'    => count( Riscrittura::gruppi( $db, $id ) ),
+					'immagini'  => count( Immagini::candidati( $db, $id, array() ) ),
+					'cestino'   => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND categoria = 'eliminare'", array( $id ) )['n'],
+				),
 			)
 		);
 		break;

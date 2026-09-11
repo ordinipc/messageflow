@@ -187,6 +187,19 @@ class Db {
 				creato_il $vc
 			)$suff",
 
+			"CREATE TABLE IF NOT EXISTS coda (
+				id $pk,
+				audit_id INT NOT NULL,
+				ordine INT,
+				tipo $vc,
+				riferimento $vc,
+				etichetta $txt,
+				stato $vc,
+				messaggio $txt,
+				creato_il $vc,
+				eseguito_il $vc
+			)$suff",
+
 			"CREATE TABLE IF NOT EXISTS link_piano (
 				id $pk,
 				audit_id INT NOT NULL,
@@ -216,6 +229,7 @@ class Db {
 			'CREATE INDEX IF NOT EXISTS idx_occ_ril ON occorrenza (rilievo_id)',
 			'CREATE INDEX IF NOT EXISTS idx_tri_audit ON triage (audit_id)',
 			'CREATE INDEX IF NOT EXISTS idx_boz_audit ON bozza (audit_id)',
+			'CREATE INDEX IF NOT EXISTS idx_coda_audit ON coda (audit_id, stato)',
 		) as $sql ) {
 			$this->pdo->exec( $sql );
 		}

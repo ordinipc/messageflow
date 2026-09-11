@@ -237,6 +237,57 @@ garantisce posizionamenti. Riscrive testi: è una parte del lavoro, non tutto il
 
 ---
 
+## Pilota automatico
+
+Un comando solo, e il programma esegue in sequenza tutto ciò che non richiede una
+decisione umana: meta, redirect, categorie, accorpamenti degli articoli che si
+cannibalizzano, riscritture, immagini. Lavora a giri brevi per stare dentro i limiti di
+tempo degli hosting condivisi e riprende da dove si era fermato.
+
+**Dal browser:** scheda dell'audit → *Pilota automatico* → scegli le opzioni → Avvia.
+La pagina mostra avanzamento e registro in tempo reale e va avanti da sola; si può mettere
+in pausa o annullare ciò che resta in coda.
+
+**Da riga di comando**, senza limiti di tempo e senza browser:
+
+```bash
+php cli/pilota.php 1 --avvia                 # prepara la coda e la esegue
+php cli/pilota.php 1 --avvia --immagini      # incluse le immagini in evidenza
+php cli/pilota.php 1                         # riprende una coda già avviata
+php cli/pilota.php 1 --minuti=4              # lavora 4 minuti e si ferma (per il cron)
+php cli/pilota.php 1 --stato                 # solo il riepilogo
+```
+
+Con un cron ogni cinque minuti (`php /percorso/cli/pilota.php 1 --minuti=4`) la coda si
+svuota da sola nell'arco di qualche ora.
+
+### Le due opzioni che cambiano la natura del lavoro
+
+Sono spente di proposito: con esse il programma non si limita più a preparare, decide.
+
+- **Pubblica le riscritture negli articoli originali.** Il testo nuovo sostituisce quello
+  vecchio mantenendo URL, data e storia; WordPress conserva una revisione, quindi si torna
+  indietro dall'editor. Senza questa opzione le riscritture restano bozze da rileggere.
+  Va detto chiaramente: pubblicare testo generato senza rileggerlo lascia in pagina i
+  segnaposto `[DA VERIFICARE]` ed è ciò che le linee guida antispam di Google chiamano
+  abuso di contenuti scalati.
+- **Sposta nel cestino i contenuti da eliminare.** Solo dopo i redirect, e solo nel
+  cestino: da WordPress si recuperano.
+
+### Quando si ferma da solo
+
+Se un errore riguarda la configurazione — chiave API rifiutata, quota esaurita, token
+sbagliato, plugin non raggiungibile — il pilota interrompe il giro invece di ripetere lo
+stesso errore su centinaia di operazioni. Le restanti tornano in coda: si risolve il
+problema e si riavvia.
+
+### Cosa resta comunque a una persona
+
+Compilare i dati aziendali, rileggere le bozze sostituendo i segnaposto con dati reali,
+creare le pagine Chi siamo e Contatti, curare la scheda Google Business e le recensioni.
+
+---
+
 ## Applicare le correzioni sul sito (collegamento con il plugin)
 
 Il gestionale non si limita a produrre file: parla direttamente con il plugin installato
@@ -318,6 +369,7 @@ config.php                  dati aziendali, database, soglie SEO
 schema.sql                  schema MySQL (opzionale)
 cli/audit.php               interfaccia a riga di comando
 cli/riscrivi.php            generazione delle bozze con Gemini
+cli/pilota.php              pilota automatico (anche da cron)
 public/index.php            front controller web
 public/verifica.php         diagnosi dei requisiti del server
 public/assets/app.css       interfaccia
@@ -334,6 +386,7 @@ src/
 ├── Triage.php              classificazione editoriale
 ├── Ai/                     client Gemini, prompt, bozze, accorpamenti, immagini
 ├── Bridge/                 client verso le API REST del plugin
+├── Coda.php                coda delle operazioni del pilota automatico
 ├── Impostazioni.php        configurazione modificabile dal browser
 ├── Fix/                    meta, link interni, dati strutturati, llms.txt
 └── Export.php              CSV, file per i crawler, assemblaggio del plugin

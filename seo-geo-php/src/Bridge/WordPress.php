@@ -123,6 +123,26 @@ class WordPress {
 	}
 
 	/**
+	 * Riversa la bozza dentro l articolo originale, che conserva URL e storia.
+	 *
+	 * @param int $id Articolo originale.
+	 * @return array
+	 */
+	public function applicaBozza( $id ) {
+		return $this->chiama( 'POST', '/applica-bozza', array( 'id' => (int) $id ) );
+	}
+
+	/**
+	 * Sposta nel cestino i contenuti indicati (operazione reversibile).
+	 *
+	 * @param array $ids Id degli articoli.
+	 * @return array
+	 */
+	public function cestina( array $ids ) {
+		return $this->chiama( 'POST', '/cestina', array( 'ids' => array_map( 'intval', array_values( $ids ) ) ) );
+	}
+
+	/**
 	 * Ripristina le meta precedenti.
 	 *
 	 * @param array $ids Id degli articoli.
