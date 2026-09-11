@@ -670,6 +670,23 @@ Il secondo non è una finta rete: esegue il codice del plugin con le funzioni di
 WordPress sostituite da versioni in memoria, così gli errori di logica vengono
 a galla. Ogni errore trovato in produzione diventa una verifica in questi file.
 
+## Mandare i dati a chi sviluppa
+
+Menù **Diagnostica**. Un dump del database di WordPress pesa centinaia di megabyte e contiene
+email, password, IP di chi ha commentato e chiavi API: non è una cosa da spedire. Questo
+pulsante legge il sito e compone un file con la sola forma dei contenuti — titolo, slug, date,
+stato, testo, categorie, tag, meta SEO, allegati (indirizzi, non file), versioni di WordPress e
+del plugin.
+
+Restano fuori: utenti, email, password, commenti, indirizzi IP, chiavi API, impostazioni del
+sito, revisioni e i blocchi di Elementor (di quelli resta solo il fatto che ci sono).
+
+Il file è compresso, si scarica e sul server non resta niente. Un sito di trecento articoli sta
+in pochi megabyte contro le centinaia di un dump completo.
+
+Le meta che arrivano come array restano array: è la forma vera del dato, ed è esattamente
+quella da cui sono nati i problemi più difficili da trovare.
+
 ## Il file XML come backup
 
 L'export WXR di WordPress (Strumenti → Esporta → Tutti i contenuti) contiene testo, title,

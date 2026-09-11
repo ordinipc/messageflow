@@ -580,6 +580,41 @@ $molti = $diagnosi(
 verifica( 'i problemi vengono elencati tutti, non solo il primo', count( $molti ) >= 4, count( $molti ) . ' cause' );
 verifica( 'ogni causa dice anche cosa fare', array() === array_filter( $molti, static fn( $c ) => '' === trim( $c['rimedio'] ) ) );
 
+// --- Pacchetto diagnostico --------------------------------------------------
+// Deve contenere la forma vera dei contenuti e nessun dato di persone: è un
+// file che l utente manda a qualcun altro.
+echo "\nPacchetto diagnostico\n";
+
+$sitoProva = sito_con_meta(
+	array(
+		'rank_math_title'       => 'Titolo SEO',
+		'rank_math_robots'      => array( 'noindex', 'nofollow' ),
+		'_elementor_data'       => str_repeat( '{"blocco":"enorme"}', 500 ),
+		'_qualche_plugin_segreto' => 'chiave-che-non-deve-uscire',
+	)
+);
+
+$pacchetto = \SeoGeo\Diagnostica::pacchetto( $sitoProva, array( 'wordpress' => '6.7.1', 'plugin' => '1.6.0', 'rank_math' => true ) );
+$testo     = json_encode( $pacchetto );
+
+verifica( 'il pacchetto contiene i contenuti', 1 === count( $pacchetto['contenuti'] ) );
+verifica( 'con il testo vero dell articolo', false !== strpos( $pacchetto['contenuti'][0]['contenuto'], 'Testo di prova' ) );
+verifica( 'e con le meta SEO che servono alle regole', 'Titolo SEO' === ( $pacchetto['contenuti'][0]['meta']['rank_math_title'] ?? '' ) );
+verifica(
+	'le meta array restano array, che è la forma che ha rotto le cose',
+	array( 'noindex', 'nofollow' ) === ( $pacchetto['contenuti'][0]['meta']['rank_math_robots'] ?? null )
+);
+verifica( 'di Elementor resta solo il fatto che c è', '1' === ( $pacchetto['contenuti'][0]['meta']['_elementor_data'] ?? '' ) );
+verifica( 'le meta di altri plugin non escono', false === strpos( $testo, 'chiave-che-non-deve-uscire' ) );
+verifica( 'il pacchetto dice con cosa convive il plugin', '6.7.1' === $pacchetto['ambiente']['wordpress'] );
+
+// Il controllo che conta davvero.
+verifica( 'nel pacchetto non finisce nessun indirizzo email', 0 === preg_match( '/[\w.+-]+@[\w-]+\.[\w.]{2,}/', $testo ) );
+verifica( 'né la parola password', false === stripos( $testo, 'password' ) );
+verifica( 'e non ci sono autori con i loro dati', ! isset( $pacchetto['autori'] ) && false === stripos( $testo, 'autori' ) );
+
+verifica( 'l elenco di cosa resta fuori è mostrato all utente', count( \SeoGeo\Diagnostica::esclusi() ) >= 5 );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

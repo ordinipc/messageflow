@@ -16,6 +16,7 @@ use SeoGeo\Bridge\WordPress;
 use SeoGeo\Coda;
 use SeoGeo\Db;
 use SeoGeo\Diagnosi;
+use SeoGeo\Diagnostica;
 use SeoGeo\Export;
 use SeoGeo\Impostazioni;
 use SeoGeo\Fix\InternalLinks;
@@ -464,6 +465,44 @@ if ( 'aggiorna-google' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		);
 	} catch ( Throwable $e ) {
 		header( 'Location: ?p=prestazioni&errore=' . rawurlencode( $e->getMessage() ) );
+	}
+
+	exit;
+}
+
+// ----------------------------- Pacchetto diagnostico, senza dati personali
+if ( 'scarica-diagnostica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Token di sessione non valido: ricarica la pagina e riprova.' );
+	}
+
+	set_time_limit( 0 );
+
+	try {
+		$ponte = new WordPress( $cfg['wordpress'] );
+
+		if ( ! $ponte->pronto() ) {
+			throw new RuntimeException( 'Collegamento al sito non configurato: serve per leggere i contenuti attuali.' );
+		}
+
+		$site      = new Site( ( new SitoRemoto( $ponte ) )->leggi() );
+		$pacchetto = Diagnostica::pacchetto( $site, $ponte->stato() );
+		$json      = json_encode( $pacchetto, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+
+		// Compresso: un sito di trecento articoli sta in pochi megabyte, e non
+		// resta niente sul server.
+		$compresso = gzencode( $json, 9 );
+		$nome      = 'diagnostica-' . preg_replace( '/[^a-z0-9]+/i', '-', (string) parse_url( $site->url, PHP_URL_HOST ) ) . '-' . date( 'Ymd-Hi' ) . '.json.gz';
+
+		header( 'Content-Type: application/gzip' );
+		header( 'Content-Disposition: attachment; filename="' . $nome . '"' );
+		header( 'Content-Length: ' . strlen( $compresso ) );
+		header( 'X-Contenuti: ' . count( $pacchetto['contenuti'] ) );
+
+		echo $compresso;
+	} catch ( Throwable $e ) {
+		header( 'Location: ?p=diagnostica&errore=' . rawurlencode( $e->getMessage() ) );
 	}
 
 	exit;
@@ -1556,6 +1595,19 @@ switch ( $pagina ) {
 				'errore'              => isset( $_GET['errore'] )
 					? (string) $_GET['errore']
 					: ( isset( $_GET['invio_errore'] ) ? 'Salvate, ma l invio al sito non è riuscito: ' . $_GET['invio_errore'] : '' ),
+			)
+		);
+		break;
+
+	case 'diagnostica':
+		vista(
+			'diagnostica',
+			array(
+				'titolo'   => 'Pacchetto diagnostico',
+				'esclusi'  => Diagnostica::esclusi(),
+				'meta'     => Diagnostica::META,
+				'pronto'   => ( new WordPress( $cfg['wordpress'] ) )->pronto(),
+				'errore'   => (string) ( $_GET['errore'] ?? '' ),
 			)
 		);
 		break;
