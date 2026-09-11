@@ -200,6 +200,58 @@ class Db {
 				eseguito_il $vc
 			)$suff",
 
+			"CREATE TABLE IF NOT EXISTS gsc_rilevazione (
+				id $pk,
+				sito_url $vc,
+				proprieta $vc,
+				creato_il $vc,
+				periodo_da $vc,
+				periodo_a $vc,
+				giorni INT,
+				clic INT,
+				impression INT,
+				posizione_media REAL,
+				pagine INT,
+				query INT
+			)$suff",
+
+			"CREATE TABLE IF NOT EXISTS gsc_pagina (
+				id $pk,
+				rilevazione_id INT NOT NULL,
+				url $txt,
+				clic INT,
+				impression INT,
+				ctr REAL,
+				posizione REAL
+			)$suff",
+
+			"CREATE TABLE IF NOT EXISTS gsc_query (
+				id $pk,
+				rilevazione_id INT NOT NULL,
+				query $txt,
+				url $txt,
+				clic INT,
+				impression INT,
+				ctr REAL,
+				posizione REAL
+			)$suff",
+
+			"CREATE TABLE IF NOT EXISTS gsc_segnale (
+				id $pk,
+				rilevazione_id INT NOT NULL,
+				tipo $vc,
+				titolo $vc,
+				url $txt,
+				query $txt,
+				posizione REAL,
+				impression INT,
+				clic INT,
+				priorita INT,
+				azione $vc,
+				spiegazione $txt,
+				dettaglio $txt
+			)$suff",
+
 			"CREATE TABLE IF NOT EXISTS link_piano (
 				id $pk,
 				audit_id INT NOT NULL,
@@ -230,6 +282,9 @@ class Db {
 			'CREATE INDEX IF NOT EXISTS idx_tri_audit ON triage (audit_id)',
 			'CREATE INDEX IF NOT EXISTS idx_boz_audit ON bozza (audit_id)',
 			'CREATE INDEX IF NOT EXISTS idx_coda_audit ON coda (audit_id, stato)',
+			'CREATE INDEX IF NOT EXISTS idx_gsc_pag ON gsc_pagina (rilevazione_id)',
+			'CREATE INDEX IF NOT EXISTS idx_gsc_qry ON gsc_query (rilevazione_id)',
+			'CREATE INDEX IF NOT EXISTS idx_gsc_seg ON gsc_segnale (rilevazione_id, priorita)',
 		) as $sql ) {
 			$this->pdo->exec( $sql );
 		}

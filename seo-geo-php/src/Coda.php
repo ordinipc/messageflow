@@ -11,6 +11,7 @@ use SeoGeo\Ai\Gemini;
 use SeoGeo\Ai\Immagini;
 use SeoGeo\Ai\Rewriter;
 use SeoGeo\Bridge\WordPress;
+use SeoGeo\Search\Prestazioni;
 use Throwable;
 
 /**
@@ -120,8 +121,25 @@ class Coda {
 				);
 			}
 
-			foreach ( Rewriter::candidati( $db, $auditId, array() ) as $articolo ) {
-				$aggiungi( 'bozza', $articolo['doc_id'], 'Riscrittura di "' . Text::truncate( $articolo['titolo'], 60 ) . '"' );
+			// Se Search Console è collegata, l ordine lo decidono i dati veri:
+			// prima gli articoli che Google mostra già e su cui c è più da
+			// guadagnare, poi tutti gli altri nell ordine editoriale.
+			$candidati = Rewriter::candidati( $db, $auditId, array() );
+			$priorita  = Prestazioni::prioritaPerUrl( $db, Prestazioni::chiaveSito( $cfg ) );
+
+			if ( $priorita ) {
+				$candidati = self::ordinaPerPriorita( $candidati, $priorita );
+			}
+
+			foreach ( $candidati as $articolo ) {
+				$segnale = $priorita[ Prestazioni::chiaveUrl( $articolo['url'] ?? '' ) ] ?? null;
+
+				$aggiungi(
+					'bozza',
+					$articolo['doc_id'],
+					'Riscrittura di "' . Text::truncate( $articolo['titolo'], 60 ) . '"'
+						. ( $segnale ? ' — ' . $segnale['titolo'] . ' (' . (int) $segnale['impression'] . ' impression)' : '' )
+				);
 			}
 
 			if ( ! empty( $opzioni['immagini'] ) ) {
@@ -166,6 +184,42 @@ class Coda {
 			'per_tipo' => $per_tipo,
 			'ai'       => $ai_ok,
 		);
+	}
+
+	/**
+	 * Mette davanti gli articoli per cui Google segnala un guadagno possibile.
+	 *
+	 * L ordine editoriale resta quello di partenza: cambia solo chi ha un
+	 * segnale, e il confronto è stabile per non rimescolare il resto.
+	 *
+	 * @param array[] $candidati Articoli da riscrivere.
+	 * @param array   $priorita  Segnali per indirizzo.
+	 * @return array[]
+	 */
+	private static function ordinaPerPriorita( array $candidati, array $priorita ) {
+		$peso = array();
+
+		foreach ( $candidati as $i => $articolo ) {
+			$chiave    = Prestazioni::chiaveUrl( $articolo['url'] ?? '' );
+			$peso[ $i ] = array( (int) ( $priorita[ $chiave ]['priorita'] ?? 0 ), $i );
+		}
+
+		$indici = array_keys( $peso );
+
+		usort(
+			$indici,
+			static function ( $a, $b ) use ( $peso ) {
+				return ( $peso[ $b ][0] <=> $peso[ $a ][0] ) ?: ( $peso[ $a ][1] <=> $peso[ $b ][1] );
+			}
+		);
+
+		$ordinati = array();
+
+		foreach ( $indici as $i ) {
+			$ordinati[] = $candidati[ $i ];
+		}
+
+		return $ordinati;
 	}
 
 	/**

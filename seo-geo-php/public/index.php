@@ -20,6 +20,8 @@ use SeoGeo\Impostazioni;
 use SeoGeo\Fix\InternalLinks;
 use SeoGeo\Fix\Meta;
 use SeoGeo\Site;
+use SeoGeo\Search\Prestazioni;
+use SeoGeo\Search\Segnali;
 use SeoGeo\Sync\Sito as SitoRemoto;
 use SeoGeo\Triage;
 use SeoGeo\WxrParser;
@@ -76,6 +78,39 @@ function token() {
 	}
 
 	return $_SESSION['token'];
+}
+
+/**
+ * Indirizzo con cui si identifica il sito nelle rilevazioni di Google.
+ *
+ * @param array $cfg Configurazione.
+ * @return string
+ */
+function chiave_sito( array $cfg ) {
+	return Prestazioni::chiaveSito( $cfg );
+}
+
+/**
+ * Indirizzo dell account di servizio, se la chiave è leggibile.
+ *
+ * Serve nell interfaccia: è il valore da aggiungere fra gli utenti di Search
+ * Console, ed è la domanda che si fanno tutti al primo collegamento.
+ *
+ * @param array $cfg Configurazione.
+ * @return string Vuoto se la chiave manca o non è valida.
+ */
+function google_indirizzo_account( array $cfg ) {
+	$json = (string) ( $cfg['google']['chiave_json'] ?? '' );
+
+	if ( '' === trim( $json ) ) {
+		return '';
+	}
+
+	try {
+		return ( new \SeoGeo\Google\ServiceAccount( \SeoGeo\Google\ServiceAccount::daJson( $json ) ) )->indirizzo();
+	} catch ( Throwable $e ) {
+		return '';
+	}
 }
 
 /**
@@ -294,6 +329,76 @@ if ( 'api-analizza' === $pagina ) {
 	} catch ( Throwable $e ) {
 		http_response_code( 500 );
 		echo json_encode( array( 'ok' => false, 'errore' => $e->getMessage() ), JSON_UNESCAPED_UNICODE );
+	}
+
+	exit;
+}
+
+// --------------------------------- Aggiornamento dei dati di Search Console
+if ( 'aggiorna-google' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Token di sessione non valido: ricarica la pagina e riprova.' );
+	}
+
+	set_time_limit( 0 );
+
+	try {
+		// I contenuti noti servono a riconoscere le pagine che Google non
+		// mostra mai: senza, quel segnale non si potrebbe calcolare.
+		$ultimo    = $db->one( 'SELECT id FROM audit ORDER BY id DESC LIMIT 1' );
+		$documenti = $ultimo
+			? $db->all( "SELECT url, titolo, tipo, pubblicato FROM documento WHERE audit_id = ? AND stato = 'publish'", array( $ultimo['id'] ) )
+			: array();
+
+		$esito = Prestazioni::esegui( $db, $cfg, $documenti );
+
+		header(
+			'Location: ?p=prestazioni&messaggio=' . rawurlencode(
+				sprintf(
+					'Dati aggiornati: %s clic e %s impression negli ultimi %d giorni, %d cose da fare in ordine di convenienza.',
+					num( $esito['totali']['clic'] ),
+					num( $esito['totali']['impression'] ),
+					(int) $esito['periodo']['giorni'],
+					count( $esito['segnali'] )
+				)
+			)
+		);
+	} catch ( Throwable $e ) {
+		header( 'Location: ?p=prestazioni&errore=' . rawurlencode( $e->getMessage() ) );
+	}
+
+	exit;
+}
+
+// ------------------------------------- Prova del collegamento con Google
+if ( 'prova-google' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Token di sessione non valido: ricarica la pagina e riprova.' );
+	}
+
+	try {
+		$console = Prestazioni::client( $cfg );
+		$siti    = $console->siti();
+		$nomi    = array_column( $siti, 'proprieta' );
+
+		if ( ! in_array( $console->proprieta(), $nomi, true ) ) {
+			throw new RuntimeException(
+				'Il collegamento funziona, ma fra le proprietà accessibili non c è "' . $console->proprieta() . '". '
+				. ( $nomi
+					? 'L account di servizio vede: ' . implode( ', ', $nomi ) . '. Correggi il campo Proprietà.'
+					: 'L account di servizio non vede nessuna proprietà: aggiungilo come utente in Search Console → Impostazioni → Utenti e autorizzazioni.' )
+			);
+		}
+
+		header(
+			'Location: ?p=impostazioni&salvato=1&google=' . rawurlencode(
+				'Collegamento a Search Console riuscito: ' . $console->proprieta() . ' è accessibile.'
+			)
+		);
+	} catch ( Throwable $e ) {
+		header( 'Location: ?p=impostazioni&errore=' . rawurlencode( $e->getMessage() ) );
 	}
 
 	exit;
@@ -878,6 +983,11 @@ if ( 'salva-impostazioni' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] )
 		'wordpress' => array(
 			'url' => rtrim( $campo( 'wp_url' ), '/' ),
 		),
+		'google'  => array(
+			'proprieta'      => $campo( 'g_proprieta' ),
+			'giorni'         => max( 7, min( 180, (int) ( $campo( 'g_giorni' ) ?: 28 ) ) ),
+			'min_impression' => max( 1, min( 1000, (int) ( $campo( 'g_min_impression' ) ?: 20 ) ) ),
+		),
 		'seo'     => array(
 			'brandSuffix'            => $campo( 'seo_brand' ),
 			'cittaPrincipale'        => $campo( 'seo_citta' ),
@@ -898,6 +1008,11 @@ if ( 'salva-impostazioni' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] )
 	$nuove['wordpress']['token'] = '' !== $token_wp
 		? $token_wp
 		: ( $salvate['wordpress']['token'] ?? '' );
+
+	$chiave_google = $campo( 'g_chiave_json' );
+	$nuove['google']['chiave_json'] = '' !== $chiave_google
+		? $chiave_google
+		: ( $salvate['google']['chiave_json'] ?? '' );
 
 	try {
 		Impostazioni::salva( $nuove );
@@ -1106,14 +1221,52 @@ switch ( $pagina ) {
 				),
 				'indirizzo_base'      => indirizzo_base(),
 				'token_wp_mascherato' => Impostazioni::mascherata( $salvate['wordpress']['token'] ?? '' ),
-				'salvato'             => isset( $_GET['salvato'] )
+				'google_configurato'  => Prestazioni::configurata( $cfg ),
+				'google_account'      => google_indirizzo_account( $cfg ),
+				'salvato'             => isset( $_GET['google'] )
+					? (string) $_GET['google']
+					: ( isset( $_GET['salvato'] )
 					? 'Impostazioni salvate.'
 						. ( isset( $_GET['inviato'] ) ? ' I dati aziendali sono stati inviati al sito: lo schema LocalBusiness ora li usa.' : '' )
 						. ( isset( $_GET['mancanti'] ) ? ' Restano da compilare: ' . $_GET['mancanti'] . '.' : '' )
-					: '',
+					: '' ),
 				'errore'              => isset( $_GET['errore'] )
 					? (string) $_GET['errore']
 					: ( isset( $_GET['invio_errore'] ) ? 'Salvate, ma l invio al sito non è riuscito: ' . $_GET['invio_errore'] : '' ),
+			)
+		);
+		break;
+
+	case 'prestazioni':
+		$sito     = chiave_sito( $cfg );
+		$ultima   = Prestazioni::ultima( $db, $sito );
+		$storico  = $db->all( 'SELECT * FROM gsc_rilevazione WHERE sito_url = ? ORDER BY id DESC LIMIT 12', array( $sito ) );
+
+		vista(
+			'prestazioni',
+			array(
+				'titolo'       => 'Rendimento in Google',
+				'cfg'          => $cfg,
+				'configurato'  => Prestazioni::configurata( $cfg ),
+				'account'      => google_indirizzo_account( $cfg ),
+				'ultima'       => $ultima,
+				'precedente'   => count( $storico ) > 1 ? $storico[1] : null,
+				'storico'      => $storico,
+				'segnali'      => $ultima ? Prestazioni::segnali( $db, $ultima['id'] ) : array(),
+				'per_tipo'     => $ultima
+					? $db->all(
+						'SELECT tipo, titolo, COUNT(*) quanti, SUM(impression) impression FROM gsc_segnale WHERE rilevazione_id = ? GROUP BY tipo, titolo ORDER BY impression DESC',
+						array( $ultima['id'] )
+					)
+					: array(),
+				'pagine_top'   => $ultima
+					? $db->all( 'SELECT * FROM gsc_pagina WHERE rilevazione_id = ? ORDER BY impression DESC LIMIT 25', array( $ultima['id'] ) )
+					: array(),
+				'query_top'    => $ultima
+					? $db->all( 'SELECT * FROM gsc_query WHERE rilevazione_id = ? ORDER BY impression DESC LIMIT 40', array( $ultima['id'] ) )
+					: array(),
+				'messaggio'    => (string) ( $_GET['messaggio'] ?? '' ),
+				'errore'       => (string) ( $_GET['errore'] ?? '' ),
 			)
 		);
 		break;

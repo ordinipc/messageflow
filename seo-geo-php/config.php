@@ -102,6 +102,17 @@ return array(
 		'token' => 'DA_COMPILARE',
 	),
 
+	// Google Search Console: i dati veri sulle ricerche. Senza questi il
+	// programma lavora su previsioni; con questi sa cosa sta succedendo.
+	// La chiave si incolla dalle Impostazioni, non qui: finisce in
+	// storage/impostazioni.json, che non viene sovrascritto dagli aggiornamenti.
+	'google' => array(
+		'chiave_json'    => '',   // contenuto del JSON dell account di servizio
+		'proprieta'      => '',   // 'sc-domain:tuosito.it' oppure 'https://tuosito.it/'
+		'giorni'         => 28,   // ampiezza del periodo analizzato
+		'min_impression' => 20,   // sotto questa soglia il dato non è significativo
+	),
+
 	'seo' => array(
 		'brandSuffix'             => 'Max Digital Innovation',
 		'cittaPrincipale'         => 'Palermo',

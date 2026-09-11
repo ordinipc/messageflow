@@ -128,6 +128,56 @@ function campo( $nome, $etichetta, $valore, $nota = '', $tipo = 'text' ) {
 		</div>
 	</section>
 
+	<section class="scheda" id="search-console">
+		<h2>Google Search Console</h2>
+		<p class="guida">
+			È la sola fonte di verità su come va il sito nelle ricerche. Collegata, il programma smette
+			di lavorare a occhio: sa quali pagine sono a un passo dalla prima pagina, quali vengono
+			viste ma non cliccate, e quali Google non mostra mai.
+			<?php if ( $google_configurato ) : ?>
+				<span class="tag ok">collegata</span>
+			<?php endif; ?>
+		</p>
+
+		<details<?php echo $google_configurato ? '' : ' open'; ?>>
+			<summary>Come si ottiene la chiave (cinque minuti, gratis)</summary>
+			<ol class="guida">
+				<li>Vai su <a href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noopener">console.cloud.google.com</a> e crea un progetto (un nome qualsiasi).</li>
+				<li>Nel menù: <strong>API e servizi → Libreria</strong>, cerca <strong>Google Search Console API</strong> e premi <strong>Abilita</strong>.</li>
+				<li>Sempre nel menù: <strong>IAM e amministrazione → Account di servizio → Crea account di servizio</strong>. Nome a piacere, nessun ruolo da assegnare.</li>
+				<li>Apri l account appena creato → scheda <strong>Chiavi</strong> → <strong>Aggiungi chiave → Crea nuova chiave → JSON</strong>. Si scarica un file.</li>
+				<li>Apri quel file con un editor di testo, copia <strong>tutto</strong> il contenuto e incollalo qui sotto.</li>
+				<li>Ultimo passo, quello che si dimenticano tutti: in <a href="https://search.google.com/search-console/users" target="_blank" rel="noopener">Search Console → Impostazioni → Utenti e autorizzazioni</a> aggiungi come utente l indirizzo dell account di servizio (finisce per <code>.iam.gserviceaccount.com</code>), con permesso <strong>Con limitazioni</strong>: basta e avanza, legge soltanto.</li>
+			</ol>
+			<p class="nota">
+				La chiave resta sul tuo server, in <code>storage/impostazioni.json</code>, leggibile solo dal proprietario.
+				Dà accesso in sola lettura ai dati di Search Console: non può modificare né il sito né l account Google.
+			</p>
+		</details>
+
+		<div class="campo">
+			<label for="g_chiave_json">Chiave dell account di servizio (contenuto del file JSON)</label>
+			<textarea id="g_chiave_json" name="g_chiave_json" rows="4" placeholder="<?php echo $google_configurato ? 'Chiave già salvata: lascia vuoto per non cambiarla' : '{ &quot;type&quot;: &quot;service_account&quot;, ... }'; ?>"></textarea>
+			<small>
+				<?php if ( $google_account ) : ?>
+					Salvata. Account: <code><?php echo e( $google_account ); ?></code> — è questo l indirizzo da autorizzare in Search Console.
+				<?php else : ?>
+					Incolla tutto il file, graffe comprese.
+				<?php endif; ?>
+			</small>
+		</div>
+
+		<div class="griglia">
+			<?php campo( 'g_proprieta', 'Proprietà di Search Console', $cfg['google']['proprieta'] ?? '', 'Come compare lì: sc-domain:tuosito.it oppure https://tuosito.it/' ); ?>
+			<?php campo( 'g_giorni', 'Giorni da analizzare', $cfg['google']['giorni'] ?? 28, 'Da 7 a 180. Con 28 si confronta con i 28 precedenti.', 'number' ); ?>
+			<?php campo( 'g_min_impression', 'Impression minime perché un dato conti', $cfg['google']['min_impression'] ?? 20, 'Sotto questa soglia i numeri sono rumore.', 'number' ); ?>
+		</div>
+
+		<?php if ( $google_configurato ) : ?>
+			<p class="nota">Salva prima le modifiche, poi prova il collegamento: la prova usa quello che c è salvato.</p>
+		<?php endif; ?>
+	</section>
+
 	<section class="scheda">
 		<h2>Parametri SEO</h2>
 		<div class="griglia">
@@ -153,6 +203,20 @@ function campo( $nome, $etichetta, $valore, $nota = '', $tipo = 'text' ) {
 
 	<p><button class="bottone" type="submit">Salva impostazioni</button></p>
 </form>
+
+<?php if ( $google_configurato ) : ?>
+<section class="scheda">
+	<h2>Prova il collegamento con Search Console</h2>
+	<p class="guida">
+		Controlla che la chiave sia valida e che l account veda davvero la proprietà indicata.
+		Se qualcosa non torna, il messaggio dice quale dei due passaggi manca.
+	</p>
+	<form method="post" action="?p=prova-google">
+		<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+		<button class="bottone chiaro" type="submit">Prova il collegamento</button>
+	</form>
+</section>
+<?php endif; ?>
 
 <section class="scheda">
 	<h2>Avviare l'analisi da un pulsante</h2>

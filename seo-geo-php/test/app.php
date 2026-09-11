@@ -142,6 +142,48 @@ verifica( 'un oggetto viene scartato', '' === $pulite['oggetto'] );
 verifica( 'il testo resta com era', 'invariato' === $pulite['testo'] );
 verifica( 'tutti i valori sono stringhe', array() === array_filter( $pulite, static fn( $v ) => ! is_string( $v ) ) );
 
+// --- Ordine di lavoro del pilota automatico --------------------------------
+// Con Search Console collegata l ordine non è più quello editoriale: davanti
+// vanno gli articoli su cui Google dice che c è da guadagnare.
+echo "\nOrdine di lavoro del pilota automatico\n";
+
+$ordina = new ReflectionMethod( \SeoGeo\Coda::class, 'ordinaPerPriorita' );
+$ordina->setAccessible( true );
+
+$candidati = array(
+	array( 'doc_id' => 1, 'titolo' => 'Primo in ordine editoriale', 'url' => 'https://esempio.it/uno/' ),
+	array( 'doc_id' => 2, 'titolo' => 'Senza dati', 'url' => 'https://esempio.it/due/' ),
+	array( 'doc_id' => 3, 'titolo' => 'A un passo dalla prima pagina', 'url' => 'https://www.esempio.it/tre' ),
+	array( 'doc_id' => 4, 'titolo' => 'Segnale debole', 'url' => 'https://esempio.it/quattro/' ),
+);
+
+$priorita = array(
+	'esempio.it/tre'      => array( 'priorita' => 96, 'titolo' => 'A un passo', 'impression' => 500 ),
+	'esempio.it/quattro'  => array( 'priorita' => 60, 'titolo' => 'Mai mostrata', 'impression' => 0 ),
+);
+
+$ordinati = $ordina->invoke( null, $candidati, $priorita );
+$ids      = array_column( $ordinati, 'doc_id' );
+
+verifica( 'davanti va l articolo con il segnale più forte', 3 === $ids[0], implode( ',', $ids ) );
+verifica( 'poi quello con il segnale debole', 4 === $ids[1], implode( ',', $ids ) );
+verifica( 'gli articoli senza dati restano nel loro ordine editoriale', array( 1, 2 ) === array_slice( $ids, 2 ), implode( ',', $ids ) );
+verifica( 'nessun articolo viene perso per strada', 4 === count( $ordinati ) );
+
+$senzaDati = $ordina->invoke( null, $candidati, array() );
+verifica( 'senza segnali l ordine non cambia', array( 1, 2, 3, 4 ) === array_column( $senzaDati, 'doc_id' ) );
+
+// www e barra finale non devono impedire l aggancio fra articolo e segnale.
+verifica( 'l indirizzo si confronta senza www né barra finale', 'esempio.it/tre' === \SeoGeo\Search\Prestazioni::chiaveUrl( 'https://www.Esempio.it/tre/' ) );
+
+// La chiave del sito deve essere la stessa quando si salva e quando si rilegge.
+$cfgProva = array( 'azienda' => array(), 'wordpress' => array( 'url' => 'https://sito.it/' ), 'google' => array( 'proprieta' => 'sc-domain:sito.it' ) );
+verifica( 'la chiave del sito viene dal sito, non dalla proprietà', 'https://sito.it' === \SeoGeo\Search\Prestazioni::chiaveSito( $cfgProva ) );
+verifica(
+	'senza sito configurato si ripiega sulla proprietà',
+	'sc-domain:sito.it' === \SeoGeo\Search\Prestazioni::chiaveSito( array( 'google' => array( 'proprieta' => 'sc-domain:sito.it' ) ) )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

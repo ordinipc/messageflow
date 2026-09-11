@@ -56,6 +56,15 @@ collegato, il gestionale rilegge il sito da solo.
   (indirizzo con token, risponde in JSON)
 L'analisi legge soltanto: non modifica il sito.
 
+Collegare Google Search Console (consigliato)
+---------------------------------------------
+Senza, il programma lavora su previsioni. Con, sa quali pagine sono
+a un passo dalla prima pagina e quali vengono viste ma non cliccate.
+Impostazioni -> Google Search Console: dentro ci sono le istruzioni
+passo passo (servono cinque minuti, non costa niente).
+Poi il menu "Rendimento" mostra i dati veri e le cose da fare in
+ordine di convenienza.
+
 Prima di usare i file generati: apri config.php e compila tutti i campi
 DA_COMPILARE (telefono, indirizzo, CAP, partita IVA, coordinate, scheda
 Google Business, autore). Senza quei dati lo schema locale resta incompleto.

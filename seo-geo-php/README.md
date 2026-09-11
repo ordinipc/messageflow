@@ -292,6 +292,56 @@ aprire niente.
 
 ---
 
+## Search Console: i dati veri
+
+Finché il programma legge solo il sito, il punteggio è una previsione: dice cosa è sbagliato
+secondo le linee guida. Collegando Search Console entrano i fatti — per quali ricerche il sito
+compare, in che posizione, quante volte viene cliccato — e il programma smette di lavorare a
+occhio.
+
+**Cosa ricava dai numeri** (menù *Rendimento*):
+
+| Segnale | Come lo riconosce | Cosa propone |
+|---|---|---|
+| A un passo dalla prima pagina | posizione fra 8 e 20 con impression sopra la soglia | riscrittura e link interni, prima di tutto il resto |
+| Ti vedono ma non ti cliccano | già in prima pagina, ma CTR sotto metà di quello atteso per quella posizione | rigenerare title e description |
+| Due pagine competono sulla stessa ricerca | la stessa query porta impression a più pagine, senza che una prevalga | accorpare, tenendo la più forte |
+| Pagina in calo | posizione peggiorata di 3 o più rispetto al periodo precedente | verificare cosa è cambiato |
+| Google non la mostra mai | zero impression su un contenuto pubblicato da almeno due settimane | controllare l indicizzazione |
+
+La cannibalizzazione qui è **misurata**, non ipotizzata: il triage editoriale la deduce leggendo
+i testi, questa la vede accadere nelle ricerche.
+
+Con i dati collegati cambia anche l ordine del pilota automatico: le riscritture partono dagli
+articoli su cui Google dice che c è più da guadagnare, non dall ordine editoriale.
+
+**Come si collega** (cinque minuti, gratis): Impostazioni → Google Search Console. Le istruzioni
+passo passo sono lì dentro; in sintesi serve un account di servizio di Google Cloud con la
+Search Console API attiva, e quell account va aggiunto fra gli utenti della proprietà in
+Search Console. La chiave resta sul tuo server, dà accesso in sola lettura, e non può modificare
+né il sito né l account Google.
+
+Da riga di comando, per il cron:
+
+```bash
+php cli/prestazioni.php        # ultimi 28 giorni
+php cli/prestazioni.php 90     # ultimi 90
+```
+
+Una volta al giorno è più che sufficiente: Google consolida i dati con due o tre giorni di
+ritardo, e infatti il periodo analizzato si ferma a tre giorni fa.
+
+### Quello che non fa
+
+Non esiste un modo per cui un programma legga gli aggiornamenti dell algoritmo di Google e si
+riscriva da solo: le linee guida cambiano dentro documenti scritti per le persone, e
+l algoritmo non è documentato. Le 65 regole di questo programma sono la traduzione delle linee
+guida a una certa data, fatta da una persona. L Indexing API di Google, che qualche strumento
+usa per promettere indicizzazioni immediate, è ammessa solo per offerte di lavoro e diretta
+video: usarla per articoli normali è fuori scopo.
+
+---
+
 ## Pilota automatico
 
 Un comando solo, e il programma esegue in sequenza tutto ciò che non richiede una
@@ -448,6 +498,7 @@ mysql/schema.sql            schema MySQL, serve solo se si sceglie MySQL al post
 cli/audit.php               interfaccia a riga di comando
 cli/riscrivi.php            generazione delle bozze con Gemini
 cli/pilota.php              pilota automatico (anche da cron)
+cli/prestazioni.php         aggiornamento dei dati di Search Console
 public/index.php            front controller web
 public/verifica.php         diagnosi dei requisiti del server
 public/assets/app.css       interfaccia
@@ -464,6 +515,8 @@ src/
 ├── Triage.php              classificazione editoriale
 ├── Ai/                     client Gemini, prompt, bozze, accorpamenti, immagini
 ├── Bridge/                 client verso le API REST del plugin
+├── Google/                 account di servizio e client di Search Console
+├── Search/                 rendimento reale e segnali che ne derivano
 ├── Coda.php                coda delle operazioni del pilota automatico
 ├── Impostazioni.php        configurazione modificabile dal browser
 ├── Fix/                    meta, link interni, dati strutturati, llms.txt
@@ -476,7 +529,8 @@ test/                       collaudo, senza dipendenze esterne
 ## Collaudo
 
 ```bash
-php test/app.php      # gestionale: normalizzazione dei dati letti dal sito
+php test/app.php      # gestionale: dati letti dal sito, ordine di lavoro
+php test/google.php   # Search Console: firma, lettura, segnali
 php test/plugin.php   # plugin: le classi vere sopra un WordPress simulato
 ```
 
