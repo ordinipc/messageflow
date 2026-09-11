@@ -1,0 +1,30 @@
+SERVE UN DATABASE MYSQL?  NO.
+=============================
+
+Il programma usa SQLite: il database è un file che si crea da solo alla prima
+apertura, in  storage/audit.sqlite . Non devi creare nulla dal pannello
+dell'hosting, non devi importare niente, non ti viene chiesta nessuna password.
+
+Questa cartella serve solo a chi, per policy aziendale o per abitudine, preferisce
+appoggiarsi a un MySQL già esistente. In quel caso:
+
+1. crea un database vuoto dal pannello dell'hosting
+2. apri  config.php  e metti:
+
+       'database' => array(
+           'driver' => 'mysql',
+           'mysql'  => array(
+               'host'     => 'localhost',
+               'porta'    => 3306,
+               'nome'     => 'nome_del_database',
+               'utente'   => 'utente',
+               'password' => 'password',
+               'charset'  => 'utf8mb4',
+           ),
+       ),
+
+3. le tabelle vengono create da sole al primo avvio.
+   Se l'utente del database non ha il permesso di creare tabelle, importa a mano
+   il file  schema.sql  da phpMyAdmin.
+
+In tutti gli altri casi: ignora questa cartella.

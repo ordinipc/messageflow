@@ -53,7 +53,15 @@ function mdi_seo_geo_data( $name ) {
  * @return mixed
  */
 function mdi_seo_geo_cfg( $path, $default = '' ) {
-	$node = mdi_seo_geo_data( 'config' );
+	// I dati salvati dal gestionale hanno la precedenza sul file incluso nello
+	// zip: quello è solo l istantanea del momento in cui il plugin è stato
+	// generato, e invecchia appena si cambia qualcosa nelle impostazioni.
+	// Niente cache statica: WordPress tiene già le opzioni in memoria, e così
+	// il valore è aggiornato anche subito dopo un salvataggio.
+	$dal_gestionale = get_option( 'mdi_seo_geo_config', array() );
+	$node           = is_array( $dal_gestionale ) && $dal_gestionale
+		? array_replace_recursive( mdi_seo_geo_data( 'config' ), $dal_gestionale )
+		: mdi_seo_geo_data( 'config' );
 
 	foreach ( explode( '.', $path ) as $key ) {
 		if ( ! is_array( $node ) || ! isset( $node[ $key ] ) ) {

@@ -231,6 +231,13 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	try {
 		switch ( $azione ) {
 
+			case 'config':
+				$risposta  = $ponte->inviaConfigurazione( $cfg );
+				$mancanti  = (array) ( $risposta['mancanti'] ?? array() );
+				$messaggio = 'Dati aziendali inviati al sito.'
+					. ( $mancanti ? ' Restano da compilare in Impostazioni: ' . implode( ', ', $mancanti ) . '.' : ' Sono tutti compilati.' );
+				break;
+
 			case 'meta':
 			case 'meta_anteprima':
 				// Con un limite si prova su pochi contenuti prima di toccare tutto:
@@ -659,7 +666,26 @@ if ( 'salva-impostazioni' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] )
 
 	try {
 		Impostazioni::salva( $nuove );
-		header( 'Location: ?p=impostazioni&salvato=1' );
+
+		// I dati aziendali servono al plugin, non solo al gestionale: appena
+		// salvati partono verso il sito, così lo schema LocalBusiness è completo
+		// senza dover rigenerare e reinstallare il plugin.
+		$esito_invio = '';
+		$aggiornata  = Impostazioni::carica( require __DIR__ . '/../config.php' );
+		$ponte       = new WordPress( $aggiornata['wordpress'] );
+
+		if ( $ponte->pronto() ) {
+			try {
+				$risposta    = $ponte->inviaConfigurazione( $aggiornata );
+				$esito_invio = empty( $risposta['mancanti'] )
+					? '&inviato=1'
+					: '&inviato=1&mancanti=' . rawurlencode( implode( ', ', (array) $risposta['mancanti'] ) );
+			} catch ( Throwable $e ) {
+				$esito_invio = '&invio_errore=' . rawurlencode( $e->getMessage() );
+			}
+		}
+
+		header( 'Location: ?p=impostazioni&salvato=1' . $esito_invio );
 	} catch ( Throwable $e ) {
 		header( 'Location: ?p=impostazioni&errore=' . rawurlencode( $e->getMessage() ) );
 	}
@@ -832,8 +858,14 @@ switch ( $pagina ) {
 				'cfg'                 => $cfg,
 				'mascherata'          => Impostazioni::mascherata( $salvate['ai']['chiave'] ?? '' ),
 				'token_wp_mascherato' => Impostazioni::mascherata( $salvate['wordpress']['token'] ?? '' ),
-				'salvato'             => isset( $_GET['salvato'] ) ? 'Impostazioni salvate.' : '',
-				'errore'              => isset( $_GET['errore'] ) ? (string) $_GET['errore'] : '',
+				'salvato'             => isset( $_GET['salvato'] )
+					? 'Impostazioni salvate.'
+						. ( isset( $_GET['inviato'] ) ? ' I dati aziendali sono stati inviati al sito: lo schema LocalBusiness ora li usa.' : '' )
+						. ( isset( $_GET['mancanti'] ) ? ' Restano da compilare: ' . $_GET['mancanti'] . '.' : '' )
+					: '',
+				'errore'              => isset( $_GET['errore'] )
+					? (string) $_GET['errore']
+					: ( isset( $_GET['invio_errore'] ) ? 'Salvate, ma l invio al sito non è riuscito: ' . $_GET['invio_errore'] : '' ),
 			)
 		);
 		break;

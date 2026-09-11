@@ -24,6 +24,7 @@ class MDI_Api {
 	const NAMESPACE_API = 'mdi-seo/v1';
 	const OPZIONE_TOKEN = 'mdi_seo_geo_token';
 	const OPZIONE_REDIRECT = 'mdi_seo_geo_redirect';
+	const OPZIONE_CONFIG   = 'mdi_seo_geo_config';
 	const META_BACKUP   = '_mdi_backup_meta';
 	const META_BOZZA_DI = '_mdi_bozza_di';
 
@@ -118,6 +119,11 @@ class MDI_Api {
 			'callback' => array( __CLASS__, 'annulla_meta' ),
 		) );
 
+		register_rest_route( self::NAMESPACE_API, '/config', $comune + array(
+			'methods'  => 'POST',
+			'callback' => array( __CLASS__, 'salva_config' ),
+		) );
+
 		register_rest_route( self::NAMESPACE_API, '/applica-bozza', $comune + array(
 			'methods'  => 'POST',
 			'callback' => array( __CLASS__, 'applica_bozza' ),
@@ -127,6 +133,50 @@ class MDI_Api {
 			'methods'  => 'POST',
 			'callback' => array( __CLASS__, 'cestina' ),
 		) );
+	}
+
+	/**
+	 * Riceve dal gestionale i dati aziendali e li salva.
+	 *
+	 * Da questo momento schema LocalBusiness, footer NAP e llms.txt usano questi
+	 * valori invece di quelli congelati nello zip del plugin.
+	 *
+	 * @param WP_REST_Request $richiesta Richiesta con 'config'.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function salva_config( $richiesta ) {
+		$configurazione = $richiesta->get_param( 'config' );
+
+		if ( ! is_array( $configurazione ) || empty( $configurazione['azienda'] ) ) {
+			return new WP_Error( 'mdi_config_invalida', 'Configurazione non valida.', array( 'status' => 400 ) );
+		}
+
+		update_option( self::OPZIONE_CONFIG, $configurazione, false );
+
+		$compilati = array();
+		$mancanti  = array();
+
+		foreach ( array(
+			'telefono'   => $configurazione['azienda']['telefono'] ?? '',
+			'partitaIva' => $configurazione['azienda']['partitaIva'] ?? '',
+			'indirizzo'  => $configurazione['azienda']['indirizzo']['via'] ?? '',
+			'cap'        => $configurazione['azienda']['indirizzo']['cap'] ?? '',
+			'google'     => $configurazione['azienda']['profili']['googleBusiness'] ?? '',
+		) as $nome => $valore ) {
+			if ( '' !== $valore && 0 !== stripos( (string) $valore, 'DA_COMPILARE' ) ) {
+				$compilati[] = $nome;
+			} else {
+				$mancanti[] = $nome;
+			}
+		}
+
+		return rest_ensure_response(
+			array(
+				'ok'        => true,
+				'compilati' => $compilati,
+				'mancanti'  => $mancanti,
+			)
+		);
 	}
 
 	/**
@@ -150,6 +200,9 @@ class MDI_Api {
 				'rank_math'  => defined( 'RANK_MATH_VERSION' ) || class_exists( 'RankMath' ),
 				'yoast'      => defined( 'WPSEO_VERSION' ),
 				'redirect'   => count( (array) get_option( self::OPZIONE_REDIRECT, array() ) ),
+				'config'     => (bool) get_option( self::OPZIONE_CONFIG, false ),
+				'telefono'   => (bool) mdi_seo_geo_cfg( 'azienda.telefono' ),
+				'piva'       => (bool) mdi_seo_geo_cfg( 'azienda.partitaIva' ),
 			)
 		);
 	}

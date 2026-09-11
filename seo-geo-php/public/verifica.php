@@ -143,7 +143,7 @@ $controlli[] = array(
 	'nome'   => 'Creazione del database',
 	'valore' => $prova,
 	'esito'  => $esito_prova,
-	'nota'   => 'Il database viene creato da solo al primo avvio: non esiste una procedura di installazione da eseguire.',
+	'nota'   => 'Il database è un file SQLite creato da solo al primo avvio: non serve MySQL, non serve creare niente dal pannello dell hosting, non c è nessuna procedura di installazione.',
 );
 
 $gravi  = count( array_filter( $controlli, static fn( $c ) => 'grave' === $c['esito'] ) );

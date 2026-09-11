@@ -88,6 +88,26 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 	</div>
 
 	<section class="scheda">
+		<h2>Dati aziendali</h2>
+		<p class="guida">
+			Telefono, partita IVA, indirizzo e scheda Google Business vivono nelle Impostazioni del
+			gestionale: il plugin da solo non li conosce. Vengono inviati in automatico a ogni
+			salvataggio delle impostazioni; da qui puoi rimandarli quando vuoi.
+		</p>
+		<p>
+			<?php if ( ! empty( $stato['config'] ) ) : ?>
+				<span class="tag ok">ricevuti dal sito</span>
+				<?php if ( empty( $stato['telefono'] ) || empty( $stato['piva'] ) ) : ?>
+					<span class="tag alto">ma telefono o partita IVA mancano ancora</span>
+				<?php endif; ?>
+			<?php else : ?>
+				<span class="tag grave">il sito non li ha ancora</span>
+			<?php endif; ?>
+		</p>
+		<div class="azioni"><?php azione( $audit['id'], 'config', 'Invia i dati aziendali al sito' ); ?></div>
+	</section>
+
+	<section class="scheda">
 		<h2>Meta ottimizzate</h2>
 		<p class="guida">Scrive title, meta description, focus keyword ed estratto sui campi di Rank Math per <?php echo num( $conteggi['meta'] ); ?> contenuti. Prima di scrivere, il plugin mette da parte i valori attuali: l'operazione si può annullare.</p>
 		<p class="nota">Il modo sensato di procedere: <strong>anteprima</strong> per leggere il confronto, poi <strong>prova su 5 contenuti</strong> e controlla su WordPress che title e description siano quelli giusti, infine applica a tutti.</p>

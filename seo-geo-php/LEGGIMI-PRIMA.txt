@@ -24,6 +24,12 @@ NON c'è nessun installatore da eseguire: il database si crea da solo.
    Controlla versione di PHP, estensioni, permessi e limiti di caricamento
    e ti indica l'indirizzo esatto da usare.
 
+Serve un database MySQL?
+------------------------
+NO. Il database si crea da solo come file dentro  storage/ . Non devi creare
+niente dal pannello dell'hosting. La cartella  mysql/  serve solo a chi
+preferisce usare un MySQL proprio: leggi  mysql/LEGGIMI.txt .
+
 Perché l'index non è in questa cartella
 ---------------------------------------
 Il codice vero sta in  public/ : è la cartella che il web deve vedere,

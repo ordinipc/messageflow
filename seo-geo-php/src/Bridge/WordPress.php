@@ -56,6 +56,26 @@ class WordPress {
 	}
 
 	/**
+	 * Invia al sito i dati aziendali salvati nelle impostazioni.
+	 *
+	 * @param array $cfg Configurazione completa.
+	 * @return array
+	 */
+	public function inviaConfigurazione( array $cfg ) {
+		return $this->chiama(
+			'POST',
+			'/config',
+			array(
+				'config' => array(
+					'azienda' => $cfg['azienda'] ?? array(),
+					'autori'  => $cfg['autori'] ?? array(),
+					'seo'     => $cfg['seo'] ?? array(),
+				),
+			)
+		);
+	}
+
+	/**
 	 * Invia le meta ottimizzate.
 	 *
 	 * @param array $righe     Elenco di array con id, title, description, excerpt, focus.

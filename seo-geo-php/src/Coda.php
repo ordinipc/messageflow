@@ -30,6 +30,7 @@ class Coda {
 
 	/** @var array<string,string> Etichette leggibili dei tipi di operazione. */
 	const TIPI = array(
+		'config'        => 'Dati aziendali al sito',
 		'meta'          => 'Meta ottimizzate',
 		'redirect'      => 'Redirect 301',
 		'categorie'     => 'Categorie',
@@ -74,7 +75,11 @@ class Coda {
 			);
 		};
 
-		// 1. Meta, a blocchi: la scrittura di 326 contenuti in una sola richiesta
+		// 1. I dati aziendali per primi: schema LocalBusiness, footer e llms.txt
+		// dipendono da questi, e il plugin da solo non li conosce.
+		$aggiungi( 'config', '', 'Invio dei dati aziendali al sito' );
+
+		// 2. Meta, a blocchi: la scrittura di 326 contenuti in una sola richiesta
 		// supererebbe i limiti di molti hosting.
 		$quante_meta = (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $auditId ) )['n'];
 
@@ -265,7 +270,7 @@ class Coda {
 	 * @throws SaltaCompito Se l operazione non è applicabile.
 	 */
 	private static function eseguiCompito( Db $db, $auditId, array $cfg, array $compito, Gemini $gemini, WordPress $ponte ) {
-		$serve_sito = in_array( $compito['tipo'], array( 'meta', 'redirect', 'categorie', 'applica_bozza', 'cestina' ), true );
+		$serve_sito = in_array( $compito['tipo'], array( 'config', 'meta', 'redirect', 'categorie', 'applica_bozza', 'cestina' ), true );
 
 		if ( $serve_sito && ! $ponte->pronto() ) {
 			throw new SaltaCompito( 'Collegamento a WordPress non configurato: indirizzo e token nelle Impostazioni.' );
@@ -276,6 +281,14 @@ class Coda {
 		}
 
 		switch ( $compito['tipo'] ) {
+
+			case 'config':
+				$risposta = $ponte->inviaConfigurazione( $cfg );
+				$mancanti = (array) ( $risposta['mancanti'] ?? array() );
+
+				return $mancanti
+					? 'inviati, ma restano da compilare: ' . implode( ', ', $mancanti )
+					: 'telefono, partita IVA, indirizzo e scheda Google Business ora sul sito';
 
 			case 'meta':
 				$righe = $db->all(

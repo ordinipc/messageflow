@@ -52,8 +52,12 @@ programma non cancella i tuoi dati.
 
 ### Database
 
-SQLite è l'impostazione predefinita e non richiede nulla: il file nasce da solo in
-`storage/audit.sqlite`. Per usare MySQL apri `config.php`:
+**Non serve creare nessun database.** SQLite è l'impostazione predefinita: il file nasce
+da solo in `storage/audit.sqlite` alla prima apertura, senza password, senza phpMyAdmin,
+senza importare niente. Il file `mysql/schema.sql` riguarda solo chi *preferisce* usare un
+MySQL già esistente — in tutti gli altri casi si ignora.
+
+Per usare MySQL apri `config.php`:
 
 ```php
 'database' => array(
@@ -62,7 +66,8 @@ SQLite è l'impostazione predefinita e non richiede nulla: il file nasce da solo
 ),
 ```
 
-Le tabelle vengono create automaticamente; in alternativa importa `schema.sql`.
+Le tabelle vengono create automaticamente; solo se l'utente del database non ha il
+permesso di creare tabelle, importa a mano `mysql/schema.sql`.
 
 ### Limiti di caricamento
 
@@ -366,7 +371,7 @@ a coprire l'archivio storico, non a sostituire il portfolio.
 index.php                   reindirizza a public/ (per le installazioni in sottocartella)
 .htaccess                   serve public/ come radice quando Apache lo consente
 config.php                  dati aziendali, database, soglie SEO
-schema.sql                  schema MySQL (opzionale)
+mysql/schema.sql            schema MySQL, serve solo se si sceglie MySQL al posto di SQLite
 cli/audit.php               interfaccia a riga di comando
 cli/riscrivi.php            generazione delle bozze con Gemini
 cli/pilota.php              pilota automatico (anche da cron)

@@ -52,6 +52,42 @@ verifica( 'richiesta senza token respinta', is_wp_error( MDI_Api::autorizza( new
 verifica( 'richiesta con token errato respinta', is_wp_error( MDI_Api::autorizza( new WP_REST_Request( array(), array( 'x-mdi-token' => 'sbagliato' ) ) ) ) );
 verifica( 'richiesta con token giusto accettata', true === MDI_Api::autorizza( new WP_REST_Request( array(), array( 'x-mdi-token' => $token ) ) ) );
 
+// --- Dati aziendali ricevuti dal gestionale --------------------------------
+echo "\nDati aziendali dal gestionale\n";
+
+verifica( 'prima del collegamento il telefono non risulta', '' === mdi_seo_geo_cfg( 'azienda.telefono' ) );
+
+$configurazione = array(
+	'azienda' => array(
+		'nome'       => 'Max Digital Innovation',
+		'telefono'   => '+39 091 1234567',
+		'partitaIva' => '01234567890',
+		'indirizzo'  => array( 'via' => 'Via Roma 100', 'cap' => '90133', 'citta' => 'Palermo', 'provincia' => 'PA', 'nazione' => 'IT' ),
+		'profili'    => array( 'googleBusiness' => 'https://g.page/maxdigital' ),
+	),
+	'seo'     => array( 'cittaPrincipale' => 'Palermo' ),
+);
+
+$esito = MDI_Api::salva_config( new WP_REST_Request( array( 'config' => $configurazione ) ) );
+
+verifica( 'la configurazione viene accettata', ! is_wp_error( $esito ) && ! empty( $esito['ok'] ) );
+verifica( 'il telefono arriva al plugin', '+39 091 1234567' === mdi_seo_geo_cfg( 'azienda.telefono' ) );
+verifica( 'la partita IVA arriva al plugin', '01234567890' === mdi_seo_geo_cfg( 'azienda.partitaIva' ) );
+verifica( 'l indirizzo arriva al plugin', 'Via Roma 100' === mdi_seo_geo_cfg( 'azienda.indirizzo.via' ) );
+verifica( 'il plugin segnala cosa è stato compilato', in_array( 'telefono', $esito['compilati'], true ) && empty( $esito['mancanti'] ) );
+
+$organizzazione = MDI_Schema::organization();
+verifica( 'lo schema LocalBusiness usa il telefono ricevuto', '+39 091 1234567' === ( $organizzazione['telephone'] ?? '' ) );
+verifica( 'lo schema riporta la partita IVA', '01234567890' === ( $organizzazione['vatID'] ?? '' ) );
+verifica( 'lo schema contiene l indirizzo postale', 'Via Roma 100' === ( $organizzazione['address']['streetAddress'] ?? '' ) );
+verifica( 'lo schema è di tipo ProfessionalService', in_array( 'ProfessionalService', (array) $organizzazione['@type'], true ) );
+
+$vuota = MDI_Api::salva_config( new WP_REST_Request( array( 'config' => 'non un array' ) ) );
+verifica( 'una configurazione malformata viene rifiutata', is_wp_error( $vuota ) );
+
+$stato_sito = MDI_Api::stato();
+verifica( 'lo stato dichiara che i dati aziendali sono arrivati', ! empty( $stato_sito['config'] ) && ! empty( $stato_sito['telefono'] ) );
+
 // --- Anteprima delle meta --------------------------------------------------
 echo "\nAnteprima delle meta\n";
 

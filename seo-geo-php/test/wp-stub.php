@@ -10,8 +10,7 @@
  */
 
 define( 'ABSPATH', __DIR__ . '/' );
-define( 'MDI_SEO_GEO_VERSION', '1.0.0' );
-define( 'MDI_SEO_GEO_DIR', dirname( __DIR__ ) . '/plugin-wordpress/mdi-seo-geo-booster/' );
+define( 'MDI_PLUGIN_FILE', dirname( __DIR__ ) . '/plugin-wordpress/mdi-seo-geo-booster/mdi-seo-geo-booster.php' );
 
 /** @var array Stato in memoria che sostituisce il database di WordPress. */
 $GLOBALS['wp'] = array(
@@ -350,4 +349,133 @@ function set_post_thumbnail( $id, $allegato ) {
 	return update_post_meta( $id, '_thumbnail_id', $allegato );
 }
 
-require_once MDI_SEO_GEO_DIR . 'includes/class-mdi-api.php';
+// --- Funzioni di contorno usate dal resto del plugin ------------------------
+
+function plugin_dir_path( $file ) {
+	return dirname( $file ) . '/';
+}
+
+function plugin_dir_url( $file ) {
+	return 'https://esempio.it/wp-content/plugins/' . basename( dirname( $file ) ) . '/';
+}
+
+function register_activation_hook( $file, $callback ) {}
+
+function register_deactivation_hook( $file, $callback ) {}
+
+function flush_rewrite_rules() {}
+
+function add_shortcode( $nome, $callback ) {
+	$GLOBALS['wp']['shortcode'][ $nome ] = $callback;
+}
+
+function add_menu_page() {}
+
+function add_rewrite_rule( $regola, $destinazione, $priorita = 'bottom' ) {}
+
+function get_query_var( $nome ) {
+	return $GLOBALS['wp']['query_var'][ $nome ] ?? '';
+}
+
+function status_header( $codice ) {}
+
+function current_user_can( $permesso ) {
+	return true;
+}
+
+function check_admin_referer( $azione, $campo = '_wpnonce' ) {
+	return true;
+}
+
+function wp_nonce_field( $azione, $campo = '_wpnonce', $referer = true, $stampa = true ) {
+	return '<input type="hidden" name="' . $campo . '" value="nonce">';
+}
+
+function wp_die( $messaggio = '' ) {
+	throw new RuntimeException( 'wp_die: ' . $messaggio );
+}
+
+function wp_safe_redirect( $url, $stato = 302 ) {
+	$GLOBALS['wp']['redirect'] = $url;
+
+	return true;
+}
+
+function esc_attr( $valore ) {
+	return htmlspecialchars( (string) $valore, ENT_QUOTES );
+}
+
+function esc_url( $url ) {
+	return $url;
+}
+
+function sanitize_title( $titolo ) {
+	return strtolower( preg_replace( '/[^a-z0-9]+/i', '-', (string) $titolo ) );
+}
+
+function is_admin() {
+	return false;
+}
+
+function is_404() {
+	return ! empty( $GLOBALS['wp']['e404'] );
+}
+
+function is_singular( $tipo = '' ) {
+	return ! empty( $GLOBALS['wp']['singolo'] );
+}
+
+function in_the_loop() {
+	return true;
+}
+
+function is_main_query() {
+	return true;
+}
+
+function get_queried_object_id() {
+	return (int) ( $GLOBALS['wp']['singolo'] ?? 0 );
+}
+
+function get_permalink( $id = 0 ) {
+	$id = $id ?: get_queried_object_id();
+
+	return 'https://esempio.it/articolo-' . $id . '/';
+}
+
+function get_the_category( $id = 0 ) {
+	return array();
+}
+
+function get_category_link( $id ) {
+	return 'https://esempio.it/category/esempio/';
+}
+
+function get_the_date( $formato = '', $id = 0 ) {
+	return '2026-01-01T10:00:00+01:00';
+}
+
+function get_the_modified_date( $formato = '', $id = 0 ) {
+	return '2026-02-01T10:00:00+01:00';
+}
+
+function get_the_excerpt( $id = 0 ) {
+	return 'Estratto di prova.';
+}
+
+function has_post_thumbnail( $id = null ) {
+	return false;
+}
+
+function get_the_post_thumbnail_url( $id = null, $misura = 'full' ) {
+	return '';
+}
+
+function wp_get_document_title() {
+	return 'Titolo del documento';
+}
+
+function get_header() {}
+
+// Si carica il plugin vero e proprio: costanti, funzioni e tutte le classi.
+require_once MDI_PLUGIN_FILE;
