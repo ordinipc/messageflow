@@ -163,10 +163,14 @@ nel database:
 - shortcode `[mdi_nap]`, `[mdi_faq]`, `[mdi_breadcrumb]`, `[mdi_in_breve]`;
 - avvisi in bacheca su conflitti fra plugin SEO e dati aziendali mancanti.
 
-**Prima di installarlo** compila i campi `DA_COMPILARE` in `config.php` (telefono,
-indirizzo, CAP, partita IVA, coordinate, scheda Google Business, autore) e rigenera
-l'analisi: quei dati alimentano lo schema LocalBusiness, il footer NAP e llms.txt.
-Il plugin ignora i segnaposto non compilati, quindi non stampa mai dati finti.
+**I dati aziendali non stanno nel plugin.** Si compilano una volta sola in
+*Impostazioni* e il gestionale li spedisce al sito a ogni salvataggio: da quel momento
+schema LocalBusiness, footer NAP e llms.txt usano quei valori, senza reinstallare niente.
+Il file `data/config.json` dentro lo zip è solo la fotografia del momento in cui il plugin
+è stato generato e viene scavalcato da quanto arriva dal gestionale.
+
+La pagina SEO &amp; GEO in bacheca mostra da dove arrivano i dati in uso e quali campi
+restano vuoti. Il plugin ignora i campi non compilati, quindi non stampa mai dati finti.
 
 ---
 
@@ -299,6 +303,10 @@ Il gestionale non si limita a produrre file: parla direttamente con il plugin in
 su WordPress e scrive lì.
 
 ### Come si collega
+
+Serve il plugin **versione 1.1.0 o successiva**: le versioni precedenti non sanno ricevere
+i dati aziendali né pubblicare le riscritture. La versione installata è scritta nella
+pagina SEO &amp; GEO della bacheca e nel riquadro "WordPress" di *Applica sul sito*.
 
 1. Su WordPress apri **SEO &amp; GEO** nel menu: nel riquadro *Collegamento con il gestionale*
    trovi indirizzo del sito e token (il token si genera con un clic).

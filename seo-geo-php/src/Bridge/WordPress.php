@@ -62,17 +62,30 @@ class WordPress {
 	 * @return array
 	 */
 	public function inviaConfigurazione( array $cfg ) {
-		return $this->chiama(
-			'POST',
-			'/config',
-			array(
-				'config' => array(
-					'azienda' => $cfg['azienda'] ?? array(),
-					'autori'  => $cfg['autori'] ?? array(),
-					'seo'     => $cfg['seo'] ?? array(),
-				),
-			)
-		);
+		try {
+			return $this->chiama(
+				'POST',
+				'/config',
+				array(
+					'config' => array(
+						'azienda' => $cfg['azienda'] ?? array(),
+						'autori'  => $cfg['autori'] ?? array(),
+						'seo'     => $cfg['seo'] ?? array(),
+					),
+				)
+			);
+		} catch ( RuntimeException $e ) {
+			// La rotta /config esiste dalla versione 1.1.0 del plugin: se manca,
+			// il problema non è la configurazione ma il plugin da aggiornare.
+			if ( false !== stripos( $e->getMessage(), 'Rotta non trovata' ) ) {
+				throw new RuntimeException(
+					'Il plugin installato sul sito è una versione precedente e non sa ricevere i dati aziendali. '
+					. 'Aggiorna MDI SEO & GEO Booster alla 1.1.0 (Plugin → Aggiungi nuovo → Carica plugin) e risalva le impostazioni.'
+				);
+			}
+
+			throw $e;
+		}
 	}
 
 	/**

@@ -87,6 +87,14 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 		</div>
 	</div>
 
+	<?php if ( ! empty( $vecchio ) ) : ?>
+		<p class="avviso grave">
+			Sul sito è installata la versione <?php echo e( $stato['plugin'] ); ?> del plugin: non sa ricevere i dati
+			aziendali né pubblicare le riscritture. Aggiornalo alla 1.1.0 dalla scheda dell'audit
+			(Plugin → Aggiungi nuovo → Carica plugin), poi torna qui.
+		</p>
+	<?php endif; ?>
+
 	<section class="scheda">
 		<h2>Dati aziendali</h2>
 		<p class="guida">

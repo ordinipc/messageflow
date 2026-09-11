@@ -51,10 +51,10 @@ class MDI_Admin {
 		$mancanti = array();
 
 		$campi = array(
-			'azienda.telefono'              => 'telefono',
-			'azienda.partitaIva'            => 'partita IVA',
-			'azienda.indirizzo.via'         => 'indirizzo',
-			'azienda.indirizzo.cap'         => 'CAP',
+			'azienda.telefono'               => 'telefono',
+			'azienda.partitaIva'             => 'partita IVA',
+			'azienda.indirizzo.via'          => 'indirizzo',
+			'azienda.indirizzo.cap'          => 'CAP',
 			'azienda.profili.googleBusiness' => 'scheda Google Business',
 		);
 
@@ -68,9 +68,16 @@ class MDI_Admin {
 			return;
 		}
 
+		$dal_gestionale = (bool) get_option( MDI_Api::OPZIONE_CONFIG, false );
+
 		printf(
-			'<div class="notice notice-warning"><p><strong>MDI SEO &amp; GEO Booster:</strong> dati aziendali mancanti in <code>data/config.json</code>: %s. Senza questi valori lo schema LocalBusiness resta incompleto e il posizionamento locale non decolla.</p></div>',
-			esc_html( implode( ', ', $mancanti ) )
+			'<div class="notice notice-warning"><p><strong>MDI SEO &amp; GEO Booster:</strong> dati aziendali mancanti: %s. '
+				. 'Senza questi valori lo schema LocalBusiness resta incompleto e il posizionamento locale non decolla.</p><p>%s</p></div>',
+			esc_html( implode( ', ', $mancanti ) ),
+			$dal_gestionale
+				? 'I dati sono arrivati dal gestionale, ma questi campi erano vuoti: compilali nelle Impostazioni del gestionale e premi Salva.'
+				: 'Compila i dati nelle <strong>Impostazioni del gestionale</strong> e premi Salva: arrivano qui da soli. '
+					. 'Se non succede nulla, controlla che in quelle impostazioni siano inseriti indirizzo del sito e token (li trovi qui sotto, in SEO &amp; GEO).'
 		);
 	}
 
@@ -115,6 +122,8 @@ class MDI_Admin {
 	public static function sezione_collegamento() {
 		$token = MDI_Api::token();
 
+		self::sezione_dati_aziendali();
+
 		echo '<h2>Collegamento con il gestionale</h2>';
 		echo '<p>Incolla questi due valori nelle impostazioni dell applicazione SEO &amp; GEO Audit: '
 			. 'da lì potrai applicare meta, bozze, categorie, redirect e immagini senza copiare e incollare.</p>';
@@ -144,6 +153,58 @@ class MDI_Admin {
 
 		echo '<p class="description">Il token vale come una password: chi lo possiede può modificare meta e creare bozze. '
 			. 'Rigeneralo se pensi sia stato esposto.</p>';
+	}
+
+	/**
+	 * Stato dei dati aziendali: da dove arrivano e quali mancano.
+	 *
+	 * @return void
+	 */
+	public static function sezione_dati_aziendali() {
+		$dal_gestionale = (bool) get_option( MDI_Api::OPZIONE_CONFIG, false );
+
+		echo '<h2>Dati aziendali</h2>';
+
+		printf(
+			'<p>Origine: <strong>%s</strong></p>',
+			$dal_gestionale
+				? 'inviati dal gestionale'
+				: 'nessun invio ricevuto — in uso il file incluso nello zip, che è solo una fotografia del momento in cui il plugin è stato generato'
+		);
+
+		$campi = array(
+			'Telefono'               => 'azienda.telefono',
+			'Partita IVA'            => 'azienda.partitaIva',
+			'Indirizzo'              => 'azienda.indirizzo.via',
+			'CAP'                    => 'azienda.indirizzo.cap',
+			'Città'                  => 'azienda.indirizzo.citta',
+			'Scheda Google Business' => 'azienda.profili.googleBusiness',
+			'Email'                  => 'azienda.email',
+		);
+
+		echo '<table class="widefat striped" style="max-width:820px"><tbody>';
+
+		foreach ( $campi as $etichetta => $percorso ) {
+			$valore = mdi_seo_geo_cfg( $percorso );
+
+			printf(
+				'<tr><td style="width:220px"><strong>%s</strong></td><td>%s</td></tr>',
+				esc_html( $etichetta ),
+				$valore
+					? '<code>' . esc_html( $valore ) . '</code>'
+					: '<span style="color:#b32d2e">mancante</span>'
+			);
+		}
+
+		printf(
+			'<tr><td><strong>Versione del plugin</strong></td><td><code>%s</code></td></tr>',
+			esc_html( MDI_SEO_GEO_VERSION )
+		);
+
+		echo '</tbody></table>';
+
+		echo '<p class="description">Questi valori si compilano una volta sola nelle Impostazioni del gestionale: '
+			. 'a ogni salvataggio vengono rispediti qui, subito. Non serve reinstallare il plugin.</p>';
 	}
 
 	/**
