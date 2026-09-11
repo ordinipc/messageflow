@@ -1541,6 +1541,7 @@ switch ( $pagina ) {
 		vista(
 			'audit',
 			array(
+				'cambiati'   => Redirezioni::cambiati( $db, $audit['sito_url'] ),
 				'titolo'    => 'Audit ' . $audit['sito_nome'],
 				'audit'     => $audit,
 				'precedente' => $precedente,

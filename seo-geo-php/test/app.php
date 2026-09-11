@@ -672,6 +672,24 @@ verifica( 'la barra finale non conta come cambio', array() === \SeoGeo\Redirezio
 $a5 = $db3->insert( 'audit', array( 'sito_nome' => 'P', 'sito_url' => 'https://solo.it', 'creato_il' => '2026-09-11 10:00:00', 'punteggio' => 40 ) );
 verifica( 'con una sola analisi non inventa niente', array() === \SeoGeo\Redirezioni::cambiati( $db3, 'https://solo.it' ) );
 
+// Il caso che conta davvero: il contenuto è stato rinominato tre analisi fa e
+// da allora l indirizzo nuovo si ripete. Confrontando solo le ultime due non
+// risulterebbe niente, ma il vecchio indirizzo è morto lo stesso.
+$sito2 = 'https://vecchio.it';
+$b1 = $db3->insert( 'audit', array( 'sito_nome' => 'P', 'sito_url' => $sito2, 'creato_il' => '2026-09-01 10:00:00', 'punteggio' => 40 ) );
+$b2 = $db3->insert( 'audit', array( 'sito_nome' => 'P', 'sito_url' => $sito2, 'creato_il' => '2026-09-05 10:00:00', 'punteggio' => 40 ) );
+$b3 = $db3->insert( 'audit', array( 'sito_nome' => 'P', 'sito_url' => $sito2, 'creato_il' => '2026-09-11 10:00:00', 'punteggio' => 40 ) );
+
+$db3->insert( 'documento', array( 'audit_id' => $b1, 'wp_id' => '7388', 'titolo' => 'Video', 'percorso' => '/vecchio-indirizzo-2', 'tipo' => 'post', 'stato' => 'publish' ) );
+$db3->insert( 'documento', array( 'audit_id' => $b2, 'wp_id' => '7388', 'titolo' => 'Video', 'percorso' => '/nuovo-indirizzo', 'tipo' => 'post', 'stato' => 'publish' ) );
+$db3->insert( 'documento', array( 'audit_id' => $b3, 'wp_id' => '7388', 'titolo' => 'Video', 'percorso' => '/nuovo-indirizzo', 'tipo' => 'post', 'stato' => 'publish' ) );
+
+$vecchi = \SeoGeo\Redirezioni::cambiati( $db3, $sito2 );
+
+verifica( 'un indirizzo cambiato prima dell ultima analisi viene ancora trovato', 1 === count( $vecchi ), count( $vecchi ) . ' trovati' );
+verifica( 'e punta al primo indirizzo mai registrato', '/vecchio-indirizzo-2' === ( $vecchi[0]['da'] ?? '' ) );
+verifica( 'verso quello di adesso', '/nuovo-indirizzo' === ( $vecchi[0]['a'] ?? '' ) );
+
 @unlink( $fileDb3 );
 
 // --- Title tagliati a metà --------------------------------------------------

@@ -3,6 +3,7 @@
  * Dashboard di un audit.
  *
  * @package SeoGeoAudit
+ * @var array $cambiati Contenuti che hanno cambiato indirizzo.
  * @var array $audit    Riga audit.
  * @var array $aree     Punteggi per area.
  * @var array $rilievi  Rilievi ordinati per gravità.
@@ -151,6 +152,26 @@ $scaricabili = array(
 	</p>
 	<button class="bottone chiaro" type="submit">Rileggi il sito e ricalcola</button>
 </form>
+
+<?php if ( ! empty( $cambiati ) ) : ?>
+	<section class="scheda">
+		<h2>⚠︎ <?php echo 1 === count( $cambiati ) ? 'Un contenuto ha' : num( count( $cambiati ) ) . ' contenuti hanno'; ?> cambiato indirizzo</h2>
+		<p class="guida">
+			Il vecchio indirizzo da quel momento dà <strong>pagina non trovata</strong>: i link che arrivano
+			da fuori si perdono e la posizione guadagnata in Google riparte da zero. Si sistema con un
+			redirect 301, che è gratis e richiede un clic.
+		</p>
+		<ul class="guida">
+			<?php foreach ( array_slice( $cambiati, 0, 5 ) as $riga ) : ?>
+				<li><code><?php echo e( $riga['da'] ); ?></code> → <code><?php echo e( $riga['a'] ); ?></code></li>
+			<?php endforeach; ?>
+			<?php if ( count( $cambiati ) > 5 ) : ?>
+				<li>e altri <?php echo num( count( $cambiati ) - 5 ); ?></li>
+			<?php endif; ?>
+		</ul>
+		<p><a class="bottone" href="?p=collega&amp;id=<?php echo (int) $audit['id']; ?>#indirizzi">Sistemali adesso</a></p>
+	</section>
+<?php endif; ?>
 
 <section class="scheda">
 	<h2>Pilota automatico</h2>

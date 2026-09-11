@@ -29,21 +29,34 @@ class Redirezioni {
 	 * @return array[] 'wp_id', 'titolo', 'da', 'a', 'quando'.
 	 */
 	public static function cambiati( Db $db, $sito ) {
-		$analisi = $db->all(
-			'SELECT id, creato_il FROM audit WHERE sito_url = ? ORDER BY id DESC LIMIT 2',
-			array( $sito )
-		);
+		$ultima = $db->one( 'SELECT id, creato_il FROM audit WHERE sito_url = ? ORDER BY id DESC LIMIT 1', array( $sito ) );
 
-		if ( count( $analisi ) < 2 ) {
+		if ( ! $ultima ) {
 			return array();
 		}
 
-		list( $ultima, $precedente ) = $analisi;
-
+		// Il confronto è con il primo indirizzo mai registrato, non con quello
+		// dell analisi precedente: se un contenuto è stato rinominato tre
+		// analisi fa, il vecchio indirizzo è morto lo stesso e va rimandato
+		// sul nuovo. Confrontare solo le ultime due lo avrebbe mancato.
 		$prima = array();
 
-		foreach ( $db->all( "SELECT wp_id, percorso, titolo FROM documento WHERE audit_id = ? AND wp_id <> ''", array( $precedente['id'] ) ) as $riga ) {
-			$prima[ $riga['wp_id'] ] = $riga;
+		foreach ( $db->all(
+			"SELECT d.wp_id, d.percorso, d.titolo, a.id AS audit
+			 FROM documento d JOIN audit a ON a.id = d.audit_id
+			 WHERE a.sito_url = ? AND d.wp_id <> '' AND a.id < ?
+			 ORDER BY a.id ASC",
+			array( $sito, $ultima['id'] )
+		) as $riga ) {
+			// Il primo che si incontra è il più vecchio: gli altri non lo
+			// sostituiscono.
+			if ( ! isset( $prima[ $riga['wp_id'] ] ) ) {
+				$prima[ $riga['wp_id'] ] = $riga;
+			}
+		}
+
+		if ( ! $prima ) {
+			return array();
 		}
 
 		$cambiati = array();

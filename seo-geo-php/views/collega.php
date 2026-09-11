@@ -169,8 +169,8 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 	</section>
 
 	<?php if ( ! empty( $cambiati ) ) : ?>
-		<section class="scheda">
-			<h2>Indirizzi cambiati dall ultima analisi</h2>
+		<section class="scheda" id="indirizzi">
+			<h2>Indirizzi cambiati</h2>
 			<p class="guida">
 				<?php echo num( count( $cambiati ) ); ?> contenuti oggi rispondono a un indirizzo diverso da prima:
 				succede quando si cambia il titolo e WordPress o chi scrive aggiorna anche lo slug. Il vecchio
