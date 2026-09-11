@@ -119,6 +119,26 @@ class MDI_Api {
 			'callback' => array( __CLASS__, 'annulla_meta' ),
 		) );
 
+		register_rest_route( self::NAMESPACE_API, '/conteggi', $comune + array(
+			'methods'  => 'GET',
+			'callback' => array( __CLASS__, 'conteggi' ),
+		) );
+
+		register_rest_route( self::NAMESPACE_API, '/contenuti', $comune + array(
+			'methods'  => 'GET',
+			'callback' => array( __CLASS__, 'contenuti' ),
+		) );
+
+		register_rest_route( self::NAMESPACE_API, '/allegati', $comune + array(
+			'methods'  => 'GET',
+			'callback' => array( __CLASS__, 'allegati' ),
+		) );
+
+		register_rest_route( self::NAMESPACE_API, '/menu', $comune + array(
+			'methods'  => 'GET',
+			'callback' => array( __CLASS__, 'menu' ),
+		) );
+
 		register_rest_route( self::NAMESPACE_API, '/config', $comune + array(
 			'methods'  => 'POST',
 			'callback' => array( __CLASS__, 'salva_config' ),
@@ -133,6 +153,208 @@ class MDI_Api {
 			'methods'  => 'POST',
 			'callback' => array( __CLASS__, 'cestina' ),
 		) );
+	}
+
+	/**
+	 * Quanti contenuti ci sono da leggere: serve al gestionale per sapere
+	 * quante pagine di risultati richiedere.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public static function conteggi() {
+		$articoli = wp_count_posts( 'post' );
+		$pagine    = wp_count_posts( 'page' );
+
+		return rest_ensure_response(
+			array(
+				'ok'        => true,
+				'articoli'  => (int) $articoli->publish,
+				'pagine'    => (int) $pagine->publish,
+				'contenuti' => (int) $articoli->publish + (int) $pagine->publish,
+				'allegati'  => (int) count( get_posts( array( 'post_type' => 'attachment', 'post_status' => 'inherit', 'numberposts' => -1, 'fields' => 'ids' ) ) ),
+				'sito'      => array(
+					'titolo'      => get_bloginfo( 'name' ),
+					'descrizione' => get_bloginfo( 'description' ),
+					'url'         => home_url( '/' ),
+					'lingua'      => get_bloginfo( 'language' ),
+				),
+				// Gli autori servono a valutare l attribuzione dei contenuti:
+				// un articolo firmato da una persona reale vale più di uno
+				// firmato da un login.
+				'autori'    => array_map(
+					static function ( $utente ) {
+						return array(
+							'id'    => (string) $utente->ID,
+							'login' => $utente->user_login,
+							'nome'  => $utente->display_name,
+							'first' => get_user_meta( $utente->ID, 'first_name', true ),
+							'last'  => get_user_meta( $utente->ID, 'last_name', true ),
+							'email' => $utente->user_email,
+						);
+					},
+					(array) get_users( array( 'number' => 20 ) )
+				),
+			)
+		);
+	}
+
+	/**
+	 * Restituisce un blocco di contenuti con tutto ciò che serve all analisi.
+	 *
+	 * @param WP_REST_Request $richiesta Richiesta con 'offset' e 'limite'.
+	 * @return WP_REST_Response
+	 */
+	public static function contenuti( $richiesta ) {
+		$offset = max( 0, (int) $richiesta->get_param( 'offset' ) );
+		$limite = min( 100, max( 1, (int) ( $richiesta->get_param( 'limite' ) ?: 40 ) ) );
+
+		$ids = get_posts(
+			array(
+				'post_type'      => array( 'post', 'page' ),
+				'post_status'    => 'publish',
+				'posts_per_page' => $limite,
+				'offset'         => $offset,
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+				'fields'         => 'ids',
+			)
+		);
+
+		$contenuti = array();
+
+		foreach ( $ids as $id ) {
+			$post = get_post( $id );
+
+			if ( ! $post ) {
+				continue;
+			}
+
+			$categorie = array();
+
+			foreach ( (array) get_the_category( $id ) as $categoria ) {
+				$categorie[] = array( 'slug' => $categoria->slug, 'nome' => $categoria->name );
+			}
+
+			$etichette = array();
+
+			foreach ( (array) get_the_tags( $id ) as $etichetta ) {
+				if ( $etichetta ) {
+					$etichette[] = array( 'slug' => $etichetta->slug, 'nome' => $etichetta->name );
+				}
+			}
+
+			$meta   = array();
+			$chiavi = array(
+				'rank_math_title',
+				'rank_math_description',
+				'rank_math_focus_keyword',
+				'rank_math_robots',
+				'rank_math_canonical_url',
+				'rank_math_seo_score',
+				'_yoast_wpseo_title',
+				'_yoast_wpseo_metadesc',
+				'_yoast_wpseo_focuskw',
+				'_thumbnail_id',
+				'_elementor_data',
+			);
+
+			foreach ( $chiavi as $chiave ) {
+				$valore = get_post_meta( $id, $chiave, true );
+
+				if ( '' !== $valore && null !== $valore ) {
+					// Di Elementor basta sapere che c è: il contenuto pesa troppo.
+					$meta[ $chiave ] = '_elementor_data' === $chiave ? '1' : $valore;
+				}
+			}
+
+			$contenuti[] = array(
+				'wp_id'      => (string) $id,
+				'titolo'     => get_the_title( $id ),
+				'link'       => get_permalink( $id ),
+				'slug'       => $post->post_name,
+				'tipo'       => $post->post_type,
+				'stato'      => $post->post_status,
+				'data'       => $post->post_date_gmt,
+				'modificato' => $post->post_modified_gmt,
+				'autore'     => get_the_author_meta( 'display_name', $post->post_author ),
+				'contenuto'  => $post->post_content,
+				'estratto'   => $post->post_excerpt,
+				'genitore'   => (string) $post->post_parent,
+				'commenti'   => $post->comment_status,
+				'categorie'  => $categorie,
+				'tag'        => $etichette,
+				'meta'       => $meta,
+			);
+		}
+
+		return rest_ensure_response( array( 'ok' => true, 'offset' => $offset, 'contenuti' => $contenuti ) );
+	}
+
+	/**
+	 * Restituisce gli allegati della libreria media.
+	 *
+	 * @param WP_REST_Request $richiesta Richiesta con 'offset' e 'limite'.
+	 * @return WP_REST_Response
+	 */
+	public static function allegati( $richiesta ) {
+		$offset = max( 0, (int) $richiesta->get_param( 'offset' ) );
+		$limite = min( 200, max( 1, (int) ( $richiesta->get_param( 'limite' ) ?: 100 ) ) );
+
+		$ids = get_posts(
+			array(
+				'post_type'      => 'attachment',
+				'post_status'    => 'inherit',
+				'posts_per_page' => $limite,
+				'offset'         => $offset,
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+				'fields'         => 'ids',
+			)
+		);
+
+		$allegati = array();
+
+		foreach ( $ids as $id ) {
+			$file = get_attached_file( $id );
+			$dati = wp_get_attachment_metadata( $id );
+
+			$allegati[] = array(
+				'wp_id'    => (string) $id,
+				'url'      => wp_get_attachment_url( $id ),
+				'titolo'   => get_the_title( $id ),
+				'alt'      => get_post_meta( $id, '_wp_attachment_image_alt', true ),
+				'genitore' => (string) wp_get_post_parent_id( $id ),
+				'peso'     => ( $file && file_exists( $file ) ) ? (int) filesize( $file ) : (int) ( $dati['filesize'] ?? 0 ),
+			);
+		}
+
+		return rest_ensure_response( array( 'ok' => true, 'offset' => $offset, 'allegati' => $allegati ) );
+	}
+
+	/**
+	 * Restituisce le voci dei menu di navigazione.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public static function menu() {
+		$voci = array();
+
+		foreach ( (array) wp_get_nav_menus() as $menu ) {
+			foreach ( (array) wp_get_nav_menu_items( $menu->term_id ) as $voce ) {
+				if ( ! $voce ) {
+					continue;
+				}
+
+				$voci[] = array(
+					'titolo' => $voce->title,
+					'tipo'   => $voce->type,
+					'url'    => $voce->url,
+					'menu'   => $menu->name,
+				);
+			}
+		}
+
+		return rest_ensure_response( array( 'ok' => true, 'voci' => $voci ) );
 	}
 
 	/**

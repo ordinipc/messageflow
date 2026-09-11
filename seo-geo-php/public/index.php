@@ -20,6 +20,7 @@ use SeoGeo\Impostazioni;
 use SeoGeo\Fix\InternalLinks;
 use SeoGeo\Fix\Meta;
 use SeoGeo\Site;
+use SeoGeo\Sync\Sito as SitoRemoto;
 use SeoGeo\Triage;
 use SeoGeo\WxrParser;
 
@@ -152,6 +153,51 @@ if ( 'analizza' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	);
 
 	header( 'Location: ?p=audit&id=' . $auditId );
+	exit;
+}
+
+// --------------------------------------- Nuova analisi leggendo dal sito
+if ( 'risincronizza' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Token di sessione non valido: ricarica la pagina e riprova.' );
+	}
+
+	$ponte = new WordPress( $cfg['wordpress'] );
+
+	set_time_limit( 0 );
+
+	try {
+		$lettore = new SitoRemoto( $ponte );
+		$site    = new Site( $lettore->leggi() );
+
+		$audit   = Audit::esegui( $site );
+		$triage  = Triage::esegui( $site, $cfg );
+		$meta    = Meta::piano( $site, $cfg );
+		$link    = InternalLinks::piano( $site, $cfg );
+
+		$auditId = Audit::salva( $db, $site, $audit, 'letto dal sito' );
+		Triage::salva( $db, $auditId, $triage );
+		Meta::salva( $db, $auditId, $meta );
+		InternalLinks::salva( $db, $auditId, $link['piano'] );
+
+		Export::tutto(
+			array(
+				'site'     => $site,
+				'cfg'      => $cfg,
+				'audit'    => $audit,
+				'triage'   => $triage,
+				'meta'     => $meta,
+				'link'     => $link,
+				'cartella' => __DIR__ . '/../storage/export/audit-' . $auditId,
+			)
+		);
+
+		header( 'Location: ?p=audit&id=' . $auditId . '&nuovo=1' );
+	} catch ( Throwable $e ) {
+		header( 'Location: ?p=home&errore=' . rawurlencode( $e->getMessage() ) );
+	}
+
 	exit;
 }
 
@@ -832,11 +878,18 @@ switch ( $pagina ) {
 			exit( 'Audit non trovato.' );
 		}
 
+		$precedente = $db->one(
+			'SELECT punteggio, creato_il, problemi_totali FROM audit WHERE id < ? AND sito_url = ? ORDER BY id DESC LIMIT 1',
+			array( $id, $audit['sito_url'] )
+		);
+
 		vista(
 			'audit',
 			array(
 				'titolo'    => 'Audit ' . $audit['sito_nome'],
 				'audit'     => $audit,
+				'precedente' => $precedente,
+				'nuovo'     => isset( $_GET['nuovo'] ),
 				'aree'      => $db->all( 'SELECT * FROM area WHERE audit_id = ? ORDER BY punteggio ASC', array( $id ) ),
 				'rilievi'   => $db->all(
 					"SELECT * FROM rilievo WHERE audit_id = ?
@@ -1194,9 +1247,11 @@ switch ( $pagina ) {
 		vista(
 			'home',
 			array(
-				'titolo' => 'Audit SEO e GEO',
-				'audit'  => $db->all( 'SELECT * FROM audit ORDER BY id DESC LIMIT 50' ),
-				'cfg'    => $cfg,
+				'titolo'    => 'Audit SEO e GEO',
+				'audit'     => $db->all( 'SELECT * FROM audit ORDER BY id DESC LIMIT 50' ),
+				'cfg'       => $cfg,
+				'errore'    => (string) ( $_GET['errore'] ?? '' ),
+				'collegato' => ( new WordPress( $cfg['wordpress'] ) )->pronto(),
 			)
 		);
 }

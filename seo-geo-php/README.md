@@ -248,6 +248,30 @@ garantisce posizionamenti. Riscrive testi: è una parte del lavoro, non tutto il
 
 ---
 
+## Il punteggio si aggiorna da solo?
+
+No, ed è una scelta: il punteggio è la fotografia del sito nel momento in cui è stato
+analizzato, e resta lì per poterlo confrontare con le fotografie successive.
+
+Per rifare la foto non serve più riesportare l'XML da WordPress: il plugin (dalla versione
+1.2.0) espone contenuti, meta, immagini, menu e autori, e il gestionale li rilegge da lì.
+
+```bash
+php cli/audit.php --dal-sito
+```
+
+Dall'interfaccia: **Rileggi il sito e ricalcola**, in home o nella scheda dell'audit.
+La nuova analisi si affianca alle precedenti — non le sostituisce — e la scheda mostra la
+variazione rispetto a quella prima (`+12 rispetto all'analisi del 2026-09-11`).
+
+Il flusso resta comunque comandato dal gestionale: il plugin non spedisce niente di sua
+iniziativa, risponde quando gli viene chiesto. Un sito che chiama da solo un server esterno
+a ogni modifica è un rischio che non vale il vantaggio; se vuoi l'aggiornamento periodico,
+un cron con `php cli/audit.php --dal-sito` una volta a settimana fa lo stesso lavoro senza
+aprire niente.
+
+---
+
 ## Pilota automatico
 
 Un comando solo, e il programma esegue in sequenza tutto ciò che non richiede una

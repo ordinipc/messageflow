@@ -178,6 +178,11 @@ class Site {
 		$serial = $item['meta']['_wp_attachment_metadata'] ?? '';
 		$peso   = preg_match( '/"filesize";i:(\d+)/', $serial, $m ) ? (int) $m[1] : 0;
 
+		// Quando i dati arrivano dal sito il peso è già un numero.
+		if ( isset( $item['peso'] ) ) {
+			$peso = (int) $item['peso'];
+		}
+
 		return array(
 			'wp_id'    => $item['wp_id'],
 			'url'      => $item['allegato_url'],

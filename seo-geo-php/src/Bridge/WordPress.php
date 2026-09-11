@@ -56,6 +56,46 @@ class WordPress {
 	}
 
 	/**
+	 * Conteggi, dati del sito e autori: la prima chiamata di una sincronizzazione.
+	 *
+	 * @return array
+	 */
+	public function conteggi() {
+		return $this->chiama( 'GET', '/conteggi' );
+	}
+
+	/**
+	 * Un blocco di contenuti pubblicati.
+	 *
+	 * @param int $offset Da quale posizione.
+	 * @param int $limite Quanti.
+	 * @return array
+	 */
+	public function contenuti( $offset = 0, $limite = 40 ) {
+		return $this->chiama( 'GET', '/contenuti?offset=' . (int) $offset . '&limite=' . (int) $limite );
+	}
+
+	/**
+	 * Un blocco di allegati della libreria media.
+	 *
+	 * @param int $offset Da quale posizione.
+	 * @param int $limite Quanti.
+	 * @return array
+	 */
+	public function allegati( $offset = 0, $limite = 100 ) {
+		return $this->chiama( 'GET', '/allegati?offset=' . (int) $offset . '&limite=' . (int) $limite );
+	}
+
+	/**
+	 * Le voci dei menu di navigazione.
+	 *
+	 * @return array
+	 */
+	public function menu() {
+		return $this->chiama( 'GET', '/menu' );
+	}
+
+	/**
 	 * Invia al sito i dati aziendali salvati nelle impostazioni.
 	 *
 	 * @param array $cfg Configurazione completa.

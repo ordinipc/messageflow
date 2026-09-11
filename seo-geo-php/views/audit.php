@@ -49,10 +49,25 @@ $scaricabili = array(
 	<p class="guida"><?php echo e( $audit['sito_url'] ); ?> · analisi del <?php echo e( substr( $audit['creato_il'], 0, 16 ) ); ?> · <?php echo num( $audit['articoli'] ); ?> articoli, <?php echo num( $audit['pagine'] ); ?> pagine, <?php echo num( $audit['media'] ); ?> file media</p>
 </section>
 
+<?php if ( ! empty( $nuovo ) ) : ?>
+	<p class="avviso ok-bg">Analisi aggiornata leggendo direttamente dal sito.</p>
+<?php endif; ?>
+
 <div class="riquadri">
 	<div class="riquadro grande">
 		<span class="etichetta">Punteggio complessivo</span>
 		<span class="voto-grande <?php echo $audit['punteggio'] >= 70 ? 'ok' : ( $audit['punteggio'] >= 45 ? 'medio' : 'grave' ); ?>"><?php echo (int) $audit['punteggio']; ?><small>/100</small></span>
+		<?php if ( ! empty( $precedente ) ) : ?>
+			<?php $delta = (int) $audit['punteggio'] - (int) $precedente['punteggio']; ?>
+			<span class="sotto">
+				<?php if ( 0 === $delta ) : ?>
+					invariato rispetto all'analisi del <?php echo e( substr( $precedente['creato_il'], 0, 10 ) ); ?>
+				<?php else : ?>
+					<strong style="color:<?php echo $delta > 0 ? 'var(--ok)' : 'var(--grave)'; ?>"><?php echo $delta > 0 ? '+' . $delta : $delta; ?></strong>
+					rispetto all'analisi del <?php echo e( substr( $precedente['creato_il'], 0, 10 ) ); ?> (era <?php echo (int) $precedente['punteggio']; ?>)
+				<?php endif; ?>
+			</span>
+		<?php endif; ?>
 	</div>
 	<div class="riquadro">
 		<span class="etichetta">Problemi rilevati</span>
@@ -125,6 +140,17 @@ $scaricabili = array(
 		</table>
 	</div>
 </section>
+
+<form class="scheda" method="post" action="?p=risincronizza">
+	<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+	<h2>Il punteggio è aggiornato?</h2>
+	<p class="guida">
+		No: è la fotografia del momento in cui il sito è stato analizzato
+		(<?php echo e( substr( $audit['creato_il'], 0, 16 ) ); ?>). Le correzioni applicate dopo non lo spostano da sole.
+		Rileggi il sito per ricalcolarlo e confrontarlo con questo.
+	</p>
+	<button class="bottone chiaro" type="submit">Rileggi il sito e ricalcola</button>
+</form>
 
 <section class="scheda">
 	<h2>Pilota automatico</h2>

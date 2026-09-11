@@ -17,13 +17,17 @@ use SeoGeo\Fix\Meta;
 use SeoGeo\Site;
 use SeoGeo\Triage;
 use SeoGeo\WxrParser;
+use SeoGeo\Bridge\WordPress;
+use SeoGeo\Sync\Sito as SitoRemoto;
 
 $cfg = \SeoGeo\Impostazioni::carica( require __DIR__ . '/../config.php' );
 
-$file = $argv[1] ?? '';
+$file     = $argv[1] ?? '';
+$dal_sito = in_array( '--dal-sito', $argv, true );
 
-if ( '' === $file || ! is_readable( $file ) ) {
+if ( ! $dal_sito && ( '' === $file || ! is_readable( $file ) ) ) {
 	fwrite( STDERR, "Uso: php cli/audit.php <export-wordpress.xml> [cartella-output]\n" );
+	fwrite( STDERR, "     php cli/audit.php --dal-sito    (legge da WordPress tramite il plugin)\n" );
 	exit( 1 );
 }
 
@@ -32,8 +36,22 @@ if ( '' === $file || ! is_readable( $file ) ) {
 $out    = $argv[2] ?? null;
 $inizio = microtime( true );
 
-echo "\n▶ Lettura di " . basename( $file ) . "…\n";
-$site = new Site( WxrParser::parse( $file ) );
+if ( $dal_sito ) {
+	echo "\n▶ Lettura dal sito tramite il plugin…\n";
+
+	$ponte   = new WordPress( $cfg['wordpress'] );
+	$lettore = new SitoRemoto(
+		$ponte,
+		static function ( $messaggio ) {
+			echo '  ' . $messaggio . "\n";
+		}
+	);
+
+	$site = new Site( $lettore->leggi() );
+} else {
+	echo "\n▶ Lettura di " . basename( $file ) . "…\n";
+	$site = new Site( WxrParser::parse( $file ) );
+}
 printf( "  %d articoli · %d pagine · %d media · dominio %s\n", count( $site->articoli ), count( $site->pagine ), count( $site->allegati ), $site->host );
 
 echo "\n▶ Audit SEO e GEO…\n";
@@ -65,7 +83,7 @@ printf( "  link interni: %d proposti — pagine orfane da %d a %d\n", $link['sta
 
 echo "\n▶ Salvataggio su database…\n";
 $db      = new Db( $cfg['database'] );
-$auditId = Audit::salva( $db, $site, $audit, basename( $file ) );
+$auditId = Audit::salva( $db, $site, $audit, $dal_sito ? 'letto dal sito' : basename( $file ) );
 Triage::salva( $db, $auditId, $triage );
 Meta::salva( $db, $auditId, $meta );
 InternalLinks::salva( $db, $auditId, $link['piano'] );

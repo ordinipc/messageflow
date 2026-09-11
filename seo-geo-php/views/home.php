@@ -12,6 +12,22 @@
 	<p class="guida">Ogni analisi resta nel database con punteggi, rilievi, triage editoriale e file di correzione pronti da scaricare.</p>
 </section>
 
+<?php if ( $errore ) : ?><p class="avviso grave"><?php echo e( $errore ); ?></p><?php endif; ?>
+
+<?php if ( $collegato ) : ?>
+	<form class="scheda" method="post" action="?p=risincronizza">
+		<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+		<h2>Aggiorna l'analisi leggendo dal sito</h2>
+		<p class="guida">
+			Rilegge contenuti, meta, immagini e menu direttamente da WordPress e ricalcola il punteggio,
+			senza riesportare l'XML. È il modo per vedere se le correzioni applicate hanno spostato i numeri:
+			la nuova analisi si affianca alle precedenti, così il confronto resta.
+		</p>
+		<p class="nota">Su qualche centinaio di contenuti richiede da mezzo minuto a due minuti. Da riga di comando: <code>php cli/audit.php --dal-sito</code></p>
+		<button class="bottone" type="submit">Rileggi il sito e ricalcola</button>
+	</form>
+<?php endif; ?>
+
 <?php if ( empty( $audit ) ) : ?>
 	<div class="vuoto">
 		<p>Nessuna analisi presente.</p>
