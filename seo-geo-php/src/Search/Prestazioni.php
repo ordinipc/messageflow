@@ -156,6 +156,7 @@ class Prestazioni {
 				'posizione_media' => $posizioni ? round( array_sum( $posizioni ) / count( $posizioni ), 1 ) : 0,
 				'pagine'          => count( $dati['pagine'] ),
 				'query'           => count( $dati['query'] ),
+				'sitemap'         => json_encode( $dati['sitemap'] ?? array(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ),
 			)
 		);
 
@@ -321,6 +322,15 @@ class Prestazioni {
 		$dati['proprieta'] = $console->proprieta();
 
 		$avvisa( sprintf( 'Scaricate %d pagine e %d ricerche.', count( $dati['pagine'] ), count( $dati['query'] ) ) );
+
+		// Stato delle sitemap: è la risposta alla domanda "Google le rilegge?".
+		// Se la chiamata non va, l aggiornamento prosegue: è un di più.
+		try {
+			$dati['sitemap'] = $console->sitemap();
+			$avvisa( sprintf( 'Sitemap dichiarate in Search Console: %d.', count( $dati['sitemap'] ) ) );
+		} catch ( RuntimeException $e ) {
+			$dati['sitemap'] = array();
+		}
 
 		$segnali = Segnali::deriva(
 			$dati + array( 'documenti' => $documenti ),

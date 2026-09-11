@@ -274,6 +274,7 @@ class Db {
 		$this->aggiungiColonna( 'documento', 'testo', $txt );
 		$this->aggiungiColonna( 'documento', 'ha_thumbnail', 'INT' );
 		$this->aggiungiColonna( 'bozza', 'file', $vc );
+		$this->aggiungiColonna( 'gsc_rilevazione', 'sitemap', $txt );
 
 		foreach ( array(
 			'CREATE INDEX IF NOT EXISTS idx_doc_audit ON documento (audit_id)',

@@ -228,6 +228,43 @@ function delta( $ora, $prima, $meglio = false ) {
 			</div>
 		</section>
 
+		<?php
+		$sitemap = json_decode( (string) ( $ultima['sitemap'] ?? '' ), true );
+		$sitemap = is_array( $sitemap ) ? $sitemap : array();
+		?>
+
+		<?php if ( $sitemap ) : ?>
+			<section class="scheda">
+				<h2>Sitemap</h2>
+				<p class="guida">
+					La sitemap la genera WordPress (o il tuo plugin SEO) e si aggiorna da sola a ogni pubblicazione.
+					Qui si vede l ultima volta che Google l ha letta: se la data è recente, il giro funziona e non
+					c è niente da reinviare.
+				</p>
+				<div class="tabellabox">
+					<table>
+						<thead><tr><th>Sitemap</th><th>Letta da Google</th><th class="num">Errori</th><th class="num">Avvisi</th></tr></thead>
+						<tbody>
+						<?php foreach ( $sitemap as $riga ) : ?>
+							<tr>
+								<td><a href="<?php echo e( $riga['percorso'] ); ?>" target="_blank" rel="noopener"><?php echo e( $riga['percorso'] ); ?></a></td>
+								<td><?php echo $riga['inviata'] ? e( substr( (string) $riga['inviata'], 0, 10 ) ) : '—'; ?></td>
+								<td class="num"><?php echo $riga['errori'] ? '<span class="tag grave">' . num( $riga['errori'] ) . '</span>' : '0'; ?></td>
+								<td class="num"><?php echo $riga['avvisi'] ? '<span class="tag alto">' . num( $riga['avvisi'] ) . '</span>' : '0'; ?></td>
+							</tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+				</div>
+			</section>
+		<?php else : ?>
+			<p class="nota">
+				Nessuna sitemap risulta dichiarata in Search Console. WordPress ne genera una da solo
+				(<code>/wp-sitemap.xml</code>, oppure <code>/sitemap_index.xml</code> se usi Rank Math o Yoast):
+				inviala una volta da Search Console → Sitemap, poi Google la rilegge per conto suo.
+			</p>
+		<?php endif; ?>
+
 		<?php if ( count( $storico ) > 1 ) : ?>
 			<section class="scheda">
 				<h2>Come sta andando nel tempo</h2>
