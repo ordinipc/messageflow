@@ -31,7 +31,8 @@ class Coda {
 	/** @var array<string,string> Etichette leggibili dei tipi di operazione. */
 	const TIPI = array(
 		'config'        => 'Dati aziendali al sito',
-		'meta'          => 'Meta ottimizzate',
+		'meta'          => 'Meta degli articoli',
+		'meta_pagine'   => 'Meta delle pagine',
 		'redirect'      => 'Redirect 301',
 		'categorie'     => 'Categorie',
 		'accorpa'       => 'Accorpamento',
@@ -79,13 +80,30 @@ class Coda {
 		// dipendono da questi, e il plugin da solo non li conosce.
 		$aggiungi( 'config', '', 'Invio dei dati aziendali al sito' );
 
-		// 2. Meta, a blocchi: la scrittura di 326 contenuti in una sola richiesta
-		// supererebbe i limiti di molti hosting.
-		$quante_meta = (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $auditId ) )['n'];
+		// 2. Meta degli articoli, a blocchi: la scrittura di centinaia di contenuti
+		// in una sola richiesta supererebbe i limiti di molti hosting.
+		$quanti_articoli = (int) $db->one(
+			"SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id
+			 WHERE m.audit_id = ? AND d.tipo = 'post'",
+			array( $auditId )
+		)['n'];
 
-		for ( $offset = 0; $offset < $quante_meta; $offset += 80 ) {
-			$fino = min( $quante_meta, $offset + 80 );
-			$aggiungi( 'meta', $offset, sprintf( 'Meta dei contenuti da %d a %d', $offset + 1, $fino ) );
+		for ( $offset = 0; $offset < $quanti_articoli; $offset += 80 ) {
+			$fino = min( $quanti_articoli, $offset + 80 );
+			$aggiungi( 'meta', $offset, sprintf( 'Meta degli articoli da %d a %d', $offset + 1, $fino ) );
+		}
+
+		// Le pagine sono poche e scritte a mano: si toccano solo se richiesto.
+		if ( ! empty( $opzioni['pagine'] ) ) {
+			$quante_pagine = (int) $db->one(
+				"SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id
+				 WHERE m.audit_id = ? AND d.tipo = 'page'",
+				array( $auditId )
+			)['n'];
+
+			if ( $quante_pagine ) {
+				$aggiungi( 'meta_pagine', 0, sprintf( 'Meta delle %d pagine', $quante_pagine ) );
+			}
 		}
 
 		// 2. Redirect obbligatori e categorie.
@@ -270,7 +288,7 @@ class Coda {
 	 * @throws SaltaCompito Se l operazione non è applicabile.
 	 */
 	private static function eseguiCompito( Db $db, $auditId, array $cfg, array $compito, Gemini $gemini, WordPress $ponte ) {
-		$serve_sito = in_array( $compito['tipo'], array( 'config', 'meta', 'redirect', 'categorie', 'applica_bozza', 'cestina' ), true );
+		$serve_sito = in_array( $compito['tipo'], array( 'config', 'meta', 'meta_pagine', 'redirect', 'categorie', 'applica_bozza', 'cestina' ), true );
 
 		if ( $serve_sito && ! $ponte->pronto() ) {
 			throw new SaltaCompito( 'Collegamento a WordPress non configurato: indirizzo e token nelle Impostazioni.' );
@@ -291,17 +309,25 @@ class Coda {
 					: 'telefono, partita IVA, indirizzo e scheda Google Business ora sul sito';
 
 			case 'meta':
+			case 'meta_pagine':
+				$tipo_contenuto = 'meta_pagine' === $compito['tipo'] ? 'page' : 'post';
+
 				$righe = $db->all(
 					'SELECT d.wp_id AS id, m.title_nuovo AS title, m.description_nuova AS description,
 							m.excerpt_nuovo AS excerpt, d.focus_keyword AS focus
 					 FROM meta_piano m JOIN documento d ON d.id = m.documento_id
-					 WHERE m.audit_id = ? ORDER BY m.id ASC LIMIT 80 OFFSET ' . (int) $compito['riferimento'],
-					array( $auditId )
+					 WHERE m.audit_id = ? AND d.tipo = ?
+					 ORDER BY m.id ASC LIMIT 80 OFFSET ' . (int) $compito['riferimento'],
+					array( $auditId, $tipo_contenuto )
 				);
 
 				$esito = $ponte->inviaMeta( $righe, false );
 
-				return sprintf( '%d contenuti aggiornati', (int) ( $esito['aggiornati'] ?? 0 ) );
+				return sprintf(
+					'%d %s aggiornate',
+					(int) ( $esito['aggiornati'] ?? 0 ),
+					'page' === $tipo_contenuto ? 'pagine' : 'articoli'
+				);
 
 			case 'redirect':
 				$righe = array();

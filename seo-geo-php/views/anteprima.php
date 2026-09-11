@@ -8,12 +8,18 @@
  * @var string $sorgente 'sito' se letto dal plugin, 'export' se dal database.
  * @var string $quando   Data dell anteprima.
  * @var string $solo     'modificati' oppure 'tutti'.
+ * @var string $tipo     Filtro sul tipo di contenuto.
  */
 
-$conteggi  = array();
+$conteggi   = array();
 $modificate = array();
+$per_tipo   = array( 'post' => 0, 'page' => 0 );
 
 foreach ( $righe as $r ) {
+	if ( isset( $r['tipo'] ) && isset( $per_tipo[ $r['tipo'] ] ) ) {
+		$per_tipo[ $r['tipo'] ]++;
+	}
+
 	$cambia = array();
 
 	foreach ( $r['campi'] as $nome => $valori ) {
@@ -30,6 +36,10 @@ foreach ( $righe as $r ) {
 }
 
 $elenco = ( 'tutti' === $solo ) ? $righe : $modificate;
+
+if ( $tipo ) {
+	$elenco = array_values( array_filter( $elenco, static fn( $r ) => ( $r['tipo'] ?? '' ) === $tipo ) );
+}
 
 ?>
 <section class="intestazione">
@@ -60,8 +70,11 @@ $elenco = ( 'tutti' === $solo ) ? $righe : $modificate;
 </div>
 
 <div class="pillole">
-	<a class="pillola <?php echo 'modificati' === $solo ? 'attiva' : ''; ?>" href="?p=anteprima&amp;id=<?php echo (int) $audit['id']; ?>">Solo quelli che cambiano <b><?php echo num( count( $modificate ) ); ?></b></a>
-	<a class="pillola <?php echo 'tutti' === $solo ? 'attiva' : ''; ?>" href="?p=anteprima&amp;id=<?php echo (int) $audit['id']; ?>&amp;tutti=1">Tutti <b><?php echo num( count( $righe ) ); ?></b></a>
+	<a class="pillola <?php echo 'modificati' === $solo ? 'attiva' : ''; ?>" href="?p=anteprima&amp;id=<?php echo (int) $audit['id']; ?><?php echo $tipo ? '&amp;tipo=' . e( $tipo ) : ''; ?>">Solo quelli che cambiano <b><?php echo num( count( $modificate ) ); ?></b></a>
+	<a class="pillola <?php echo 'tutti' === $solo ? 'attiva' : ''; ?>" href="?p=anteprima&amp;id=<?php echo (int) $audit['id']; ?>&amp;tutti=1<?php echo $tipo ? '&amp;tipo=' . e( $tipo ) : ''; ?>">Tutti <b><?php echo num( count( $righe ) ); ?></b></a>
+	<a class="pillola <?php echo '' === $tipo ? 'attiva' : ''; ?>" href="?p=anteprima&amp;id=<?php echo (int) $audit['id']; ?><?php echo 'tutti' === $solo ? '&amp;tutti=1' : ''; ?>">Articoli e pagine</a>
+	<a class="pillola <?php echo 'post' === $tipo ? 'attiva' : ''; ?>" href="?p=anteprima&amp;id=<?php echo (int) $audit['id']; ?>&amp;tipo=post<?php echo 'tutti' === $solo ? '&amp;tutti=1' : ''; ?>">Solo articoli <b><?php echo num( $per_tipo['post'] ); ?></b></a>
+	<a class="pillola <?php echo 'page' === $tipo ? 'attiva' : ''; ?>" href="?p=anteprima&amp;id=<?php echo (int) $audit['id']; ?>&amp;tipo=page<?php echo 'tutti' === $solo ? '&amp;tutti=1' : ''; ?>">Solo pagine <b><?php echo num( $per_tipo['page'] ); ?></b></a>
 	<a class="pillola" href="?p=download&amp;id=<?php echo (int) $audit['id']; ?>&amp;f=meta-ottimizzate.csv">Scarica il confronto in CSV</a>
 </div>
 
@@ -77,7 +90,7 @@ $elenco = ( 'tutti' === $solo ) ? $righe : $modificate;
 			<?php else : ?>
 				<?php echo e( $r['titolo'] ); ?>
 			<?php endif; ?>
-			<span class="sotto">ID <?php echo e( $r['id'] ); ?></span>
+			<span class="sotto"><?php echo 'page' === ( $r['tipo'] ?? '' ) ? 'pagina' : 'articolo'; ?> · ID <?php echo e( $r['id'] ); ?></span>
 		</h2>
 
 		<?php if ( empty( $cambia ) ) : ?>

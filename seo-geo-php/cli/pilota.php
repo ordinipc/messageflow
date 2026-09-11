@@ -3,7 +3,7 @@
  * Pilota automatico da riga di comando.
  *
  * Uso:
- *   php cli/pilota.php <id-audit> --avvia [--immagini] [--pubblica] [--cestina]
+ *   php cli/pilota.php <id-audit> --avvia [--pagine] [--immagini] [--pubblica] [--cestina]
  *   php cli/pilota.php <id-audit>                 riprende una coda già avviata
  *   php cli/pilota.php <id-audit> --minuti=4      lavora per 4 minuti e si ferma (per il cron)
  *   php cli/pilota.php <id-audit> --stato         solo il riepilogo
@@ -26,6 +26,7 @@ $opzioni  = array(
 	'immagini' => in_array( '--immagini', $argv, true ),
 	'pubblica' => in_array( '--pubblica', $argv, true ),
 	'cestina'  => in_array( '--cestina', $argv, true ),
+	'pagine'   => in_array( '--pagine', $argv, true ),
 );
 
 $minuti = 0;

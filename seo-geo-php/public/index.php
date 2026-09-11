@@ -172,6 +172,7 @@ if ( 'pilota-avvia' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 			'immagini' => ! empty( $_POST['immagini'] ),
 			'pubblica' => ! empty( $_POST['pubblica'] ),
 			'cestina'  => ! empty( $_POST['cestina'] ),
+			'pagine'   => ! empty( $_POST['pagine'] ),
 		)
 	);
 
@@ -244,15 +245,25 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				// è il modo sensato di verificare sul proprio sito.
 				$limite = max( 0, min( 500, (int) ( $_POST['limite'] ?? 0 ) ) );
 
-				$righe = $db->all(
-					'SELECT d.wp_id AS id, m.title_nuovo AS title, m.description_nuova AS description,
+				// Articoli e pagine sono cose diverse: le pagine servizio sono
+				// poche e curate a mano, gli articoli sono centinaia e generici.
+				$ambito = in_array( $_POST['ambito'] ?? '', array( 'post', 'page' ), true ) ? $_POST['ambito'] : '';
+
+				$sql = 'SELECT d.wp_id AS id, m.title_nuovo AS title, m.description_nuova AS description,
 							m.excerpt_nuovo AS excerpt, d.focus_keyword AS focus
 					 FROM meta_piano m JOIN documento d ON d.id = m.documento_id
-					 WHERE m.audit_id = ?
-					 ORDER BY d.tipo DESC, d.parole DESC'
-					. ( $limite ? ' LIMIT ' . $limite : '' ),
-					array( $id )
-				);
+					 WHERE m.audit_id = ?';
+
+				$parametri = array( $id );
+
+				if ( $ambito ) {
+					$sql        .= ' AND d.tipo = ?';
+					$parametri[] = $ambito;
+				}
+
+				$sql .= ' ORDER BY d.tipo DESC, d.parole DESC' . ( $limite ? ' LIMIT ' . $limite : '' );
+
+				$righe = $db->all( $sql, $parametri );
 
 				$anteprima = ( 'meta_anteprima' === $azione );
 				$fatti     = 0;
@@ -272,7 +283,7 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 					Export::scrivi(
 						__DIR__ . '/../storage/export/audit-' . $id . '/anteprima-meta.json',
 						json_encode(
-							array( 'quando' => date( 'Y-m-d H:i:s' ), 'righe' => $confronto ),
+							array( 'quando' => date( 'Y-m-d H:i:s' ), 'ambito' => $ambito, 'righe' => $confronto ),
 							JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
 						)
 					);
@@ -281,7 +292,8 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 					exit;
 				}
 
-				$messaggio = "Meta aggiornate su $fatti contenuti."
+				$etichetta_ambito = 'post' === $ambito ? ' articoli' : ( 'page' === $ambito ? ' pagine' : ' contenuti' );
+				$messaggio        = "Meta aggiornate su $fatti$etichetta_ambito."
 					. ( $limite ? ' Verifica il risultato sul sito, poi applica il resto.' : '' );
 				break;
 
@@ -313,7 +325,11 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 					array( $id, Coda::ATTESA )
 				),
 				'previsione' => array(
-					'meta'      => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
+					'meta'          => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
+					'meta_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post'", array( $id ) )['n'],
+					'meta_pagine'   => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'page'", array( $id ) )['n'],
+					'cambi_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post' AND (m.title_cambiato = 1 OR m.description_cambiata = 1)", array( $id ) )['n'],
+					'cambi_pagine'  => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'page' AND (m.title_cambiato = 1 OR m.description_cambiata = 1)", array( $id ) )['n'],
 					'redirect'  => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
 					'categorie' => (int) $db->one( "SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id WHERE r.audit_id = ? AND r.regola = 'TAX-03'", array( $id ) )['n'],
 					'riscritture' => count( Riscrittura::candidati( $db, $id, array() ) ),
@@ -390,11 +406,22 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		$sorgente  = 'sito';
 
 		if ( is_array( $dal_sito ) && ! empty( $dal_sito['righe'] ) ) {
+			// Il sito risponde con gli id di WordPress: il tipo e l URL si
+			// recuperano dal database, servono per distinguere articoli e pagine.
+			$per_wp_id = array();
+
+			foreach ( $db->all( 'SELECT wp_id, tipo, url FROM documento WHERE audit_id = ?', array( $id ) ) as $documento ) {
+				$per_wp_id[ (string) $documento['wp_id'] ] = $documento;
+			}
+
 			foreach ( $dal_sito['righe'] as $r ) {
+				$documento = $per_wp_id[ (string) ( $r['id'] ?? '' ) ] ?? array();
+
 				$righe[] = array(
 					'id'     => $r['id'] ?? 0,
 					'titolo' => $r['titolo'] ?? '',
-					'url'    => '',
+					'tipo'   => $documento['tipo'] ?? '',
+					'url'    => $documento['url'] ?? '',
 					'campi'  => array(
 						'Title SEO'        => array( $r['prima']['rank_math_title'] ?? '', $r['dopo']['rank_math_title'] ?? '' ),
 						'Meta description' => array( $r['prima']['rank_math_description'] ?? '', $r['dopo']['rank_math_description'] ?? '' ),
@@ -409,15 +436,16 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 			$sorgente = 'export';
 
 			foreach ( $db->all(
-				'SELECT d.wp_id, d.titolo, d.url, d.seo_title, d.seo_description, d.focus_keyword,
+				'SELECT d.wp_id, d.titolo, d.url, d.tipo, d.seo_title, d.seo_description, d.focus_keyword,
 						m.title_nuovo, m.description_nuova, m.excerpt_nuovo
 				 FROM meta_piano m JOIN documento d ON d.id = m.documento_id
-				 WHERE m.audit_id = ?',
+				 WHERE m.audit_id = ? ORDER BY d.tipo DESC, d.parole DESC',
 				array( $id )
 			) as $r ) {
 				$righe[] = array(
 					'id'     => $r['wp_id'],
 					'titolo' => $r['titolo'],
+					'tipo'   => $r['tipo'],
 					'url'    => $r['url'],
 					'campi'  => array(
 						'Title SEO'        => array( $r['seo_title'], $r['title_nuovo'] ),
@@ -438,6 +466,7 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				'sorgente' => $sorgente,
 				'quando'   => $dal_sito['quando'] ?? '',
 				'solo'     => isset( $_GET['tutti'] ) ? 'tutti' : 'modificati',
+				'tipo'     => in_array( $_GET['tipo'] ?? '', array( 'post', 'page' ), true ) ? $_GET['tipo'] : '',
 			)
 		);
 		break;
@@ -475,7 +504,11 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				'esito'        => (string) ( $_GET['esito'] ?? '' ),
 				'errore'       => (string) ( $_GET['errore'] ?? '' ),
 				'conteggi'     => array(
-					'meta'      => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
+					'meta'          => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
+					'meta_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post'", array( $id ) )['n'],
+					'meta_pagine'   => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'page'", array( $id ) )['n'],
+					'cambi_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post' AND (m.title_cambiato = 1 OR m.description_cambiata = 1)", array( $id ) )['n'],
+					'cambi_pagine'  => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'page' AND (m.title_cambiato = 1 OR m.description_cambiata = 1)", array( $id ) )['n'],
 					'bozze'     => (int) $db->one( "SELECT COUNT(*) n FROM bozza WHERE audit_id = ? AND stato = 'ok'", array( $id ) )['n'],
 					'redirect'      => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
 					'redirect_slug' => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ? AND slug_cambiato = 1', array( $id ) )['n'],
@@ -898,7 +931,11 @@ switch ( $pagina ) {
 					array( $id, Coda::ATTESA )
 				),
 				'previsione' => array(
-					'meta'      => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
+					'meta'          => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
+					'meta_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post'", array( $id ) )['n'],
+					'meta_pagine'   => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'page'", array( $id ) )['n'],
+					'cambi_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post' AND (m.title_cambiato = 1 OR m.description_cambiata = 1)", array( $id ) )['n'],
+					'cambi_pagine'  => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'page' AND (m.title_cambiato = 1 OR m.description_cambiata = 1)", array( $id ) )['n'],
 					'redirect'  => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
 					'categorie' => (int) $db->one( "SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id WHERE r.audit_id = ? AND r.regola = 'TAX-03'", array( $id ) )['n'],
 					'riscritture' => count( Riscrittura::candidati( $db, $id, array() ) ),
@@ -975,11 +1012,22 @@ switch ( $pagina ) {
 		$sorgente  = 'sito';
 
 		if ( is_array( $dal_sito ) && ! empty( $dal_sito['righe'] ) ) {
+			// Il sito risponde con gli id di WordPress: il tipo e l URL si
+			// recuperano dal database, servono per distinguere articoli e pagine.
+			$per_wp_id = array();
+
+			foreach ( $db->all( 'SELECT wp_id, tipo, url FROM documento WHERE audit_id = ?', array( $id ) ) as $documento ) {
+				$per_wp_id[ (string) $documento['wp_id'] ] = $documento;
+			}
+
 			foreach ( $dal_sito['righe'] as $r ) {
+				$documento = $per_wp_id[ (string) ( $r['id'] ?? '' ) ] ?? array();
+
 				$righe[] = array(
 					'id'     => $r['id'] ?? 0,
 					'titolo' => $r['titolo'] ?? '',
-					'url'    => '',
+					'tipo'   => $documento['tipo'] ?? '',
+					'url'    => $documento['url'] ?? '',
 					'campi'  => array(
 						'Title SEO'        => array( $r['prima']['rank_math_title'] ?? '', $r['dopo']['rank_math_title'] ?? '' ),
 						'Meta description' => array( $r['prima']['rank_math_description'] ?? '', $r['dopo']['rank_math_description'] ?? '' ),
@@ -994,15 +1042,16 @@ switch ( $pagina ) {
 			$sorgente = 'export';
 
 			foreach ( $db->all(
-				'SELECT d.wp_id, d.titolo, d.url, d.seo_title, d.seo_description, d.focus_keyword,
+				'SELECT d.wp_id, d.titolo, d.url, d.tipo, d.seo_title, d.seo_description, d.focus_keyword,
 						m.title_nuovo, m.description_nuova, m.excerpt_nuovo
 				 FROM meta_piano m JOIN documento d ON d.id = m.documento_id
-				 WHERE m.audit_id = ?',
+				 WHERE m.audit_id = ? ORDER BY d.tipo DESC, d.parole DESC',
 				array( $id )
 			) as $r ) {
 				$righe[] = array(
 					'id'     => $r['wp_id'],
 					'titolo' => $r['titolo'],
+					'tipo'   => $r['tipo'],
 					'url'    => $r['url'],
 					'campi'  => array(
 						'Title SEO'        => array( $r['seo_title'], $r['title_nuovo'] ),
@@ -1023,6 +1072,7 @@ switch ( $pagina ) {
 				'sorgente' => $sorgente,
 				'quando'   => $dal_sito['quando'] ?? '',
 				'solo'     => isset( $_GET['tutti'] ) ? 'tutti' : 'modificati',
+				'tipo'     => in_array( $_GET['tipo'] ?? '', array( 'post', 'page' ), true ) ? $_GET['tipo'] : '',
 			)
 		);
 		break;
@@ -1060,7 +1110,11 @@ switch ( $pagina ) {
 				'esito'        => (string) ( $_GET['esito'] ?? '' ),
 				'errore'       => (string) ( $_GET['errore'] ?? '' ),
 				'conteggi'     => array(
-					'meta'      => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
+					'meta'          => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
+					'meta_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post'", array( $id ) )['n'],
+					'meta_pagine'   => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'page'", array( $id ) )['n'],
+					'cambi_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post' AND (m.title_cambiato = 1 OR m.description_cambiata = 1)", array( $id ) )['n'],
+					'cambi_pagine'  => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'page' AND (m.title_cambiato = 1 OR m.description_cambiata = 1)", array( $id ) )['n'],
 					'bozze'     => (int) $db->one( "SELECT COUNT(*) n FROM bozza WHERE audit_id = ? AND stato = 'ok'", array( $id ) )['n'],
 					'redirect'      => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
 					'redirect_slug' => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ? AND slug_cambiato = 1', array( $id ) )['n'],

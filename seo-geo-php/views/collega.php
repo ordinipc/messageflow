@@ -116,16 +116,40 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 	</section>
 
 	<section class="scheda">
-		<h2>Meta ottimizzate</h2>
-		<p class="guida">Scrive title, meta description, focus keyword ed estratto sui campi di Rank Math per <?php echo num( $conteggi['meta'] ); ?> contenuti. Prima di scrivere, il plugin mette da parte i valori attuali: l'operazione si può annullare.</p>
-		<p class="nota">Il modo sensato di procedere: <strong>anteprima</strong> per leggere il confronto, poi <strong>prova su 5 contenuti</strong> e controlla su WordPress che title e description siano quelli giusti, infine applica a tutti.</p>
+		<h2>Meta degli articoli</h2>
+		<p class="guida">
+			<?php echo num( $conteggi['cambi_articoli'] ); ?> dei <?php echo num( $conteggi['meta_articoli'] ); ?> articoli
+			hanno title o description da correggere. Prima di scrivere, il plugin mette da parte i valori
+			attuali: l'operazione si può annullare.
+		</p>
+		<p class="nota">Il modo sensato di procedere: <strong>anteprima</strong> per leggere il confronto, poi <strong>prova su 5</strong> e controlla su WordPress, infine applica a tutti.</p>
+
 		<div class="azioni">
-			<?php azione( $audit['id'], 'meta_anteprima', 'Anteprima (non scrive nulla)', '', 'bottone chiaro' ); ?>
+			<?php azione( $audit['id'], 'meta_anteprima', 'Anteprima', '', 'bottone chiaro', null, array( 'ambito' => 'post' ) ); ?>
 			<a class="bottone chiaro" href="?p=anteprima&amp;id=<?php echo (int) $audit['id']; ?>">Vedi il confronto</a>
-			<?php azione( $audit['id'], 'meta', 'Prova su 5 contenuti', 'Applicare le meta ai primi 5 contenuti? I valori attuali verranno conservati.', 'bottone chiaro', 5 ); ?>
-			<?php azione( $audit['id'], 'meta', 'Applica a tutti', 'Applicare le meta ottimizzate su ' . $conteggi['meta'] . ' contenuti? I valori attuali verranno conservati per poterli ripristinare.' ); ?>
-			<?php azione( $audit['id'], 'annulla', 'Annulla e ripristina', 'Ripristinare le meta precedenti su tutti i contenuti?', 'bottone chiaro' ); ?>
+			<?php azione( $audit['id'], 'meta', 'Prova su 5 articoli', 'Applicare le meta ai primi 5 articoli?', 'bottone chiaro', 5, array( 'ambito' => 'post' ) ); ?>
+			<?php azione( $audit['id'], 'meta', 'Applica a tutti gli articoli', 'Applicare le meta ottimizzate a ' . $conteggi['meta_articoli'] . ' articoli? I valori attuali verranno conservati.', 'bottone', null, array( 'ambito' => 'post' ) ); ?>
 		</div>
+	</section>
+
+	<section class="scheda">
+		<h2>Meta delle pagine</h2>
+		<p class="guida">
+			Le <?php echo num( $conteggi['meta_pagine'] ); ?> pagine sono poche e curate a mano: il programma
+			propone modifiche solo su <strong><?php echo num( $conteggi['cambi_pagine'] ); ?></strong> di esse.
+			Sono tenute separate apposta — se le hai scritte tu e ti convincono, lasciale stare.
+		</p>
+
+		<div class="azioni">
+			<?php azione( $audit['id'], 'meta_anteprima', 'Anteprima delle pagine', '', 'bottone chiaro', null, array( 'ambito' => 'page' ) ); ?>
+			<?php azione( $audit['id'], 'meta', 'Applica alle pagine', 'Applicare le meta alle ' . $conteggi['meta_pagine'] . ' pagine?', 'bottone chiaro', null, array( 'ambito' => 'page' ) ); ?>
+		</div>
+	</section>
+
+	<section class="scheda">
+		<h2>Annulla</h2>
+		<p class="guida">Riporta title, description ed estratto ai valori che c'erano prima, su tutto il sito.</p>
+		<div class="azioni"><?php azione( $audit['id'], 'annulla', 'Annulla e ripristina', 'Ripristinare le meta precedenti su tutti i contenuti?', 'bottone chiaro' ); ?></div>
 	</section>
 
 	<section class="scheda">

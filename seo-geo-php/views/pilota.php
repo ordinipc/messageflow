@@ -81,7 +81,7 @@ $in_corso = $stato['attesa'] > 0;
 
 		<h2>Cosa farà</h2>
 		<ul>
-			<li><strong><?php echo num( $previsione['meta'] ); ?></strong> contenuti con title, meta description ed estratto ottimizzati</li>
+			<li><strong><?php echo num( $previsione['meta'] ); ?></strong> <strong>articoli</strong> con title, meta description ed estratto ottimizzati</li>
 			<li><strong><?php echo num( $previsione['redirect'] ); ?></strong> redirect 301 per i contenuti rimossi o accorpati</li>
 			<li><strong><?php echo num( $previsione['categorie'] ); ?></strong> articoli ricategorizzati</li>
 			<li><strong><?php echo num( $previsione['gruppi'] ); ?></strong> gruppi di articoli che si cannibalizzano, fusi in uno solo</li>
@@ -89,6 +89,18 @@ $in_corso = $stato['attesa'] > 0;
 		</ul>
 
 		<h2>Opzioni</h2>
+
+		<label class="scelta">
+			<input type="checkbox" name="pagine" value="1">
+			<span>
+				<strong>Tocca anche le <?php echo num( $previsione['meta_pagine'] ); ?> pagine</strong>
+				<small>
+					Le pagine servizio sono poche e scritte a mano: il programma propone modifiche solo su
+					<?php echo num( $previsione['cambi_pagine'] ); ?> di esse. Sono escluse di default —
+					se le hai curate tu, non c'è motivo di farle riscrivere a un algoritmo.
+				</small>
+			</span>
+		</label>
 
 		<label class="scelta">
 			<input type="checkbox" name="immagini" value="1">

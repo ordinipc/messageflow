@@ -260,7 +260,8 @@ in pausa o annullare ciò che resta in coda.
 **Da riga di comando**, senza limiti di tempo e senza browser:
 
 ```bash
-php cli/pilota.php 1 --avvia                 # prepara la coda e la esegue
+php cli/pilota.php 1 --avvia                 # prepara la coda e la esegue (solo articoli)
+php cli/pilota.php 1 --avvia --pagine        # tocca anche le meta delle pagine
 php cli/pilota.php 1 --avvia --immagini      # incluse le immagini in evidenza
 php cli/pilota.php 1                         # riprende una coda già avviata
 php cli/pilota.php 1 --minuti=4              # lavora 4 minuti e si ferma (per il cron)
@@ -269,6 +270,13 @@ php cli/pilota.php 1 --stato                 # solo il riepilogo
 
 Con un cron ogni cinque minuti (`php /percorso/cli/pilota.php 1 --minuti=4`) la coda si
 svuota da sola nell'arco di qualche ora.
+
+### Articoli e pagine sono trattati separatamente
+
+Le pagine servizio sono poche, scritte a mano e di solito già a posto: il pilota **non le
+tocca** se non glielo si chiede, e nell'interfaccia hanno una sezione propria con il numero
+di modifiche effettivamente proposte. Gli articoli sono centinaia e generati in serie: lì
+l'intervento automatico ha senso.
 
 ### Le due opzioni che cambiano la natura del lavoro
 
@@ -322,7 +330,8 @@ qualsiasi momento dalla bacheca.
 
 | Operazione | Cosa fa | Reversibile |
 |---|---|---|
-| Meta ottimizzate | Scrive title, description, focus keyword ed estratto sui campi di Rank Math | Sì: i valori precedenti restano da parte, un pulsante li ripristina |
+| Meta degli articoli | Scrive title, description, focus keyword ed estratto sui campi di Rank Math | Sì: i valori precedenti restano da parte, un pulsante li ripristina |
+| Meta delle pagine | Operazione separata: le pagine servizio sono poche e curate a mano, e di solito non hanno bisogno di niente | Sì, come sopra |
 | Anteprima meta | Mostra il confronto prima/dopo senza scrivere nulla | Non modifica niente |
 | Bozze | Crea articoli in stato **Bozza** collegati agli originali | I contenuti pubblicati non vengono mai toccati |
 | Redirect 301 | Attiva la tabella dei redirect (slug accorciati, articoli eliminati o accorpati) | Sì, si riapplica una tabella vuota |
