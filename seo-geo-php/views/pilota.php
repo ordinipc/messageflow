@@ -11,6 +11,7 @@
  * @var bool  $attivo     Deve partire subito.
  * @var array $ultime     Ultime operazioni eseguite.
  * @var array $previsione Quantità previste per ogni tipo.
+ * @var array $stima      Token e costo stimati per i gruppi che passano dall AI.
  */
 
 // Una coda appena preparata dalle indicazioni di Google aspetta un avvio
@@ -143,11 +144,19 @@ $in_corso    = $stato['attesa'] > 0 && ! $da_avviare;
 				<span>
 					<strong><?php echo num( $g['quanti'] ); ?> — <?php echo e( $g['unita'] ); ?></strong>
 					<small>
+						<?php $s = $stima[ $chiave ] ?? null; ?>
 						<?php if ( 'immagine' === $chiave ) : ?>
 							Una richiesta a pagamento per ciascuna: richiede un progetto Google con fatturazione
 							attiva, ed è la voce che costa di più. Spuntala da sola se vuoi solo queste.
 						<?php elseif ( $g['ai'] ) : ?>
 							Passa dal modello AI: <?php echo 1 === $g['quanti'] ? 'una richiesta' : num( $g['quanti'] ) . ' richieste, una per contenuto'; ?>.
+							<?php if ( $s && null !== $s['costo'] && $s['costo'] > 0 ) : ?>
+								Circa <strong><?php echo num( $s['token_in'] + $s['token_out'] ); ?> token</strong> in tutto:
+								<strong><?php echo $s['costo'] < 0.01 ? 'meno di un centesimo' : '$' . number_format( $s['costo'], 2, ',', '.' ); ?></strong>
+								ai prezzi che hai messo nelle impostazioni — ordine di grandezza, non un preventivo.
+							<?php elseif ( $s && null !== $s['costo'] ) : ?>
+								Costo non calcolabile: nelle impostazioni i prezzi per milione di token sono a zero.
+							<?php endif; ?>
 						<?php else : ?>
 							Nessun costo: sono correzioni calcolate dal programma.
 						<?php endif; ?>

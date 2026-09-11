@@ -63,6 +63,80 @@ class Coda {
 	);
 
 	/**
+	 * Quanto costerà, prima di premere il pulsante.
+	 *
+	 * Non è un preventivo al centesimo: è l ordine di grandezza, che è quello
+	 * che serve per decidere. Il conto vero arriva dal pannello di Google.
+	 *
+	 * @param Db    $db      Database.
+	 * @param int   $auditId Audit.
+	 * @param array $cfg     Configurazione.
+	 * @return array Per gruppo: 'quanti', 'token_in', 'token_out', 'costo'.
+	 */
+	public static function stima( Db $db, $auditId, array $cfg ) {
+		$prezzi = $cfg['ai']['prezzo_per_milione'] ?? array( 'input' => 0, 'output' => 0 );
+
+		// Le parole dei contenuti da lavorare: è da lì che dipende tutto.
+		$parole = static function ( $categorie ) use ( $db, $auditId ) {
+			$segnaposto = implode( ',', array_fill( 0, count( $categorie ), '?' ) );
+
+			$riga = $db->one(
+				"SELECT COUNT(*) n, COALESCE(SUM(d.parole), 0) parole FROM triage t
+				 JOIN documento d ON d.id = t.documento_id
+				 WHERE t.audit_id = ? AND t.categoria IN ($segnaposto)",
+				array_merge( array( $auditId ), $categorie )
+			);
+
+			return array( (int) ( $riga['n'] ?? 0 ), (int) ( $riga['parole'] ?? 0 ) );
+		};
+
+		list( $quanti_bozze, $parole_bozze ) = $parole( array( 'riscrivere' ) );
+		list( $quanti_fusioni )              = $parole( array( 'accorpare' ) );
+
+		$immagini = (int) $db->one(
+			"SELECT COUNT(*) n FROM documento WHERE audit_id = ? AND tipo = 'post' AND ha_thumbnail = 0",
+			array( $auditId )
+		)['n'];
+
+		// Una parola italiana sta in circa 1,33 token; l articolo riscritto
+		// cresce di circa un quarto, e i modelli 2.5 spendono in ragionamento
+		// più o meno il 60% di quello che scrivono.
+		$in_bozze  = $parole_bozze * 1.33 + $quanti_bozze * 900;
+		$out_bozze = ( $parole_bozze * 1.33 * 1.25 + $quanti_bozze * 300 ) * 1.6;
+
+		$medie     = $quanti_bozze ? $parole_bozze / $quanti_bozze : 600;
+		$in_fus    = $quanti_fusioni * ( $medie * 3 * 1.33 + 900 );
+		$out_fus   = $quanti_fusioni * ( 1800 * 1.33 + 300 ) * 1.6;
+
+		$costo = static function ( $in, $out ) use ( $prezzi ) {
+			return $in / 1000000 * (float) $prezzi['input'] + $out / 1000000 * (float) $prezzi['output'];
+		};
+
+		return array(
+			'bozza'    => array(
+				'quanti'    => $quanti_bozze,
+				'token_in'  => (int) $in_bozze,
+				'token_out' => (int) $out_bozze,
+				'costo'     => $costo( $in_bozze, $out_bozze ),
+			),
+			'accorpa'  => array(
+				'quanti'    => $quanti_fusioni,
+				'token_in'  => (int) $in_fus,
+				'token_out' => (int) $out_fus,
+				'costo'     => $costo( $in_fus, $out_fus ),
+			),
+			// Le immagini si pagano a immagine e non a token: qui il prezzo
+			// dipende dal piano, e inventarlo sarebbe peggio che non dirlo.
+			'immagine' => array(
+				'quanti'    => $immagini,
+				'token_in'  => 0,
+				'token_out' => 0,
+				'costo'     => null,
+			),
+		);
+	}
+
+	/**
 	 * Costruisce la coda a partire dal piano dell audit.
 	 *
 	 * @param Db    $db      Database.

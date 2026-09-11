@@ -878,6 +878,7 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 					 WHERE audit_id = ? AND stato <> ? ORDER BY eseguito_il DESC, id DESC LIMIT 40',
 					array( $id, Coda::ATTESA )
 				),
+				'stima'      => Coda::stima( $db, $id, $cfg ),
 				'previsione' => array(
 					'meta'          => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
 					'meta_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post'", array( $id ) )['n'],
@@ -1314,9 +1315,15 @@ if ( 'salva-impostazioni' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] )
 			'modello_immagini'   => $campo( 'ai_modello_immagini' ) ?: 'gemini-2.5-flash-image',
 			'articoli_per_volta' => max( 1, min( 25, (int) $campo( 'ai_articoli_per_volta' ) ) ),
 			'max_token'          => max( 2048, min( 65536, (int) ( $campo( 'ai_max_token' ) ?: 16384 ) ) ),
+			// Un campo lasciato vuoto non vuol dire "gratis": vuol dire "non l ho
+			// toccato". Azzerare i prezzi faceva mostrare costo zero dappertutto.
 			'prezzo_per_milione' => array(
-				'input'  => (float) str_replace( ',', '.', $campo( 'ai_prezzo_input' ) ),
-				'output' => (float) str_replace( ',', '.', $campo( 'ai_prezzo_output' ) ),
+				'input'  => '' !== $campo( 'ai_prezzo_input' )
+					? (float) str_replace( ',', '.', $campo( 'ai_prezzo_input' ) )
+					: (float) ( $salvate['ai']['prezzo_per_milione']['input'] ?? 0.10 ),
+				'output' => '' !== $campo( 'ai_prezzo_output' )
+					? (float) str_replace( ',', '.', $campo( 'ai_prezzo_output' ) )
+					: (float) ( $salvate['ai']['prezzo_per_milione']['output'] ?? 0.40 ),
 			),
 		),
 		'wordpress' => array(
@@ -1755,6 +1762,7 @@ switch ( $pagina ) {
 					 WHERE audit_id = ? AND stato <> ? ORDER BY eseguito_il DESC, id DESC LIMIT 40',
 					array( $id, Coda::ATTESA )
 				),
+				'stima'      => Coda::stima( $db, $id, $cfg ),
 				'previsione' => array(
 					'meta'          => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
 					'meta_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post'", array( $id ) )['n'],

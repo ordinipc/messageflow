@@ -445,6 +445,8 @@ if ( is_resource( $mock ) ) {
 echo "\nScelta delle operazioni del pilota\n";
 
 $fileDb2 = sys_get_temp_dir() . '/prova-coda-' . getmypid() . '.sqlite';
+
+
 @unlink( $fileDb2 );
 $db2 = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileDb2 ) );
 
@@ -516,6 +518,17 @@ for ( $i = 4; $i <= 60; $i++ ) {
 
 \SeoGeo\Coda::prepara( $db2, $auditId2, $cfgProva, array( 'includi' => array( 'meta' ) ) );
 verifica( 'sessanta articoli diventano due blocchi da quaranta', 2 === ( $conteggi( $db2, $auditId2 )['meta'] ?? 0 ) );
+
+// La stima del costo, prima di premere il pulsante.
+$stima = \SeoGeo\Coda::stima( $db2, $auditId2, $cfgProva + array( 'ai' => array( 'prezzo_per_milione' => array( 'input' => 0.10, 'output' => 0.40 ) ) ) );
+
+verifica( 'la stima conta gli articoli da riscrivere', 3 === $stima['bozza']['quanti'], $stima['bozza']['quanti'] . '' );
+verifica( 'e stima i token in ingresso e in uscita', $stima['bozza']['token_in'] > 0 && $stima['bozza']['token_out'] > 0 );
+verifica( 'il costo cresce con i token', $stima['bozza']['costo'] > 0 );
+verifica( 'le immagini si contano ma non si prezzano a token', null === $stima['immagine']['costo'] && $stima['immagine']['quanti'] > 0 );
+
+$a_zero = \SeoGeo\Coda::stima( $db2, $auditId2, array( 'ai' => array( 'prezzo_per_milione' => array( 'input' => 0, 'output' => 0 ) ) ) );
+verifica( 'con i prezzi a zero il costo è zero, non un numero inventato', 0.0 === $a_zero['bozza']['costo'] );
 
 @unlink( $fileDb2 );
 
