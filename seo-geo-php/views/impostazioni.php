@@ -317,6 +317,23 @@ function campo( $nome, $etichetta, $valore, $nota = '', $tipo = 'text' ) {
 	<p class="guida">Codice pronto, se preferisci un tuo pulsante nel <code>functions.php</code> o in uno snippet:</p>
 	<pre class="mono"><?php echo e( $snippet ); ?></pre>
 
+	<?php if ( $google_configurato ) : ?>
+		<div class="campo">
+			<label for="url-google">Indirizzo per aggiornare i dati di Google</label>
+			<input id="url-google" type="text" readonly value="<?php echo e( $indirizzo_base ); ?>/index.php?p=api-prestazioni&amp;token=<?php echo e( $token_esterno ); ?>">
+			<small>
+				Stesso token. Questo scarica gli ultimi giorni di ricerche da Search Console e ricalcola le priorità.
+				Chiamalo <strong>una volta al giorno</strong> da un cron: Google consolida i dati con due o tre giorni
+				di ritardo, più spesso non serve a niente.
+			</small>
+		</div>
+
+		<p class="guida">Risposta tipo:</p>
+		<pre class="mono">{"ok":true,"clic":312,"impression":8140,
+ "variazione":{"clic":28,"impression":640},
+ "da_fare":47,"per_tipo":{"quasi_prima_pagina":12,…}}</pre>
+	<?php endif; ?>
+
 	<p class="nota">
 		L'analisi rilegge il sito e ricalcola il punteggio: non modifica nulla.
 		Un'analisi ogni due minuti al massimo: le richieste più ravvicinate ricevono un rifiuto,

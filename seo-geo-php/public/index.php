@@ -256,10 +256,12 @@ if ( 'analizza' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	exit;
 }
 
-// ------------------------------- Avvio dell analisi da un pulsante esterno
-if ( 'api-analizza' === $pagina ) {
-	header( 'Content-Type: application/json; charset=utf-8' );
-
+/**
+ * Controlla il token di avvio esterno e ferma tutto se non torna.
+ *
+ * @return void
+ */
+function pretendi_token_esterno() {
 	$atteso  = (string) ( Impostazioni::salvate()['gestionale']['token'] ?? '' );
 	$fornito = (string) ( $_REQUEST['token'] ?? $_SERVER['HTTP_X_MDI_ANALISI'] ?? '' );
 
@@ -269,18 +271,112 @@ if ( 'api-analizza' === $pagina ) {
 		echo json_encode( array( 'ok' => false, 'errore' => 'Token non valido.' ) );
 		exit;
 	}
+}
 
-	// Una analisi ogni due minuti: evita che un pulsante premuto più volte
-	// faccia partire dieci letture del sito in parallelo.
-	$segnale = __DIR__ . '/../storage/ultima-analisi.txt';
+/**
+ * Fa passare una sola esecuzione ogni tot secondi.
+ *
+ * @param string $nome    Nome del contrassegno in storage/.
+ * @param int    $secondi Distanza minima fra due esecuzioni.
+ * @param string $errore  Messaggio da restituire a chi arriva troppo presto.
+ * @return void
+ */
+function pretendi_attesa( $nome, $secondi, $errore ) {
+	$segnale = __DIR__ . '/../storage/' . $nome;
 
-	if ( is_file( $segnale ) && ( time() - (int) file_get_contents( $segnale ) ) < 120 ) {
+	if ( is_file( $segnale ) && ( time() - (int) file_get_contents( $segnale ) ) < $secondi ) {
 		http_response_code( 429 );
-		echo json_encode( array( 'ok' => false, 'errore' => 'Analisi avviata da poco: riprova fra un paio di minuti.' ) );
+		echo json_encode( array( 'ok' => false, 'errore' => $errore ) );
 		exit;
 	}
 
 	file_put_contents( $segnale, (string) time() );
+}
+
+// ------------- Aggiornamento dei dati di Google da un cron o da un pulsante
+if ( 'api-prestazioni' === $pagina ) {
+	header( 'Content-Type: application/json; charset=utf-8' );
+
+	pretendi_token_esterno();
+
+	if ( ! Prestazioni::configurata( $cfg ) ) {
+		http_response_code( 400 );
+		echo json_encode(
+			array(
+				'ok'     => false,
+				'errore' => 'Search Console non è collegata: manca ' . implode(
+					' e ',
+					array_map(
+						static fn( $c ) => 'chiave' === $c ? 'la chiave dell account di servizio' : 'la proprietà',
+						Prestazioni::cosaManca( $cfg )
+					)
+				) . '.',
+			)
+		);
+		exit;
+	}
+
+	// Dieci minuti: i dati di Google si consolidano in giorni, chiamarlo più
+	// spesso non aggiunge niente e consuma la quota.
+	pretendi_attesa( 'ultima-google.txt', 600, 'Dati aggiornati da poco: riprova fra dieci minuti.' );
+	set_time_limit( 0 );
+
+	try {
+		$ultimo    = $db->one( 'SELECT id FROM audit ORDER BY id DESC LIMIT 1' );
+		$documenti = $ultimo
+			? $db->all( "SELECT url, titolo, tipo, pubblicato FROM documento WHERE audit_id = ? AND stato = 'publish'", array( $ultimo['id'] ) )
+			: array();
+
+		$esito      = Prestazioni::esegui( $db, $cfg, $documenti );
+		$precedenti = $db->all(
+			'SELECT clic, impression, posizione_media FROM gsc_rilevazione WHERE sito_url = ? ORDER BY id DESC LIMIT 2',
+			array( Prestazioni::chiaveSito( $cfg ) )
+		);
+
+		$prima = $precedenti[1] ?? null;
+
+		$per_tipo = array();
+
+		foreach ( $esito['segnali'] as $segnale ) {
+			$per_tipo[ $segnale['tipo'] ] = ( $per_tipo[ $segnale['tipo'] ] ?? 0 ) + 1;
+		}
+
+		echo json_encode(
+			array(
+				'ok'          => true,
+				'rilevazione' => $esito['rilevazione'],
+				'periodo'     => $esito['periodo']['da'] . ' → ' . $esito['periodo']['a'],
+				'clic'        => $esito['totali']['clic'],
+				'impression'  => $esito['totali']['impression'],
+				'variazione'  => $prima
+					? array(
+						'clic'       => $esito['totali']['clic'] - (int) $prima['clic'],
+						'impression' => $esito['totali']['impression'] - (int) $prima['impression'],
+					)
+					: null,
+				'da_fare'     => count( $esito['segnali'] ),
+				'per_tipo'    => $per_tipo,
+				'scheda'      => indirizzo_base() . '/index.php?p=prestazioni',
+			),
+			JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+		);
+	} catch ( Throwable $e ) {
+		http_response_code( 500 );
+		echo json_encode( array( 'ok' => false, 'errore' => $e->getMessage() ), JSON_UNESCAPED_UNICODE );
+	}
+
+	exit;
+}
+
+// ------------------------------- Avvio dell analisi da un pulsante esterno
+if ( 'api-analizza' === $pagina ) {
+	header( 'Content-Type: application/json; charset=utf-8' );
+
+	pretendi_token_esterno();
+
+	// Una analisi ogni due minuti: evita che un pulsante premuto più volte
+	// faccia partire dieci letture del sito in parallelo.
+	pretendi_attesa( 'ultima-analisi.txt', 120, 'Analisi avviata da poco: riprova fra un paio di minuti.' );
 	set_time_limit( 0 );
 
 	try {

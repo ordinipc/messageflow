@@ -343,6 +343,33 @@ php cli/prestazioni.php 90     # ultimi 90
 Una volta al giorno è più che sufficiente: Google consolida i dati con due o tre giorni di
 ritardo, e infatti il periodo analizzato si ferma a tre giorni fa.
 
+Se sull'hosting non c'è il cron di sistema, c'è un indirizzo con token che fa lo stesso lavoro
+e si può chiamare da un servizio esterno (cron-job.org, EasyCron, il cron del pannello):
+
+```
+GET https://tuo-gestionale/index.php?p=api-prestazioni&token=…
+
+{"ok":true,"clic":312,"impression":8140,
+ "variazione":{"clic":28,"impression":640},
+ "da_fare":47,"per_tipo":{"quasi_prima_pagina":12,…}}
+```
+
+Lo trovi già scritto in Impostazioni → *Avviare l'analisi da un pulsante*. Una chiamata ogni
+dieci minuti al massimo; più spesso riceve `429` e non consuma la quota di Google.
+
+### Cosa confronta, e quando
+
+Il confronto è automatico, e avviene su due piani diversi:
+
+- **dentro una singola lettura**: si scaricano il periodo richiesto *e* quello precedente, così
+  "Pagina in calo" e le variazioni su clic, impression e posizione media esistono già dalla
+  prima volta che si preme il pulsante;
+- **fra una lettura e l'altra**: ogni rilevazione resta nel database, e la tabella
+  *Come sta andando nel tempo* mette in fila tutte quelle fatte finora.
+
+Quello che non avviene da solo è la **chiamata**: senza un cron, i dati si aggiornano quando
+qualcuno preme il pulsante. Con il cron, non ci pensa più nessuno.
+
 ### llms.txt e ai.txt si aggiornano da soli
 
 Fino alla versione 1.3.0 del plugin erano file statici, fotografati al momento
