@@ -261,9 +261,15 @@ class MDI_Api {
 			foreach ( $chiavi as $chiave ) {
 				$valore = get_post_meta( $id, $chiave, true );
 
-				if ( '' !== $valore && null !== $valore ) {
+				// WordPress restituisce alcune meta come array (rank_math_robots
+				// è index,follow): il gestionale si aspetta del testo.
+				if ( is_array( $valore ) ) {
+					$valore = implode( ',', array_filter( $valore, 'is_scalar' ) );
+				}
+
+				if ( '' !== $valore && null !== $valore && is_scalar( $valore ) ) {
 					// Di Elementor basta sapere che c è: il contenuto pesa troppo.
-					$meta[ $chiave ] = '_elementor_data' === $chiave ? '1' : $valore;
+					$meta[ $chiave ] = '_elementor_data' === $chiave ? '1' : (string) $valore;
 				}
 			}
 

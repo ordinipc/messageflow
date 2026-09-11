@@ -470,7 +470,19 @@ src/
 └── Export.php              CSV, file per i crawler, assemblaggio del plugin
 plugin-wordpress/           sorgenti del plugin generato (incluse le rotte REST)
 storage/                    database, upload e file generati (in sola scrittura)
+test/                       collaudo, senza dipendenze esterne
 ```
+
+## Collaudo
+
+```bash
+php test/app.php      # gestionale: normalizzazione dei dati letti dal sito
+php test/plugin.php   # plugin: le classi vere sopra un WordPress simulato
+```
+
+Il secondo non è una finta rete: esegue il codice del plugin con le funzioni di
+WordPress sostituite da versioni in memoria, così gli errori di logica vengono
+a galla. Ogni errore trovato in produzione diventa una verifica in questi file.
 
 ## Sicurezza
 

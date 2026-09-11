@@ -115,10 +115,22 @@ class Site {
 		$link      = Html::links( $contenuto, $this->host );
 		$meta      = $item['meta'];
 
-		$seoTitle = $meta['rank_math_title'] ?? ( $meta['_yoast_wpseo_title'] ?? '' );
+		// Qualunque sia la provenienza (XML, sito, database), qui dentro le meta
+		// sono testo: un array come rank_math_robots faceva cadere l analisi.
+		$val = static function ( $chiave, $ripiego = '' ) use ( $meta ) {
+			$v = $meta[ $chiave ] ?? ( '' !== $ripiego ? ( $meta[ $ripiego ] ?? '' ) : '' );
+
+			if ( is_array( $v ) ) {
+				return implode( ',', array_map( static fn( $x ) => is_scalar( $x ) ? (string) $x : '', $v ) );
+			}
+
+			return is_scalar( $v ) ? (string) $v : '';
+		};
+
+		$seoTitle = $val( 'rank_math_title', '_yoast_wpseo_title' );
 		$seoTitle = trim( preg_replace( '/%[a-z_]+%/i', '', $seoTitle ) );
-		$seoDesc  = trim( $meta['rank_math_description'] ?? ( $meta['_yoast_wpseo_metadesc'] ?? '' ) );
-		$focus    = trim( explode( ',', $meta['rank_math_focus_keyword'] ?? ( $meta['_yoast_wpseo_focuskw'] ?? '' ) )[0] );
+		$seoDesc  = trim( $val( 'rank_math_description', '_yoast_wpseo_metadesc' ) );
+		$focus    = trim( explode( ',', $val( 'rank_math_focus_keyword', '_yoast_wpseo_focuskw' ) )[0] );
 
 		$filtraLivello = static function ( $livello ) use ( $titoli ) {
 			return array_values( array_filter( $titoli, static fn( $h ) => $h['livello'] === $livello ) );
@@ -158,10 +170,10 @@ class Site {
 			'seo_desc'    => $seoDesc,
 			'focus'       => $focus,
 			'seo_score'   => isset( $meta['rank_math_seo_score'] ) ? (int) $meta['rank_math_seo_score'] : null,
-			'canonical'   => $meta['rank_math_canonical_url'] ?? '',
-			'robots'      => $meta['rank_math_robots'] ?? '',
-			'noindex'     => (bool) preg_match( '/noindex/', $meta['rank_math_robots'] ?? '' ),
-			'thumbnail'   => $meta['_thumbnail_id'] ?? '',
+			'canonical'   => $val( 'rank_math_canonical_url' ),
+			'robots'      => $val( 'rank_math_robots' ),
+			'noindex'     => (bool) preg_match( '/noindex/', $val( 'rank_math_robots' ) ),
+			'thumbnail'   => $val( '_thumbnail_id' ),
 			'elementor'   => isset( $meta['_elementor_data'] ),
 			'commenti'    => $item['commenti'],
 			'meta'        => $meta,

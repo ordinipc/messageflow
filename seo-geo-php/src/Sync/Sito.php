@@ -48,6 +48,35 @@ class Sito {
 	}
 
 	/**
+	 * Riduce a stringa le meta che WordPress restituisce come array.
+	 *
+	 * rank_math_robots, per dirne una, in WordPress è un array ( index,
+	 * follow ): letta dal sito arriva come array, letta dall export XML come
+	 * stringa serializzata. Le regole si aspettano del testo, quindi qui le
+	 * due strade vengono fatte coincidere.
+	 *
+	 * @param mixed $meta Meta del contenuto.
+	 * @return array<string,string>
+	 */
+	private static function meta( $meta ) {
+		$pulite = array();
+
+		foreach ( (array) $meta as $chiave => $valore ) {
+			if ( is_array( $valore ) ) {
+				$valore = implode( ',', array_map( static fn( $v ) => is_scalar( $v ) ? (string) $v : '', $valore ) );
+			} elseif ( is_bool( $valore ) ) {
+				$valore = $valore ? '1' : '';
+			} elseif ( ! is_scalar( $valore ) ) {
+				$valore = '';
+			}
+
+			$pulite[ $chiave ] = (string) $valore;
+		}
+
+		return $pulite;
+	}
+
+	/**
 	 * Scarica tutto il necessario e compone la struttura dell analisi.
 	 *
 	 * @return array
@@ -91,7 +120,7 @@ class Sito {
 					'allegato_url' => '',
 					'categorie'    => $contenuto['categorie'] ?? array(),
 					'tag'          => $contenuto['tag'] ?? array(),
-					'meta'         => $contenuto['meta'] ?? array(),
+					'meta'         => self::meta( $contenuto['meta'] ?? array() ),
 				);
 
 				foreach ( (array) ( $contenuto['categorie'] ?? array() ) as $categoria ) {
