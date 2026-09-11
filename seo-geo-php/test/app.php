@@ -463,7 +463,11 @@ for ( $i = 1; $i <= 3; $i++ ) {
 	$db2->insert( 'triage', array( 'audit_id' => $auditId2, 'documento_id' => $doc, 'categoria' => 'riscrivere', 'qualita' => 40, 'redirect_a' => '' ) );
 }
 
-$cfgProva = \SeoGeo\Impostazioni::carica( require __DIR__ . '/../config.php' );
+// Chiave finta ma presente: senza, il pilota salta tutto quello che passa
+// dall AI e la verifica misurerebbe la configurazione di chi la esegue invece
+// del comportamento del codice.
+$cfgProva = require __DIR__ . '/../config.php';
+$cfgProva['ai']['chiave'] = 'chiave-di-prova';
 
 $conteggi = static function ( $db, $id ) {
 	$fuori = array();
