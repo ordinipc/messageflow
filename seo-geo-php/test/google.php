@@ -246,6 +246,32 @@ verifica( 'senza token la chiamata fallisce', '' !== $rifiuto );
 $senzaProprieta = errore_di( static fn() => ( new SearchConsole( $conto, '', 'http://127.0.0.1:' . $porta ) )->rendimento() );
 verifica( 'senza proprietà lo dice chiaramente', false !== stripos( $senzaProprieta, 'proprietà' ) );
 
+// I 403 di Search Console hanno due cause diverse, e Google le distingue nel
+// testo: questi sono i messaggi veri restituiti nei due casi.
+$msg = new ReflectionMethod( SearchConsole::class, 'messaggioErrore' );
+$msg->setAccessible( true );
+$console403 = new SearchConsole( $conto, 'https://esempio.it/', 'http://127.0.0.1:' . $porta );
+
+$permesso = $msg->invoke(
+	$console403,
+	403,
+	array( 'error' => array( 'message' => "User does not have sufficient permission for site 'https://esempio.it/'. See also: https://support.google.com/webmasters/answer/2451999." ) )
+);
+
+verifica( 'il 403 da permesso mancante manda a Utenti e autorizzazioni', false !== stripos( $permesso, 'Utenti e autorizzazioni' ) );
+verifica( 'e chiarisce che non c entra l accesso personale', false !== stripos( $permesso, 'accesso personale' ) );
+verifica( 'e nomina l account da autorizzare', false !== stripos( $permesso, 'seo-audit@progetto.iam.gserviceaccount.com' ) );
+verifica( 'e non parla di API da attivare', false === stripos( $permesso, 'Libreria' ) );
+
+$api = $msg->invoke(
+	$console403,
+	403,
+	array( 'error' => array( 'message' => 'Google Search Console API has not been used in project 123 before or it is disabled.' ) )
+);
+
+verifica( 'il 403 da API spenta manda alla Libreria di Google Cloud', false !== stripos( $api, 'Libreria' ) );
+verifica( 'e non manda a Utenti e autorizzazioni', false === stripos( $api, 'Utenti e autorizzazioni' ) );
+
 if ( is_resource( $server ) ) {
 	proc_terminate( $server );
 	proc_close( $server );

@@ -262,6 +262,23 @@ class SearchConsole {
 		$messaggio = (string) ( $dati['error']['message'] ?? '' );
 
 		if ( 403 === $stato ) {
+			// Google distingue i due casi nel testo: inutile far scegliere
+			// all utente fra due ipotesi quando la risposta è già lì dentro.
+			if ( false !== stripos( $messaggio, 'sufficient permission' ) || false !== stripos( $messaggio, 'does not have permission' ) ) {
+				return 'L account di servizio non è ancora autorizzato sulla proprietà ' . $this->proprieta . '. '
+					. 'Non c entra il tuo accesso personale: l account di servizio è un utente a sé, e va aggiunto una volta. '
+					. 'In Search Console apri la proprietà giusta → Impostazioni → Utenti e autorizzazioni → Aggiungi utente, '
+					. 'incolla ' . $this->account->indirizzo() . ' e scegli il permesso "Con limitazioni". '
+					. 'Serve essere proprietari della proprietà per poter aggiungere utenti. '
+					. 'Fatto questo funziona da qualsiasi computer e da qualsiasi server, perché l autorizzazione sta sull account, non sul tuo browser.';
+			}
+
+			if ( false !== stripos( $messaggio, 'has not been used' ) || false !== stripos( $messaggio, 'is disabled' )
+				|| false !== stripos( $messaggio, 'accessNotConfigured' ) ) {
+				return 'L API Search Console non è attiva nel progetto Google Cloud. Aprila da '
+					. 'API e servizi → Libreria → "Google Search Console API" → Abilita, aspetta un minuto e riprova. Dettaglio: ' . $messaggio;
+			}
+
 			return 'Search Console ha negato l accesso alla proprietà ' . $this->proprieta . '. Due cause possibili: '
 				. 'l account di servizio (' . $this->account->indirizzo() . ') non è stato aggiunto fra gli utenti della '
 				. 'proprietà, oppure l API Search Console non è attiva nel progetto Google Cloud. Dettaglio: ' . $messaggio;
