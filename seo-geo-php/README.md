@@ -264,6 +264,26 @@ Dall'interfaccia: **Rileggi il sito e ricalcola**, in home o nella scheda dell'a
 La nuova analisi si affianca alle precedenti — non le sostituisce — e la scheda mostra la
 variazione rispetto a quella prima (`+12 rispetto all'analisi del 2026-09-11`).
 
+Dalla bacheca di WordPress: **SEO & GEO → Analizza adesso** (plugin 1.3.0). Il pulsante
+compare da solo appena si salvano le Impostazioni del gestionale, perché insieme ai dati
+aziendali viene spedito anche l'indirizzo da chiamare. Premendolo, WordPress interroga il
+gestionale e mostra il punteggio aggiornato con la variazione.
+
+Da un pulsante tuo, ovunque: **Impostazioni → Avviare l'analisi da un pulsante** mostra un
+indirizzo con token che risponde in JSON.
+
+```
+GET https://tuo-gestionale/index.php?p=api-analizza&token=…
+
+{"ok":true,"audit":7,"punteggio":52,"variazione":18,"problemi":2140,
+ "articoli":311,"pagine":15,"scheda":"…/index.php?p=audit&id=7"}
+```
+
+Il token vale come una password, va usato solo su `https` e si può rigenerare dalla stessa
+scheda. Un'analisi ogni due minuti al massimo: le richieste più ravvicinate ricevono `429`,
+così un doppio clic non fa partire due letture insieme. L'analisi legge e basta: non tocca
+il sito.
+
 Il flusso resta comunque comandato dal gestionale: il plugin non spedisce niente di sua
 iniziativa, risponde quando gli viene chiesto. Un sito che chiama da solo un server esterno
 a ogni modifica è un rischio che non vale il vantaggio; se vuoi l'aggiornamento periodico,

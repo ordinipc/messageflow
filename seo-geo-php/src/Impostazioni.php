@@ -128,6 +128,85 @@ class Impostazioni {
 	}
 
 	/**
+	 * Token con cui un pulsante esterno può avviare l analisi.
+	 *
+	 * Viene creato alla prima richiesta e salvato: è l unica credenziale che
+	 * autorizza l avvio da fuori, quindi vale come una password.
+	 *
+	 * @return string
+	 */
+	public static function tokenEsterno() {
+		$salvate = self::salvate();
+
+		if ( ! empty( $salvate['gestionale']['token'] ) ) {
+			return (string) $salvate['gestionale']['token'];
+		}
+
+		$token = bin2hex( random_bytes( 20 ) );
+
+		$salvate['gestionale']['token'] = $token;
+		self::salva( $salvate );
+
+		return $token;
+	}
+
+	/**
+	 * Ricorda l indirizzo pubblico del gestionale.
+	 *
+	 * Serve al plugin: il pulsante "Analizza" dentro WordPress deve sapere chi
+	 * chiamare, e una richiesta della coda o della riga di comando non ha un
+	 * HTTP_HOST da cui ricavarlo.
+	 *
+	 * @param string $indirizzo Indirizzo base, senza barra finale.
+	 * @return void
+	 */
+	public static function ricordaIndirizzo( $indirizzo ) {
+		$indirizzo = rtrim( trim( (string) $indirizzo ), '/' );
+
+		if ( '' === $indirizzo || ! preg_match( '~^https?://~i', $indirizzo ) ) {
+			return;
+		}
+
+		$salvate = self::salvate();
+
+		if ( ( $salvate['gestionale']['url'] ?? '' ) === $indirizzo ) {
+			return;
+		}
+
+		$salvate['gestionale']['url'] = $indirizzo;
+		self::salva( $salvate );
+	}
+
+	/**
+	 * Indirizzo completo che avvia una analisi, token compreso.
+	 *
+	 * @return string Vuoto se il gestionale non è mai stato aperto dal browser.
+	 */
+	public static function urlAnalisi() {
+		$base = (string) ( self::salvate()['gestionale']['url'] ?? '' );
+
+		if ( '' === $base ) {
+			return '';
+		}
+
+		return $base . '/index.php?p=api-analizza&token=' . self::tokenEsterno();
+	}
+
+	/**
+	 * Rigenera il token di avvio esterno.
+	 *
+	 * @return string
+	 */
+	public static function rigeneraTokenEsterno() {
+		$salvate                        = self::salvate();
+		$salvate['gestionale']['token'] = bin2hex( random_bytes( 20 ) );
+
+		self::salva( $salvate );
+
+		return $salvate['gestionale']['token'];
+	}
+
+	/**
 	 * Mostra solo le ultime quattro cifre di una chiave.
 	 *
 	 * @param string $chiave Chiave.

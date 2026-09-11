@@ -79,6 +79,67 @@ function token() {
 }
 
 /**
+ * Indirizzo pubblico di questa installazione, senza barra finale.
+ *
+ * @return string Vuoto quando si gira da riga di comando.
+ */
+function indirizzo_base() {
+	if ( empty( $_SERVER['HTTP_HOST'] ) ) {
+		return '';
+	}
+
+	$sicuro = ( ! empty( $_SERVER['HTTPS'] ) && 'off' !== strtolower( (string) $_SERVER['HTTPS'] ) )
+		|| 'https' === strtolower( (string) ( $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '' ) );
+
+	return ( $sicuro ? 'https' : 'http' ) . '://' . $_SERVER['HTTP_HOST']
+		. rtrim( str_replace( '\\', '/', dirname( $_SERVER['SCRIPT_NAME'] ) ), '/' );
+}
+
+/**
+ * Codice pronto da incollare per avere un pulsante "Analizza" in WordPress.
+ *
+ * @param string $base  Indirizzo del gestionale.
+ * @param string $token Token di avvio.
+ * @return string
+ */
+function snippet_pulsante_analizza( $base, $token ) {
+	$url = $base . '/index.php?p=api-analizza&token=' . $token;
+
+	$codice = <<<'PHP'
+add_action( 'admin_menu', function () {
+	add_submenu_page( 'mdi-seo-geo', 'Analizza', 'Analizza', 'manage_options', 'mdi-analizza', function () {
+		if ( ! empty( $_POST['analizza'] ) && check_admin_referer( 'mdi_analizza' ) ) {
+			$risposta = wp_remote_get( '__URL__', array( 'timeout' => 300 ) );
+			$dati     = json_decode( wp_remote_retrieve_body( $risposta ), true );
+
+			if ( is_array( $dati ) && ! empty( $dati['ok'] ) ) {
+				printf(
+					'<div class="notice notice-success"><p>Punteggio: <strong>%d/100</strong> (%s%d) &mdash; <a href="%s" target="_blank">apri la scheda</a></p></div>',
+					(int) $dati['punteggio'],
+					$dati['variazione'] > 0 ? '+' : '',
+					(int) $dati['variazione'],
+					esc_url( $dati['scheda'] )
+				);
+			} else {
+				$errore = is_array( $dati ) && ! empty( $dati['errore'] ) ? $dati['errore'] : 'Analisi non riuscita';
+				printf( '<div class="notice notice-error"><p>%s</p></div>', esc_html( $errore ) );
+			}
+		}
+
+		echo '<div class="wrap"><h1>Analizza il sito</h1>';
+		echo '<p>Rilegge il sito, ricalcola il punteggio e aggiorna la scheda. Richiede fino a un paio di minuti.</p>';
+		echo '<form method="post">';
+		wp_nonce_field( 'mdi_analizza' );
+		echo '<p><button class="button button-primary" name="analizza" value="1">Analizza adesso</button></p>';
+		echo '</form></div>';
+	} );
+} );
+PHP;
+
+	return str_replace( '__URL__', $url, $codice );
+}
+
+/**
  * Rende una vista dentro il layout.
  *
  * @param string $vista Nome della vista.
@@ -97,6 +158,10 @@ function vista( $vista, array $dati = array() ) {
 }
 
 $pagina = $_GET['p'] ?? 'home';
+
+// Da qui in poi il gestionale sa come lo si raggiunge dall esterno: serve al
+// plugin per il pulsante "Analizza" e alla coda, che non ha un HTTP_HOST.
+Impostazioni::ricordaIndirizzo( indirizzo_base() );
 
 // ---------------------------------------------------------------- Nuovo audit
 if ( 'analizza' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
@@ -153,6 +218,96 @@ if ( 'analizza' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	);
 
 	header( 'Location: ?p=audit&id=' . $auditId );
+	exit;
+}
+
+// ------------------------------- Avvio dell analisi da un pulsante esterno
+if ( 'api-analizza' === $pagina ) {
+	header( 'Content-Type: application/json; charset=utf-8' );
+
+	$atteso  = (string) ( Impostazioni::salvate()['gestionale']['token'] ?? '' );
+	$fornito = (string) ( $_REQUEST['token'] ?? $_SERVER['HTTP_X_MDI_ANALISI'] ?? '' );
+
+	// Nessun token configurato significa nessun avvio da fuori: si rifiuta.
+	if ( '' === $atteso || '' === $fornito || ! hash_equals( $atteso, $fornito ) ) {
+		http_response_code( 401 );
+		echo json_encode( array( 'ok' => false, 'errore' => 'Token non valido.' ) );
+		exit;
+	}
+
+	// Una analisi ogni due minuti: evita che un pulsante premuto più volte
+	// faccia partire dieci letture del sito in parallelo.
+	$segnale = __DIR__ . '/../storage/ultima-analisi.txt';
+
+	if ( is_file( $segnale ) && ( time() - (int) file_get_contents( $segnale ) ) < 120 ) {
+		http_response_code( 429 );
+		echo json_encode( array( 'ok' => false, 'errore' => 'Analisi avviata da poco: riprova fra un paio di minuti.' ) );
+		exit;
+	}
+
+	file_put_contents( $segnale, (string) time() );
+	set_time_limit( 0 );
+
+	try {
+		$lettore = new SitoRemoto( new WordPress( $cfg['wordpress'] ) );
+		$site    = new Site( $lettore->leggi() );
+
+		$audit  = Audit::esegui( $site );
+		$triage = Triage::esegui( $site, $cfg );
+		$meta   = Meta::piano( $site, $cfg );
+		$link   = InternalLinks::piano( $site, $cfg );
+
+		$precedente = $db->one( 'SELECT punteggio FROM audit WHERE sito_url = ? ORDER BY id DESC LIMIT 1', array( $site->url ) );
+
+		$auditId = Audit::salva( $db, $site, $audit, 'avviata dall esterno' );
+		Triage::salva( $db, $auditId, $triage );
+		Meta::salva( $db, $auditId, $meta );
+		InternalLinks::salva( $db, $auditId, $link['piano'] );
+
+		Export::tutto(
+			array(
+				'site'     => $site,
+				'cfg'      => $cfg,
+				'audit'    => $audit,
+				'triage'   => $triage,
+				'meta'     => $meta,
+				'link'     => $link,
+				'cartella' => __DIR__ . '/../storage/export/audit-' . $auditId,
+			)
+		);
+
+		$indirizzo = indirizzo_base() . '/index.php?p=audit&id=' . $auditId;
+
+		echo json_encode(
+			array(
+				'ok'         => true,
+				'audit'      => $auditId,
+				'punteggio'  => $audit['globale'],
+				'variazione' => $precedente ? $audit['globale'] - (int) $precedente['punteggio'] : null,
+				'problemi'   => $audit['occorrenze'],
+				'articoli'   => count( $site->articoli ),
+				'pagine'     => count( $site->pagine ),
+				'scheda'     => $indirizzo,
+			),
+			JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+		);
+	} catch ( Throwable $e ) {
+		http_response_code( 500 );
+		echo json_encode( array( 'ok' => false, 'errore' => $e->getMessage() ), JSON_UNESCAPED_UNICODE );
+	}
+
+	exit;
+}
+
+if ( 'rigenera-token' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Token di sessione non valido.' );
+	}
+
+	Impostazioni::rigeneraTokenEsterno();
+
+	header( 'Location: ?p=impostazioni&salvato=1' );
 	exit;
 }
 
@@ -944,6 +1099,12 @@ switch ( $pagina ) {
 				'titolo'              => 'Impostazioni',
 				'cfg'                 => $cfg,
 				'mascherata'          => Impostazioni::mascherata( $salvate['ai']['chiave'] ?? '' ),
+				'token_esterno'       => Impostazioni::tokenEsterno(),
+				'snippet'             => snippet_pulsante_analizza(
+					indirizzo_base(),
+					Impostazioni::tokenEsterno()
+				),
+				'indirizzo_base'      => indirizzo_base(),
 				'token_wp_mascherato' => Impostazioni::mascherata( $salvate['wordpress']['token'] ?? '' ),
 				'salvato'             => isset( $_GET['salvato'] )
 					? 'Impostazioni salvate.'

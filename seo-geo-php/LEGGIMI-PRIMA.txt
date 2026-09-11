@@ -46,6 +46,16 @@ Da riga di comando (se l'hosting la mette a disposizione):
 
        php cli/audit.php export.xml
 
+Rifare l'analisi piu' avanti
+----------------------------
+Dopo la prima volta non serve piu' l'XML: con il plugin installato e
+collegato, il gestionale rilegge il sito da solo.
+- dal gestionale: "Rileggi il sito e ricalcola"
+- da WordPress:   SEO & GEO -> Analizza adesso
+- da un pulsante tuo: Impostazioni -> "Avviare l'analisi da un pulsante"
+  (indirizzo con token, risponde in JSON)
+L'analisi legge soltanto: non modifica il sito.
+
 Prima di usare i file generati: apri config.php e compila tutti i campi
 DA_COMPILARE (telefono, indirizzo, CAP, partita IVA, coordinate, scheda
 Google Business, autore). Senza quei dati lo schema locale resta incompleto.

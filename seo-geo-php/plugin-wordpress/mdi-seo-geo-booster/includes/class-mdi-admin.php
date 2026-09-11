@@ -21,6 +21,7 @@ class MDI_Admin {
 	 */
 	public static function init() {
 		add_action( 'admin_post_mdi_genera_token', array( __CLASS__, 'genera_token' ) );
+		add_action( 'admin_post_mdi_analizza', array( __CLASS__, 'analizza' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'conflict_notice' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'config_notice' ) );
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
@@ -208,6 +209,116 @@ class MDI_Admin {
 	}
 
 	/**
+	 * Indirizzo che il gestionale ha comunicato per avviare una analisi.
+	 *
+	 * @return string Vuoto finché il gestionale non ha mai salvato le impostazioni.
+	 */
+	public static function url_analisi() {
+		$configurazione = get_option( MDI_Api::OPZIONE_CONFIG, array() );
+		$url            = is_array( $configurazione ) ? ( $configurazione['analisi']['url'] ?? '' ) : '';
+
+		return preg_match( '~^https?://~i', (string) $url ) ? (string) $url : '';
+	}
+
+	/**
+	 * Chiede al gestionale una nuova analisi e torna indietro con l esito.
+	 *
+	 * Il sito non viene toccato: si rilegge soltanto, per ricalcolare il
+	 * punteggio dopo le correzioni applicate.
+	 *
+	 * @return void
+	 */
+	public static function analizza() {
+		if ( ! current_user_can( 'manage_options' ) || ! check_admin_referer( 'mdi_analizza' ) ) {
+			wp_die( 'Operazione non consentita.' );
+		}
+
+		$url = self::url_analisi();
+
+		if ( '' === $url ) {
+			wp_safe_redirect( admin_url( 'admin.php?page=mdi-seo-geo&analisi=assente' ) );
+			exit;
+		}
+
+		$risposta = wp_remote_get( $url, array( 'timeout' => 300 ) );
+
+		if ( is_wp_error( $risposta ) ) {
+			wp_safe_redirect(
+				admin_url( 'admin.php?page=mdi-seo-geo&analisi=errore&messaggio=' . rawurlencode( $risposta->get_error_message() ) )
+			);
+			exit;
+		}
+
+		$dati = json_decode( wp_remote_retrieve_body( $risposta ), true );
+
+		if ( ! is_array( $dati ) || empty( $dati['ok'] ) ) {
+			$messaggio = is_array( $dati ) && ! empty( $dati['errore'] ) ? $dati['errore'] : 'Il gestionale non ha risposto come previsto.';
+
+			wp_safe_redirect( admin_url( 'admin.php?page=mdi-seo-geo&analisi=errore&messaggio=' . rawurlencode( $messaggio ) ) );
+			exit;
+		}
+
+		wp_safe_redirect(
+			admin_url(
+				'admin.php?page=mdi-seo-geo&analisi=fatta'
+				. '&punteggio=' . (int) $dati['punteggio']
+				. '&variazione=' . rawurlencode( (string) ( $dati['variazione'] ?? '' ) )
+				. '&problemi=' . (int) ( $dati['problemi'] ?? 0 )
+				. '&scheda=' . rawurlencode( (string) ( $dati['scheda'] ?? '' ) )
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * Pulsante "Analizza adesso" e riepilogo dell ultima risposta.
+	 *
+	 * @return void
+	 */
+	public static function sezione_analisi() {
+		$url = self::url_analisi();
+
+		echo '<h2>Ricalcolare il punteggio</h2>';
+
+		if ( '' === $url ) {
+			echo '<p>Apri le Impostazioni del gestionale e premi <strong>Salva</strong> una volta: '
+				. 'da quel momento compare qui il pulsante per far ripartire l analisi.</p>';
+			return;
+		}
+
+		$esito = isset( $_GET['analisi'] ) ? sanitize_text_field( wp_unslash( $_GET['analisi'] ) ) : '';
+
+		if ( 'fatta' === $esito ) {
+			$variazione = isset( $_GET['variazione'] ) ? sanitize_text_field( wp_unslash( $_GET['variazione'] ) ) : '';
+			$segno      = ( '' === $variazione ) ? 'prima analisi' : ( ( (int) $variazione > 0 ? '+' : '' ) . (int) $variazione . ' rispetto alla volta scorsa' );
+
+			printf(
+				'<div class="notice notice-success"><p>Punteggio: <strong>%d/100</strong> (%s) &mdash; %d problemi aperti. <a href="%s" target="_blank" rel="noopener">Apri la scheda nel gestionale</a></p></div>',
+				(int) ( $_GET['punteggio'] ?? 0 ),
+				esc_html( $segno ),
+				(int) ( $_GET['problemi'] ?? 0 ),
+				esc_url( wp_unslash( $_GET['scheda'] ?? '' ) )
+			);
+		} elseif ( 'errore' === $esito ) {
+			printf(
+				'<div class="notice notice-error"><p>%s</p></div>',
+				esc_html( sanitize_text_field( wp_unslash( $_GET['messaggio'] ?? 'Analisi non riuscita.' ) ) )
+			);
+		} elseif ( 'assente' === $esito ) {
+			echo '<div class="notice notice-error"><p>Il gestionale non ha comunicato nessun indirizzo di analisi.</p></div>';
+		}
+
+		echo '<p>Rilegge il sito cosi com e adesso e ricalcola il punteggio. Non modifica nulla. '
+			. 'Puo impiegare qualche minuto sui siti grandi, e si puo lanciare una volta ogni due minuti.</p>';
+
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<input type="hidden" name="action" value="mdi_analizza">';
+		wp_nonce_field( 'mdi_analizza' );
+		echo '<p><button class="button button-primary">Analizza adesso</button></p>';
+		echo '</form>';
+	}
+
+	/**
 	 * Pagina di riepilogo.
 	 *
 	 * @return void
@@ -235,6 +346,8 @@ class MDI_Admin {
 		}
 
 		echo '</table>';
+
+		self::sezione_analisi();
 
 		self::sezione_collegamento();
 

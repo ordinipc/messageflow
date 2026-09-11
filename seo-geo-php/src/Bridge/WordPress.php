@@ -111,6 +111,9 @@ class WordPress {
 						'azienda' => $cfg['azienda'] ?? array(),
 						'autori'  => $cfg['autori'] ?? array(),
 						'seo'     => $cfg['seo'] ?? array(),
+						// Con questo indirizzo il plugin mostra il pulsante
+						// "Analizza adesso" dentro la bacheca di WordPress.
+						'analisi' => array( 'url' => \SeoGeo\Impostazioni::urlAnalisi() ),
 					),
 				)
 			);

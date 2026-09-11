@@ -153,3 +153,38 @@ function campo( $nome, $etichetta, $valore, $nota = '', $tipo = 'text' ) {
 
 	<p><button class="bottone" type="submit">Salva impostazioni</button></p>
 </form>
+
+<section class="scheda">
+	<h2>Avviare l'analisi da un pulsante</h2>
+	<p class="guida">
+		<strong>Nella bacheca di WordPress il pulsante c'è già.</strong> Dalla versione 1.3.0 del plugin,
+		in <em>SEO &amp; GEO → Analizza adesso</em>: appare da solo appena salvi qui le impostazioni,
+		perché insieme ai dati aziendali il gestionale gli manda anche l'indirizzo qui sotto.
+		Il resto di questa scheda serve solo se vuoi il pulsante anche altrove: in un tuo gestionale,
+		in uno script, in una pagina tua.
+	</p>
+
+	<div class="campo">
+		<label for="url-analisi">Indirizzo da chiamare</label>
+		<input id="url-analisi" type="text" readonly value="<?php echo e( $indirizzo_base ); ?>/index.php?p=api-analizza&amp;token=<?php echo e( $token_esterno ); ?>">
+		<small>Il token vale come una password: chi ha questo indirizzo può far partire un'analisi. Usalo sempre su <code>https</code>.</small>
+	</div>
+
+	<p class="guida">Risposta tipo:</p>
+	<pre class="mono">{"ok":true,"audit":7,"punteggio":52,"variazione":18,"problemi":2140,
+ "articoli":311,"pagine":15,"scheda":"…/index.php?p=audit&amp;id=7"}</pre>
+
+	<p class="guida">Codice pronto, se preferisci un tuo pulsante nel <code>functions.php</code> o in uno snippet:</p>
+	<pre class="mono"><?php echo e( $snippet ); ?></pre>
+
+	<p class="nota">
+		L'analisi rilegge il sito e ricalcola il punteggio: non modifica nulla.
+		Un'analisi ogni due minuti al massimo: le richieste più ravvicinate ricevono un rifiuto,
+		così un doppio clic non fa partire due letture insieme.
+	</p>
+
+	<form method="post" action="?p=rigenera-token" onsubmit="return confirm('Rigenerare il token? Il vecchio indirizzo smetterà di funzionare.')">
+		<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+		<button class="bottone chiaro" type="submit">Rigenera il token</button>
+	</form>
+</section>

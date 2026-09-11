@@ -112,6 +112,13 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 				<span class="tag grave">il sito non li ha ancora</span>
 			<?php endif; ?>
 		</p>
+		<p>
+			<?php if ( ! empty( $stato['analisi'] ) ) : ?>
+				<span class="tag ok">pulsante «Analizza adesso» attivo nella bacheca</span>
+			<?php elseif ( ! empty( $stato['config'] ) ) : ?>
+				<span class="tag alto">pulsante «Analizza adesso» non ancora attivo: aggiorna il plugin alla 1.3.0 e risalva le impostazioni</span>
+			<?php endif; ?>
+		</p>
 		<div class="azioni"><?php azione( $audit['id'], 'config', 'Invia i dati aziendali al sito' ); ?></div>
 	</section>
 

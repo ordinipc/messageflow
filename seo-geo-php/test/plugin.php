@@ -320,6 +320,104 @@ verifica( 'lo stato riporta il numero di articoli', isset( $stato['articoli'] ) 
 verifica( 'lo stato riporta la versione del plugin', MDI_SEO_GEO_VERSION === ( $stato['plugin'] ?? '' ) );
 verifica( 'lo stato conta i redirect attivi', 2 === ( $stato['redirect'] ?? 0 ) );
 
+// --- Lettura del sito per il gestionale ------------------------------------
+echo "\nLettura del sito\n";
+
+$conteggi = MDI_Api::conteggi();
+verifica( 'i conteggi distinguono articoli e pagine', isset( $conteggi['articoli'], $conteggi['pagine'] ) );
+verifica( 'i conteggi riportano gli autori', ! empty( $conteggi['autori'] ) );
+
+$blocco = MDI_Api::contenuti( new WP_REST_Request( array( 'offset' => 0, 'limite' => 5 ) ) );
+verifica( 'i contenuti arrivano a blocchi', ! empty( $blocco['contenuti'] ) );
+$primo = $blocco['contenuti'][0];
+verifica( 'ogni contenuto porta id, titolo e tipo', isset( $primo['wp_id'], $primo['titolo'], $primo['tipo'] ) );
+verifica( 'ogni contenuto porta le meta SEO lette dal sito', array_key_exists( 'meta', $primo ) );
+
+$voci = MDI_Api::menu();
+verifica( 'il menu di navigazione viene letto', ! empty( $voci['voci'] ) );
+
+// --- Pulsante "Analizza" ---------------------------------------------------
+echo "\nPulsante Analizza\n";
+
+delete_option_stub( MDI_Api::OPZIONE_CONFIG );
+verifica( 'senza configurazione non c è nessun indirizzo di analisi', '' === MDI_Admin::url_analisi() );
+
+MDI_Api::salva_config(
+	new WP_REST_Request(
+		array(
+			'config' => array(
+				'azienda' => array( 'nome' => 'Prova', 'telefono' => '+39 091 000000' ),
+				'analisi' => array( 'url' => 'https://gestionale.esempio.it/index.php?p=api-analizza&token=abc' ),
+			),
+		)
+	)
+);
+
+verifica(
+	'il gestionale comunica l indirizzo di analisi',
+	'https://gestionale.esempio.it/index.php?p=api-analizza&token=abc' === MDI_Admin::url_analisi()
+);
+
+$stato = MDI_Api::stato();
+verifica( 'lo stato dichiara che il pulsante è disponibile', true === ( $stato['analisi'] ?? false ) );
+
+// Un indirizzo non http viene ignorato: il pulsante non deve chiamare a caso.
+MDI_Api::salva_config(
+	new WP_REST_Request(
+		array(
+			'config' => array(
+				'azienda' => array( 'nome' => 'Prova' ),
+				'analisi' => array( 'url' => 'javascript:alert(1)' ),
+			),
+		)
+	)
+);
+verifica( 'un indirizzo non valido viene scartato', '' === MDI_Admin::url_analisi() );
+
+ob_start();
+MDI_Admin::sezione_analisi();
+$html = ob_get_clean();
+verifica( 'senza indirizzo la pagina spiega cosa fare invece di mostrare il pulsante', false === strpos( $html, 'Analizza adesso' ) );
+
+MDI_Api::salva_config(
+	new WP_REST_Request(
+		array(
+			'config' => array(
+				'azienda' => array( 'nome' => 'Prova' ),
+				'analisi' => array( 'url' => 'https://gestionale.esempio.it/index.php?p=api-analizza&token=abc' ),
+			),
+		)
+	)
+);
+
+ob_start();
+MDI_Admin::sezione_analisi();
+$html = ob_get_clean();
+verifica( 'con indirizzo compare il pulsante', false !== strpos( $html, 'Analizza adesso' ) );
+verifica( 'il modulo passa da admin-post con la sua azione', false !== strpos( $html, 'name="action" value="mdi_analizza"' ) );
+verifica( 'il modulo è protetto da nonce', false !== strpos( $html, 'mdi_analizza' ) );
+
+$_GET = array( 'analisi' => 'fatta', 'punteggio' => '58', 'variazione' => '7', 'problemi' => '1200', 'scheda' => 'https://gestionale.esempio.it/index.php?p=audit&id=9' );
+ob_start();
+MDI_Admin::sezione_analisi();
+$html = ob_get_clean();
+verifica( 'il punteggio tornato dal gestionale viene mostrato', false !== strpos( $html, '58/100' ) );
+verifica( 'la variazione viene mostrata col segno', false !== strpos( $html, '+7 rispetto alla volta scorsa' ) );
+
+$_GET = array( 'analisi' => 'fatta', 'punteggio' => '51', 'variazione' => '', 'problemi' => '0', 'scheda' => '' );
+ob_start();
+MDI_Admin::sezione_analisi();
+$html = ob_get_clean();
+verifica( 'la prima analisi non inventa una variazione', false !== strpos( $html, 'prima analisi' ) );
+
+$_GET = array( 'analisi' => 'errore', 'messaggio' => 'Token non valido.' );
+ob_start();
+MDI_Admin::sezione_analisi();
+$html = ob_get_clean();
+verifica( 'un errore del gestionale viene riportato per intero', false !== strpos( $html, 'Token non valido.' ) );
+
+$_GET = array();
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

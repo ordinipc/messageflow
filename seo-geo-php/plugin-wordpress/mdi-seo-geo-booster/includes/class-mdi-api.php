@@ -425,6 +425,7 @@ class MDI_Api {
 				'config'     => (bool) get_option( self::OPZIONE_CONFIG, false ),
 				'telefono'   => (bool) mdi_seo_geo_cfg( 'azienda.telefono' ),
 				'piva'       => (bool) mdi_seo_geo_cfg( 'azienda.partitaIva' ),
+				'analisi'    => class_exists( 'MDI_Admin' ) && '' !== MDI_Admin::url_analisi(),
 			)
 		);
 	}

@@ -32,13 +32,19 @@ $GLOBALS['wp'] = array(
  */
 function stub_crea_post( $id, $titolo, $contenuto = '' ) {
 	$GLOBALS['wp']['post'][ $id ] = (object) array(
-		'ID'           => $id,
-		'post_title'   => $titolo,
-		'post_content' => $contenuto,
-		'post_excerpt' => '',
-		'post_status'  => 'publish',
-		'post_type'    => 'post',
-		'post_author'  => 1,
+		'ID'                => $id,
+		'post_title'        => $titolo,
+		'post_content'      => $contenuto,
+		'post_excerpt'      => '',
+		'post_status'       => 'publish',
+		'post_type'         => 'post',
+		'post_author'       => 1,
+		'post_name'         => 'articolo-' . $id,
+		'post_date'         => '2026-01-01 10:00:00',
+		'post_date_gmt'     => '2026-01-01 09:00:00',
+		'post_modified_gmt' => '2026-02-01 09:00:00',
+		'post_parent'       => 0,
+		'comment_status'    => 'closed',
 	);
 }
 
@@ -259,6 +265,10 @@ function update_option( $nome, $valore, $autoload = true ) {
 	return true;
 }
 
+function delete_option_stub( $nome ) {
+	unset( $GLOBALS['wp']['opzioni'][ $nome ] );
+}
+
 function home_url( $percorso = '' ) {
 	return 'https://esempio.it' . $percorso;
 }
@@ -275,6 +285,10 @@ function admin_url( $percorso = '' ) {
 
 function untrailingslashit( $stringa ) {
 	return rtrim( $stringa, '/' );
+}
+
+function wp_unslash( $valore ) {
+	return is_array( $valore ) ? array_map( 'wp_unslash', $valore ) : stripslashes( (string) $valore );
 }
 
 function sanitize_text_field( $valore ) {
@@ -484,6 +498,57 @@ function wp_get_document_title() {
 }
 
 function get_header() {}
+
+// --- Utenti, tassonomie, menu e allegati -----------------------------------
+
+function get_users( $argomenti = array() ) {
+	return array(
+		(object) array( 'ID' => 1, 'user_login' => 'redazione', 'display_name' => 'Redazione', 'user_email' => 'redazione@esempio.it' ),
+	);
+}
+
+function get_user_meta( $id, $chiave, $singolo = false ) {
+	$valori = array( 'first_name' => 'Redazione', 'last_name' => '' );
+
+	return $valori[ $chiave ] ?? '';
+}
+
+function get_the_author_meta( $campo, $id = 0 ) {
+	return 'Redazione';
+}
+
+function get_the_tags( $id = 0 ) {
+	return array( (object) array( 'slug' => 'seo', 'name' => 'SEO' ) );
+}
+
+function wp_get_nav_menus( $argomenti = array() ) {
+	return array( (object) array( 'term_id' => 7, 'name' => 'Principale', 'slug' => 'principale' ) );
+}
+
+function wp_get_nav_menu_items( $menu, $argomenti = array() ) {
+	return array(
+		(object) array( 'ID' => 900, 'title' => 'Home', 'url' => 'https://esempio.it/', 'menu_item_parent' => '0', 'object_id' => '0', 'type' => 'custom', 'object' => 'custom' ),
+		(object) array( 'ID' => 901, 'title' => 'Servizi', 'url' => 'https://esempio.it/servizi/', 'menu_item_parent' => '0', 'object_id' => '101', 'type' => 'post_type', 'object' => 'page' ),
+	);
+}
+
+function get_attached_file( $id ) {
+	return '';
+}
+
+function wp_get_attachment_metadata( $id ) {
+	return array( 'filesize' => 120000, 'width' => 1200, 'height' => 800 );
+}
+
+function wp_get_attachment_url( $id ) {
+	return 'https://esempio.it/wp-content/uploads/immagine-' . (int) $id . '.jpg';
+}
+
+function wp_get_post_parent_id( $id ) {
+	$post = get_post( $id );
+
+	return $post ? (int) ( $post->post_parent ?? 0 ) : 0;
+}
 
 // Si carica il plugin vero e proprio: costanti, funzioni e tutte le classi.
 require_once MDI_PLUGIN_FILE;
