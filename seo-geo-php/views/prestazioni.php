@@ -5,6 +5,8 @@
  * @package SeoGeoAudit
  * @var array      $cfg         Configurazione.
  * @var bool       $configurato Collegamento a Search Console configurato.
+ * @var string[]   $manca       Cosa manca: 'chiave', 'proprieta'.
+ * @var bool       $chiave_ok   La chiave c è ed è valida.
  * @var string     $account     Indirizzo dell account di servizio.
  * @var array|null $ultima      Ultima rilevazione.
  * @var array|null $precedente  Rilevazione prima di quella.
@@ -68,10 +70,27 @@ function delta( $ora, $prima, $meglio = false ) {
 <?php if ( ! $configurato ) : ?>
 	<section class="scheda">
 		<h2>Search Console non è ancora collegata</h2>
+
+		<?php if ( $chiave_ok ) : ?>
+			<p class="avviso ok-bg">La chiave dell account di servizio c è ed è valida.</p>
+		<?php endif; ?>
+
 		<p class="guida">
-			Serve una chiave di account di servizio di Google Cloud, da incollare nelle Impostazioni.
-			Sono cinque minuti e non costa niente: le istruzioni passo passo sono lì.
+			<?php if ( in_array( 'chiave', $manca, true ) && in_array( 'proprieta', $manca, true ) ) : ?>
+				Mancano due cose: la <strong>chiave</strong> dell account di servizio di Google Cloud e la
+				<strong>proprietà</strong> di Search Console. Sono cinque minuti e non costa niente:
+				le istruzioni passo passo sono nelle Impostazioni.
+			<?php elseif ( in_array( 'chiave', $manca, true ) ) : ?>
+				Manca la <strong>chiave</strong> dell account di servizio: si carica dalle Impostazioni
+				come file JSON, oppure si mette per FTP in <code>storage/google.json</code>.
+			<?php else : ?>
+				Manca solo la <strong>proprietà</strong>: è il campo
+				<em>Proprietà di Search Console</em> nelle Impostazioni, e va scritto esattamente come
+				compare in Search Console — <code>sc-domain:tuosito.it</code> se l hai verificata come
+				dominio, <code>https://tuosito.it/</code> se l hai verificata con prefisso URL.
+			<?php endif; ?>
 		</p>
+
 		<p><a class="bottone" href="?p=impostazioni#search-console">Vai alle impostazioni</a></p>
 	</section>
 <?php else : ?>

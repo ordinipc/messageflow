@@ -371,6 +371,60 @@ if ( 'aggiorna-google' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	exit;
 }
 
+// ----------------------- Rilevamento delle proprietà viste dall account
+if ( 'rileva-proprieta' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Token di sessione non valido: ricarica la pagina e riprova.' );
+	}
+
+	try {
+		// Si costruisce il client senza proprietà: qui la stiamo cercando.
+		$account = new \SeoGeo\Google\ServiceAccount( \SeoGeo\Google\ServiceAccount::daJson( Impostazioni::chiaveGoogle( $cfg ) ) );
+		$console = new \SeoGeo\Google\SearchConsole( $account, '' );
+		$nomi    = array_column( $console->siti(), 'proprieta' );
+
+		if ( ! $nomi ) {
+			throw new RuntimeException(
+				'La chiave funziona, ma l account ' . $account->indirizzo() . ' non vede nessuna proprietà. '
+				. 'Vai in Search Console → Impostazioni → Utenti e autorizzazioni e aggiungilo come utente con permesso "Con limitazioni".'
+			);
+		}
+
+		// Una sola proprietà: non c è niente da scegliere, si imposta.
+		if ( 1 === count( $nomi ) ) {
+			$salvate = Impostazioni::salvate();
+			$salvate['google']['proprieta'] = $nomi[0];
+			Impostazioni::salva( $salvate );
+
+			header( 'Location: ?p=impostazioni&salvato=1&google=' . rawurlencode( 'Proprietà impostata: ' . $nomi[0] ) );
+			exit;
+		}
+
+		header( 'Location: ?p=impostazioni&proprieta=' . rawurlencode( implode( '|', array_slice( $nomi, 0, 20 ) ) ) . '#search-console' );
+	} catch ( Throwable $e ) {
+		header( 'Location: ?p=impostazioni&errore=' . rawurlencode( $e->getMessage() ) );
+	}
+
+	exit;
+}
+
+// ---------------------------------- Scelta della proprietà fra quelle viste
+if ( 'scegli-proprieta' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Token di sessione non valido: ricarica la pagina e riprova.' );
+	}
+
+	$salvate = Impostazioni::salvate();
+	$salvate['google']['proprieta'] = trim( (string) ( $_POST['proprieta'] ?? '' ) );
+
+	Impostazioni::salva( $salvate );
+
+	header( 'Location: ?p=impostazioni&salvato=1&google=' . rawurlencode( 'Proprietà impostata: ' . $salvate['google']['proprieta'] ) );
+	exit;
+}
+
 // ------------------------------------- Prova del collegamento con Google
 if ( 'prova-google' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
@@ -1265,6 +1319,11 @@ switch ( $pagina ) {
 					? 'Chiave Google salvata e verificata. Account: ' . $_GET['chiave']
 					: '',
 				'google_errore'       => (string) ( $_GET['chiave_errore'] ?? '' ),
+				'google_proprieta'    => isset( $_GET['proprieta'] )
+					? array_filter( explode( '|', (string) $_GET['proprieta'] ) )
+					: array(),
+				'google_manca'        => Prestazioni::cosaManca( $cfg ),
+				'google_chiave_presente' => '' !== trim( Impostazioni::chiaveGoogle( $cfg ) ),
 				'google_account'      => google_indirizzo_account( $cfg ),
 				'salvato'             => isset( $_GET['google'] )
 					? (string) $_GET['google']
@@ -1291,6 +1350,8 @@ switch ( $pagina ) {
 				'titolo'       => 'Rendimento in Google',
 				'cfg'          => $cfg,
 				'configurato'  => Prestazioni::configurata( $cfg ),
+				'manca'        => Prestazioni::cosaManca( $cfg ),
+				'chiave_ok'    => '' !== trim( Impostazioni::chiaveGoogle( $cfg ) ),
 				'account'      => google_indirizzo_account( $cfg ),
 				'ultima'       => $ultima,
 				'precedente'   => count( $storico ) > 1 ? $storico[1] : null,

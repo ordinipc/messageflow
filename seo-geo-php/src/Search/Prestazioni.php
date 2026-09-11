@@ -76,8 +76,30 @@ class Prestazioni {
 	 * @return bool
 	 */
 	public static function configurata( array $cfg ) {
-		return '' !== trim( Impostazioni::chiaveGoogle( $cfg ) )
-			&& '' !== trim( (string) ( $cfg['google']['proprieta'] ?? '' ) );
+		return array() === self::cosaManca( $cfg );
+	}
+
+	/**
+	 * Cosa manca perché il collegamento funzioni.
+	 *
+	 * Servono due cose, e dire genericamente "non è collegata" costringe chi
+	 * legge a indovinare quale delle due: qui si dice quale.
+	 *
+	 * @param array $cfg Configurazione.
+	 * @return string[] Elenco fra 'chiave' e 'proprieta'.
+	 */
+	public static function cosaManca( array $cfg ) {
+		$manca = array();
+
+		if ( '' === trim( Impostazioni::chiaveGoogle( $cfg ) ) ) {
+			$manca[] = 'chiave';
+		}
+
+		if ( '' === trim( (string) ( $cfg['google']['proprieta'] ?? '' ) ) ) {
+			$manca[] = 'proprieta';
+		}
+
+		return $manca;
 	}
 
 	/**

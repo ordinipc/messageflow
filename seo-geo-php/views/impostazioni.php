@@ -194,6 +194,13 @@ function campo( $nome, $etichetta, $valore, $nota = '', $tipo = 'text' ) {
 			</small>
 		</div>
 
+		<?php if ( in_array( 'proprieta', $google_manca, true ) && ! in_array( 'chiave', $google_manca, true ) ) : ?>
+			<p class="avviso alto">
+				La chiave c è, ma manca la <strong>proprietà</strong>: finché questo campo è vuoto la pagina
+				Rendimento resta spenta. Non serve indovinarla — chiedila a Google con il pulsante qui sotto.
+			</p>
+		<?php endif; ?>
+
 		<div class="griglia">
 			<?php campo( 'g_proprieta', 'Proprietà di Search Console', $cfg['google']['proprieta'] ?? '', 'Come compare lì: sc-domain:tuosito.it oppure https://tuosito.it/' ); ?>
 			<?php campo( 'g_giorni', 'Giorni da analizzare', $cfg['google']['giorni'] ?? 28, 'Da 7 a 180. Con 28 si confronta con i 28 precedenti.', 'number' ); ?>
@@ -230,6 +237,37 @@ function campo( $nome, $etichetta, $valore, $nota = '', $tipo = 'text' ) {
 
 	<p><button class="bottone" type="submit">Salva impostazioni</button></p>
 </form>
+
+<?php if ( $google_chiave_presente ) : ?>
+<section class="scheda">
+	<h2>Quale proprietà?</h2>
+	<p class="guida">
+		Il nome della proprietà deve essere identico a come compare in Search Console, e sbagliarlo è
+		la cosa più facile del mondo. Falla dire direttamente a Google: il programma chiede quali
+		proprietà vede il tuo account di servizio. Se ne vede una sola, la imposta da sé.
+	</p>
+
+	<?php if ( $google_proprieta ) : ?>
+		<form method="post" action="?p=scegli-proprieta">
+			<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+			<div class="campo">
+				<label for="proprieta">Proprietà viste dall account</label>
+				<select id="proprieta" name="proprieta">
+					<?php foreach ( $google_proprieta as $nome ) : ?>
+						<option value="<?php echo e( $nome ); ?>" <?php echo ( $cfg['google']['proprieta'] ?? '' ) === $nome ? 'selected' : ''; ?>><?php echo e( $nome ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+			<button class="bottone" type="submit">Usa questa proprietà</button>
+		</form>
+	<?php else : ?>
+		<form method="post" action="?p=rileva-proprieta">
+			<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+			<button class="bottone" type="submit">Chiedi a Google quali proprietà vede</button>
+		</form>
+	<?php endif; ?>
+</section>
+<?php endif; ?>
 
 <?php if ( $google_configurato ) : ?>
 <section class="scheda">

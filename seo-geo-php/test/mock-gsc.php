@@ -22,6 +22,7 @@ if ( false !== strpos( $percorso, '/sites' ) && false === strpos( $percorso, 'se
 		array(
 			'siteEntry' => array(
 				array( 'siteUrl' => 'sc-domain:esempio.it', 'permissionLevel' => 'siteFullUser' ),
+				array( 'siteUrl' => 'https://altro.esempio.it/', 'permissionLevel' => 'siteRestrictedUser' ),
 			),
 		)
 	);

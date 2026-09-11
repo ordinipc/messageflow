@@ -217,6 +217,8 @@ $console = new SearchConsole( $conto, 'sc-domain:esempio.it', 'http://127.0.0.1:
 
 $siti = $console->siti();
 verifica( 'le proprietà accessibili vengono elencate', 'sc-domain:esempio.it' === ( $siti[0]['proprieta'] ?? '' ) );
+verifica( 'vengono elencate tutte, non solo la prima', 2 === count( $siti ), count( $siti ) . ' proprietà' );
+verifica( 'di ciascuna si sa il livello di permesso', 'siteFullUser' === ( $siti[0]['permesso'] ?? '' ) );
 
 $pagine = $console->rendimento( array( 'dimensioni' => array( 'page' ) ) );
 verifica( 'le pagine vengono lette', 3 === count( $pagine ), 'lette ' . count( $pagine ) );
