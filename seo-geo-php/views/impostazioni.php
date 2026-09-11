@@ -269,6 +269,17 @@ function campo( $nome, $etichetta, $valore, $nota = '', $tipo = 'text' ) {
 </section>
 <?php endif; ?>
 
+<?php if ( $google_chiave_presente ) : ?>
+<section class="scheda">
+	<h2>Autorizza l account in Search Console</h2>
+	<?php
+	$account   = $google_account;
+	$proprieta = (string) ( $cfg['google']['proprieta'] ?? '' );
+	require __DIR__ . '/parti/autorizza-google.php';
+	?>
+</section>
+<?php endif; ?>
+
 <?php if ( $google_configurato ) : ?>
 <section class="scheda">
 	<h2>Prova il collegamento con Search Console</h2>

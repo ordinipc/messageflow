@@ -184,6 +184,25 @@ verifica( 'sc-domain resta com è', 'sc-domain:esempio.it' === SearchConsole::no
 verifica( 'un indirizzo completo prende la barra finale', 'https://esempio.it/' === SearchConsole::normalizzaProprieta( 'https://esempio.it' ) );
 verifica( 'le maiuscole non rompono il confronto', 'sc-domain:esempio.it' === SearchConsole::normalizzaProprieta( 'Esempio.IT' ) );
 
+// Il pulsante deve portare sulla pagina esatta: aggiungere un utente a una
+// proprietà si fa solo dall interfaccia di Google, non esiste un API.
+verifica(
+	'il collegamento porta agli utenti della proprietà di dominio',
+	'https://search.google.com/search-console/users?resource_id=sc-domain%3Aesempio.it' === SearchConsole::urlUtenti( 'sc-domain:esempio.it' )
+);
+verifica(
+	'con una proprietà a prefisso URL l indirizzo viene codificato',
+	'https://search.google.com/search-console/users?resource_id=https%3A%2F%2Fesempio.it%2F' === SearchConsole::urlUtenti( 'https://esempio.it/' )
+);
+verifica(
+	'un dominio scritto nudo diventa comunque una proprietà valida nel collegamento',
+	false !== strpos( SearchConsole::urlUtenti( 'esempio.it' ), 'sc-domain%3Aesempio.it' )
+);
+verifica(
+	'senza proprietà si apre l elenco generale',
+	'https://search.google.com/search-console/users' === SearchConsole::urlUtenti( '' )
+);
+
 // --- Lettura dei dati ------------------------------------------------------
 echo "\nLettura dei dati\n";
 

@@ -74,6 +74,26 @@ class SearchConsole {
 	}
 
 	/**
+	 * Pagina di Search Console dove si aggiungono gli utenti di una proprietà.
+	 *
+	 * Aggiungere un utente si fa solo dall interfaccia di Google: l API di
+	 * Search Console non lo prevede. La cosa migliore che si può fare da qui è
+	 * portare l utente sulla pagina esatta, con la proprietà già scelta.
+	 *
+	 * @param string $proprieta Proprietà; se vuota si apre l elenco generale.
+	 * @return string
+	 */
+	public static function urlUtenti( $proprieta = '' ) {
+		$proprieta = self::normalizzaProprieta( $proprieta );
+
+		if ( '' === $proprieta ) {
+			return 'https://search.google.com/search-console/users';
+		}
+
+		return 'https://search.google.com/search-console/users?resource_id=' . rawurlencode( $proprieta );
+	}
+
+	/**
 	 * Proprietà a cui l account di servizio ha accesso.
 	 *
 	 * Serve soprattutto per un messaggio utile quando l utente si dimentica di

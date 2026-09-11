@@ -1353,6 +1353,7 @@ switch ( $pagina ) {
 				'manca'        => Prestazioni::cosaManca( $cfg ),
 				'chiave_ok'    => '' !== trim( Impostazioni::chiaveGoogle( $cfg ) ),
 				'account'      => google_indirizzo_account( $cfg ),
+				'proprieta'    => (string) ( $cfg['google']['proprieta'] ?? '' ),
 				'ultima'       => $ultima,
 				'precedente'   => count( $storico ) > 1 ? $storico[1] : null,
 				'storico'      => $storico,

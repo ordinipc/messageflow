@@ -8,6 +8,7 @@
  * @var string[]   $manca       Cosa manca: 'chiave', 'proprieta'.
  * @var bool       $chiave_ok   La chiave c è ed è valida.
  * @var string     $account     Indirizzo dell account di servizio.
+ * @var string     $proprieta   Proprietà configurata.
  * @var array|null $ultima      Ultima rilevazione.
  * @var array|null $precedente  Rilevazione prima di quella.
  * @var array[]    $storico     Rilevazioni recenti.
@@ -65,6 +66,13 @@ function delta( $ora, $prima, $meglio = false ) {
 
 <?php if ( $errore ) : ?>
 	<p class="avviso grave"><?php echo e( $errore ); ?></p>
+
+	<?php if ( false !== stripos( $errore, 'non è ancora autorizzato' ) || false !== stripos( $errore, 'nessuna proprietà' ) ) : ?>
+		<section class="scheda">
+			<h2>Autorizza l account in Search Console</h2>
+			<?php require __DIR__ . '/parti/autorizza-google.php'; ?>
+		</section>
+	<?php endif; ?>
 <?php endif; ?>
 
 <?php if ( ! $configurato ) : ?>
@@ -93,6 +101,13 @@ function delta( $ora, $prima, $meglio = false ) {
 
 		<p><a class="bottone" href="?p=impostazioni#search-console">Vai alle impostazioni</a></p>
 	</section>
+
+	<?php if ( $chiave_ok ) : ?>
+		<section class="scheda">
+			<h2>E poi: autorizza l account</h2>
+			<?php require __DIR__ . '/parti/autorizza-google.php'; ?>
+		</section>
+	<?php endif; ?>
 <?php else : ?>
 
 	<section class="scheda">
