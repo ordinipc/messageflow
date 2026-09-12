@@ -3,7 +3,7 @@
  * Dashboard di un audit.
  *
  * @package SeoGeoAudit
- * @var array $cambiati Contenuti che hanno cambiato indirizzo.
+ * @var array $confronto Esito del confronto degli indirizzi.
  * @var array $audit    Riga audit.
  * @var array $aree     Punteggi per area.
  * @var array $rilievi  Rilievi ordinati per gravità.
@@ -153,7 +153,9 @@ $scaricabili = array(
 	<button class="bottone chiaro" type="submit">Rileggi il sito e ricalcola</button>
 </form>
 
-<?php if ( ! empty( $cambiati ) ) : ?>
+<?php $cambiati = $confronto['cambiati']; ?>
+
+<?php if ( $cambiati ) : ?>
 	<section class="scheda">
 		<h2>⚠︎ <?php echo 1 === count( $cambiati ) ? 'Un contenuto ha' : num( count( $cambiati ) ) . ' contenuti hanno'; ?> cambiato indirizzo</h2>
 		<p class="guida">
@@ -171,6 +173,15 @@ $scaricabili = array(
 		</ul>
 		<p><a class="bottone" href="?p=collega&amp;id=<?php echo (int) $audit['id']; ?>#indirizzi">Sistemali adesso</a></p>
 	</section>
+<?php elseif ( ! empty( $confronto['motivo'] ) ) : ?>
+	<p class="nota">
+		<strong>Indirizzi:</strong> <?php echo e( $confronto['motivo'] ); ?>
+		<?php if ( ! empty( $confronto['prima'] ) && ! empty( $confronto['ultima'] ) ) : ?>
+			(confronto fra l analisi del <?php echo e( substr( (string) $confronto['prima']['creato_il'], 0, 16 ) ); ?>
+			e quella del <?php echo e( substr( (string) $confronto['ultima']['creato_il'], 0, 16 ) ); ?>,
+			su <?php echo num( $confronto['confrontati'] ); ?> contenuti in comune)
+		<?php endif; ?>
+	</p>
 <?php endif; ?>
 
 <section class="scheda">

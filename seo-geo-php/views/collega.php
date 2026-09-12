@@ -6,7 +6,7 @@
  * @var array  $audit        Riga audit.
  * @var bool   $pronto       Collegamento configurato.
  * @var array[] $archivio     Analisi archiviate da cui ripescare le meta.
- * @var array[] $cambiati     Contenuti che hanno cambiato indirizzo.
+ * @var array   $confronto    Esito del confronto fra le analisi.
  * @var array  $stato        Risposta del sito.
  * @var string $errore_stato Errore della prova di collegamento.
  * @var array  $conteggi     Quantità per ogni operazione.
@@ -168,9 +168,24 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 		</div>
 	</section>
 
-	<?php if ( ! empty( $cambiati ) ) : ?>
-		<section class="scheda" id="indirizzi">
-			<h2>Indirizzi cambiati</h2>
+	<?php $cambiati = $confronto['cambiati']; ?>
+
+	<section class="scheda" id="indirizzi">
+		<h2>Indirizzi cambiati</h2>
+
+		<?php if ( ! empty( $confronto['ultima'] ) && ! empty( $confronto['prima'] ) ) : ?>
+			<p class="nota">
+				Confronto fra l analisi del <?php echo e( substr( (string) $confronto['prima']['creato_il'], 0, 16 ) ); ?>
+				e quella del <?php echo e( substr( (string) $confronto['ultima']['creato_il'], 0, 16 ) ); ?>,
+				su <?php echo num( $confronto['confrontati'] ); ?> contenuti presenti in entrambe.
+			</p>
+		<?php endif; ?>
+
+		<?php if ( ! $cambiati ) : ?>
+			<p class="guida"><?php echo e( $confronto['motivo'] ?: 'Nessun indirizzo cambiato.' ); ?></p>
+		<?php endif; ?>
+
+	<?php if ( $cambiati ) : ?>
 			<p class="guida">
 				<?php echo num( count( $cambiati ) ); ?> contenuti oggi rispondono a un indirizzo diverso da prima:
 				succede quando si cambia il titolo e WordPress o chi scrive aggiorna anche lo slug. Il vecchio
@@ -199,8 +214,8 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 				Il plugin applica i 301 solo sulle pagine che danno 404, quindi non interferisce con niente
 				di quello che funziona. Questa operazione sostituisce la tabella dei redirect sul sito.
 			</p>
-		</section>
 	<?php endif; ?>
+	</section>
 
 	<section class="scheda">
 		<h2>Riporta indietro da un analisi archiviata</h2>

@@ -29,24 +29,57 @@ class Redirezioni {
 	 * @return array[] 'wp_id', 'titolo', 'da', 'a', 'quando'.
 	 */
 	public static function cambiati( Db $db, $sito ) {
-		$ultima = $db->one( 'SELECT id, creato_il FROM audit WHERE sito_url = ? ORDER BY id DESC LIMIT 1', array( $sito ) );
+		$esito = self::confronto( $db, $sito );
 
-		if ( ! $ultima ) {
-			return array();
+		return $esito['cambiati'];
+	}
+
+	/**
+	 * Il confronto per esteso: cosa è stato messo a confronto e cosa ne è
+	 * uscito.
+	 *
+	 * Non mostrare niente quando non si trova niente costringe chi guarda a
+	 * indovinare se il programma ha controllato o no. Qui si dice.
+	 *
+	 * @param Db     $db   Database.
+	 * @param string $sito Indirizzo del sito.
+	 * @return array 'cambiati', 'motivo', 'ultima', 'prima', 'confrontati'.
+	 */
+	public static function confronto( Db $db, $sito ) {
+		$vuoto = array( 'cambiati' => array(), 'motivo' => '', 'ultima' => null, 'prima' => null, 'confrontati' => 0 );
+
+		// Le analisi si riconoscono dal dominio, non dalla stringa esatta:
+		// "https://sito.it" e "https://sito.it/" sono lo stesso sito, e un
+		// confronto che fallisce per una barra è un confronto che non avviene.
+		$host = self::host( $sito );
+
+		if ( '' === $host ) {
+			return array( 'motivo' => 'Indirizzo del sito non riconosciuto.' ) + $vuoto;
 		}
 
-		// Il confronto è con il primo indirizzo mai registrato, non con quello
-		// dell analisi precedente: se un contenuto è stato rinominato tre
-		// analisi fa, il vecchio indirizzo è morto lo stesso e va rimandato
-		// sul nuovo. Confrontare solo le ultime due lo avrebbe mancato.
+		$analisi = array();
+
+		foreach ( $db->all( 'SELECT id, sito_url, creato_il FROM audit ORDER BY id ASC' ) as $riga ) {
+			if ( self::host( $riga['sito_url'] ) === $host ) {
+				$analisi[] = $riga;
+			}
+		}
+
+		if ( count( $analisi ) < 2 ) {
+			return array(
+				'motivo' => 'Serve almeno una seconda analisi da confrontare: apri "Rileggi il sito e ricalcola".',
+			) + $vuoto;
+		}
+
+		$ultima = end( $analisi );
+		$ids    = array_column( array_slice( $analisi, 0, -1 ), 'id' );
+
 		$prima = array();
 
 		foreach ( $db->all(
-			"SELECT d.wp_id, d.percorso, d.titolo, a.id AS audit
-			 FROM documento d JOIN audit a ON a.id = d.audit_id
-			 WHERE a.sito_url = ? AND d.wp_id <> '' AND a.id < ?
-			 ORDER BY a.id ASC",
-			array( $sito, $ultima['id'] )
+			"SELECT d.wp_id, d.percorso, d.titolo, d.audit_id FROM documento d
+			 WHERE d.audit_id IN (" . implode( ',', array_map( 'intval', $ids ) ) . ") AND d.wp_id <> ''
+			 ORDER BY d.audit_id ASC"
 		) as $riga ) {
 			// Il primo che si incontra è il più vecchio: gli altri non lo
 			// sostituiscono.
@@ -55,18 +88,27 @@ class Redirezioni {
 			}
 		}
 
-		if ( ! $prima ) {
-			return array();
+		$adesso = $db->all( "SELECT wp_id, percorso, titolo FROM documento WHERE audit_id = ? AND wp_id <> ''", array( $ultima['id'] ) );
+
+		if ( ! $prima || ! $adesso ) {
+			return array(
+				'motivo' => 'Le analisi non contengono gli identificativi di WordPress: rileggi il sito con il plugin collegato.',
+				'ultima' => $ultima,
+				'prima'  => $analisi[0],
+			) + $vuoto;
 		}
 
-		$cambiati = array();
+		$cambiati    = array();
+		$confrontati = 0;
 
-		foreach ( $db->all( "SELECT wp_id, percorso, titolo FROM documento WHERE audit_id = ? AND wp_id <> ''", array( $ultima['id'] ) ) as $riga ) {
+		foreach ( $adesso as $riga ) {
 			$vecchio = $prima[ $riga['wp_id'] ] ?? null;
 
 			if ( ! $vecchio ) {
 				continue;
 			}
+
+			$confrontati++;
 
 			$da = self::normalizza( $vecchio['percorso'] );
 			$a  = self::normalizza( $riga['percorso'] );
@@ -84,7 +126,37 @@ class Redirezioni {
 			);
 		}
 
-		return $cambiati;
+		if ( ! $confrontati ) {
+			return array(
+				'motivo' => 'Nessun contenuto in comune fra le analisi: gli identificativi non coincidono.',
+				'ultima' => $ultima,
+				'prima'  => $analisi[0],
+			) + $vuoto;
+		}
+
+		return array(
+			'cambiati'    => $cambiati,
+			'motivo'      => $cambiati ? '' : 'Nessun indirizzo è cambiato: tutti i contenuti rispondono dove rispondevano prima.',
+			'ultima'      => $ultima,
+			'prima'       => $analisi[0],
+			'confrontati' => $confrontati,
+		);
+	}
+
+	/**
+	 * Dominio di un indirizzo, senza www.
+	 *
+	 * @param string $url Indirizzo.
+	 * @return string
+	 */
+	private static function host( $url ) {
+		$host = (string) parse_url( (string) $url, PHP_URL_HOST );
+
+		if ( '' === $host ) {
+			$host = preg_replace( '~^(https?://)?([^/]+).*$~i', '$2', (string) $url );
+		}
+
+		return strtolower( preg_replace( '~^www\.~i', '', (string) $host ) );
 	}
 
 	/**

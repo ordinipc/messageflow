@@ -690,6 +690,23 @@ verifica( 'un indirizzo cambiato prima dell ultima analisi viene ancora trovato'
 verifica( 'e punta al primo indirizzo mai registrato', '/vecchio-indirizzo-2' === ( $vecchi[0]['da'] ?? '' ) );
 verifica( 'verso quello di adesso', '/nuovo-indirizzo' === ( $vecchi[0]['a'] ?? '' ) );
 
+// Quando non trova niente deve dire perché, altrimenti chi guarda non sa se
+// il programma ha controllato o no.
+$spiegato = \SeoGeo\Redirezioni::confronto( $db3, 'https://solo.it' );
+verifica( 'con una sola analisi lo dice', false !== stripos( $spiegato['motivo'], 'seconda analisi' ), $spiegato['motivo'] );
+
+$nessuno = \SeoGeo\Redirezioni::confronto( $db3, 'https://altro.it' );
+verifica( 'senza cambi dice che non è cambiato niente', false !== stripos( $nessuno['motivo'], 'Nessun indirizzo' ), $nessuno['motivo'] );
+verifica( 'e dice su quanti contenuti ha guardato', $nessuno['confrontati'] > 0 );
+verifica( 'e quali due analisi ha messo a confronto', ! empty( $nessuno['prima'] ) && ! empty( $nessuno['ultima'] ) );
+
+// Il dominio con e senza barra finale è lo stesso sito.
+$con_barra = \SeoGeo\Redirezioni::confronto( $db3, 'https://vecchio.it/' );
+verifica( 'la barra finale nell indirizzo del sito non fa fallire il confronto', 1 === count( $con_barra['cambiati'] ) );
+
+$con_www = \SeoGeo\Redirezioni::confronto( $db3, 'https://www.vecchio.it' );
+verifica( 'e nemmeno il www', 1 === count( $con_www['cambiati'] ) );
+
 @unlink( $fileDb3 );
 
 // --- Title tagliati a metà --------------------------------------------------

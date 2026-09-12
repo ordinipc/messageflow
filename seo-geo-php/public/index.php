@@ -1052,7 +1052,7 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		vista(
 			'collega',
 			array(
-				'cambiati'  => Redirezioni::cambiati( $db, $audit['sito_url'] ),
+				'confronto' => Redirezioni::confronto( $db, $audit['sito_url'] ),
 				'archivio'  => $db->all(
 					'SELECT a.id, a.creato_il, (SELECT COUNT(*) FROM documento d WHERE d.audit_id = a.id) AS contenuti
 					 FROM audit a WHERE a.sito_url = (SELECT sito_url FROM audit WHERE id = ?) ORDER BY a.id ASC LIMIT 20',
@@ -1541,7 +1541,7 @@ switch ( $pagina ) {
 		vista(
 			'audit',
 			array(
-				'cambiati'   => Redirezioni::cambiati( $db, $audit['sito_url'] ),
+				'confronto'  => Redirezioni::confronto( $db, $audit['sito_url'] ),
 				'titolo'    => 'Audit ' . $audit['sito_nome'],
 				'audit'     => $audit,
 				'precedente' => $precedente,
@@ -1939,7 +1939,7 @@ switch ( $pagina ) {
 		vista(
 			'collega',
 			array(
-				'cambiati'  => Redirezioni::cambiati( $db, $audit['sito_url'] ),
+				'confronto' => Redirezioni::confronto( $db, $audit['sito_url'] ),
 				'archivio'  => $db->all(
 					'SELECT a.id, a.creato_il, (SELECT COUNT(*) FROM documento d WHERE d.audit_id = a.id) AS contenuti
 					 FROM audit a WHERE a.sito_url = (SELECT sito_url FROM audit WHERE id = ?) ORDER BY a.id ASC LIMIT 20',
