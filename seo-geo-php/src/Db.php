@@ -274,6 +274,10 @@ class Db {
 		$this->aggiungiColonna( 'documento', 'testo', $txt );
 		$this->aggiungiColonna( 'documento', 'ha_thumbnail', 'INT' );
 		$this->aggiungiColonna( 'bozza', 'file', $vc );
+		// Quando il testo nuovo e stato scritto sull articolo pubblicato:
+		// serve a distinguere nell elenco quelle gia online da quelle ancora
+		// da decidere.
+		$this->aggiungiColonna( 'bozza', 'inviata_il', $vc );
 		$this->aggiungiColonna( 'gsc_rilevazione', 'sitemap', $txt );
 		$this->aggiungiColonna( 'coda', 'dettaglio', $txt );
 		$this->aggiungiColonna( 'coda', 'origine', $vc );

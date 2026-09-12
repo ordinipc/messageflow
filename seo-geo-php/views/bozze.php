@@ -375,6 +375,20 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 </section>
 <?php endif; ?>
 
+<?php if ( $bozze ) : ?>
+<section class="scheda">
+	<h2>Vecchio e nuovo, affiancati</h2>
+	<p class="guida">
+		Prima di mettere online, guarda il confronto: a sinistra quello che c'è adesso sul sito,
+		a destra il testo migliorato. Da lì si sovrascrive <strong>l'articolo che esiste già</strong>,
+		senza creare doppioni e senza cambiare indirizzo.
+	</p>
+	<p>
+		<a class="bottone" href="?p=confronto-bozze&amp;id=<?php echo (int) $audit['id']; ?>">Vedi vecchio e nuovo</a>
+	</p>
+</section>
+<?php endif; ?>
+
 <section class="scheda">
 	<h2>Prima di pubblicare</h2>
 	<ol>

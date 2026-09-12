@@ -29,6 +29,7 @@ class MDI_Api {
 	const META_BOZZA_DI = '_mdi_bozza_di';
 	const META_CATEGORIE = '_mdi_backup_categorie';
 	const META_IMG_PRIMA = '_mdi_immagine_originale';
+	const META_TESTO_PRIMA = '_mdi_testo_originale';
 
 	/**
 	 * Aggancia le rotte e il gestore dei redirect.
@@ -159,6 +160,11 @@ class MDI_Api {
 		register_rest_route( self::NAMESPACE_API, '/cestina', $comune + array(
 			'methods'  => 'POST',
 			'callback' => array( __CLASS__, 'cestina' ),
+		) );
+
+		register_rest_route( self::NAMESPACE_API, '/sovrascrivi', $comune + array(
+			'methods'  => 'POST',
+			'callback' => array( __CLASS__, 'sovrascrivi' ),
 		) );
 
 		register_rest_route( self::NAMESPACE_API, '/immagini-pesanti', $comune + array(
@@ -998,11 +1004,32 @@ class MDI_Api {
 			$id     = (int) $id;
 			$backup    = get_post_meta( $id, self::META_BACKUP, true );
 			$categorie = get_post_meta( $id, self::META_CATEGORIE, true );
+			$testo     = get_post_meta( $id, self::META_TESTO_PRIMA, true );
 
-			// Un contenuto può aver avuto solo le categorie cambiate: senza
-			// questo, il ripristino lo saltava.
-			if ( ! $backup && ! $categorie ) {
+			// Un contenuto può aver avuto solo le categorie cambiate, o solo
+			// il testo sovrascritto: senza questo il ripristino lo saltava.
+			if ( ! $backup && ! $categorie && ! $testo ) {
 				continue;
+			}
+
+			// Il testo dell articolo torna quello di prima. E la rete che
+			// conta: sovrascrivere un articolo pubblicato senza poter
+			// tornare indietro non sarebbe accettabile.
+			if ( $testo ) {
+				$prima_testo = json_decode( $testo, true );
+
+				if ( is_array( $prima_testo ) && isset( $prima_testo['post_content'] ) ) {
+					wp_update_post(
+						array(
+							'ID'           => $id,
+							'post_title'   => $prima_testo['post_title'] ?? get_the_title( $id ),
+							'post_content' => $prima_testo['post_content'],
+							'post_excerpt' => $prima_testo['post_excerpt'] ?? '',
+						)
+					);
+				}
+
+				delete_post_meta( $id, self::META_TESTO_PRIMA );
 			}
 
 			$prima = $backup ? json_decode( $backup, true ) : array();
@@ -1208,6 +1235,110 @@ class MDI_Api {
 				'ok'        => true,
 				'articolo'  => $originale,
 				'modifica'  => admin_url( 'post.php?post=' . $originale . '&action=edit' ),
+			)
+		);
+	}
+
+	/**
+	 * Scrive il testo nuovo direttamente sull articolo pubblicato.
+	 *
+	 * La strada che passava da una bozza di WordPress creava un secondo
+	 * articolo che poi andava applicato a mano: due passaggi e un doppione
+	 * in bacheca per ottenere una cosa sola. Qui si scrive sull articolo che
+	 * esiste gia, dopo aver messo da parte quello che c era.
+	 *
+	 * Due reti di sicurezza: la revisione di WordPress, che si crea da sola
+	 * a ogni wp_update_post, e una copia del testo precedente in un meta,
+	 * perche su parecchi hosting le revisioni sono disattivate.
+	 *
+	 * @param WP_REST_Request $richiesta Richiesta.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function sovrascrivi( $richiesta ) {
+		$id   = (int) $richiesta->get_param( 'id' );
+		$post = get_post( $id );
+
+		if ( ! $post ) {
+			return new WP_Error( 'mdi_post_assente', 'Articolo non trovato: ' . $id, array( 'status' => 404 ) );
+		}
+
+		$contenuto = (string) $richiesta->get_param( 'contenuto' );
+
+		if ( '' === trim( $contenuto ) ) {
+			return new WP_Error( 'mdi_contenuto_vuoto', 'Nessun contenuto da scrivere.', array( 'status' => 400 ) );
+		}
+
+		// La copia si scrive una volta sola: se si sovrascrive due volte, la
+		// copia deve restare quella del testo originale, non della versione
+		// intermedia, altrimenti l annulla riporta a meta strada.
+		if ( ! get_post_meta( $id, self::META_TESTO_PRIMA, true ) ) {
+			update_post_meta(
+				$id,
+				self::META_TESTO_PRIMA,
+				wp_json_encode(
+					array(
+						'post_title'   => $post->post_title,
+						'post_content' => $post->post_content,
+						'post_excerpt' => $post->post_excerpt,
+						'quando'       => current_time( 'mysql' ),
+					)
+				)
+			);
+		}
+
+		$campi = array( 'ID' => $id, 'post_content' => $contenuto );
+
+		$titolo = (string) $richiesta->get_param( 'titolo' );
+
+		if ( '' !== trim( $titolo ) ) {
+			$campi['post_title'] = sanitize_text_field( $titolo );
+		}
+
+		$estratto = (string) $richiesta->get_param( 'estratto' );
+
+		if ( '' !== trim( $estratto ) ) {
+			$campi['post_excerpt'] = wp_kses_post( $estratto );
+		}
+
+		$aggiornato = wp_update_post( $campi, true );
+
+		if ( is_wp_error( $aggiornato ) ) {
+			return $aggiornato;
+		}
+
+		// Le meta seguono lo stesso backup gia usato dall annulla delle meta.
+		$meta = array(
+			'rank_math_title'       => (string) $richiesta->get_param( 'meta_title' ),
+			'rank_math_description' => (string) $richiesta->get_param( 'meta_description' ),
+		);
+
+		$da_scrivere = array_filter( $meta, static function ( $v ) { return '' !== trim( $v ); } );
+
+		if ( $da_scrivere && ! get_post_meta( $id, self::META_BACKUP, true ) ) {
+			update_post_meta(
+				$id,
+				self::META_BACKUP,
+				wp_json_encode(
+					array(
+						'rank_math_title'         => get_post_meta( $id, 'rank_math_title', true ),
+						'rank_math_description'   => get_post_meta( $id, 'rank_math_description', true ),
+						'rank_math_focus_keyword' => get_post_meta( $id, 'rank_math_focus_keyword', true ),
+						'post_excerpt'            => $post->post_excerpt,
+					)
+				)
+			);
+		}
+
+		foreach ( $da_scrivere as $chiave => $valore ) {
+			update_post_meta( $id, $chiave, sanitize_text_field( $valore ) );
+		}
+
+		return rest_ensure_response(
+			array(
+				'ok'       => true,
+				'articolo' => $id,
+				'modifica' => admin_url( 'post.php?post=' . $id . '&action=edit' ),
+				'indirizzo' => get_permalink( $id ),
 			)
 		);
 	}

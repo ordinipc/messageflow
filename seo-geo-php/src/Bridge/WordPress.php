@@ -239,6 +239,29 @@ class WordPress {
 	}
 
 	/**
+	 * Scrive il testo nuovo direttamente sull articolo pubblicato.
+	 *
+	 * @param int   $id    Articolo su WordPress.
+	 * @param array $dati  'titolo', 'contenuto', 'estratto', 'meta_title',
+	 *                     'meta_description'.
+	 * @return array
+	 */
+	public function sovrascrivi( $id, array $dati ) {
+		return $this->chiama(
+			'POST',
+			'/sovrascrivi',
+			array(
+				'id'               => (int) $id,
+				'titolo'           => (string) ( $dati['titolo'] ?? '' ),
+				'contenuto'        => (string) ( $dati['contenuto'] ?? '' ),
+				'estratto'         => (string) ( $dati['estratto'] ?? '' ),
+				'meta_title'       => (string) ( $dati['meta_title'] ?? '' ),
+				'meta_description' => (string) ( $dati['meta_description'] ?? '' ),
+			)
+		);
+	}
+
+	/**
 	 * Immagini della libreria media che pesano piu della soglia.
 	 *
 	 * @param int $oltre  Soglia in byte.

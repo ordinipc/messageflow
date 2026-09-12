@@ -96,6 +96,14 @@ a:hover { text-decoration: underline; }
 .area { display: grid; grid-template-columns: minmax(0, 1fr) 100px 40px; gap: 14px; align-items: center; }
 .area .nome { font-weight: 600; min-width: 0; }
 .area .nome small { display: block; font-weight: 400; color: var(--inchiostro-3); font-size: 12.5px; }
+/* Vecchio e nuovo affiancati. Sotto i 900px vanno uno sotto l altro:
+   due colonne di testo su un telefono non si leggono. */
+.due-colonne { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin: 14px 0; }
+.due-colonne > div { min-width: 0; }
+.due-colonne .testo-bozza { max-height: 420px; overflow-y: auto; border: 1px solid var(--linea-2); border-radius: 6px; padding: 12px; font-size: 14px; }
+.due-colonne .testo-vecchio { color: var(--inchiostro-3); }
+@media (max-width: 900px) { .due-colonne { grid-template-columns: 1fr; } }
+
 /* Spia di attività: se pulsa, sta lavorando. Serve piu della barra di
    avanzamento, perche la barra puo restare ferma per quaranta secondi
    mentre il blocco e in corso, e sembra bloccata. */

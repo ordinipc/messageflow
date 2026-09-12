@@ -742,6 +742,97 @@ if ( 'pilota-ferma' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	exit;
 }
 
+if ( 'confronto-bozze' === $pagina ) {
+	$id    = (int) ( $_GET['id'] ?? 0 );
+	$audit = $db->one( 'SELECT * FROM audit WHERE id = ?', array( $id ) );
+
+	if ( ! $audit ) {
+		http_response_code( 404 );
+		exit( 'Audit non trovato.' );
+	}
+
+	$ponte = new WordPress( $cfg['wordpress'] );
+
+	vista(
+		'confronto-bozze',
+		array(
+			'titolo' => 'Vecchio e nuovo',
+			'audit'  => $audit,
+			'pronto' => $ponte->pronto(),
+			'esito'  => (string) ( $_GET['esito'] ?? '' ),
+			'errore' => (string) ( $_GET['errore'] ?? '' ),
+			'righe'  => $db->all(
+				"SELECT b.id, b.titolo, b.corpo_html, b.in_breve, b.meta_title, b.meta_description,
+						b.inviata_il, d.wp_id, d.url, d.titolo AS titolo_vecchio, d.testo AS testo_vecchio,
+						d.parole AS parole_vecchie, d.seo_title, d.seo_description
+				 FROM bozza b JOIN documento d ON d.id = b.documento_id
+				 WHERE b.audit_id = ? AND b.stato = 'ok'
+				 ORDER BY b.id DESC",
+				array( $id )
+			),
+		)
+	);
+
+	exit;
+}
+
+if ( 'api-sovrascrivi' === $pagina ) {
+	header( 'Content-Type: application/json; charset=utf-8' );
+
+	if ( ! hash_equals( token(), $_GET['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		echo json_encode( array( 'errore' => 'Sessione scaduta: ricarica la pagina.' ) );
+		exit;
+	}
+
+	$id     = (int) ( $_GET['id'] ?? 0 );
+	$bozza  = (int) ( $_GET['bozza'] ?? 0 );
+	$ponte  = new WordPress( $cfg['wordpress'] );
+
+	$riga = $db->one(
+		"SELECT b.*, d.wp_id, d.url FROM bozza b JOIN documento d ON d.id = b.documento_id
+		 WHERE b.id = ? AND b.audit_id = ? AND b.stato = 'ok'",
+		array( $bozza, $id )
+	);
+
+	if ( ! $riga ) {
+		http_response_code( 404 );
+		echo json_encode( array( 'errore' => 'Bozza non trovata.' ) );
+		exit;
+	}
+
+	try {
+		$esito = $ponte->sovrascrivi(
+			(int) $riga['wp_id'],
+			array(
+				'titolo'           => (string) $riga['titolo'],
+				'contenuto'        => (string) $riga['corpo_html'],
+				'estratto'         => (string) $riga['in_breve'],
+				'meta_title'       => (string) $riga['meta_title'],
+				'meta_description' => (string) $riga['meta_description'],
+			)
+		);
+
+		// Si segna quando e stata inviata: cosi l elenco distingue quelle
+		// gia messe online da quelle ancora da decidere.
+		$db->run( 'UPDATE bozza SET inviata_il = ? WHERE id = ?', array( date( 'Y-m-d H:i:s' ), (int) $riga['id'] ) );
+
+		echo json_encode(
+			array(
+				'ok'        => true,
+				'bozza'     => (int) $riga['id'],
+				'indirizzo' => (string) ( $esito['indirizzo'] ?? $riga['url'] ),
+				'modifica'  => (string) ( $esito['modifica'] ?? '' ),
+			)
+		);
+	} catch ( Throwable $e ) {
+		http_response_code( 500 );
+		echo json_encode( array( 'errore' => $e->getMessage(), 'bozza' => (int) $riga['id'] ) );
+	}
+
+	exit;
+}
+
 if ( 'api-verifiche' === $pagina ) {
 	header( 'Content-Type: application/json; charset=utf-8' );
 

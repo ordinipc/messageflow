@@ -593,7 +593,9 @@ if ( ! function_exists( 'imagewebp' ) ) {
 
 	$ancora = MDI_Api::comprimi_immagine( new WP_REST_Request( array( 'id' => 920 ) ) );
 
-	verifica( 'una immagine gia ricompressa non viene rifatta', is_wp_error( $ancora ) );
+	$ancora = is_wp_error( $ancora ) ? array() : (array) $ancora;
+
+	verifica( 'una immagine gia ricompressa non viene rifatta', empty( $ancora['cambiata'] ) && 'gia_fatta' === ( $ancora['motivo'] ?? '' ), (string) ( $ancora['motivo'] ?? 'errore' ) );
 
 	$ripristino = MDI_Api::ripristina_immagine( new WP_REST_Request( array( 'ids' => array( 920 ) ) ) );
 
@@ -706,6 +708,72 @@ if ( ! function_exists( 'imagewebp' ) ) {
 
 	array_map( 'unlink', glob( stub_cartella_caricamenti() . '/*' ) );
 }
+
+echo "\nSovrascrivere l articolo invece di creare un doppione\n";
+
+stub_crea_post( 970, 'Titolo originale', '<p>Testo originale dell articolo, scritto a mano.</p>' );
+update_post_meta( 970, 'rank_math_title', 'Title di prima' );
+update_post_meta( 970, 'rank_math_description', 'Description di prima' );
+
+$quantiPrima = count( $GLOBALS['wp']['post'] );
+
+$scritto = MDI_Api::sovrascrivi(
+	new WP_REST_Request(
+		array(
+			'id'               => 970,
+			'titolo'           => 'Titolo migliorato',
+			'contenuto'        => '<p>Testo migliorato, con la struttura sistemata.</p>',
+			'meta_title'       => 'Title nuovo',
+			'meta_description' => 'Description nuova',
+		)
+	)
+);
+
+verifica( 'la sovrascrittura riesce', ! is_wp_error( $scritto ) );
+verifica( 'e non crea un secondo articolo', $quantiPrima === count( $GLOBALS['wp']['post'] ), count( $GLOBALS['wp']['post'] ) . ' contro ' . $quantiPrima );
+
+$dopoScrittura = get_post( 970 );
+
+verifica( 'il testo sull articolo e quello nuovo', false !== strpos( $dopoScrittura->post_content, 'Testo migliorato' ) );
+verifica( 'e anche il titolo', 'Titolo migliorato' === $dopoScrittura->post_title );
+verifica( 'le meta seguono', 'Title nuovo' === get_post_meta( 970, 'rank_math_title', true ) );
+
+// La rete che conta: sovrascrivere un articolo pubblicato senza poter
+// tornare indietro non sarebbe accettabile.
+verifica( 'il testo di prima resta da parte', '' !== get_post_meta( 970, MDI_Api::META_TESTO_PRIMA, true ) );
+
+// Sovrascrivere due volte non deve far perdere l originale: la copia deve
+// restare quella del primo testo, non della versione intermedia.
+MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 970, 'contenuto' => '<p>Terza versione.</p>' ) ) );
+
+$copia = json_decode( (string) get_post_meta( 970, MDI_Api::META_TESTO_PRIMA, true ), true );
+
+verifica(
+	'e resta quella originale anche dopo due passaggi',
+	false !== strpos( (string) ( $copia['post_content'] ?? '' ), 'Testo originale' ),
+	(string) ( $copia['post_content'] ?? '' )
+);
+
+$rimesso = MDI_Api::annulla_meta( new WP_REST_Request( array( 'ids' => array( 970 ) ) ) );
+
+verifica( 'l annulla lo conta', 1 === (int) ( $rimesso['ripristinati'] ?? 0 ) );
+
+$tornato = get_post( 970 );
+
+verifica( 'il testo torna quello originale', false !== strpos( $tornato->post_content, 'Testo originale' ), $tornato->post_content );
+verifica( 'e il titolo pure', 'Titolo originale' === $tornato->post_title, $tornato->post_title );
+verifica( 'le meta tornano quelle di prima', 'Title di prima' === get_post_meta( 970, 'rank_math_title', true ) );
+verifica( 'e la copia viene rimossa', '' === get_post_meta( 970, MDI_Api::META_TESTO_PRIMA, true ) );
+
+verifica(
+	'un contenuto vuoto viene rifiutato',
+	is_wp_error( MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 970, 'contenuto' => '   ' ) ) ) )
+);
+
+verifica(
+	'e un articolo inesistente pure',
+	is_wp_error( MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 999999, 'contenuto' => '<p>x</p>' ) ) ) )
+);
 
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 

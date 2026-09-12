@@ -687,6 +687,10 @@ function update_attached_file( $id, $file ) {
 	return true;
 }
 
+function current_time( $tipo = 'mysql', $gmt = 0 ) {
+	return 'timestamp' === $tipo ? time() : date( 'Y-m-d H:i:s' );
+}
+
 function get_post_type( $id ) {
 	$post = get_post( $id );
 

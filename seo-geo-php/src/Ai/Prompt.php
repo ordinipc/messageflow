@@ -29,7 +29,11 @@ class Prompt {
 			case 'transazionale':
 				return array(
 					"Che cos'è $keyword e a chi serve",
-					"Quanto costa $keyword a $citta: fasce di prezzo e cosa incide",
+					// Non "fasce di prezzo": chiedere un listino a chi non lo
+					// conosce produce una griglia di segnaposto invece di un
+					// testo. Che cosa fa salire o scendere il costo lo si puo
+					// spiegare senza cifre, ed e la parte utile al lettore.
+					"Da cosa dipende il costo di $keyword a $citta",
 					'Cosa comprende il servizio, passo per passo',
 					'Tempi di realizzazione e svolgimento del lavoro',
 					'Errori da evitare nella scelta del fornitore',
@@ -39,9 +43,9 @@ class Prompt {
 			case 'commerciale':
 				return array(
 					"Come scegliere $keyword: i criteri che contano",
-					'Confronto fra le soluzioni disponibili (tabella)',
+					'Confronto fra le soluzioni disponibili',
 					'Vantaggi e limiti di ciascuna opzione',
-					'Quanto budget serve e come si ripaga',
+					'Che cosa incide sul budget e come si ripaga',
 					'Come valutare i risultati dopo tre mesi',
 					'Domande frequenti',
 				);
@@ -150,8 +154,12 @@ LINK INTERNI DA INSERIRE NEL TESTO (anchor descrittivo, dentro una frase, mai "c
 REQUISITI
 - Apri con un blocco di sintesi di 40-60 parole che risponde subito alla domanda
   principale: è il testo che i motori generativi citano.
-- Almeno un elenco puntato e una tabella con dati concreti (voci, tempi, requisiti).
-  Dove servono numeri reali usa i segnaposto [DA VERIFICARE: ...].
+- Almeno un elenco puntato.
+- NON costruire tabelle di prezzi, listini o fasce di costo: senza le cifre vere
+  diventano griglie di segnaposto che non si possono pubblicare. Se il prezzo va
+  citato, scrivilo in una frase, una volta sola.
+- Una tabella va bene solo per confrontare cose che non sono prezzi (tempi,
+  requisiti, differenze fra opzioni) e solo se i dati li hai dal testo originale.
 - Chiudi con 4 domande frequenti, risposte di 40-60 parole ciascuna.
 - Cita {$citta} e il territorio dove è pertinente, senza forzature.
 - La focus keyword compare nel primo paragrafo, in almeno due H2 e nel titolo.
@@ -254,7 +262,9 @@ LINK INTERNI DA INSERIRE (anchor descrittivo, dentro una frase, mai "clicca qui"
 COSA PUOI FARE
 - Aggiungere il blocco di sintesi iniziale di 40-60 parole se manca.
 - Correggere o aggiungere gli H2 dove la struttura è carente.
-- Aggiungere una tabella o un elenco se i dati sono in un muro di testo.
+- Aggiungere un elenco puntato se i dati sono in un muro di testo.
+- Una tabella solo per confrontare cose che non sono prezzi, e solo con dati
+  gia presenti nel testo originale.
 - Inserire i link interni indicati.
 - Sistemare la keyword nel primo paragrafo e nei titoli se non c è.
 - Aggiungere le domande frequenti se mancano.
@@ -265,6 +275,8 @@ COSA NON DEVI FARE
   verificare. Se un dato manca usa [DA VERIFICARE: ...].
 - Non cambiare il tono né la persona (se dà del tu, continua a dare del tu).
 - Non allungare per allungare: se l articolo è già completo, tocca poco.
+- Non costruire tabelle di prezzi o fasce di costo: senza le cifre vere
+  diventano griglie di [DA VERIFICARE] che non si possono pubblicare.
 
 TESTO ATTUALE
 ---
