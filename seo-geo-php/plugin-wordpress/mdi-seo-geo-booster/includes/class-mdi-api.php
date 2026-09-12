@@ -427,15 +427,30 @@ class MDI_Api {
 
 		$prossimo = $offset + count( $fetta );
 
+		// Quante sono gia state ricompresse: senza questo numero, chi preme
+		// il pulsante piu volte non ha modo di sapere a che punto e.
+		$fatte = count(
+			get_posts(
+				array(
+					'post_type'      => 'attachment',
+					'post_status'    => 'inherit',
+					'posts_per_page' => -1,
+					'fields'         => 'ids',
+					'meta_key'       => self::META_IMG_PRIMA,
+				)
+			)
+		);
+
 		return rest_ensure_response(
 			array(
-				'ok'       => true,
-				'soglia'   => $soglia,
-				'totale'   => $totale,
-				'guardati' => $prossimo,
-				'prossimo' => $prossimo,
-				'finito'   => $prossimo >= $totale,
-				'immagini' => $pesanti,
+				'ok'        => true,
+				'soglia'    => $soglia,
+				'totale'    => $totale,
+				'guardati'  => $prossimo,
+				'prossimo'  => $prossimo,
+				'finito'    => $prossimo >= $totale,
+				'gia_fatte' => $fatte,
+				'immagini'  => $pesanti,
 			)
 		);
 	}
@@ -520,14 +535,21 @@ class MDI_Api {
 			return new WP_Error( 'mdi_allegato_assente', 'Allegato non trovato.', array( 'status' => 404 ) );
 		}
 
-		if ( get_post_meta( $id, self::META_IMG_PRIMA, true ) ) {
-			return new WP_Error( 'mdi_gia_ridotta', 'Questa immagine e gia stata ricompressa.', array( 'status' => 409 ) );
-		}
-
 		$file = get_attached_file( $id );
 
 		if ( ! $file || ! file_exists( $file ) ) {
 			return new WP_Error( 'mdi_file_assente', 'File dell allegato non trovato sul disco.', array( 'status' => 404 ) );
+		}
+
+		$segnata   = (string) get_post_meta( $id, self::META_IMG_PRIMA, true );
+		$originale = '' !== $segnata ? wp_upload_dir()['basedir'] . '/' . $segnata : '';
+
+		// Gia fatta davvero solo se l allegato punta a un file diverso
+		// dall originale. Se punta ancora a quello, il tentativo precedente
+		// si e interrotto a meta: si rifa, invece di rispondere per sempre
+		// che e gia stata ricompressa.
+		if ( '' !== $segnata && $originale !== $file ) {
+			return new WP_Error( 'mdi_gia_ridotta', 'Questa immagine e gia stata ricompressa.', array( 'status' => 409 ) );
 		}
 
 		$lato    = max( 200, (int) ( $richiesta->get_param( 'lato' ) ?: 1200 ) );
@@ -588,11 +610,16 @@ class MDI_Api {
 		$caricamenti = wp_upload_dir();
 		$relativo    = ltrim( str_replace( $caricamenti['basedir'], '', (string) $file ), '/\\' );
 
-		update_post_meta( $id, self::META_IMG_PRIMA, $relativo );
-
 		update_attached_file( $id, $destinazione );
 		wp_update_post( array( 'ID' => $id, 'post_mime_type' => 'image/webp' ) );
 		wp_update_attachment_metadata( $id, wp_generate_attachment_metadata( $id, $destinazione ) );
+
+		// Il segnale "gia fatta" si scrive per ultimo, a scambio avvenuto.
+		// Scriverlo prima voleva dire che una richiesta morta durante la
+		// rigenerazione delle miniature - su immagini da megabyte capita -
+		// lasciava l immagine marcata come fatta senza esserlo, e da li in
+		// poi ogni tentativo rispondeva 409 senza piu rimediare.
+		update_post_meta( $id, self::META_IMG_PRIMA, $relativo );
 
 		return rest_ensure_response(
 			array(

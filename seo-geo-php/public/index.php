@@ -1326,8 +1326,16 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 					Compressione::peso( $esito['risparmio'] )
 				);
 
-				if ( $esito['candidate'] > $esito['compresse'] + $esito['invariate'] ) {
-					$messaggio .= ' Il tempo è finito prima della fine: ripremi il pulsante per continuare.';
+				// La cifra che serve davvero: quante ne mancano.
+				if ( $esito['restanti'] > 0 ) {
+					$messaggio .= sprintf(
+						' Ne restano %d su %d: ripremi «Comprimi tutte» per continuare (circa %d volte).',
+						(int) $esito['restanti'],
+						(int) $esito['in_tutto'],
+						max( 1, (int) ceil( $esito['restanti'] / max( 1, (int) $esito['compresse'] ?: 14 ) ) )
+					);
+				} elseif ( $esito['compresse'] ) {
+					$messaggio .= ' Non ne restano altre: sono tutte fatte.';
 				}
 
 				if ( $esito['non_toccate'] ) {

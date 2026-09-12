@@ -170,11 +170,24 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 			<p class="guida"><?php echo e( $immagini['errore'] ); ?></p>
 		<?php else : ?>
 			<p class="guida">
-				<?php echo num( count( $immagini['sicure'] ) ); ?> immagini oltre i
-				<?php echo (int) round( $immagini['soglia'] / 1024 ); ?> KB si possono ricomprimere in WebP,
-				per <strong><?php echo e( \SeoGeo\Media\Compressione::peso( $immagini['peso_sicure'] ) ); ?></strong> in tutto.
+				<strong><?php echo num( count( $immagini['sicure'] ) ); ?> ancora da ricomprimere</strong>,
+				oltre i <?php echo (int) round( $immagini['soglia'] / 1024 ); ?> KB,
+				per <?php echo e( \SeoGeo\Media\Compressione::peso( $immagini['peso_sicure'] ) ); ?> in tutto.
+				<?php if ( ! empty( $immagini['gia_fatte'] ) ) : ?>
+					Ne hai già fatte <strong><?php echo num( $immagini['gia_fatte'] ); ?></strong>.
+				<?php endif; ?>
 				L'originale resta sul disco: l'operazione si annulla.
 			</p>
+			<?php
+			// Quante volte bisogna ancora premere il pulsante: ogni giro ne
+			// fa quante ne stanno nel tempo concesso, e senza questo conto
+			// non si capisce se manca poco o tantissimo.
+			$per_giro = 14;
+			$giri     = (int) ceil( count( $immagini['sicure'] ) / max( 1, $per_giro ) );
+			?>
+			<?php if ( $giri > 1 ) : ?>
+				<p class="nota">Ogni pressione di «Comprimi tutte» ne fa una quindicina, quante ne stanno nel tempo concesso dall'hosting: per finirle tutte servono <strong>circa <?php echo (int) $giri; ?> pressioni</strong>. Il numero qui sopra cala a ogni giro.</p>
+			<?php endif; ?>
 			<?php if ( ! empty( $immagini['nel_testo'] ) ) : ?>
 				<p class="nota">
 					<strong><?php echo num( count( $immagini['nel_testo'] ) ); ?> non vengono toccate</strong>

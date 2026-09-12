@@ -44,6 +44,7 @@ class Compressione {
 		$offset   = 0;
 		$totale   = 0;
 		$guardati = 0;
+		$fatte    = 0;
 		$finito   = false;
 		$scadenza = time() + (int) $secondi_max;
 
@@ -53,6 +54,7 @@ class Compressione {
 			$immagini = array_merge( $immagini, (array) ( $risposta['immagini'] ?? array() ) );
 			$totale   = (int) ( $risposta['totale'] ?? 0 );
 			$guardati = (int) ( $risposta['guardati'] ?? 0 );
+			$fatte    = (int) ( $risposta['gia_fatte'] ?? 0 );
 			$finito   = ! empty( $risposta['finito'] );
 			$avanzato = (int) ( $risposta['prossimo'] ?? 0 ) > $offset;
 			$offset   = (int) ( $risposta['prossimo'] ?? 0 );
@@ -85,6 +87,7 @@ class Compressione {
 			'totale'      => $totale,
 			'guardati'    => $guardati,
 			'completo'    => $finito,
+			'gia_fatte'   => $fatte,
 			'sicure'      => $sicure,
 			'nel_testo'   => $nel_testo,
 			'gia_ridotte' => $gia,
@@ -144,6 +147,10 @@ class Compressione {
 
 		return array(
 			'candidate'   => count( $coda ),
+			// Quante ne restano dopo questo giro: e la sola cifra che dice
+			// se manca poco o se bisogna premere ancora dieci volte.
+			'restanti'    => max( 0, count( $elenco['sicure'] ) - $fatte ),
+			'in_tutto'    => count( $elenco['sicure'] ),
 			'compresse'   => $fatte,
 			'invariate'   => $invariate,
 			'peso_prima'  => $prima,

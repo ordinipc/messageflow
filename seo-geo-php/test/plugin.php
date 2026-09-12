@@ -615,6 +615,50 @@ if ( ! function_exists( 'imagewebp' ) ) {
 		is_wp_error( MDI_Api::comprimi_immagine( new WP_REST_Request( array( 'id' => 999999 ) ) ) )
 	);
 
+	// Un tentativo interrotto a meta. Il segnale "gia fatta" veniva scritto
+	// PRIMA dello scambio del file: se la richiesta moriva durante la
+	// rigenerazione delle miniature - su immagini da megabyte capita -
+	// l immagine restava marcata come fatta senza esserlo, e da li in poi
+	// ogni tentativo rispondeva 409 senza piu rimediare. Sul sito vero questo
+	// ha prodotto immagini pesanti che non si riuscivano piu a comprimere.
+	$fileMozzo = stub_crea_allegato( 950, 'interrotta-a-meta.png', 1536, 28 );
+
+	// Si simula l interruzione: il segnale c e, ma il file e ancora quello.
+	$relativoMozzo = ltrim( str_replace( wp_upload_dir()['basedir'], '', $fileMozzo ), '/' );
+	update_post_meta( 950, MDI_Api::META_IMG_PRIMA, $relativoMozzo );
+
+	$ripresa = MDI_Api::comprimi_immagine( new WP_REST_Request( array( 'id' => 950 ) ) );
+
+	verifica( 'una compressione interrotta non si blocca sul 409', ! is_wp_error( $ripresa ) );
+
+	// Se la precedente fallisce, $ripresa e un WP_Error: senza questa rete
+	// il file di verifica andrebbe in errore fatale invece di riportare
+	// quali verifiche non sono passate.
+	$ripresa = is_wp_error( $ripresa ) ? array() : (array) $ripresa;
+
+	verifica( 'e viene portata a termine', ! empty( $ripresa['cambiata'] ) );
+	verifica( 'con il file davvero sostituito', 'webp' === strtolower( pathinfo( get_attached_file( 950 ), PATHINFO_EXTENSION ) ) );
+
+	// E una gia fatta per davvero deve continuare a essere rifiutata.
+	verifica(
+		'una davvero gia fatta resta rifiutata',
+		is_wp_error( MDI_Api::comprimi_immagine( new WP_REST_Request( array( 'id' => 950 ) ) ) )
+	);
+
+	// Il conteggio di quante ne sono gia state fatte.
+	delete_transient( 'mdi_nomi_immagini_usate' );
+	$conteggio = MDI_Api::immagini_pesanti( new WP_REST_Request( array( 'oltre' => 204800 ) ) );
+
+	verifica( 'la rotta dice quante ne sono gia state ricompresse', (int) $conteggio['gia_fatte'] >= 1, (string) $conteggio['gia_fatte'] );
+
+	$restano = array();
+
+	foreach ( (array) $conteggio['immagini'] as $riga ) {
+		$restano[] = (int) $riga['wp_id'];
+	}
+
+	verifica( 'e una appena ricompressa non resta fra quelle da fare', ! in_array( 950, $restano, true ) );
+
 	// Una libreria media grande come quella vera: la rotta deve rispondere a
 	// blocchi e non fare una query per immagine, altrimenti va in timeout
 	// prima di mostrare qualsiasi cosa.
