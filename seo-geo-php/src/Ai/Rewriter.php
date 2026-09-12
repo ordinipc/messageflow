@@ -248,7 +248,7 @@ class Rewriter {
 	 * @param int $auditId Audit.
 	 * @return array[] Elenco di gruppi con 'vincitore' e 'assorbiti'.
 	 */
-	public static function gruppi( Db $db, $auditId ) {
+	public static function gruppi( Db $db, $auditId, array $opzioni = array() ) {
 		$righe = $db->all(
 			"SELECT t.redirect_a, t.categoria, d.id AS doc_id, d.wp_id, d.titolo, d.url, d.slug,
 					d.testo, d.parole, d.percorso, d.focus_keyword AS focus
@@ -256,6 +256,17 @@ class Rewriter {
 			 WHERE t.audit_id = ? AND t.categoria = 'accorpare' AND t.redirect_a <> ''",
 			array( $auditId )
 		);
+
+		// I gruppi gia fusi restano fuori: senza questo, premere il pulsante
+		// una seconda volta rifaceva sempre i primi della lista e si pagava
+		// due volte lo stesso lavoro, senza mai arrivare in fondo.
+		$gia_fatti = array();
+
+		if ( empty( $opzioni['rigenera'] ) ) {
+			foreach ( $db->all( "SELECT documento_id FROM bozza WHERE audit_id = ? AND stato = 'ok'", array( $auditId ) ) as $b ) {
+				$gia_fatti[ (int) $b['documento_id'] ] = true;
+			}
+		}
 
 		$per_destinazione = array();
 
@@ -272,7 +283,7 @@ class Rewriter {
 				array( $auditId, $url )
 			);
 
-			if ( ! $vincitore ) {
+			if ( ! $vincitore || isset( $gia_fatti[ (int) $vincitore['doc_id'] ] ) ) {
 				continue;
 			}
 
@@ -293,7 +304,7 @@ class Rewriter {
 	 * @return array
 	 */
 	public static function consolida( Db $db, Gemini $gemini, $auditId, array $cfg, array $opzioni = array() ) {
-		$gruppi     = self::gruppi( $db, $auditId );
+		$gruppi     = self::gruppi( $db, $auditId, $opzioni );
 		$istruzioni = Prompt::istruzioni( $cfg );
 
 		if ( ! empty( $opzioni['solo_documento'] ) ) {

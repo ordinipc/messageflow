@@ -69,7 +69,7 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 </div>
 
 <?php if ( $pronto && $stima['articoli'] > 0 ) : ?>
-<form class="scheda" method="post" action="?p=genera">
+<form class="scheda a-lotti" method="post" action="?p=genera" data-tipo="articoli" data-restanti="<?php echo (int) $stima['articoli']; ?>" data-nome="bozze">
 	<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
 	<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
 
@@ -86,7 +86,7 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 <?php endif; ?>
 
 <?php if ( $pronto && $gruppi > 0 ) : ?>
-<form class="scheda" method="post" action="?p=genera">
+<form class="scheda a-lotti" method="post" action="?p=genera" data-tipo="accorpa" data-restanti="<?php echo (int) $gruppi; ?>" data-nome="gruppi">
 	<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
 	<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
 	<input type="hidden" name="tipo" value="accorpa">
@@ -122,7 +122,7 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 <?php endif; ?>
 
 <?php if ( $pronto && $immagini['mancanti'] > 0 ) : ?>
-<form class="scheda" method="post" action="?p=genera">
+<form class="scheda a-lotti" method="post" action="?p=genera" data-tipo="immagini" data-restanti="<?php echo (int) $immagini['mancanti']; ?>" data-nome="immagini">
 	<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
 	<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
 	<input type="hidden" name="tipo" value="immagini">
@@ -211,3 +211,140 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 	</ol>
 	<p class="nota">Pubblicare in massa testo generato senza revisione è ciò che le linee guida antispam di Google chiamano abuso di contenuti scalati: il modulo è costruito per evitarlo, non per aggirare il problema.</p>
 </section>
+
+<script>
+(function () {
+	// Un ciclo solo per i tre lotti: bozze, accorpamenti e immagini fanno
+	// la stessa cosa - lavorano a blocchi perche l hosting chiude le
+	// richieste lunghe - e si guardano allo stesso modo.
+	var moduli = document.querySelectorAll('form.a-lotti');
+
+	if (!moduli.length || !window.fetch) { return; }
+
+	var token = <?php echo json_encode( token() ); ?>;
+	var idAudit = <?php echo (int) $audit['id']; ?>;
+
+	Array.prototype.forEach.call(moduli, function (modulo) {
+		var tipo = modulo.dataset.tipo;
+		var nome = modulo.dataset.nome;
+		var restano = parseInt(modulo.dataset.restanti, 10) || 0;
+		var partenza = restano;
+		var fatte = 0;
+		var falliti = 0;
+		var fermato = false;
+		var blocco = 0;
+		var iniziato = 0;
+		var orologio = null;
+
+		var pannello = document.createElement('div');
+		pannello.hidden = true;
+		pannello.innerHTML =
+			'<p><span class="spia"></span> <strong class="lotto-titolo">Sto lavorando…</strong></p>'
+			+ '<div class="barra" style="height:10px;margin-bottom:12px"><i class="ok lotto-barra" style="width:1%;height:10px"></i></div>'
+			+ '<p class="nota"><span class="lotto-fatte">0</span> fatte · <span class="lotto-restanti">0</span> da fare<span class="lotto-falliti"></span></p>'
+			+ '<p class="nota lotto-battito"></p>'
+			+ '<p class="nota grave lotto-errori" hidden></p>'
+			+ '<button type="button" class="bottone chiaro lotto-stop">Ferma</button>';
+
+		modulo.appendChild(pannello);
+
+		function dentro(classe) { return pannello.querySelector('.' + classe); }
+		function scrivi(classe, testo) { dentro(classe).textContent = testo; }
+
+		function battito() {
+			var secondi = Math.round((Date.now() - iniziato) / 1000);
+
+			scrivi('lotto-battito',
+				'Blocco ' + blocco + ' in corso da ' + secondi + ' second' + (1 === secondi ? 'o' : 'i')
+				+ '. Ogni contenuto richiede 10-30 secondi: finché questo numero sale, sta lavorando.');
+		}
+
+		function aggiorna() {
+			var percento = partenza ? Math.round((fatte / partenza) * 100) : 100;
+			dentro('lotto-barra').style.width = Math.max(1, percento) + '%';
+			scrivi('lotto-fatte', fatte.toLocaleString('it-IT'));
+			scrivi('lotto-restanti', Math.max(0, restano).toLocaleString('it-IT'));
+			scrivi('lotto-falliti', falliti ? ' · ' + falliti + ' non riuscite' : '');
+		}
+
+		function spegni(classe, testo) {
+			dentro('spia').className = 'spia ' + classe;
+			scrivi('lotto-titolo', testo);
+			scrivi('lotto-battito', '');
+			clearInterval(orologio);
+			var stop = dentro('lotto-stop');
+			stop.textContent = 'Ricarica la pagina';
+			stop.onclick = function () { location.reload(); };
+		}
+
+		function giro() {
+			if (fermato) { return; }
+
+			blocco++;
+			iniziato = Date.now();
+			scrivi('lotto-titolo', 'Sto lavorando…');
+			battito();
+			clearInterval(orologio);
+			orologio = setInterval(battito, 1000);
+
+			var invia = modulo.querySelector('[name="invia"]');
+			var quante = modulo.querySelector('[name="quante"]');
+
+			var indirizzo = '?p=api-bozze&id=' + idAudit
+				+ '&tipo=' + encodeURIComponent(tipo)
+				+ '&quante=' + encodeURIComponent(quante ? quante.value : 3)
+				+ (invia && invia.checked ? '&invia=1' : '')
+				+ '&token=' + encodeURIComponent(token);
+
+			fetch(indirizzo)
+				.then(function (r) { return r.json(); })
+				.then(function (d) {
+					if (d.errore) { spegni('guasto', 'Interrotta: ' + d.errore); return; }
+
+					fatte += d.fatte;
+					falliti += d.falliti || 0;
+					restano = d.restanti;
+					aggiorna();
+
+					if (d.errori && d.errori.length) {
+						var p = dentro('lotto-errori');
+						p.hidden = false;
+						p.textContent = 'Saltate: ' + d.errori.join(' · ');
+					}
+
+					if (d.finito || fermato) {
+						spegni(restano > 0 ? 'guasto' : 'fermo', restano > 0
+							? 'Fermata: restano ' + restano + ' ' + nome
+							: 'Fatto: ' + nome + ' completate');
+						return;
+					}
+
+					giro();
+				})
+				.catch(function (e) { spegni('guasto', 'Connessione interrotta: ' + e.message); });
+		}
+
+		modulo.addEventListener('submit', function (evento) {
+			evento.preventDefault();
+
+			if (!confirm('Procedere su ' + restano + ' ' + nome + '? Si può fermare in qualsiasi momento.')) {
+				return;
+			}
+
+			Array.prototype.forEach.call(modulo.querySelectorAll('button, input'), function (elemento) {
+				if (!pannello.contains(elemento)) { elemento.disabled = true; }
+			});
+
+			pannello.hidden = false;
+			aggiorna();
+			giro();
+		});
+
+		dentro('lotto-stop').addEventListener('click', function () {
+			fermato = true;
+			scrivi('lotto-titolo', 'Mi fermo alla fine di questo blocco…');
+			dentro('spia').className = 'spia fermo';
+		});
+	});
+})();
+</script>

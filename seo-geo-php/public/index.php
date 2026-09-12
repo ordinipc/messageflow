@@ -741,6 +741,85 @@ if ( 'pilota-ferma' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	exit;
 }
 
+if ( 'api-bozze' === $pagina ) {
+	header( 'Content-Type: application/json; charset=utf-8' );
+
+	if ( ! hash_equals( token(), $_GET['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		echo json_encode( array( 'errore' => 'Sessione scaduta: ricarica la pagina.' ) );
+		exit;
+	}
+
+	$id     = (int) ( $_GET['id'] ?? 0 );
+	$tipo   = preg_replace( '/[^a-z]/', '', (string) ( $_GET['tipo'] ?? 'articoli' ) );
+	$quante = max( 1, min( 25, (int) ( $_GET['quante'] ?? 3 ) ) );
+	$gemini = new Gemini( $cfg['ai'] );
+
+	if ( ! $gemini->pronto() ) {
+		echo json_encode( array( 'errore' => 'Chiave Gemini mancante: mettila in Impostazioni.', 'finito' => true ) );
+		exit;
+	}
+
+	set_time_limit( 0 );
+
+	// Un giro corto e il browser richiama subito dopo: il lavoro lungo non
+	// puo stare in una richiesta sola, ma nessuno deve restare un minuto
+	// davanti a una pagina ferma senza sapere se sta succedendo qualcosa.
+	$limite_php = (int) ini_get( 'max_execution_time' );
+	$budget     = $limite_php > 0 ? max( 20, $limite_php - 15 ) : 60;
+	$opzioni    = array( 'limite' => $quante, 'secondi_max' => $budget );
+
+	// Quante ne restano da fare, per tipo di lavoro.
+	$restanti = static function () use ( $db, $id, $tipo, $cfg ) {
+		if ( 'accorpa' === $tipo ) {
+			return count( Rewriter::gruppi( $db, $id ) );
+		}
+
+		if ( 'immagini' === $tipo ) {
+			return count( Immagini::candidati( $db, $id ) );
+		}
+
+		return count( Rewriter::candidati( $db, $id, array() ) );
+	};
+
+	$prima_di = $restanti();
+
+	try {
+		if ( 'accorpa' === $tipo ) {
+			$esito = Rewriter::consolida( $db, $gemini, $id, $cfg, $opzioni );
+		} elseif ( 'immagini' === $tipo ) {
+			$ponte = new WordPress( $cfg['wordpress'] );
+			$esito = Immagini::esegui( $db, $gemini, $id, $cfg, $opzioni + array( 'invia' => ! empty( $_GET['invia'] ) ), $ponte );
+			$esito['fallite'] = count( $esito['errori'] );
+		} else {
+			$esito = Rewriter::esegui( $db, $gemini, $id, $cfg, $opzioni );
+		}
+	} catch ( Throwable $e ) {
+		http_response_code( 500 );
+		echo json_encode( array( 'errore' => $e->getMessage(), 'finito' => true ) );
+		exit;
+	}
+
+	$fatte  = (int) ( $esito['generate'] ?? 0 );
+	$dopo   = $restanti();
+	$errori = array_slice( (array) ( $esito['errori'] ?? array() ), 0, 5 );
+
+	echo json_encode(
+		array(
+			'fatte'    => $fatte,
+			'falliti'  => (int) ( $esito['fallite'] ?? count( $errori ) ),
+			'restanti' => $dopo,
+			'errori'   => $errori,
+			// Fermarsi anche quando un giro non fa scendere il conto: senza
+			// questa condizione un errore che si ripete manderebbe il
+			// browser in un ciclo infinito, e per giunta a pagamento.
+			'finito'   => 0 === $dopo || $dopo >= $prima_di,
+		)
+	);
+
+	exit;
+}
+
 if ( 'api-comprimi' === $pagina ) {
 	header( 'Content-Type: application/json; charset=utf-8' );
 

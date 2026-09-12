@@ -1179,6 +1179,92 @@ verifica(
 	false !== strpos( (string) file_get_contents( __DIR__ . '/../public/assets/app.css' ), '.spia' )
 );
 
+echo "\nLotti di riscrittura che vanno avanti da soli\n";
+
+$sorgenteBozze = (string) file_get_contents( __DIR__ . '/../views/bozze.php' );
+
+verifica(
+	'esiste la rotta che fa un giro di generazione',
+	false !== strpos( $sorgenteIndice, "'api-bozze' === \$pagina" )
+);
+
+verifica(
+	'e chiede il token di sessione',
+	(bool) preg_match( "/'api-bozze'.{0,400}hash_equals\( token\(\)/s", $sorgenteIndice )
+);
+
+// Qui il ciclo costa soldi a ogni giro: se non sapesse fermarsi
+// continuerebbe a chiamare il modello a vuoto, a pagamento.
+verifica(
+	'un giro che non fa scendere il conto ferma il ciclo',
+	false !== strpos( $sorgenteIndice, "0 === \$dopo || \$dopo >= \$prima_di" )
+);
+
+verifica(
+	'i tre lotti usano lo stesso ciclo',
+	3 === substr_count( $sorgenteBozze, 'class="scheda a-lotti"' )
+);
+
+verifica(
+	'ognuno dichiara che cosa lavora e quanti ne restano',
+	3 === substr_count( $sorgenteBozze, 'data-tipo=' ) && 3 === substr_count( $sorgenteBozze, 'data-restanti=' )
+);
+
+verifica(
+	'c e il cronometro anche qui',
+	false !== strpos( $sorgenteBozze, 'setInterval(battito, 1000)' )
+);
+
+verifica(
+	'senza fetch i moduli restano quelli di prima',
+	false !== strpos( $sorgenteBozze, 'if (!moduli.length || !window.fetch) { return; }' )
+);
+
+// I gruppi gia fusi non devono ripresentarsi: senza questo, premere il
+// pulsante una seconda volta rifaceva i primi della lista e si pagava due
+// volte lo stesso lavoro, senza mai arrivare in fondo.
+$fileGruppi = sys_get_temp_dir() . '/seo-gruppi-' . getmypid() . '.sqlite';
+@unlink( $fileGruppi );
+$dbG = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileGruppi ) );
+
+$auditG = $dbG->insert(
+	'audit',
+	array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => date( 'Y-m-d H:i:s' ), 'punteggio' => 50 )
+);
+
+$vincitore = $dbG->insert(
+	'documento',
+	array( 'audit_id' => $auditG, 'wp_id' => '1', 'titolo' => 'Principale', 'slug' => 'principale', 'percorso' => '/principale/', 'url' => 'https://esempio.it/principale/', 'tipo' => 'post', 'stato' => 'publish', 'parole' => 900, 'testo' => 'Testo principale.' )
+);
+
+foreach ( array( 2, 3 ) as $n ) {
+	$assorbito = $dbG->insert(
+		'documento',
+		array( 'audit_id' => $auditG, 'wp_id' => (string) $n, 'titolo' => 'Doppione ' . $n, 'slug' => 'doppione-' . $n, 'percorso' => '/doppione-' . $n . '/', 'url' => 'https://esempio.it/doppione-' . $n . '/', 'tipo' => 'post', 'stato' => 'publish', 'parole' => 400, 'testo' => 'Testo doppione.' )
+	);
+
+	$dbG->insert( 'triage', array( 'audit_id' => $auditG, 'documento_id' => $assorbito, 'categoria' => 'accorpare', 'qualita' => 30, 'redirect_a' => 'https://esempio.it/principale/' ) );
+}
+
+verifica( 'il gruppo da fondere viene trovato', 1 === count( \SeoGeo\Ai\Rewriter::gruppi( $dbG, $auditG ) ) );
+
+$dbG->insert(
+	'bozza',
+	array( 'audit_id' => $auditG, 'documento_id' => $vincitore, 'stato' => 'ok', 'titolo' => 'Fuso', 'corpo_html' => '<p>x</p>', 'faq' => '[]', 'da_verificare' => '[]', 'meta_title' => 'T', 'meta_description' => 'D', 'modello' => 'prova', 'creato_il' => date( 'Y-m-d H:i:s' ) )
+);
+
+verifica(
+	'una volta fuso non si ripresenta',
+	0 === count( \SeoGeo\Ai\Rewriter::gruppi( $dbG, $auditG ) )
+);
+
+verifica(
+	'ma si puo rifare chiedendolo espressamente',
+	1 === count( \SeoGeo\Ai\Rewriter::gruppi( $dbG, $auditG, array( 'rigenera' => 1 ) ) )
+);
+
+@unlink( $fileGruppi );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );
