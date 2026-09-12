@@ -1093,6 +1093,50 @@ if ( ! class_exists( '\ZipArchive' ) ) {
 	$rimuovi( $cartellaZip );
 }
 
+echo "\nCompressione che va avanti da sola\n";
+
+// Il lavoro lungo non puo stare in una richiesta sola: gli hosting
+// condivisi la chiudono. Ma nemmeno si puo chiedere a una persona di
+// premere venti volte lo stesso pulsante. La soluzione e il browser che
+// richiama a giri corti, e queste verifiche guardano che il ciclo finisca
+// e soprattutto che non possa girare a vuoto per sempre.
+
+$sorgenteIndice = (string) file_get_contents( __DIR__ . '/../public/index.php' );
+
+verifica(
+	'esiste la rotta che fa un giro di compressione',
+	false !== strpos( $sorgenteIndice, "'api-comprimi' === \$pagina" )
+);
+
+verifica(
+	'e chiede il token di sessione',
+	(bool) preg_match( "/'api-comprimi'.{0,400}hash_equals\( token\(\)/s", $sorgenteIndice )
+);
+
+// Un giro che non conclude niente deve chiudere il ciclo: se un errore si
+// ripetesse, il browser continuerebbe a chiamare all infinito.
+verifica(
+	'un giro che non comprime niente ferma il ciclo',
+	false !== strpos( $sorgenteIndice, "0 === (int) \$esito['restanti'] || 0 === (int) \$esito['compresse']" )
+);
+
+verifica(
+	'e un errore chiude il ciclo invece di farlo ripartire',
+	(bool) preg_match( "/catch \( Throwable \\\$e \) \{.{0,200}'finito' => true/s", $sorgenteIndice )
+);
+
+$sorgenteVista = (string) file_get_contents( __DIR__ . '/../views/collega.php' );
+
+verifica(
+	'senza JavaScript il pulsante resta un modulo normale',
+	false !== strpos( $sorgenteVista, 'if (!modulo || !corso) { return; }' )
+);
+
+verifica(
+	'si puo fermare a meta',
+	false !== strpos( $sorgenteVista, "compressione-stop" ) && false !== strpos( $sorgenteVista, 'fermato = true' )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

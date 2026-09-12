@@ -741,6 +741,59 @@ if ( 'pilota-ferma' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	exit;
 }
 
+if ( 'api-comprimi' === $pagina ) {
+	header( 'Content-Type: application/json; charset=utf-8' );
+
+	if ( ! hash_equals( token(), $_GET['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		echo json_encode( array( 'errore' => 'Sessione scaduta: ricarica la pagina.' ) );
+		exit;
+	}
+
+	set_time_limit( 0 );
+
+	// Un giro corto e il browser richiama subito dopo. Il lavoro lungo non
+	// puo stare in una richiesta sola - gli hosting condivisi la chiudono -
+	// ma nessuno deve premere un pulsante venti volte per arrivare in fondo.
+	$limite_php = (int) ini_get( 'max_execution_time' );
+	$secondi    = $limite_php > 0 ? max( 10, min( 40, $limite_php - 10 ) ) : 40;
+
+	try {
+		$ponte = new WordPress( $cfg['wordpress'] );
+
+		$esito = Compressione::esegui(
+			$ponte,
+			array(
+				'lato'        => (int) ( $cfg['ai']['immagine_lato_max'] ?? 1200 ),
+				'qualita'     => (int) ( $cfg['ai']['immagine_qualita'] ?? 82 ),
+				'peso_max'    => (int) ( $cfg['ai']['immagine_peso_max'] ?? 190000 ),
+				'secondi_max' => $secondi,
+			)
+		);
+
+		echo json_encode(
+			array(
+				'compresse'   => (int) $esito['compresse'],
+				'restanti'    => (int) $esito['restanti'],
+				'in_tutto'    => (int) $esito['in_tutto'],
+				'risparmio'   => (int) $esito['risparmio'],
+				'leggibile'   => Compressione::peso( $esito['risparmio'] ),
+				'non_toccate' => (int) $esito['non_toccate'],
+				'errori'      => array_slice( (array) $esito['errori'], 0, 5 ),
+				// Fermarsi anche quando il giro non conclude niente: senza
+				// questa condizione, un errore che si ripete manderebbe il
+				// browser in un ciclo infinito.
+				'finito'      => 0 === (int) $esito['restanti'] || 0 === (int) $esito['compresse'],
+			)
+		);
+	} catch ( Throwable $e ) {
+		http_response_code( 500 );
+		echo json_encode( array( 'errore' => $e->getMessage(), 'finito' => true ) );
+	}
+
+	exit;
+}
+
 if ( 'pilota-esegui' === $pagina ) {
 	header( 'Content-Type: application/json; charset=utf-8' );
 

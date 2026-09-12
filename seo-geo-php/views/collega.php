@@ -22,9 +22,9 @@
  * @param string $classe     Classe del pulsante.
  * @return void
  */
-function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', $limite = null, $extra = array() ) {
+function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', $limite = null, $extra = array(), $idModulo = '' ) {
 	?>
-	<form method="post" action="?p=applica" <?php echo $conferma ? 'onsubmit="return confirm(' . "'" . e( $conferma ) . "'" . ')"' : ''; ?>>
+	<form method="post" action="?p=applica" <?php echo $idModulo ? 'id="' . e( $idModulo ) . '"' : ''; ?> <?php echo $conferma ? 'onsubmit="return confirm(' . "'" . e( $conferma ) . "'" . ')"' : ''; ?>>
 		<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
 		<input type="hidden" name="id" value="<?php echo (int) $id; ?>">
 		<input type="hidden" name="azione" value="<?php echo e( $azione ); ?>">
@@ -178,16 +178,19 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 				<?php endif; ?>
 				L'originale resta sul disco: l'operazione si annulla.
 			</p>
-			<?php
-			// Quante volte bisogna ancora premere il pulsante: ogni giro ne
-			// fa quante ne stanno nel tempo concesso, e senza questo conto
-			// non si capisce se manca poco o tantissimo.
-			$per_giro = 14;
-			$giri     = (int) ceil( count( $immagini['sicure'] ) / max( 1, $per_giro ) );
-			?>
-			<?php if ( $giri > 1 ) : ?>
-				<p class="nota">Ogni pressione di «Comprimi tutte» ne fa una quindicina, quante ne stanno nel tempo concesso dall'hosting: per finirle tutte servono <strong>circa <?php echo (int) $giri; ?> pressioni</strong>. Il numero qui sopra cala a ogni giro.</p>
-			<?php endif; ?>
+			<p class="nota" id="compressione-nota">Il lavoro va a blocchi, perché l'hosting chiude le richieste lunghe: premi una volta sola e la pagina continua da sé fino alla fine. Puoi fermarla quando vuoi, quello che è già fatto resta fatto.</p>
+
+			<div id="compressione-corso" hidden>
+				<p><strong id="compressione-titolo">Compressione in corso…</strong></p>
+				<div class="barra" style="height:10px;margin-bottom:12px"><i id="compressione-barra" class="ok" style="width:1%;height:10px"></i></div>
+				<p class="nota">
+					<span id="compressione-fatte">0</span> fatte ·
+					<span id="compressione-restanti"><?php echo (int) count( $immagini['sicure'] ); ?></span> da fare ·
+					<span id="compressione-risparmio">0 KB</span> risparmiati
+				</p>
+				<p class="nota grave" id="compressione-errori" hidden></p>
+				<button type="button" class="bottone chiaro" id="compressione-stop">Ferma</button>
+			</div>
 			<?php if ( ! empty( $immagini['nel_testo'] ) ) : ?>
 				<p class="nota">
 					<strong><?php echo num( count( $immagini['nel_testo'] ) ); ?> non vengono toccate</strong>
@@ -218,11 +221,108 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 				</details>
 			<?php endif; ?>
 
-			<div class="azioni">
+			<div class="azioni" id="compressione-azioni">
 				<?php azione( $audit['id'], 'comprimi_immagini', 'Prova su 5 immagini', 'Ricomprimere le 5 immagini più pesanti? Gli originali restano sul disco.', 'bottone chiaro', 5 ); ?>
-				<?php azione( $audit['id'], 'comprimi_immagini', 'Comprimi tutte', 'Ricomprimere ' . count( $immagini['sicure'] ) . ' immagini? Gli originali restano sul disco e si può annullare.', 'bottone' ); ?>
+				<?php azione( $audit['id'], 'comprimi_immagini', 'Comprimi tutte', 'Ricomprimere ' . count( $immagini['sicure'] ) . ' immagini? Gli originali restano sul disco e si può annullare.', 'bottone', null, array(), 'comprimi-tutte' ); ?>
 				<?php azione( $audit['id'], 'ripristina_immagini', 'Rimetti gli originali', 'Rimettere le immagini originali al posto di quelle ricompresse?', 'bottone chiaro' ); ?>
 			</div>
+
+			<script>
+			(function () {
+				var modulo = document.getElementById('comprimi-tutte');
+				var corso = document.getElementById('compressione-corso');
+
+				// Senza JavaScript il modulo resta quello di prima: fa un
+				// blocco per volta e si ripreme. Non deve smettere di funzionare.
+				if (!modulo || !corso) { return; }
+
+				var token = <?php echo json_encode( token() ); ?>;
+				var idAudit = <?php echo (int) $audit['id']; ?>;
+				var daFare = <?php echo (int) count( $immagini['sicure'] ); ?>;
+				var partenza = daFare;
+				var fatte = 0;
+				var risparmio = 0;
+				var fermato = false;
+
+				var azioni = document.getElementById('compressione-azioni');
+				var nota = document.getElementById('compressione-nota');
+
+				function scrivi(id, testo) { document.getElementById(id).textContent = testo; }
+
+				function aggiorna() {
+					var percento = partenza ? Math.round((fatte / partenza) * 100) : 100;
+					document.getElementById('compressione-barra').style.width = Math.max(1, percento) + '%';
+					scrivi('compressione-fatte', fatte.toLocaleString('it-IT'));
+					scrivi('compressione-restanti', Math.max(0, daFare).toLocaleString('it-IT'));
+				}
+
+				function giro() {
+					if (fermato) { return; }
+
+					fetch('?p=api-comprimi&id=' + idAudit + '&token=' + encodeURIComponent(token))
+						.then(function (r) { return r.json(); })
+						.then(function (d) {
+							if (d.errore) {
+								scrivi('compressione-titolo', 'Interrotta: ' + d.errore);
+								document.getElementById('compressione-stop').textContent = 'Ricarica la pagina';
+								return;
+							}
+
+							fatte += d.compresse;
+							daFare = d.restanti;
+							risparmio += d.risparmio;
+							scrivi('compressione-risparmio', d.leggibile && risparmio ? formatta(risparmio) : '0 KB');
+							aggiorna();
+
+							if (d.errori && d.errori.length) {
+								var p = document.getElementById('compressione-errori');
+								p.hidden = false;
+								p.textContent = 'Saltate: ' + d.errori.join(' · ');
+							}
+
+							if (d.finito || fermato) {
+								scrivi('compressione-titolo', daFare > 0
+									? 'Fermata: ' + daFare + ' non sono state ricompresse'
+									: 'Fatto: tutte ricompresse');
+								document.getElementById('compressione-stop').textContent = 'Ricarica la pagina';
+								document.getElementById('compressione-stop').onclick = function () { location.reload(); };
+								return;
+							}
+
+							giro();
+						})
+						.catch(function (e) {
+							scrivi('compressione-titolo', 'Connessione interrotta: ' + e.message);
+							document.getElementById('compressione-stop').textContent = 'Ricarica la pagina';
+						});
+				}
+
+				function formatta(byte) {
+					return byte >= 1048576
+						? (byte / 1048576).toFixed(1).replace('.', ',') + ' MB'
+						: Math.round(byte / 1024).toLocaleString('it-IT') + ' KB';
+				}
+
+				modulo.addEventListener('submit', function (evento) {
+					evento.preventDefault();
+
+					if (!confirm('Ricomprimere ' + daFare + ' immagini? Gli originali restano sul disco e si può annullare.')) {
+						return;
+					}
+
+					azioni.hidden = true;
+					nota.hidden = true;
+					corso.hidden = false;
+					aggiorna();
+					giro();
+				});
+
+				document.getElementById('compressione-stop').addEventListener('click', function () {
+					fermato = true;
+					scrivi('compressione-titolo', 'Mi fermo alla fine di questo blocco…');
+				});
+			})();
+			</script>
 		<?php endif; ?>
 	</section>
 
