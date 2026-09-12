@@ -639,11 +639,18 @@ if ( ! function_exists( 'imagewebp' ) ) {
 	verifica( 'e viene portata a termine', ! empty( $ripresa['cambiata'] ) );
 	verifica( 'con il file davvero sostituito', 'webp' === strtolower( pathinfo( get_attached_file( 950 ), PATHINFO_EXTENSION ) ) );
 
-	// E una gia fatta per davvero deve continuare a essere rifiutata.
-	verifica(
-		'una davvero gia fatta resta rifiutata',
-		is_wp_error( MDI_Api::comprimi_immagine( new WP_REST_Request( array( 'id' => 950 ) ) ) )
-	);
+	// Una gia fatta per davvero non si rifa, ma non e nemmeno un errore: in
+	// un lavoro a blocchi ritrovarsela davanti e normale. Rispondere con un
+	// errore riempiva l elenco dei guasti e faceva credere al ciclo di non
+	// avere concluso niente, fermandolo con meta lavoro ancora da fare.
+	$ripetuta = MDI_Api::comprimi_immagine( new WP_REST_Request( array( 'id' => 950 ) ) );
+
+	verifica( 'una davvero gia fatta non e un errore', ! is_wp_error( $ripetuta ) );
+
+	$ripetuta = is_wp_error( $ripetuta ) ? array() : (array) $ripetuta;
+
+	verifica( 'ma non viene rifatta', empty( $ripetuta['cambiata'] ) );
+	verifica( 'e dice perche', 'gia_fatta' === ( $ripetuta['motivo'] ?? '' ), (string) ( $ripetuta['motivo'] ?? '' ) );
 
 	// Il conteggio di quante ne sono gia state fatte.
 	delete_transient( 'mdi_nomi_immagini_usate' );

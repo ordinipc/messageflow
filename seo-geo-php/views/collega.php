@@ -181,13 +181,17 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 			<p class="nota" id="compressione-nota">Il lavoro va a blocchi, perché l'hosting chiude le richieste lunghe: premi una volta sola e la pagina continua da sé fino alla fine. Puoi fermarla quando vuoi, quello che è già fatto resta fatto.</p>
 
 			<div id="compressione-corso" hidden>
-				<p><strong id="compressione-titolo">Compressione in corso…</strong></p>
+				<p>
+					<span id="compressione-spia" class="spia"></span>
+					<strong id="compressione-titolo">Sto lavorando…</strong>
+				</p>
 				<div class="barra" style="height:10px;margin-bottom:12px"><i id="compressione-barra" class="ok" style="width:1%;height:10px"></i></div>
 				<p class="nota">
 					<span id="compressione-fatte">0</span> fatte ·
 					<span id="compressione-restanti"><?php echo (int) count( $immagini['sicure'] ); ?></span> da fare ·
 					<span id="compressione-risparmio">0 KB</span> risparmiati
 				</p>
+				<p class="nota" id="compressione-battito">Blocco 1 in corso da 0 secondi. Ogni blocco dura fino a una quarantina di secondi: finché questo numero sale, sta lavorando.</p>
 				<p class="nota grave" id="compressione-errori" hidden></p>
 				<button type="button" class="bottone chiaro" id="compressione-stop">Ferma</button>
 			</div>
@@ -243,6 +247,9 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 				var fatte = 0;
 				var risparmio = 0;
 				var fermato = false;
+				var blocco = 0;
+				var iniziatoBlocco = 0;
+				var orologio = null;
 
 				var azioni = document.getElementById('compressione-azioni');
 				var nota = document.getElementById('compressione-nota');
@@ -256,15 +263,39 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 					scrivi('compressione-restanti', Math.max(0, daFare).toLocaleString('it-IT'));
 				}
 
+				function battito() {
+					var secondi = Math.round((Date.now() - iniziatoBlocco) / 1000);
+
+					scrivi('compressione-battito',
+						'Blocco ' + blocco + ' in corso da ' + secondi + ' second' + (1 === secondi ? 'o' : 'i')
+						+ '. Ogni blocco dura fino a una quarantina di secondi: finché questo numero sale, sta lavorando.');
+				}
+
+				function spegni(classe, testo) {
+					document.getElementById('compressione-spia').className = 'spia ' + classe;
+					scrivi('compressione-titolo', testo);
+					scrivi('compressione-battito', '');
+					clearInterval(orologio);
+					var stop = document.getElementById('compressione-stop');
+					stop.textContent = 'Ricarica la pagina';
+					stop.onclick = function () { location.reload(); };
+				}
+
 				function giro() {
 					if (fermato) { return; }
+
+					blocco++;
+					iniziatoBlocco = Date.now();
+					scrivi('compressione-titolo', 'Sto lavorando…');
+					battito();
+					clearInterval(orologio);
+					orologio = setInterval(battito, 1000);
 
 					fetch('?p=api-comprimi&id=' + idAudit + '&token=' + encodeURIComponent(token))
 						.then(function (r) { return r.json(); })
 						.then(function (d) {
 							if (d.errore) {
-								scrivi('compressione-titolo', 'Interrotta: ' + d.errore);
-								document.getElementById('compressione-stop').textContent = 'Ricarica la pagina';
+								spegni('guasto', 'Interrotta: ' + d.errore);
 								return;
 							}
 
@@ -274,6 +305,13 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 							scrivi('compressione-risparmio', d.leggibile && risparmio ? formatta(risparmio) : '0 KB');
 							aggiorna();
 
+							// Le gia fatte sono avanzamento, non un guasto: senza
+							// dirlo, un giro che ne trova venti sembra non avere
+							// fatto niente.
+							if (d.gia_fatte) {
+								scrivi('compressione-titolo', 'Sto lavorando… (' + d.gia_fatte + ' erano già fatte)');
+							}
+
 							if (d.errori && d.errori.length) {
 								var p = document.getElementById('compressione-errori');
 								p.hidden = false;
@@ -281,19 +319,16 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 							}
 
 							if (d.finito || fermato) {
-								scrivi('compressione-titolo', daFare > 0
+								spegni(daFare > 0 ? 'guasto' : 'fermo', daFare > 0
 									? 'Fermata: ' + daFare + ' non sono state ricompresse'
 									: 'Fatto: tutte ricompresse');
-								document.getElementById('compressione-stop').textContent = 'Ricarica la pagina';
-								document.getElementById('compressione-stop').onclick = function () { location.reload(); };
 								return;
 							}
 
 							giro();
 						})
 						.catch(function (e) {
-							scrivi('compressione-titolo', 'Connessione interrotta: ' + e.message);
-							document.getElementById('compressione-stop').textContent = 'Ricarica la pagina';
+							spegni('guasto', 'Connessione interrotta: ' + e.message);
 						});
 				}
 
@@ -320,6 +355,7 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 				document.getElementById('compressione-stop').addEventListener('click', function () {
 					fermato = true;
 					scrivi('compressione-titolo', 'Mi fermo alla fine di questo blocco…');
+					document.getElementById('compressione-spia').className = 'spia fermo';
 				});
 			})();
 			</script>

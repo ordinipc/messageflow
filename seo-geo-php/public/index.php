@@ -780,10 +780,14 @@ if ( 'api-comprimi' === $pagina ) {
 				'leggibile'   => Compressione::peso( $esito['risparmio'] ),
 				'non_toccate' => (int) $esito['non_toccate'],
 				'errori'      => array_slice( (array) $esito['errori'], 0, 5 ),
-				// Fermarsi anche quando il giro non conclude niente: senza
-				// questa condizione, un errore che si ripete manderebbe il
-				// browser in un ciclo infinito.
-				'finito'      => 0 === (int) $esito['restanti'] || 0 === (int) $esito['compresse'],
+				'gia_fatte'   => (int) $esito['gia_fatte'],
+				// Fermarsi anche quando il giro non fa avanzare niente: senza
+				// questa condizione un errore che si ripete manderebbe il
+				// browser in un ciclo infinito. Le immagini gia fatte pero
+				// sono avanzamento: prima contavano come nulla e il ciclo si
+				// fermava con meta lavoro ancora da fare.
+				'finito'      => 0 === (int) $esito['restanti']
+					|| 0 === (int) $esito['compresse'] + (int) $esito['gia_fatte'] + (int) $esito['invariate'],
 			)
 		);
 	} catch ( Throwable $e ) {
@@ -1380,6 +1384,10 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				);
 
 				// La cifra che serve davvero: quante ne mancano.
+				if ( $esito['gia_fatte'] ) {
+					$messaggio .= ' ' . (int) $esito['gia_fatte'] . ' erano già state fatte.';
+				}
+
 				if ( $esito['restanti'] > 0 ) {
 					$messaggio .= sprintf(
 						' Ne restano %d su %d: ripremi «Comprimi tutte» per continuare (circa %d volte).',

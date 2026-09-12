@@ -548,8 +548,22 @@ class MDI_Api {
 		// dall originale. Se punta ancora a quello, il tentativo precedente
 		// si e interrotto a meta: si rifa, invece di rispondere per sempre
 		// che e gia stata ricompressa.
+		//
+		// E non e un errore: in un lavoro a blocchi ritrovarsi davanti una
+		// immagine gia fatta e normale, e rispondere con un errore HTTP
+		// riempiva l elenco dei guasti e faceva credere al ciclo di non
+		// avere concluso niente, fermandolo con meta lavoro ancora da fare.
 		if ( '' !== $segnata && $originale !== $file ) {
-			return new WP_Error( 'mdi_gia_ridotta', 'Questa immagine e gia stata ricompressa.', array( 'status' => 409 ) );
+			return rest_ensure_response(
+				array(
+					'ok'       => true,
+					'id'       => $id,
+					'cambiata' => false,
+					'motivo'   => 'gia_fatta',
+					'prima'    => (int) filesize( $file ),
+					'dopo'     => (int) filesize( $file ),
+				)
+			);
 		}
 
 		$lato    = max( 200, (int) ( $richiesta->get_param( 'lato' ) ?: 1200 ) );

@@ -115,6 +115,7 @@ class Compressione {
 		$scadenza  = isset( $opzioni['secondi_max'] ) ? time() + (int) $opzioni['secondi_max'] : null;
 
 		$fatte     = 0;
+		$gia_fatte = 0;
 		$invariate = 0;
 		$prima     = 0;
 		$dopo      = 0;
@@ -133,11 +134,21 @@ class Compressione {
 
 				if ( ! empty( $esito['cambiata'] ) ) {
 					$fatte++;
+				} elseif ( 'gia_fatta' === ( $esito['motivo'] ?? '' ) ) {
+					$gia_fatte++;
 				} else {
 					$invariate++;
 				}
 			} catch ( Throwable $e ) {
-				$errori[] = $immagine['file'] . ': ' . $e->getMessage();
+				// Una vecchia versione del plugin risponde ancora con un
+				// errore per le immagini gia fatte: si conta come tale invece
+				// di trattarla come un guasto, altrimenti un archivio a meta
+				// strada blocca tutto il resto.
+				if ( false !== stripos( $e->getMessage(), 'gia stata ricompressa' ) ) {
+					$gia_fatte++;
+				} else {
+					$errori[] = $immagine['file'] . ': ' . $e->getMessage();
+				}
 			}
 
 			if ( $progresso ) {
@@ -149,9 +160,10 @@ class Compressione {
 			'candidate'   => count( $coda ),
 			// Quante ne restano dopo questo giro: e la sola cifra che dice
 			// se manca poco o se bisogna premere ancora dieci volte.
-			'restanti'    => max( 0, count( $elenco['sicure'] ) - $fatte ),
+			'restanti'    => max( 0, count( $elenco['sicure'] ) - $fatte - $gia_fatte - $invariate ),
 			'in_tutto'    => count( $elenco['sicure'] ),
 			'compresse'   => $fatte,
+			'gia_fatte'   => $gia_fatte,
 			'invariate'   => $invariate,
 			'peso_prima'  => $prima,
 			'peso_dopo'   => $dopo,

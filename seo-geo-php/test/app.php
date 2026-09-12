@@ -1116,8 +1116,29 @@ verifica(
 // Un giro che non conclude niente deve chiudere il ciclo: se un errore si
 // ripetesse, il browser continuerebbe a chiamare all infinito.
 verifica(
-	'un giro che non comprime niente ferma il ciclo',
-	false !== strpos( $sorgenteIndice, "0 === (int) \$esito['restanti'] || 0 === (int) \$esito['compresse']" )
+	'un giro che non fa avanzare niente ferma il ciclo',
+	false !== strpos( $sorgenteIndice, "0 === (int) \$esito['compresse'] + (int) \$esito['gia_fatte'] + (int) \$esito['invariate']" )
+);
+
+// Sul sito vero il ciclo si e fermato con 172 immagini ancora da fare
+// perche un blocco intero aveva trovato solo immagini gia fatte, e quelle
+// contavano come nulla. Sono avanzamento: senza questo, un archivio
+// lavorato a meta blocca tutto il resto.
+verifica(
+	'le immagini gia fatte contano come avanzamento',
+	false !== strpos( $sorgenteIndice, "'gia_fatte'   => (int) \$esito['gia_fatte']" )
+);
+
+$sorgenteCompressione = (string) file_get_contents( __DIR__ . '/../src/Media/Compressione.php' );
+
+verifica(
+	'una gia fatta non finisce fra i guasti',
+	false !== strpos( $sorgenteCompressione, "'gia_fatta' === ( \$esito['motivo'] ?? '' )" )
+);
+
+verifica(
+	'e nemmeno con un plugin vecchio che risponde ancora con un errore',
+	false !== strpos( $sorgenteCompressione, "stripos( \$e->getMessage(), 'gia stata ricompressa' )" )
 );
 
 verifica(
@@ -1135,6 +1156,27 @@ verifica(
 verifica(
 	'si puo fermare a meta',
 	false !== strpos( $sorgenteVista, "compressione-stop" ) && false !== strpos( $sorgenteVista, 'fermato = true' )
+);
+
+// Una barra di avanzamento puo restare ferma quaranta secondi mentre il
+// blocco e in corso, e sembra bloccata. Serve qualcosa che si muova ogni
+// secondo, altrimenti non si distingue il lavoro in corso da un guasto.
+verifica(
+	'c e un cronometro che sale ogni secondo',
+	false !== strpos( $sorgenteVista, 'setInterval(battito, 1000)' )
+);
+
+verifica(
+	'e una spia che si spegne quando si ferma',
+	false !== strpos( $sorgenteVista, 'function spegni(classe, testo)' )
+		&& false !== strpos( $sorgenteVista, "spegni('guasto'" )
+		&& (bool) preg_match( "/spegni\(.*'fermo'/", $sorgenteVista )
+		&& false !== strpos( $sorgenteVista, 'clearInterval(orologio)' )
+);
+
+verifica(
+	'la spia esiste anche nel foglio di stile',
+	false !== strpos( (string) file_get_contents( __DIR__ . '/../public/assets/app.css' ), '.spia' )
 );
 
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
