@@ -239,6 +239,51 @@ class WordPress {
 	}
 
 	/**
+	 * Immagini della libreria media che pesano piu della soglia.
+	 *
+	 * @param int $oltre  Soglia in byte.
+	 * @param int $limite Quante restituirne.
+	 * @param int $offset Da quale partire.
+	 * @return array
+	 */
+	public function immaginiPesanti( $oltre = 204800, $limite = 100, $offset = 0 ) {
+		return $this->chiama(
+			'GET',
+			'/immagini-pesanti?oltre=' . (int) $oltre . '&limite=' . (int) $limite . '&offset=' . (int) $offset
+		);
+	}
+
+	/**
+	 * Ricomprime un allegato in WebP.
+	 *
+	 * @param int   $id      Allegato.
+	 * @param array $opzioni 'lato', 'qualita', 'peso_max'.
+	 * @return array
+	 */
+	public function comprimiImmagine( $id, array $opzioni = array() ) {
+		return $this->chiama(
+			'POST',
+			'/comprimi-immagine',
+			array(
+				'id'       => (int) $id,
+				'lato'     => (int) ( $opzioni['lato'] ?? 1200 ),
+				'qualita'  => (int) ( $opzioni['qualita'] ?? 82 ),
+				'peso_max' => (int) ( $opzioni['peso_max'] ?? 190000 ),
+			)
+		);
+	}
+
+	/**
+	 * Rimette gli originali al posto delle immagini ricompresse.
+	 *
+	 * @param array $ids Allegati; vuoto significa tutti.
+	 * @return array
+	 */
+	public function ripristinaImmagini( array $ids = array() ) {
+		return $this->chiama( 'POST', '/ripristina-immagine', array( 'ids' => array_values( $ids ) ) );
+	}
+
+	/**
 	 * Esegue la chiamata HTTP.
 	 *
 	 * @param string     $metodo   GET o POST.

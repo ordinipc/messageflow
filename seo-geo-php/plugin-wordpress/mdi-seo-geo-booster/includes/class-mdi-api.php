@@ -28,6 +28,7 @@ class MDI_Api {
 	const META_BACKUP   = '_mdi_backup_meta';
 	const META_BOZZA_DI = '_mdi_bozza_di';
 	const META_CATEGORIE = '_mdi_backup_categorie';
+	const META_IMG_PRIMA = '_mdi_immagine_originale';
 
 	/**
 	 * Aggancia le rotte e il gestore dei redirect.
@@ -158,6 +159,21 @@ class MDI_Api {
 		register_rest_route( self::NAMESPACE_API, '/cestina', $comune + array(
 			'methods'  => 'POST',
 			'callback' => array( __CLASS__, 'cestina' ),
+		) );
+
+		register_rest_route( self::NAMESPACE_API, '/immagini-pesanti', $comune + array(
+			'methods'  => 'GET',
+			'callback' => array( __CLASS__, 'immagini_pesanti' ),
+		) );
+
+		register_rest_route( self::NAMESPACE_API, '/comprimi-immagine', $comune + array(
+			'methods'  => 'POST',
+			'callback' => array( __CLASS__, 'comprimi_immagine' ),
+		) );
+
+		register_rest_route( self::NAMESPACE_API, '/ripristina-immagine', $comune + array(
+			'methods'  => 'POST',
+			'callback' => array( __CLASS__, 'ripristina_immagine' ),
 		) );
 	}
 
@@ -341,6 +357,253 @@ class MDI_Api {
 		}
 
 		return rest_ensure_response( array( 'ok' => true, 'offset' => $offset, 'allegati' => $allegati ) );
+	}
+
+	/**
+	 * Allegati immagine che pesano piu della soglia.
+	 *
+	 * Per ognuno dice anche se l URL compare dentro il testo di qualche
+	 * contenuto: quelle si lasciano stare, perche ricomprimerle cambia il
+	 * nome del file e l immagine sparirebbe dall articolo. Le immagini in
+	 * evidenza invece sono collegate per identificativo, non per indirizzo,
+	 * e si possono sostituire senza rompere niente.
+	 *
+	 * @param WP_REST_Request $richiesta Richiesta.
+	 * @return WP_REST_Response
+	 */
+	public static function immagini_pesanti( $richiesta ) {
+		global $wpdb;
+
+		$soglia = max( 1024, (int) ( $richiesta->get_param( 'oltre' ) ?: 204800 ) );
+		$limite = min( 200, max( 1, (int) ( $richiesta->get_param( 'limite' ) ?: 100 ) ) );
+		$offset = max( 0, (int) $richiesta->get_param( 'offset' ) );
+
+		$ids = get_posts(
+			array(
+				'post_type'      => 'attachment',
+				'post_status'    => 'inherit',
+				'post_mime_type' => array( 'image/png', 'image/jpeg' ),
+				'posts_per_page' => -1,
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+				'fields'         => 'ids',
+			)
+		);
+
+		$pesanti = array();
+
+		foreach ( $ids as $id ) {
+			$file = get_attached_file( $id );
+
+			if ( ! $file || ! file_exists( $file ) ) {
+				continue;
+			}
+
+			$peso = (int) filesize( $file );
+
+			if ( $peso <= $soglia ) {
+				continue;
+			}
+
+			$url = wp_get_attachment_url( $id );
+
+			// Cercare il nome del file, non l URL intero: dentro al contenuto
+			// puo comparire ridimensionato (nome-300x200.png) o con un altro
+			// protocollo, e in entrambi i casi va lasciato stare.
+			$nome = pathinfo( (string) $file, PATHINFO_FILENAME );
+
+			$nel_testo = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status <> 'trash' AND post_content LIKE %s",
+					'%' . $wpdb->esc_like( $nome ) . '.%'
+				)
+			);
+
+			$pesanti[] = array(
+				'wp_id'       => (string) $id,
+				'file'        => basename( (string) $file ),
+				'url'         => $url,
+				'mime'        => get_post_mime_type( $id ),
+				'peso'        => $peso,
+				'genitore'    => (string) wp_get_post_parent_id( $id ),
+				'nel_testo'   => $nel_testo > 0,
+				'gia_ridotta' => '' !== (string) get_post_meta( $id, self::META_IMG_PRIMA, true ),
+			);
+		}
+
+		$totale = count( $pesanti );
+
+		return rest_ensure_response(
+			array(
+				'ok'         => true,
+				'soglia'     => $soglia,
+				'totale'     => $totale,
+				'comprimibili' => count( array_filter( $pesanti, static function ( $a ) { return ! $a['nel_testo']; } ) ),
+				'offset'     => $offset,
+				'immagini'   => array_slice( $pesanti, $offset, $limite ),
+			)
+		);
+	}
+
+	/**
+	 * Ricomprime un allegato in WebP, lasciando l originale sul disco.
+	 *
+	 * Il file originale non viene mai cancellato e il suo percorso resta in
+	 * un meta: e la sola cosa che rende l operazione annullabile. Chi vuole
+	 * recuperare spazio cancella a mano, dopo aver verificato il sito.
+	 *
+	 * @param WP_REST_Request $richiesta Richiesta.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function comprimi_immagine( $richiesta ) {
+		$id = (int) $richiesta->get_param( 'id' );
+
+		if ( ! $id || 'attachment' !== get_post_type( $id ) ) {
+			return new WP_Error( 'mdi_allegato_assente', 'Allegato non trovato.', array( 'status' => 404 ) );
+		}
+
+		if ( get_post_meta( $id, self::META_IMG_PRIMA, true ) ) {
+			return new WP_Error( 'mdi_gia_ridotta', 'Questa immagine e gia stata ricompressa.', array( 'status' => 409 ) );
+		}
+
+		$file = get_attached_file( $id );
+
+		if ( ! $file || ! file_exists( $file ) ) {
+			return new WP_Error( 'mdi_file_assente', 'File dell allegato non trovato sul disco.', array( 'status' => 404 ) );
+		}
+
+		$lato    = max( 200, (int) ( $richiesta->get_param( 'lato' ) ?: 1200 ) );
+		$qualita = min( 100, max( 30, (int) ( $richiesta->get_param( 'qualita' ) ?: 82 ) ) );
+		$peso_max = max( 20480, (int) ( $richiesta->get_param( 'peso_max' ) ?: 190000 ) );
+
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+
+		$prima = (int) filesize( $file );
+
+		// Una qualita fissa non basta: su una fotografia molto granulosa
+		// 1200px a 82 esce ancora sopra i 200 KB. Si scende per gradi e ci si
+		// ferma al primo tentativo che sta sotto la soglia.
+		$destinazione = preg_replace( '/\.[^.]+$/', '', (string) $file ) . '.webp';
+		$riuscito     = false;
+
+		foreach ( array( $lato, (int) round( $lato * 0.83 ), (int) round( $lato * 0.67 ) ) as $lato_prova ) {
+			foreach ( array( $qualita, 72, 62, 52 ) as $q ) {
+				$editor = wp_get_image_editor( $file );
+
+				if ( is_wp_error( $editor ) ) {
+					return $editor;
+				}
+
+				$editor->resize( $lato_prova, $lato_prova, false );
+				$editor->set_quality( $q );
+
+				$salvato = $editor->save( $destinazione, 'image/webp' );
+
+				if ( is_wp_error( $salvato ) ) {
+					return $salvato;
+				}
+
+				$riuscito = true;
+
+				if ( filesize( $destinazione ) <= $peso_max ) {
+					break 2;
+				}
+			}
+		}
+
+		if ( ! $riuscito || ! file_exists( $destinazione ) ) {
+			return new WP_Error( 'mdi_conversione_fallita', 'Conversione non riuscita.', array( 'status' => 500 ) );
+		}
+
+		$dopo = (int) filesize( $destinazione );
+
+		// Se non si guadagna niente si tiene quello che c era: il file nuovo
+		// viene rimosso e l allegato non si tocca.
+		if ( $dopo >= $prima ) {
+			@unlink( $destinazione );
+
+			return rest_ensure_response(
+				array( 'ok' => true, 'id' => $id, 'cambiata' => false, 'prima' => $prima, 'dopo' => $prima )
+			);
+		}
+
+		$caricamenti = wp_upload_dir();
+		$relativo    = ltrim( str_replace( $caricamenti['basedir'], '', (string) $file ), '/\\' );
+
+		update_post_meta( $id, self::META_IMG_PRIMA, $relativo );
+
+		update_attached_file( $id, $destinazione );
+		wp_update_post( array( 'ID' => $id, 'post_mime_type' => 'image/webp' ) );
+		wp_update_attachment_metadata( $id, wp_generate_attachment_metadata( $id, $destinazione ) );
+
+		return rest_ensure_response(
+			array(
+				'ok'       => true,
+				'id'       => $id,
+				'cambiata' => true,
+				'prima'    => $prima,
+				'dopo'     => $dopo,
+				'file'     => basename( $destinazione ),
+				'url'      => wp_get_attachment_url( $id ),
+			)
+		);
+	}
+
+	/**
+	 * Rimette l immagine originale al posto della versione ricompressa.
+	 *
+	 * @param WP_REST_Request $richiesta Richiesta.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function ripristina_immagine( $richiesta ) {
+		$ids = array_map( 'intval', (array) $richiesta->get_param( 'ids' ) );
+
+		if ( ! $ids ) {
+			$ids = get_posts(
+				array(
+					'post_type'      => 'attachment',
+					'post_status'    => 'inherit',
+					'posts_per_page' => -1,
+					'fields'         => 'ids',
+					'meta_key'       => self::META_IMG_PRIMA,
+				)
+			);
+		}
+
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+
+		$caricamenti = wp_upload_dir();
+		$rimesse     = 0;
+		$mancanti    = 0;
+
+		foreach ( $ids as $id ) {
+			$relativo = (string) get_post_meta( $id, self::META_IMG_PRIMA, true );
+
+			if ( '' === $relativo ) {
+				continue;
+			}
+
+			$originale = $caricamenti['basedir'] . '/' . $relativo;
+
+			if ( ! file_exists( $originale ) ) {
+				$mancanti++;
+				continue;
+			}
+
+			$estensione = strtolower( (string) pathinfo( $originale, PATHINFO_EXTENSION ) );
+			$mime       = 'png' === $estensione ? 'image/png' : ( 'webp' === $estensione ? 'image/webp' : 'image/jpeg' );
+
+			update_attached_file( $id, $originale );
+			wp_update_post( array( 'ID' => $id, 'post_mime_type' => $mime ) );
+			wp_update_attachment_metadata( $id, wp_generate_attachment_metadata( $id, $originale ) );
+			delete_post_meta( $id, self::META_IMG_PRIMA );
+
+			$rimesse++;
+		}
+
+		return rest_ensure_response(
+			array( 'ok' => true, 'ripristinate' => $rimesse, 'originali_mancanti' => $mancanti )
+		);
 	}
 
 	/**

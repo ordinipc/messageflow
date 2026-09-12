@@ -544,6 +544,80 @@ MDI_Api::annulla_meta( new WP_REST_Request( array( 'ids' => array( 810 ) ) ) );
 
 verifica( 'dopo due riassegnazioni si torna comunque all originale', array( 3, 7 ) === wp_get_post_categories( 810 ) );
 
+echo "\nRicompressione delle immagini gia caricate\n";
+
+if ( ! function_exists( 'imagewebp' ) ) {
+	echo "  · GD senza WebP su questa macchina: verifiche saltate\n";
+} else {
+	// Tre immagini vere sul disco: una in evidenza (si puo ricomprimere),
+	// una usata dentro al testo di un articolo (non si tocca, perche
+	// cambiarle il nome la farebbe sparire dalla pagina) e una leggera.
+	$fileEvidenza = stub_crea_allegato( 920, 'foto-in-evidenza.png', 1536, 28 );
+	$fileTesto    = stub_crea_allegato( 921, 'foto-dentro-al-testo.png', 1536, 28 );
+	$fileLeggera  = stub_crea_allegato( 922, 'foto-leggera.png', 300, 2 );
+
+	stub_crea_post( 930, 'Articolo che mostra l immagine', '<p>Testo</p><img src="https://esempio.it/wp-content/uploads/foto-dentro-al-testo.png" alt="">' );
+
+	$pesoPrima = filesize( $fileEvidenza );
+
+	verifica( 'l immagine di prova pesa piu della soglia', $pesoPrima > 204800, round( $pesoPrima / 1024 ) . ' KB' );
+
+	$elenco = MDI_Api::immagini_pesanti( new WP_REST_Request( array( 'oltre' => 204800 ) ) );
+	$per_id = array();
+
+	foreach ( (array) $elenco['immagini'] as $riga ) {
+		$per_id[ (int) $riga['wp_id'] ] = $riga;
+	}
+
+	verifica( 'l immagine pesante compare nell elenco', isset( $per_id[920] ) );
+	verifica( 'quella leggera resta fuori', ! isset( $per_id[922] ) );
+	verifica( 'quella usata nel testo e segnalata come da non toccare', ! empty( $per_id[921]['nel_testo'] ) );
+	verifica( 'quella in evidenza invece si puo comprimere', empty( $per_id[920]['nel_testo'] ) );
+
+	$esito = MDI_Api::comprimi_immagine( new WP_REST_Request( array( 'id' => 920, 'lato' => 1200, 'qualita' => 82, 'peso_max' => 190000 ) ) );
+
+	verifica( 'la compressione dice di aver cambiato il file', ! empty( $esito['cambiata'] ) );
+	verifica( 'il file nuovo pesa meno di prima', (int) $esito['dopo'] < (int) $esito['prima'], $esito['dopo'] . ' < ' . $esito['prima'] );
+	verifica( 'e sta sotto i 200 KB (IMG-03)', (int) $esito['dopo'] < 204800, round( (int) $esito['dopo'] / 1024 ) . ' KB' );
+
+	$nuovo = get_attached_file( 920 );
+
+	verifica( 'l allegato punta a un file .webp', 'webp' === strtolower( pathinfo( $nuovo, PATHINFO_EXTENSION ) ), basename( $nuovo ) );
+	verifica( 'il file nuovo esiste davvero sul disco', file_exists( $nuovo ) );
+	verifica( 'il tipo MIME dell allegato e aggiornato', 'image/webp' === get_post_mime_type( 920 ) );
+	verifica( 'e il file sul disco e davvero un WebP', 'image/webp' === ( getimagesize( $nuovo )['mime'] ?? '' ) );
+
+	// Il ripristino dipende tutto dall originale ancora sul disco.
+	verifica( 'l originale non viene cancellato', file_exists( $fileEvidenza ) );
+	verifica( 'e il gestionale sa dove trovarlo', '' !== get_post_meta( 920, MDI_Api::META_IMG_PRIMA, true ) );
+
+	$ancora = MDI_Api::comprimi_immagine( new WP_REST_Request( array( 'id' => 920 ) ) );
+
+	verifica( 'una immagine gia ricompressa non viene rifatta', is_wp_error( $ancora ) );
+
+	$ripristino = MDI_Api::ripristina_immagine( new WP_REST_Request( array( 'ids' => array( 920 ) ) ) );
+
+	verifica( 'il ripristino ne rimette una', 1 === (int) ( $ripristino['ripristinate'] ?? 0 ) );
+	verifica( 'l allegato torna al file originale', $fileEvidenza === get_attached_file( 920 ) );
+	verifica( 'il tipo MIME torna quello di prima', 'image/png' === get_post_mime_type( 920 ) );
+	verifica( 'e la copia di sicurezza viene rimossa', '' === get_post_meta( 920, MDI_Api::META_IMG_PRIMA, true ) );
+
+	// Dopo il ripristino si deve poter ricomprimere di nuovo.
+	$dinuovo = MDI_Api::comprimi_immagine( new WP_REST_Request( array( 'id' => 920 ) ) );
+
+	verifica( 'dopo il ripristino si puo ricomprimere di nuovo', ! is_wp_error( $dinuovo ) && ! empty( $dinuovo['cambiata'] ) );
+
+	MDI_Api::ripristina_immagine( new WP_REST_Request( array( 'ids' => array( 920 ) ) ) );
+
+	// Un allegato che non esiste non deve mandare in errore la procedura.
+	verifica(
+		'un allegato inesistente da un errore chiaro',
+		is_wp_error( MDI_Api::comprimi_immagine( new WP_REST_Request( array( 'id' => 999999 ) ) ) )
+	);
+
+	array_map( 'unlink', glob( stub_cartella_caricamenti() . '/*' ) );
+}
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

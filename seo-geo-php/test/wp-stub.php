@@ -193,10 +193,24 @@ function get_posts( $argomenti ) {
 			continue;
 		}
 
+		if ( isset( $argomenti['post_mime_type'] ) ) {
+			$mime = (array) $argomenti['post_mime_type'];
+
+			if ( ! in_array( (string) ( $post->post_mime_type ?? '' ), $mime, true ) ) {
+				continue;
+			}
+		}
+
 		if ( isset( $argomenti['meta_key'] ) ) {
 			$valore = get_post_meta( $id, $argomenti['meta_key'], true );
 
-			if ( (string) $valore !== (string) $argomenti['meta_value'] ) {
+			// Senza meta_value il filtro chiede solo che la chiave ci sia:
+			// e cosi che si trovano le immagini gia ricompresse.
+			if ( ! isset( $argomenti['meta_value'] ) ) {
+				if ( '' === (string) $valore ) {
+					continue;
+				}
+			} elseif ( (string) $valore !== (string) $argomenti['meta_value'] ) {
 				continue;
 			}
 		}
@@ -594,9 +608,200 @@ function wp_get_nav_menu_items( $menu, $argomenti = array() ) {
 	);
 }
 
-function get_attached_file( $id ) {
-	return '';
+function stub_cartella_caricamenti() {
+	static $cartella = null;
+
+	if ( null === $cartella ) {
+		$cartella = sys_get_temp_dir() . '/mdi-uploads-' . getmypid();
+		@mkdir( $cartella, 0775, true );
+	}
+
+	return $cartella;
 }
+
+function wp_upload_dir() {
+	return array(
+		'basedir' => stub_cartella_caricamenti(),
+		'baseurl' => 'https://esempio.it/wp-content/uploads',
+		'error'   => false,
+	);
+}
+
+/**
+ * Crea un allegato con un file vero sul disco.
+ *
+ * Il file deve esistere davvero: la compressione lo legge, lo ridimensiona
+ * e lo riscrive, e una verifica su un file finto non proverebbe niente.
+ *
+ * @param int    $id        Identificativo.
+ * @param string $nome      Nome del file.
+ * @param int    $lato      Lato lungo dell immagine.
+ * @param int    $grana     Quanto rumore: piu grana, file piu pesante.
+ * @param int    $genitore  Articolo a cui appartiene.
+ * @return string Percorso del file creato.
+ */
+function stub_crea_allegato( $id, $nome, $lato = 1536, $grana = 28, $genitore = 0 ) {
+	$percorso = stub_cartella_caricamenti() . '/' . $nome;
+	$altezza  = (int) round( $lato * 2 / 3 );
+
+	mt_srand( 11 );
+	$im = imagecreatetruecolor( $lato, $altezza );
+
+	for ( $x = 0; $x < $lato; $x++ ) {
+		for ( $y = 0; $y < $altezza; $y++ ) {
+			$b = (int) ( 128 + 100 * sin( $x / 70 ) * cos( $y / 90 ) + mt_rand( -$grana, $grana ) );
+			$b = max( 0, min( 255, $b ) );
+			imagesetpixel( $im, $x, $y, imagecolorallocate( $im, $b, (int) ( $b * 0.85 ), (int) ( $b * 0.7 ) ) );
+		}
+	}
+
+	imagepng( $im, $percorso );
+	imagedestroy( $im );
+
+	$GLOBALS['wp']['post'][ $id ] = (object) array(
+		'ID'             => $id,
+		'post_title'     => $nome,
+		'post_content'   => '',
+		'post_excerpt'   => '',
+		'post_status'    => 'inherit',
+		'post_type'      => 'attachment',
+		'post_mime_type' => 'image/png',
+		'post_name'      => pathinfo( $nome, PATHINFO_FILENAME ),
+		'post_parent'    => $genitore,
+		'post_date'      => '2026-01-01 10:00:00',
+	);
+
+	$GLOBALS['wp']['allegati'][ $id ] = $percorso;
+
+	return $percorso;
+}
+
+function get_attached_file( $id ) {
+	return $GLOBALS['wp']['allegati'][ (int) $id ] ?? '';
+}
+
+function update_attached_file( $id, $file ) {
+	$GLOBALS['wp']['allegati'][ (int) $id ] = $file;
+
+	return true;
+}
+
+function get_post_type( $id ) {
+	$post = get_post( $id );
+
+	return $post ? (string) $post->post_type : false;
+}
+
+function get_post_mime_type( $id ) {
+	$post = get_post( $id );
+
+	return $post ? (string) ( $post->post_mime_type ?? '' ) : '';
+}
+
+/**
+ * Editor immagini con GD vero: ridimensiona e scrive WebP davvero.
+ */
+class Stub_Image_Editor {
+	private $file;
+	private $lato = 0;
+	private $qualita = 82;
+
+	public function __construct( $file ) {
+		$this->file = $file;
+	}
+
+	public function resize( $larghezza, $altezza, $ritaglia = false ) {
+		$this->lato = (int) max( $larghezza, $altezza );
+
+		return true;
+	}
+
+	public function set_quality( $qualita ) {
+		$this->qualita = (int) $qualita;
+
+		return true;
+	}
+
+	public function save( $destinazione, $mime = 'image/webp' ) {
+		$immagine = @imagecreatefromstring( (string) file_get_contents( $this->file ) );
+
+		if ( ! $immagine ) {
+			return new WP_Error( 'stub_immagine', 'Immagine illeggibile.' );
+		}
+
+		if ( $this->lato > 0 && max( imagesx( $immagine ), imagesy( $immagine ) ) > $this->lato ) {
+			$scala   = $this->lato / max( imagesx( $immagine ), imagesy( $immagine ) );
+			$ridotta = imagescale( $immagine, (int) round( imagesx( $immagine ) * $scala ), (int) round( imagesy( $immagine ) * $scala ) );
+
+			if ( $ridotta ) {
+				imagedestroy( $immagine );
+				$immagine = $ridotta;
+			}
+		}
+
+		if ( 'image/webp' === $mime ) {
+			imagewebp( $immagine, $destinazione, $this->qualita );
+		} else {
+			imagejpeg( $immagine, $destinazione, $this->qualita );
+		}
+
+		imagedestroy( $immagine );
+
+		return array( 'path' => $destinazione, 'file' => basename( $destinazione ), 'mime-type' => $mime );
+	}
+}
+
+function wp_get_image_editor( $file ) {
+	if ( ! file_exists( $file ) ) {
+		return new WP_Error( 'stub_file', 'File assente.' );
+	}
+
+	return new Stub_Image_Editor( $file );
+}
+
+/**
+ * Il minimo di $wpdb che serve alla ricerca dell immagine dentro al testo.
+ */
+class Stub_Wpdb {
+	public $posts = 'wp_posts';
+
+	public function prepare( $sql, ...$argomenti ) {
+		foreach ( $argomenti as $valore ) {
+			$sql = preg_replace( '/%s/', "'" . str_replace( "'", "''", (string) $valore ) . "'", $sql, 1 );
+		}
+
+		return $sql;
+	}
+
+	public function esc_like( $testo ) {
+		return addcslashes( (string) $testo, '_%\\' );
+	}
+
+	public function get_var( $sql ) {
+		// Si interpreta solo la query che serve: quante volte il nome del
+		// file compare dentro il contenuto di un articolo non cestinato.
+		if ( ! preg_match( "/post_content LIKE '%(.+)%'/U", $sql, $m ) ) {
+			return 0;
+		}
+
+		$ago = trim( str_replace( '%', '', $m[1] ) );
+		$n   = 0;
+
+		foreach ( $GLOBALS['wp']['post'] as $post ) {
+			if ( 'trash' === $post->post_status ) {
+				continue;
+			}
+
+			if ( '' !== $ago && false !== strpos( (string) $post->post_content, $ago ) ) {
+				$n++;
+			}
+		}
+
+		return $n;
+	}
+}
+
+$GLOBALS['wpdb'] = new Stub_Wpdb();
 
 function wp_get_attachment_metadata( $id ) {
 	return array( 'filesize' => 120000, 'width' => 1200, 'height' => 800 );

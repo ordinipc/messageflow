@@ -162,6 +162,54 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 		</div>
 	</section>
 
+	<section class="scheda" id="immagini-pesanti">
+		<h2>Immagini pesanti</h2>
+		<?php if ( empty( $immagini ) ) : ?>
+			<p class="guida">Il sito non risponde: l'elenco delle immagini pesanti si legge dal plugin.</p>
+		<?php elseif ( ! empty( $immagini['errore'] ) ) : ?>
+			<p class="guida"><?php echo e( $immagini['errore'] ); ?></p>
+		<?php else : ?>
+			<p class="guida">
+				<?php echo num( count( $immagini['sicure'] ) ); ?> immagini oltre i
+				<?php echo (int) round( $immagini['soglia'] / 1024 ); ?> KB si possono ricomprimere in WebP,
+				per <strong><?php echo e( \SeoGeo\Media\Compressione::peso( $immagini['peso_sicure'] ) ); ?></strong> in tutto.
+				L'originale resta sul disco: l'operazione si annulla.
+			</p>
+			<?php if ( ! empty( $immagini['nel_testo'] ) ) : ?>
+				<p class="nota">
+					<strong><?php echo num( count( $immagini['nel_testo'] ) ); ?> non vengono toccate</strong>
+					perché compaiono dentro il testo di un articolo: ricomprimerle cambia il nome del file
+					e l'immagine sparirebbe dalla pagina. Per quelle serve un plugin di ottimizzazione immagini.
+				</p>
+			<?php endif; ?>
+			<?php if ( ! empty( $immagini['gia_ridotte'] ) ) : ?>
+				<p class="nota"><?php echo num( count( $immagini['gia_ridotte'] ) ); ?> sono già state ricompresse e restano sopra la soglia: quelle non migliorano.</p>
+			<?php endif; ?>
+
+			<?php if ( ! empty( $immagini['sicure'] ) ) : ?>
+				<details>
+					<summary>Le dieci più pesanti</summary>
+					<table class="widefat">
+						<tbody>
+						<?php foreach ( array_slice( $immagini['sicure'], 0, 10 ) as $riga ) : ?>
+							<tr>
+								<td><a href="<?php echo e( $riga['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( $riga['file'] ); ?></a></td>
+								<td><?php echo e( \SeoGeo\Media\Compressione::peso( $riga['peso'] ) ); ?></td>
+							</tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+				</details>
+			<?php endif; ?>
+
+			<div class="azioni">
+				<?php azione( $audit['id'], 'comprimi_immagini', 'Prova su 5 immagini', 'Ricomprimere le 5 immagini più pesanti? Gli originali restano sul disco.', 'bottone chiaro', 5 ); ?>
+				<?php azione( $audit['id'], 'comprimi_immagini', 'Comprimi tutte', 'Ricomprimere ' . count( $immagini['sicure'] ) . ' immagini? Gli originali restano sul disco e si può annullare.', 'bottone' ); ?>
+				<?php azione( $audit['id'], 'ripristina_immagini', 'Rimetti gli originali', 'Rimettere le immagini originali al posto di quelle ricompresse?', 'bottone chiaro' ); ?>
+			</div>
+		<?php endif; ?>
+	</section>
+
 	<section class="scheda">
 		<h2>Annulla</h2>
 		<p class="guida">

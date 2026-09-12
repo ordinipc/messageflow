@@ -20,6 +20,7 @@ use SeoGeo\Diagnostica;
 use SeoGeo\Redirezioni;
 use SeoGeo\Export;
 use SeoGeo\Impostazioni;
+use SeoGeo\Media\Compressione;
 use SeoGeo\Fix\InternalLinks;
 use SeoGeo\Fix\Meta;
 use SeoGeo\Site;
@@ -1089,6 +1090,20 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				'errore_stato' => $errore_stato,
 				'esito'        => (string) ( $_GET['esito'] ?? '' ),
 				'errore'       => (string) ( $_GET['errore'] ?? '' ),
+				// L elenco delle immagini pesanti si legge dal sito, non
+				// dall archivio: qui conta quello che c e adesso in libreria
+				// media. Se il sito non risponde la sezione lo dice e basta.
+				'immagini'     => ( static function () use ( $ponte, $stato ) {
+					if ( ! $ponte->pronto() || ! $stato ) {
+						return array();
+					}
+
+					try {
+						return Compressione::elenco( $ponte );
+					} catch ( Throwable $e ) {
+						return array( 'errore' => 'Elenco non leggibile: ' . $e->getMessage() );
+					}
+				} )(),
 				// Quando e stata scritta l ultima volta la lista delle meta:
 				// serve a offrire il link a "quali contenuti ho cambiato".
 				'applicate'    => ( static function () use ( $id ) {
@@ -1285,6 +1300,52 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				$esito     = $ponte->annulla( $ids );
 				$messaggio = ( (int) ( $esito['ripristinati'] ?? 0 ) )
 					. ( $solo_pagine ? ' pagine riportate' : ' contenuti riportati' ) . ' alle meta precedenti.';
+				break;
+
+			case 'comprimi_immagini':
+				$limite = max( 0, min( 500, (int) ( $_POST['limite'] ?? 0 ) ) );
+
+				$esito = Compressione::esegui(
+					$ponte,
+					array(
+						'limite'      => $limite,
+						'lato'        => (int) ( $cfg['ai']['immagine_lato_max'] ?? 1200 ),
+						'qualita'     => (int) ( $cfg['ai']['immagine_qualita'] ?? 82 ),
+						'peso_max'    => (int) ( $cfg['ai']['immagine_peso_max'] ?? 190000 ),
+						// Gli hosting condivisi chiudono le richieste lunghe: si
+						// lavora a blocchi e si ripreme il pulsante.
+						'secondi_max' => 45,
+					)
+				);
+
+				$messaggio = sprintf(
+					'%d immagini ricompresse, da %s a %s: %s risparmiati.',
+					(int) $esito['compresse'],
+					Compressione::peso( $esito['peso_prima'] ),
+					Compressione::peso( $esito['peso_dopo'] ),
+					Compressione::peso( $esito['risparmio'] )
+				);
+
+				if ( $esito['candidate'] > $esito['compresse'] + $esito['invariate'] ) {
+					$messaggio .= ' Il tempo è finito prima della fine: ripremi il pulsante per continuare.';
+				}
+
+				if ( $esito['non_toccate'] ) {
+					$messaggio .= ' ' . (int) $esito['non_toccate'] . ' non toccate perché usate dentro il testo degli articoli.';
+				}
+
+				if ( $esito['errori'] ) {
+					$messaggio .= ' Errori: ' . implode( '; ', array_slice( $esito['errori'], 0, 3 ) );
+				}
+				break;
+
+			case 'ripristina_immagini':
+				$esito     = $ponte->ripristinaImmagini();
+				$messaggio = ( (int) ( $esito['ripristinate'] ?? 0 ) ) . ' immagini riportate agli originali.';
+
+				if ( ! empty( $esito['originali_mancanti'] ) ) {
+					$messaggio .= ' ' . (int) $esito['originali_mancanti'] . ' originali non erano più sul disco.';
+				}
 				break;
 
 			default:
@@ -1998,6 +2059,20 @@ switch ( $pagina ) {
 				'errore_stato' => $errore_stato,
 				'esito'        => (string) ( $_GET['esito'] ?? '' ),
 				'errore'       => (string) ( $_GET['errore'] ?? '' ),
+				// L elenco delle immagini pesanti si legge dal sito, non
+				// dall archivio: qui conta quello che c e adesso in libreria
+				// media. Se il sito non risponde la sezione lo dice e basta.
+				'immagini'     => ( static function () use ( $ponte, $stato ) {
+					if ( ! $ponte->pronto() || ! $stato ) {
+						return array();
+					}
+
+					try {
+						return Compressione::elenco( $ponte );
+					} catch ( Throwable $e ) {
+						return array( 'errore' => 'Elenco non leggibile: ' . $e->getMessage() );
+					}
+				} )(),
 				// Quando e stata scritta l ultima volta la lista delle meta:
 				// serve a offrire il link a "quali contenuti ho cambiato".
 				'applicate'    => ( static function () use ( $id ) {
