@@ -21,6 +21,43 @@ if ( '' === (string) ( $_SERVER['HTTP_X_GOOG_API_KEY'] ?? '' ) ) {
 	exit;
 }
 
+// Ricerca su Google: la risposta porta groundingMetadata con le fonti, ed e
+// in chiaro perche lo strumento non si combina con responseMimeType.
+if ( isset( $richiesta['tools'] ) ) {
+	$senza_fonti = 'senza-fonti' === $modo;
+	$niente      = 'non-trovato' === $modo;
+
+	echo json_encode(
+		array(
+			'candidates' => array(
+				array(
+					'content'  => array(
+						'parts' => array(
+							array(
+								'text' => $niente
+									? "VALORE: \nTIPO: non_trovato\nNOTA: nessuna fonte affidabile."
+									: "VALORE: da 1.500 a 4.000 euro\nTIPO: mercato\nNOTA: costo medio di un e-commerce per PMI in Italia.",
+							),
+						),
+					),
+					'finishReason' => 'STOP',
+					'groundingMetadata' => $senza_fonti ? array( 'webSearchQueries' => array( 'costo e-commerce pmi italia' ) ) : array(
+						'webSearchQueries' => array( 'costo e-commerce pmi italia 2026' ),
+						'groundingChunks'  => array(
+							array( 'web' => array( 'uri' => 'https://esempio-fonte.it/costi-ecommerce', 'title' => 'Quanto costa un e-commerce' ) ),
+							array( 'web' => array( 'uri' => 'https://altra-fonte.it/listini', 'title' => 'Listini 2026' ) ),
+							// Ripetuta di proposito: non deve comparire due volte.
+							array( 'web' => array( 'uri' => 'https://esempio-fonte.it/costi-ecommerce', 'title' => 'Quanto costa un e-commerce' ) ),
+						),
+					),
+				),
+			),
+			'usageMetadata' => array( 'promptTokenCount' => 400, 'candidatesTokenCount' => 90 ),
+		)
+	);
+	exit;
+}
+
 $completo = json_encode(
 	array(
 		'titolo'           => 'Agenzia di Marketing a Palermo: Crescita su Misura per PMI',

@@ -201,6 +201,180 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 </section>
 <?php endif; ?>
 
+<?php if ( $pronto && ! empty( $segnaposto_aperti ) ) : ?>
+<section class="scheda" id="verifiche">
+	<h2>Dati da verificare: <?php echo num( count( $segnaposto_aperti ) ); ?> da trovare</h2>
+	<p class="guida">
+		Le bozze escono con dei buchi al posto di prezzi, tempi e numeri, perché il modello ha
+		l'istruzione di non inventarli mai. Qui li cerca su Google e li compila,
+		<strong>ma solo se una fonte vera lo sostiene</strong>: dove non trova niente, il buco resta.
+	</p>
+	<p class="nota">
+		Una cosa che nessuna ricerca può sapere sono i <strong>tuoi</strong> prezzi e i tuoi tempi.
+		Per quelli trova il valore medio di mercato e lo scrive come tale — «media di mercato in Italia,
+		non il nostro listino» — invece di spacciarlo per il tuo. Se poi vuoi metterci le tue cifre,
+		sostituisci quelle righe a mano: sono poche e le vedi elencate qui sotto.
+	</p>
+
+	<details>
+		<summary>Quali buchi ci sono, e quante volte</summary>
+		<table class="widefat">
+			<tbody>
+			<?php foreach ( array_slice( $segnaposto_aperti, 0, 25 ) as $riga ) : ?>
+				<tr>
+					<td><?php echo e( $riga['etichetta'] ); ?></td>
+					<td class="stretta"><?php echo num( $riga['quante'] ); ?> volte · <?php echo num( count( $riga['bozze'] ) ); ?> bozze</td>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
+		</table>
+	</details>
+
+	<div class="azioni" id="verifiche-azioni">
+		<form method="post" action="?p=bozze" id="cerca-verifiche">
+			<button class="bottone" type="submit">Cercali su Google e compila</button>
+		</form>
+	</div>
+
+	<div id="verifiche-corso" hidden>
+		<p><span id="verifiche-spia" class="spia"></span> <strong id="verifiche-titolo">Sto cercando…</strong></p>
+		<div class="barra" style="height:10px;margin-bottom:12px"><i id="verifiche-barra" class="ok" style="width:1%;height:10px"></i></div>
+		<p class="nota">
+			<span id="verifiche-risolti">0</span> trovati ·
+			<span id="verifiche-restanti"><?php echo (int) count( $segnaposto_aperti ); ?></span> da trovare ·
+			<span id="verifiche-bozze">0</span> bozze aggiornate
+		</p>
+		<p class="nota" id="verifiche-battito"></p>
+		<div id="verifiche-fonti"></div>
+		<p class="nota" id="verifiche-senza" hidden></p>
+		<button type="button" class="bottone chiaro" id="verifiche-stop">Ferma</button>
+	</div>
+
+	<script>
+	(function () {
+		var modulo = document.getElementById('cerca-verifiche');
+		var corso = document.getElementById('verifiche-corso');
+
+		if (!modulo || !corso || !window.fetch) { return; }
+
+		var token = <?php echo json_encode( token() ); ?>;
+		var idAudit = <?php echo (int) $audit['id']; ?>;
+		var restano = <?php echo (int) count( $segnaposto_aperti ); ?>;
+		var partenza = restano;
+		var risolti = 0;
+		var bozze = 0;
+		var fermato = false;
+		var blocco = 0;
+		var iniziato = 0;
+		var orologio = null;
+
+		function scrivi(id, testo) { document.getElementById(id).textContent = testo; }
+
+		function battito() {
+			var secondi = Math.round((Date.now() - iniziato) / 1000);
+			scrivi('verifiche-battito', 'Blocco ' + blocco + ' in corso da ' + secondi + ' second' + (1 === secondi ? 'o' : 'i')
+				+ '. Ogni ricerca richiede qualche secondo: finché questo numero sale, sta cercando.');
+		}
+
+		function spegni(classe, testo) {
+			document.getElementById('verifiche-spia').className = 'spia ' + classe;
+			scrivi('verifiche-titolo', testo);
+			scrivi('verifiche-battito', '');
+			clearInterval(orologio);
+			var stop = document.getElementById('verifiche-stop');
+			stop.textContent = 'Ricarica la pagina';
+			stop.onclick = function () { location.reload(); };
+		}
+
+		function mostraFonti(elenco) {
+			var contenitore = document.getElementById('verifiche-fonti');
+
+			elenco.forEach(function (voce) {
+				var blocco = document.createElement('p');
+				blocco.className = 'nota';
+
+				var forte = document.createElement('strong');
+				forte.textContent = voce.etichetta + ': ';
+				blocco.appendChild(forte);
+				blocco.appendChild(document.createTextNode(voce.valore + ' — fonti: '));
+
+				voce.fonti.forEach(function (fonte, i) {
+					var a = document.createElement('a');
+					a.href = fonte.url;
+					a.target = '_blank';
+					a.rel = 'noopener';
+					a.textContent = fonte.titolo;
+					blocco.appendChild(a);
+
+					if (i < voce.fonti.length - 1) { blocco.appendChild(document.createTextNode(' · ')); }
+				});
+
+				contenitore.appendChild(blocco);
+			});
+		}
+
+		function giro() {
+			if (fermato) { return; }
+
+			blocco++;
+			iniziato = Date.now();
+			scrivi('verifiche-titolo', 'Sto cercando…');
+			battito();
+			clearInterval(orologio);
+			orologio = setInterval(battito, 1000);
+
+			fetch('?p=api-verifiche&id=' + idAudit + '&token=' + encodeURIComponent(token))
+				.then(function (r) { return r.json(); })
+				.then(function (d) {
+					if (d.errore) { spegni('guasto', 'Interrotta: ' + d.errore); return; }
+
+					risolti += d.risolti;
+					bozze += d.bozze;
+					restano = d.restanti;
+
+					scrivi('verifiche-risolti', risolti);
+					scrivi('verifiche-restanti', Math.max(0, restano));
+					scrivi('verifiche-bozze', bozze);
+					document.getElementById('verifiche-barra').style.width =
+						Math.max(1, partenza ? Math.round((risolti / partenza) * 100) : 100) + '%';
+
+					if (d.dettaglio && d.dettaglio.length) { mostraFonti(d.dettaglio); }
+
+					if (d.senza_dato && d.senza_dato.length) {
+						var p = document.getElementById('verifiche-senza');
+						p.hidden = false;
+						p.textContent = 'Lasciati vuoti perché le fonti non li danno: ' + d.senza_dato.join(' · ');
+					}
+
+					if (d.finito || fermato) {
+						spegni(restano > 0 ? 'fermo' : 'fermo', restano > 0
+							? 'Finito: ' + restano + ' buchi restano, le fonti non danno quel dato'
+							: 'Fatto: tutti i buchi compilati');
+						return;
+					}
+
+					giro();
+				})
+				.catch(function (e) { spegni('guasto', 'Connessione interrotta: ' + e.message); });
+		}
+
+		modulo.addEventListener('submit', function (evento) {
+			evento.preventDefault();
+			document.getElementById('verifiche-azioni').hidden = true;
+			corso.hidden = false;
+			giro();
+		});
+
+		document.getElementById('verifiche-stop').addEventListener('click', function () {
+			fermato = true;
+			scrivi('verifiche-titolo', 'Mi fermo alla fine di questo blocco…');
+			document.getElementById('verifiche-spia').className = 'spia fermo';
+		});
+	})();
+	</script>
+</section>
+<?php endif; ?>
+
 <section class="scheda">
 	<h2>Prima di pubblicare</h2>
 	<ol>

@@ -127,6 +127,11 @@ TXT;
 
 		$testoOriginale = Text::truncate( $doc['testo'], 6000 );
 
+		// Il motivo arriva dal triage, ma non tutte le strade lo hanno:
+		// senza questa riga una riga senza motivo faceva uscire un avviso
+		// PHP dentro alla risposta.
+		$motivo = (string) ( $articolo['motivo'] ?? 'struttura e copertura dell intento di ricerca da migliorare' );
+
 		return <<<TXT
 Riscrivi questo articolo del blog.
 
@@ -136,7 +141,7 @@ DATI DELLA PAGINA
 - Focus keyword: {$keyword}
 - Intento di ricerca rilevato: {$articolo['intento']}
 - Lunghezza attuale: {$articolo['parole']} parole → obiettivo: {$obiettivo} parole
-- Motivo della riscrittura: {$articolo['motivo']}
+- Motivo della riscrittura: {$motivo}
 
 SCALETTA DA SEGUIRE (usa questi H2, adattandone la formulazione al contenuto)
 {$elencoScaletta}
@@ -166,6 +171,116 @@ Rispondi SOLO con un oggetto JSON con questa struttura esatta:
   "faq": [{"domanda": "...", "risposta": "..."}],
   "da_verificare": ["elenco dei dati reali che l azienda deve inserire al posto dei segnaposto"],
   "note": "una riga su cosa hai cambiato rispetto all originale"
+}
+TXT;
+	}
+
+	/**
+	 * Prompt per migliorare un articolo invece di rifarlo da capo.
+	 *
+	 * La riscrittura completa butta via anche quello che funzionava: la voce
+	 * dell autore, gli esempi veri, i passaggi che il lettore apprezzava.
+	 * Qui il testo resta il suo e si interviene solo dove l audit ha
+	 * trovato un problema, seguendo la stessa scaletta per intento di
+	 * ricerca.
+	 *
+	 * @param array $articolo Riga del triage con il documento.
+	 * @param array $doc      Documento con il testo.
+	 * @param array $link     Link interni da inserire.
+	 * @param array $problemi Rilievi dell audit su questa pagina.
+	 * @param array $cfg      Configurazione.
+	 * @return string
+	 */
+	public static function miglioramento( array $articolo, array $doc, array $link, array $problemi, array $cfg ) {
+		$citta    = $cfg['seo']['cittaPrincipale'];
+		$keyword  = $articolo['focus'] ?: $articolo['titolo'];
+		$scaletta = self::scaletta( $articolo['intento'], $keyword, $citta );
+
+		$elencoScaletta = '';
+		foreach ( $scaletta as $i => $h ) {
+			$elencoScaletta .= sprintf( "%d. %s\n", $i + 1, $h );
+		}
+
+		$elencoLink = '';
+		foreach ( $link as $anchor => $url ) {
+			$elencoLink .= sprintf( "- %s → %s\n", $anchor, $url );
+		}
+		if ( '' === $elencoLink ) {
+			$elencoLink = "- nessuno\n";
+		}
+
+		// I problemi veri trovati su questa pagina: sono la sola ragione per
+		// cui si tocca il testo. Senza elenco, il modello rifa tutto.
+		$elencoProblemi = '';
+		foreach ( $problemi as $p ) {
+			$elencoProblemi .= sprintf(
+				"- [%s] %s%s\n",
+				$p['regola'] ?? '',
+				$p['titolo'] ?? '',
+				! empty( $p['dettaglio'] ) ? ' — ' . $p['dettaglio'] : ''
+			);
+		}
+		if ( '' === $elencoProblemi ) {
+			$elencoProblemi = "- nessun problema specifico: intervieni solo se la scaletta non è coperta\n";
+		}
+
+		// Qui serve il testo intero, non un assaggio: quello che non arriva
+		// al modello verrebbe perso nel rimando.
+		$testoOriginale = Text::truncate( $doc['testo'], (int) ( $cfg['ai']['testo_max_caratteri'] ?? 14000 ) );
+
+		return <<<TXT
+Migliora questo articolo del blog. NON riscriverlo da capo.
+
+Il testo è già pubblicato e funziona: il tuo compito è correggere i problemi
+elencati, non produrre un articolo nuovo. Conserva la voce dell autore, gli
+esempi concreti, i riferimenti a fatti e persone, e tutti i passaggi che non
+hanno un problema. Se una sezione va bene, riportala com è.
+
+DATI DELLA PAGINA
+- Titolo attuale: {$articolo['titolo']}
+- URL: {$articolo['url']}
+- Focus keyword: {$keyword}
+- Intento di ricerca rilevato: {$articolo['intento']}
+- Lunghezza attuale: {$articolo['parole']} parole
+
+PROBLEMI RILEVATI DALL AUDIT SU QUESTA PAGINA (è quello che devi sistemare)
+{$elencoProblemi}
+SCALETTA DI RIFERIMENTO PER QUESTO INTENTO
+Non stravolgere i titoli esistenti per farli combaciare. Aggiungi una sezione
+solo se un argomento della scaletta manca del tutto e serve al lettore.
+{$elencoScaletta}
+LINK INTERNI DA INSERIRE (anchor descrittivo, dentro una frase, mai "clicca qui")
+{$elencoLink}
+COSA PUOI FARE
+- Aggiungere il blocco di sintesi iniziale di 40-60 parole se manca.
+- Correggere o aggiungere gli H2 dove la struttura è carente.
+- Aggiungere una tabella o un elenco se i dati sono in un muro di testo.
+- Inserire i link interni indicati.
+- Sistemare la keyword nel primo paragrafo e nei titoli se non c è.
+- Aggiungere le domande frequenti se mancano.
+
+COSA NON DEVI FARE
+- Non cancellare sezioni che non hanno problemi.
+- Non cambiare affermazioni, cifre, nomi o date già presenti: non li puoi
+  verificare. Se un dato manca usa [DA VERIFICARE: ...].
+- Non cambiare il tono né la persona (se dà del tu, continua a dare del tu).
+- Non allungare per allungare: se l articolo è già completo, tocca poco.
+
+TESTO ATTUALE
+---
+{$testoOriginale}
+---
+
+Rispondi SOLO con un oggetto JSON con questa struttura esatta:
+{
+  "titolo": "titolo dell articolo, max 65 caratteri: cambialo solo se quello attuale ha un problema",
+  "meta_title": "title SEO, max 60 caratteri, con la focus keyword all inizio",
+  "meta_description": "meta description fra 140 e 158 caratteri, con la keyword e un invito all azione",
+  "in_breve": "il blocco di sintesi di 40-60 parole",
+  "corpo_html": "l articolo intero migliorato in HTML: <h2>, <h3>, <p>, <ul>, <li>, <table>, <a href>. Nessun <h1>, nessun <html> o <body>.",
+  "faq": [{"domanda": "...", "risposta": "..."}],
+  "da_verificare": ["elenco dei dati reali che l azienda deve inserire al posto dei segnaposto"],
+  "note": "elenco puntato di cosa hai cambiato e cosa hai lasciato intatto"
 }
 TXT;
 	}

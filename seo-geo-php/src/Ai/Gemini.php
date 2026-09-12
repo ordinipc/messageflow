@@ -46,6 +46,12 @@ class Gemini {
 	/** @var int Token di ragionamento consumati dall ultima risposta. */
 	private $pensiero = 0;
 
+	/** @var array Fonti web citate dall ultima risposta cercata. */
+	private $fonti = array();
+
+	/** @var array Ricerche che il modello ha fatto su Google. */
+	private $ricerche = array();
+
 	/**
 	 * @param array $cfg Sezione 'ai' della configurazione.
 	 */
@@ -73,6 +79,82 @@ class Gemini {
 		$da_ambiente = getenv( 'GEMINI_API_KEY' );
 
 		return $da_ambiente ? (string) $da_ambiente : (string) ( $this->cfg['chiave'] ?? '' );
+	}
+
+	/**
+	 * Fonti web citate dall ultima risposta cercata su Google.
+	 *
+	 * @return array[] Ognuna con 'titolo' e 'url'.
+	 */
+	public function fonti() {
+		return $this->fonti;
+	}
+
+	/**
+	 * Che cosa il modello ha cercato su Google.
+	 *
+	 * @return string[]
+	 */
+	public function ricerche() {
+		return $this->ricerche;
+	}
+
+	/**
+	 * Estrae le fonti dalla risposta.
+	 *
+	 * Senza le fonti la ricerca non serve a niente: un numero senza l
+	 * indirizzo da cui viene non e verificabile, ed e esattamente quello
+	 * che i segnaposto "da verificare" servono a evitare.
+	 *
+	 * @param array $dati Risposta decodificata.
+	 * @return array[]
+	 */
+	private static function fontiDa( array $dati ) {
+		$pezzi = $dati['candidates'][0]['groundingMetadata']['groundingChunks'] ?? array();
+		$fonti = array();
+		$viste = array();
+
+		foreach ( (array) $pezzi as $pezzo ) {
+			$url = (string) ( $pezzo['web']['uri'] ?? '' );
+
+			if ( '' === $url || isset( $viste[ $url ] ) ) {
+				continue;
+			}
+
+			$viste[ $url ] = true;
+
+			$fonti[] = array(
+				'titolo' => (string) ( $pezzo['web']['title'] ?? $url ),
+				'url'    => $url,
+			);
+		}
+
+		return $fonti;
+	}
+
+	/**
+	 * Chiede al modello di cercare su Google e riferire.
+	 *
+	 * Risposta in chiaro, non strutturata: e la condizione per poter usare
+	 * lo strumento di ricerca sui modelli 2.5.
+	 *
+	 * @param string $istruzioni Istruzioni di sistema.
+	 * @param string $domanda    Che cosa cercare.
+	 * @param array  $opzioni    Come in genera().
+	 * @return array 'testo', 'fonti', 'ricerche'.
+	 */
+	public function cerca( $istruzioni, $domanda, array $opzioni = array() ) {
+		$testo = $this->genera(
+			$istruzioni,
+			$domanda,
+			$opzioni + array( 'cerca' => true, 'json' => false, 'temperatura' => 0.2 )
+		);
+
+		return array(
+			'testo'    => $testo,
+			'fonti'    => $this->fonti(),
+			'ricerche' => $this->ricerche(),
+		);
 	}
 
 	/**
@@ -130,6 +212,16 @@ class Gemini {
 			$corpo['generationConfig']['responseMimeType'] = 'application/json';
 		}
 
+		// Ricerca su Google. Non si mette insieme a responseMimeType: la
+		// combinazione di risposta strutturata e strumenti e garantita solo
+		// sui modelli piu recenti, e qui il modello si sceglie in
+		// configurazione. Chi ha bisogno di entrambe le cose fa due
+		// chiamate: prima cerca in chiaro, poi struttura quello che ha
+		// trovato.
+		if ( ! empty( $opzioni['cerca'] ) && empty( $opzioni['json'] ) ) {
+			$corpo['tools'] = array( array( 'google_search' => new \stdClass() ) );
+		}
+
 		$modello  = $opzioni['modello'] ?? ( $this->cfg['modello'] ?? 'gemini-2.5-flash' );
 		$endpoint = sprintf( $this->endpointBase(), rawurlencode( $modello ) );
 		$tentativi = (int) ( $this->cfg['tentativi'] ?? 3 );
@@ -165,6 +257,9 @@ class Gemini {
 			if ( '' === $testo ) {
 				throw new RuntimeException( 'Gemini ha risposto senza testo' . ( $fine ? " (finishReason: $fine)" : '' ) . '.' );
 			}
+
+			$this->fonti    = self::fontiDa( $dati );
+			$this->ricerche = (array) ( $dati['candidates'][0]['groundingMetadata']['webSearchQueries'] ?? array() );
 
 			$this->consumo['chiamate']++;
 			$this->consumo['token_in']  += (int) ( $dati['usageMetadata']['promptTokenCount'] ?? 0 );

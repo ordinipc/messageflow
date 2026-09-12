@@ -90,6 +90,19 @@ return array(
 		// risolvono IMG-05 ma fanno scattare IMG-03 (oltre 200 KB) e IMG-04
 		// (formato non moderno), e appesantiscono davvero il sito. Con questi
 		// due valori l immagine viene convertita in WebP e sta sotto i 200 KB.
+		// Migliorare l articolo esistente invece di riscriverlo da zero: la
+		// voce dell autore, gli esempi veri e i passaggi che funzionano
+		// restano, e si interviene solo dove l audit ha trovato un problema.
+		'migliora_invece_di_riscrivere' => true,
+
+		// Quanto testo dell articolo arriva al modello. Per migliorare serve
+		// tutto: quello che non arriva verrebbe perso nella riscrittura.
+		'testo_max_caratteri' => 14000,
+
+		// Cercare su Google per compilare i segnaposto [DA VERIFICARE].
+		// Un valore entra solo se una fonte lo sostiene.
+		'ricerca_web'        => true,
+
 		'immagine_lato_max'  => 1200,
 		'immagine_qualita'   => 82,
 		'immagine_peso_max'  => 190000,   // poco sotto la soglia di IMG-03

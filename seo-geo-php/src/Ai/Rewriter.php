@@ -93,6 +93,46 @@ class Rewriter {
 	}
 
 	/**
+	 * Problemi che l audit ha trovato su questa pagina.
+	 *
+	 * Sono la sola ragione per cui il testo viene toccato: senza l elenco il
+	 * modello non sa che cosa sistemare e rifa tutto da capo.
+	 *
+	 * @param Db    $db       Database.
+	 * @param int   $auditId  Audit.
+	 * @param array $articolo Riga con url e percorso.
+	 * @return array[]
+	 */
+	public static function problemi( Db $db, $auditId, array $articolo ) {
+		$riferimenti = array_values(
+			array_unique(
+				array_filter(
+					array(
+						(string) ( $articolo['url'] ?? '' ),
+						(string) ( $articolo['percorso'] ?? '' ),
+						rtrim( (string) ( $articolo['url'] ?? '' ), '/' ),
+					)
+				)
+			)
+		);
+
+		if ( ! $riferimenti ) {
+			return array();
+		}
+
+		$segnaposto = implode( ',', array_fill( 0, count( $riferimenti ), '?' ) );
+
+		return $db->all(
+			"SELECT r.regola, r.titolo, r.gravita, o.dettaglio
+			 FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id
+			 WHERE r.audit_id = ? AND o.riferimento IN ($segnaposto)
+			 ORDER BY CASE r.gravita WHEN 'alto' THEN 0 WHEN 'medio' THEN 1 ELSE 2 END
+			 LIMIT 25",
+			array_merge( array( $auditId ), $riferimenti )
+		);
+	}
+
+	/**
 	 * Link interni suggeriti per un documento, dal piano già calcolato.
 	 *
 	 * @param Db  $db      Database.
@@ -136,6 +176,13 @@ class Rewriter {
 		$cartella   = $opzioni['cartella'] ?? __DIR__ . '/../../storage/export/audit-' . (int) $auditId . '/bozze';
 		$progresso  = $opzioni['su_progresso'] ?? null;
 
+		// Migliorare e il modo giusto per un archivio che gia funziona; la
+		// riscrittura da zero serve quando il testo e davvero da buttare.
+		// Si sceglie in configurazione, e il valore predefinito e migliorare.
+		$migliora = array_key_exists( 'migliora', $opzioni )
+			? ! empty( $opzioni['migliora'] )
+			: ! empty( $cfg['ai']['migliora_invece_di_riscrivere'] );
+
 		if ( ! is_dir( $cartella ) ) {
 			mkdir( $cartella, 0775, true );
 		}
@@ -162,7 +209,14 @@ class Rewriter {
 
 			try {
 				$link = self::linkSuggeriti( $db, $auditId, $a['percorso'] );
-				$dati = $gemini->generaJson( $istruzioni, Prompt::articolo( $a, $a, $link, $cfg ) );
+
+				// Migliorare invece di rifare da capo: il testo pubblicato
+				// resta quello dell autore e si interviene solo dove l audit
+				// ha trovato un problema. Riscrivere tutto butta via anche
+				// quello che funzionava.
+				$dati = $migliora
+					? $gemini->generaJson( $istruzioni, Prompt::miglioramento( $a, $a, $link, self::problemi( $db, $auditId, $a ), $cfg ) )
+					: $gemini->generaJson( $istruzioni, Prompt::articolo( $a, $a, $link, $cfg ) );
 
 				$corpo = (string) ( $dati['corpo_html'] ?? '' );
 

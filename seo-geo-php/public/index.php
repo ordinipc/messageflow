@@ -11,6 +11,7 @@ use SeoGeo\Ai\Gemini;
 use SeoGeo\Ai\Immagini;
 use SeoGeo\Ai\Rewriter as Riscrittura;
 use SeoGeo\Ai\Rewriter;
+use SeoGeo\Ai\Verifiche;
 use SeoGeo\Audit;
 use SeoGeo\Bridge\WordPress;
 use SeoGeo\Coda;
@@ -738,6 +739,84 @@ if ( 'pilota-ferma' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	$db->run( 'DELETE FROM coda WHERE audit_id = ? AND stato = ?', array( $id, Coda::ATTESA ) );
 
 	header( 'Location: ?p=pilota&id=' . $id );
+	exit;
+}
+
+if ( 'api-verifiche' === $pagina ) {
+	header( 'Content-Type: application/json; charset=utf-8' );
+
+	if ( ! hash_equals( token(), $_GET['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		echo json_encode( array( 'errore' => 'Sessione scaduta: ricarica la pagina.' ) );
+		exit;
+	}
+
+	$id     = (int) ( $_GET['id'] ?? 0 );
+	$gemini = new Gemini( $cfg['ai'] );
+
+	if ( ! $gemini->pronto() ) {
+		echo json_encode( array( 'errore' => 'Chiave Gemini mancante: mettila in Impostazioni.', 'finito' => true ) );
+		exit;
+	}
+
+	set_time_limit( 0 );
+
+	$limite_php = (int) ini_get( 'max_execution_time' );
+	$scadenza   = time() + ( $limite_php > 0 ? max( 20, $limite_php - 15 ) : 60 );
+
+	$aperti = Verifiche::segnaposto( $db, $id );
+
+	$risolti = array();
+	$cercati = 0;
+	$vuoti   = array();
+
+	foreach ( $aperti as $chiave => $dati ) {
+		if ( time() > $scadenza ) {
+			break;
+		}
+
+		$trovato = Verifiche::cercaValore( $gemini, $dati['etichetta'], $cfg );
+		$cercati++;
+
+		if ( '' !== $trovato['valore'] ) {
+			$risolti[ $chiave ] = $trovato;
+		} else {
+			$vuoti[] = $dati['etichetta'] . ': ' . $trovato['motivo'];
+		}
+	}
+
+	$applicati = $risolti ? Verifiche::applica( $db, $id, $risolti ) : array( 'bozze' => 0, 'segnaposto' => 0 );
+
+	// Le fonti si mostrano: un dato senza l indirizzo da cui viene non e
+	// verificabile, ed e esattamente quello che i segnaposto evitavano.
+	$fonti = array();
+
+	foreach ( $risolti as $chiave => $trovato ) {
+		$fonti[] = array(
+			'etichetta' => $aperti[ $chiave ]['etichetta'],
+			'valore'    => Verifiche::comeScriverlo( $trovato ),
+			'tipo'      => $trovato['tipo'] ?? '',
+			'fonti'     => $trovato['fonti'],
+		);
+	}
+
+	$restano = count( Verifiche::segnaposto( $db, $id ) );
+
+	echo json_encode(
+		array(
+			'cercati'    => $cercati,
+			'risolti'    => count( $risolti ),
+			'bozze'      => (int) $applicati['bozze'],
+			'segnaposto' => (int) $applicati['segnaposto'],
+			'restanti'   => $restano,
+			'senza_dato' => array_slice( $vuoti, 0, 5 ),
+			'dettaglio'  => $fonti,
+			// Se un giro non chiude niente, ritentare le stesse etichette
+			// costerebbe soldi per lo stesso risultato.
+			'finito'     => 0 === $restano || 0 === count( $risolti ),
+		)
+	);
+
 	exit;
 }
 
@@ -2300,6 +2379,9 @@ switch ( $pagina ) {
 				'fatte'     => (int) ( $_GET['fatte'] ?? 0 ),
 				'errori'    => (int) ( $_GET['errori'] ?? 0 ),
 				'gruppi'    => count( Rewriter::gruppi( $db, $id ) ),
+				// I buchi [DA VERIFICARE] rimasti nelle bozze, raggruppati:
+				// su duecento bozze le etichette distinte sono poche decine.
+				'segnaposto_aperti' => Verifiche::segnaposto( $db, $id ),
 				'immagini'  => array(
 					'mancanti' => (int) $db->one( "SELECT COUNT(*) n FROM documento WHERE audit_id = ? AND ha_thumbnail = 0 AND tipo = 'post'", array( $id ) )['n'],
 					// Le analisi precedenti all aggiornamento non registravano

@@ -1265,6 +1265,207 @@ verifica(
 
 @unlink( $fileGruppi );
 
+echo "\nDati cercati su Google per i segnaposto\n";
+
+// Si riusa il finto servizio gia avviato piu sopra, passando l indirizzo
+// nella configurazione come fanno le altre verifiche: la variabile d
+// ambiente GEMINI_ENDPOINT ha la precedenza su tutto e scavalcherebbe i
+// finti servizi delle prove vicine.
+$cfgCerca = require __DIR__ . '/../config.php';
+$cfgCerca['ai']['chiave'] = 'chiave-di-prova';
+
+$cercatore = static function ( $modo ) use ( $base ) {
+	return new \SeoGeo\Ai\Gemini(
+		array( 'chiave' => 'prova', 'endpoint' => sprintf( $base, $modo ), 'modello' => 'gemini-2.5-flash', 'tentativi' => 1 )
+	);
+};
+
+{
+	$trovato = \SeoGeo\Ai\Verifiche::cercaValore( $cercatore( 'completo' ), 'costo minimo entry level', $cfgCerca );
+
+	verifica( 'la ricerca restituisce un valore', '' !== $trovato['valore'], $trovato['valore'] . ' ' . ( $trovato['motivo'] ?? '' ) );
+	verifica( 'con le fonti da cui viene', count( $trovato['fonti'] ) >= 1, (string) count( $trovato['fonti'] ) );
+	verifica( 'senza ripetere due volte la stessa fonte', 2 === count( $trovato['fonti'] ), (string) count( $trovato['fonti'] ) );
+	verifica( 'e ogni fonte ha un indirizzo', '' !== ( $trovato['fonti'][0]['url'] ?? '' ), (string) ( $trovato['fonti'][0]['url'] ?? '' ) );
+
+	// La regola che conta: un dato di mercato non puo comparire come se
+	// fosse il listino dell agenzia.
+	verifica( 'un dato di mercato viene riconosciuto come tale', 'mercato' === ( $trovato['tipo'] ?? '' ), (string) ( $trovato['tipo'] ?? '' ) );
+	verifica(
+		'e in pagina si scrive che e una media, non il nostro prezzo',
+		false !== stripos( \SeoGeo\Ai\Verifiche::comeScriverlo( $trovato ), 'non il nostro listino' ),
+		\SeoGeo\Ai\Verifiche::comeScriverlo( $trovato )
+	);
+
+	// Senza fonti non si scrive niente: e la sola garanzia che il numero
+	// non sia inventato.
+	$senzaFonti = \SeoGeo\Ai\Verifiche::cercaValore( $cercatore( 'senza-fonti' ), 'costo minimo entry level', $cfgCerca );
+	verifica( 'senza fonti il valore non viene usato', '' === $senzaFonti['valore'], $senzaFonti['valore'] );
+	verifica( 'e viene detto perche', false !== stripos( $senzaFonti['motivo'], 'verificabil' ), $senzaFonti['motivo'] );
+
+	$nonTrovato = \SeoGeo\Ai\Verifiche::cercaValore( $cercatore( 'non-trovato' ), 'quanti clienti abbiamo', $cfgCerca );
+	verifica( 'quando le fonti non sanno, il buco resta', '' === $nonTrovato['valore'] );
+	verifica( 'e lo dice', false !== stripos( $nonTrovato['motivo'], 'fonti' ), $nonTrovato['motivo'] );
+}
+
+// Raggruppamento e sostituzione: non dipendono dal modello.
+$fileVer = sys_get_temp_dir() . '/seo-verifiche-' . getmypid() . '.sqlite';
+@unlink( $fileVer );
+$dbV = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileVer ) );
+
+$auditV = $dbV->insert(
+	'audit',
+	array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => date( 'Y-m-d H:i:s' ), 'punteggio' => 50 )
+);
+
+foreach ( array( 1, 2, 3 ) as $n ) {
+	$doc = $dbV->insert(
+		'documento',
+		array( 'audit_id' => $auditV, 'wp_id' => (string) $n, 'titolo' => 'Articolo ' . $n, 'slug' => 'a' . $n, 'percorso' => '/a' . $n . '/', 'url' => 'https://esempio.it/a' . $n . '/', 'tipo' => 'post', 'stato' => 'publish', 'parole' => 700 )
+	);
+
+	$dbV->insert(
+		'bozza',
+		array(
+			'audit_id' => $auditV, 'documento_id' => $doc, 'stato' => 'ok', 'modello' => 'prova',
+			'titolo' => 'Bozza ' . $n,
+			// Scritte in modi diversi apposta: devono contare come una sola.
+			'corpo_html' => '<p>Si parte da [DA VERIFICARE: costo minimo entry level] fino a [DA VERIFICARE:  Costo Minimo Entry Level ].</p>',
+			'in_breve' => 'Da [DA VERIFICARE: numero prodotti standard] prodotti.',
+			'meta_description' => 'Prezzi da [DA VERIFICARE: costo minimo entry level].',
+			'faq' => '[]', 'da_verificare' => '[]', 'creato_il' => date( 'Y-m-d H:i:s' ),
+		)
+	);
+}
+
+$gruppiSegnaposto = \SeoGeo\Ai\Verifiche::segnaposto( $dbV, $auditV );
+
+verifica( 'i segnaposto distinti sono due, non nove', 2 === count( $gruppiSegnaposto ), (string) count( $gruppiSegnaposto ) );
+
+$chiaviSegnaposto = array_keys( $gruppiSegnaposto );
+
+verifica( 'maiuscole e spazi non creano un segnaposto diverso', in_array( 'costo minimo entry level', $chiaviSegnaposto, true ), implode( ' | ', $chiaviSegnaposto ) );
+verifica( 'il piu frequente viene per primo', 'costo minimo entry level' === $chiaviSegnaposto[0], $chiaviSegnaposto[0] );
+verifica( 'e si sa quante volte compare', 9 === $gruppiSegnaposto['costo minimo entry level']['quante'], (string) $gruppiSegnaposto['costo minimo entry level']['quante'] );
+verifica( 'e in quante bozze', 3 === count( $gruppiSegnaposto['costo minimo entry level']['bozze'] ) );
+
+// Si compila solo quello risolto: l altro resta buco, come deve.
+$esitoApplica = \SeoGeo\Ai\Verifiche::applica(
+	$dbV,
+	$auditV,
+	array( 'costo minimo entry level' => array( 'valore' => 'da 1.500 a 4.000 euro', 'tipo' => 'mercato' ) )
+);
+
+verifica( 'le bozze toccate sono tre', 3 === $esitoApplica['bozze'], (string) $esitoApplica['bozze'] );
+verifica( 'i segnaposto chiusi sono nove', 9 === $esitoApplica['segnaposto'], (string) $esitoApplica['segnaposto'] );
+
+$dopoApplica = $dbV->one( "SELECT corpo_html, in_breve FROM bozza WHERE audit_id = ?", array( $auditV ) );
+
+verifica( 'nel testo compare il valore trovato', false !== strpos( $dopoApplica['corpo_html'], '1.500' ), $dopoApplica['corpo_html'] );
+verifica( 'con l avvertenza che e una media di mercato', false !== stripos( $dopoApplica['corpo_html'], 'non il nostro listino' ) );
+verifica( 'e il segnaposto non risolto resta al suo posto', false !== strpos( $dopoApplica['in_breve'], '[DA VERIFICARE' ), $dopoApplica['in_breve'] );
+
+$restano = \SeoGeo\Ai\Verifiche::segnaposto( $dbV, $auditV );
+
+verifica( 'dopo la compilazione ne resta uno solo da risolvere', 1 === count( $restano ), implode( ' | ', array_keys( $restano ) ) );
+
+@unlink( $fileVer );
+
+echo "\nMigliorare invece di riscrivere da capo\n";
+
+$fileMig = sys_get_temp_dir() . '/seo-migliora-' . getmypid() . '.sqlite';
+@unlink( $fileMig );
+$dbM = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileMig ) );
+
+$auditM = $dbM->insert(
+	'audit',
+	array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => date( 'Y-m-d H:i:s' ), 'punteggio' => 50 )
+);
+
+$docM = array(
+	'titolo'   => 'Come scegliere un e-commerce',
+	'url'      => 'https://esempio.it/ecommerce/',
+	'percorso' => '/ecommerce/',
+	'focus'    => 'e-commerce palermo',
+	'intento'  => 'commerciale',
+	'parole'   => 900,
+	'testo'    => 'Testo originale dell articolo, con un esempio vero e una cifra gia verificata.',
+);
+
+$rilievoM = $dbM->insert(
+	'rilievo',
+	array( 'audit_id' => $auditM, 'regola' => 'STR-02', 'area' => 'struttura', 'gravita' => 'alto', 'titolo' => 'Manca il blocco di sintesi iniziale', 'perche' => 'x', 'soluzione' => 'y', 'automatico' => 1, 'occorrenze' => 1 )
+);
+$dbM->insert( 'occorrenza', array( 'rilievo_id' => $rilievoM, 'riferimento' => 'https://esempio.it/ecommerce/', 'dettaglio' => 'nessun paragrafo di risposta nei primi 60 termini' ) );
+
+$rilievoBasso = $dbM->insert(
+	'rilievo',
+	array( 'audit_id' => $auditM, 'regola' => 'IMG-06', 'area' => 'media', 'gravita' => 'basso', 'titolo' => 'Immagini senza dimensioni', 'perche' => 'x', 'soluzione' => 'y', 'automatico' => 1, 'occorrenze' => 1 )
+);
+$dbM->insert( 'occorrenza', array( 'rilievo_id' => $rilievoBasso, 'riferimento' => '/ecommerce/', 'dettaglio' => '2 immagini senza dimensioni' ) );
+
+$problemiM = \SeoGeo\Ai\Rewriter::problemi( $dbM, $auditM, $docM );
+
+verifica( 'i problemi della pagina vengono ritrovati', 2 === count( $problemiM ), (string) count( $problemiM ) );
+verifica( 'per indirizzo completo e per percorso', 'STR-02' === $problemiM[0]['regola'] && 'IMG-06' === $problemiM[1]['regola'] );
+verifica( 'e i piu gravi vengono per primi', 'alto' === $problemiM[0]['gravita'], $problemiM[0]['gravita'] );
+
+$problemiAltrove = \SeoGeo\Ai\Rewriter::problemi( $dbM, $auditM, array( 'url' => 'https://esempio.it/altra/', 'percorso' => '/altra/' ) );
+verifica( 'e quelli di un altra pagina non si mescolano', 0 === count( $problemiAltrove ) );
+
+$cfgMig = require __DIR__ . '/../config.php';
+
+$promptMigliora = \SeoGeo\Ai\Prompt::miglioramento( $docM, $docM, array(), $problemiM, $cfgMig );
+
+verifica( 'il prompt dice di non riscrivere da capo', false !== stripos( $promptMigliora, 'NON riscriverlo da capo' ) );
+verifica( 'e passa i problemi veri trovati sulla pagina', false !== strpos( $promptMigliora, 'STR-02' ) && false !== strpos( $promptMigliora, 'nessun paragrafo di risposta' ) );
+verifica( 'vieta di cancellare quello che va bene', false !== stripos( $promptMigliora, 'Non cancellare sezioni che non hanno problemi' ) );
+
+// La regola che protegge dai danni: cifre e nomi gia scritti dall autore
+// non si toccano, perche il modello non li puo verificare.
+verifica( 'e di cambiare cifre e nomi gia presenti', false !== stripos( $promptMigliora, 'Non cambiare affermazioni, cifre, nomi o date' ) );
+verifica( 'il testo originale ci arriva intero', false !== strpos( $promptMigliora, 'una cifra gia verificata' ) );
+verifica( 'e segue lo stesso schema per intento di ricerca', false !== stripos( $promptMigliora, 'SCALETTA DI RIFERIMENTO' ) );
+
+$promptRiscrivi = \SeoGeo\Ai\Prompt::articolo( $docM, $docM, array(), $cfgMig );
+
+verifica( 'il modo riscrittura resta disponibile e diverso', false !== stripos( $promptRiscrivi, 'Riscrivi questo articolo' ) && false === stripos( $promptRiscrivi, 'NON riscriverlo da capo' ) );
+
+verifica(
+	'il valore predefinito e migliorare, non rifare',
+	! empty( $cfgMig['ai']['migliora_invece_di_riscrivere'] )
+);
+
+// La vista delle bozze usa gia $verifiche dentro al ciclo: passando la
+// sezione con lo stesso nome veniva sovrascritta e non compariva mai.
+$vistaBozze = (string) file_get_contents( __DIR__ . '/../views/bozze.php' );
+
+verifica(
+	'la sezione dei dati da verificare non usa un nome gia occupato',
+	false !== strpos( $vistaBozze, '$segnaposto_aperti' )
+		&& false === strpos( $vistaBozze, 'empty( $verifiche )' )
+);
+
+verifica(
+	'e il gestionale gliela passa con quel nome',
+	false !== strpos( $sorgenteIndice, "'segnaposto_aperti' => Verifiche::segnaposto" )
+);
+
+verifica(
+	'la rotta che cerca i dati esiste e chiede il token',
+	false !== strpos( $sorgenteIndice, "'api-verifiche' === \$pagina" )
+		&& (bool) preg_match( "/'api-verifiche'.{0,400}hash_equals\( token\(\)/s", $sorgenteIndice )
+);
+
+// Anche qui il ciclo costa: se un giro non risolve niente, ritentare le
+// stesse etichette spenderebbe soldi per lo stesso risultato.
+verifica(
+	'un giro che non risolve niente ferma il ciclo',
+	false !== strpos( $sorgenteIndice, "0 === \$restano || 0 === count( \$risolti )" )
+);
+
+@unlink( $fileMig );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );
