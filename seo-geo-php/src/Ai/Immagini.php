@@ -48,10 +48,21 @@ class Immagini {
 		if ( empty( $opzioni['rigenera'] ) ) {
 			$cartella = $opzioni['cartella'] ?? self::cartella( $auditId );
 
+			// Si cerca in tutte le estensioni possibili: cercando solo il .png
+			// una immagine gia generata in WebP non verrebbe trovata e si
+			// pagherebbe una seconda volta per rifare la stessa cosa.
 			$righe = array_values(
 				array_filter(
 					$righe,
-					static fn( $r ) => ! is_file( $cartella . '/' . $r['slug'] . '.png' )
+					static function ( $r ) use ( $cartella ) {
+						foreach ( array( 'webp', 'png', 'jpg' ) as $estensione ) {
+							if ( is_file( $cartella . '/' . $r['slug'] . '.' . $estensione ) ) {
+								return false;
+							}
+						}
+
+						return true;
+					}
 				)
 			);
 		}
@@ -94,6 +105,107 @@ class Immagini {
 			. "Ambientazione mediterranea coerente con {$citta}, senza monumenti riconoscibili.\n"
 			. "Nessun testo, nessuna scritta, nessun logo, nessun marchio, nessun volto in primo piano riconoscibile. "
 			. 'Composizione con spazio libero a sinistra per un eventuale titolo sovrapposto.';
+	}
+
+	/**
+	 * Riduce e converte l immagine prima di caricarla sul sito.
+	 *
+	 * Il modello restituisce un PNG da uno o due megabyte. Caricato cosi
+	 * com e risolve IMG-05 (manca l immagine in evidenza) ma fa scattare
+	 * IMG-03 (oltre 200 KB) e IMG-04 (formato non moderno): si sostituisce
+	 * un problema con due, e soprattutto si mettono sul sito duecento file
+	 * pesanti che peggiorano LCP su altrettanti articoli.
+	 *
+	 * WebP a lato lungo 1200 e qualita 82 sta sotto i 200 KB su qualsiasi
+	 * fotografia. Se GD non c e o non sa scrivere WebP si tiene l originale:
+	 * meglio un immagine pesante che nessuna immagine.
+	 *
+	 * @param string $binario Immagine come arriva dal modello.
+	 * @param string $mime    Tipo dichiarato dal modello.
+	 * @param array  $cfg     Configurazione.
+	 * @return array{0:string,1:string} Mime e binario da caricare.
+	 */
+	public static function ottimizza( $binario, $mime, array $cfg = array() ) {
+		if ( ! function_exists( 'imagewebp' ) || ! function_exists( 'imagecreatefromstring' ) ) {
+			return array( $mime, $binario );
+		}
+
+		$lato    = (int) ( $cfg['ai']['immagine_lato_max'] ?? 1200 );
+		$qualita = (int) ( $cfg['ai']['immagine_qualita'] ?? 82 );
+		$peso    = (int) ( $cfg['ai']['immagine_peso_max'] ?? 190000 );
+
+		$immagine = @imagecreatefromstring( $binario );
+
+		if ( ! $immagine ) {
+			return array( $mime, $binario );
+		}
+
+		$webp = '';
+
+		try {
+			// Non basta una qualita fissa: su una fotografia molto granulosa
+			// 1200px a qualita 82 esce ancora sopra i 200 KB, e la regola
+			// IMG-03 scatterebbe lo stesso. Si scende per gradi finche il file
+			// sta sotto la soglia, prima sulla qualita e poi sulle dimensioni,
+			// fermandosi al primo tentativo che ci riesce.
+			foreach ( array( $lato, (int) round( $lato * 0.83 ), (int) round( $lato * 0.67 ) ) as $larghezzaMax ) {
+				$tela = self::ridimensiona( $immagine, $larghezzaMax );
+
+				foreach ( array( $qualita, 72, 62, 52 ) as $q ) {
+					ob_start();
+					$riuscito = imagewebp( $tela, null, $q );
+					$prova    = (string) ob_get_clean();
+
+					if ( $riuscito && '' !== $prova && ( '' === $webp || strlen( $prova ) < strlen( $webp ) ) ) {
+						$webp = $prova;
+					}
+
+					if ( '' !== $webp && strlen( $webp ) <= $peso ) {
+						break 2;
+					}
+				}
+
+				if ( $tela !== $immagine ) {
+					imagedestroy( $tela );
+				}
+			}
+		} finally {
+			imagedestroy( $immagine );
+		}
+
+		// Se la conversione e uscita vuota o piu pesante dell originale,
+		// l originale resta la scelta migliore: meglio un immagine pesante
+		// che nessuna immagine.
+		if ( '' === $webp || strlen( $webp ) >= strlen( $binario ) ) {
+			return array( $mime, $binario );
+		}
+
+		return array( 'image/webp', $webp );
+	}
+
+	/**
+	 * Copia ridimensionata al lato lungo richiesto.
+	 *
+	 * Restituisce l originale, senza copiarlo, quando e gia abbastanza
+	 * piccolo: chi chiama deve distruggere il risultato solo se e diverso.
+	 *
+	 * @param resource|\GdImage $immagine     Immagine.
+	 * @param int               $larghezzaMax Lato lungo massimo.
+	 * @return resource|\GdImage
+	 */
+	private static function ridimensiona( $immagine, $larghezzaMax ) {
+		$larghezza = imagesx( $immagine );
+		$altezza   = imagesy( $immagine );
+		$massimo   = max( $larghezza, $altezza );
+
+		if ( $massimo <= $larghezzaMax ) {
+			return $immagine;
+		}
+
+		$scala   = $larghezzaMax / $massimo;
+		$ridotta = imagescale( $immagine, (int) round( $larghezza * $scala ), (int) round( $altezza * $scala ) );
+
+		return $ridotta ?: $immagine;
 	}
 
 	/**
@@ -143,6 +255,10 @@ class Immagini {
 
 			try {
 				list( $mime, $binario ) = $gemini->generaImmagine( self::descrizione( $doc, $cfg ) );
+
+				// Si converte prima di scrivere e prima di caricare: il file che
+				// resta in archivio deve essere lo stesso che finisce sul sito.
+				list( $mime, $binario ) = self::ottimizza( $binario, $mime, $cfg );
 
 				$estensione = 'image/jpeg' === $mime ? 'jpg' : ( 'image/webp' === $mime ? 'webp' : 'png' );
 				$percorso   = $cartella . '/' . $doc['slug'] . '.' . $estensione;

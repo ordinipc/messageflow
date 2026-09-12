@@ -897,6 +897,137 @@ verifica(
 
 @unlink( $fileSped );
 
+echo "\nImmagini generate: peso e formato\n";
+
+// Il modello restituisce PNG da qualche megabyte. Caricati com erano
+// risolvevano IMG-05 ma facevano scattare IMG-03 (oltre 200 KB) e IMG-04
+// (formato non moderno): sul sito vero l audit e passato da 42 a 304
+// immagini pesanti dopo 262 immagini generate.
+
+$fotoFinta = static function ( $larghezza, $altezza, $grana ) {
+	mt_srand( 7 );
+	$im = imagecreatetruecolor( $larghezza, $altezza );
+
+	for ( $x = 0; $x < $larghezza; $x++ ) {
+		for ( $y = 0; $y < $altezza; $y++ ) {
+			$b = (int) ( 128 + 100 * sin( $x / 70 ) * cos( $y / 90 ) + mt_rand( -$grana, $grana ) );
+			$b = max( 0, min( 255, $b ) );
+			imagesetpixel( $im, $x, $y, imagecolorallocate( $im, $b, (int) ( $b * 0.85 ), (int) ( $b * 0.7 ) ) );
+		}
+	}
+
+	ob_start();
+	imagepng( $im );
+	$png = (string) ob_get_clean();
+	imagedestroy( $im );
+
+	return $png;
+};
+
+if ( ! function_exists( 'imagewebp' ) ) {
+	echo "  · GD senza WebP su questa macchina: verifiche sul peso saltate\n";
+} else {
+	$cfgImg = require __DIR__ . '/../config.php';
+
+	foreach ( array(
+		array( 'una fotografia normale', 1536, 1024, 8 ),
+		array( 'una fotografia granulosa', 1536, 1024, 28 ),
+		array( 'una immagine quadrata grande', 2048, 2048, 30 ),
+	) as $caso ) {
+		list( $nome, $w, $h, $g ) = $caso;
+
+		$png = $fotoFinta( $w, $h, $g );
+		list( $mimeImg, $uscita ) = \SeoGeo\Ai\Immagini::ottimizza( $png, 'image/png', $cfgImg );
+
+		verifica(
+			"$nome resta sotto i 200 KB (IMG-03)",
+			strlen( $uscita ) < 204800,
+			round( strlen( $uscita ) / 1024 ) . ' KB, partiva da ' . round( strlen( $png ) / 1024 ) . ' KB'
+		);
+
+		verifica(
+			"$nome esce in WebP (IMG-04)",
+			'image/webp' === $mimeImg,
+			$mimeImg
+		);
+
+		$dimensioni = getimagesizefromstring( $uscita );
+
+		verifica(
+			"$nome non supera il lato lungo richiesto",
+			max( $dimensioni[0], $dimensioni[1] ) <= (int) $cfgImg['ai']['immagine_lato_max'],
+			$dimensioni[0] . 'x' . $dimensioni[1]
+		);
+	}
+
+	// Meglio un immagine pesante che nessuna immagine: se il risultato non
+	// migliora niente si tiene quello che c era.
+	$minuscola = $fotoFinta( 40, 40, 4 );
+	list( $mimeMin, $uscitaMin ) = \SeoGeo\Ai\Immagini::ottimizza( $minuscola, 'image/png', $cfgImg );
+
+	verifica(
+		'una immagine che non si puo migliorare torna com era',
+		strlen( $uscitaMin ) <= strlen( $minuscola )
+	);
+
+	verifica(
+		'e comunque non torna mai vuota',
+		strlen( $uscitaMin ) > 0
+	);
+}
+
+// Il controllo "gia generata" cercava solo il .png: passando al WebP avrebbe
+// rigenerato tutto da capo, pagando una seconda volta lo stesso lavoro.
+$cartellaImg = sys_get_temp_dir() . '/seo-immagini-' . getmypid();
+@mkdir( $cartellaImg, 0775, true );
+
+$fileImg = sys_get_temp_dir() . '/seo-img-' . getmypid() . '.sqlite';
+@unlink( $fileImg );
+$dbI = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileImg ) );
+
+$auditI = $dbI->insert(
+	'audit',
+	array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => date( 'Y-m-d H:i:s' ), 'punteggio' => 50 )
+);
+
+foreach ( array( 'gia-fatta-webp', 'gia-fatta-png', 'da-fare' ) as $slug ) {
+	$dbI->insert(
+		'documento',
+		array(
+			'audit_id' => $auditI, 'wp_id' => (string) crc32( $slug ), 'titolo' => $slug, 'slug' => $slug,
+			'percorso' => '/' . $slug . '/', 'url' => 'https://esempio.it/' . $slug . '/',
+			'tipo' => 'post', 'stato' => 'publish', 'ha_thumbnail' => 0, 'parole' => 600,
+		)
+	);
+}
+
+file_put_contents( $cartellaImg . '/gia-fatta-webp.webp', 'x' );
+file_put_contents( $cartellaImg . '/gia-fatta-png.png', 'x' );
+
+$restanti = \SeoGeo\Ai\Immagini::candidati( $dbI, $auditI, array( 'cartella' => $cartellaImg ) );
+$slugRestanti = array_map( static fn( $r ) => $r['slug'], $restanti );
+
+verifica(
+	'una immagine gia generata in WebP non viene rifatta',
+	! in_array( 'gia-fatta-webp', $slugRestanti, true ),
+	implode( ', ', $slugRestanti )
+);
+
+verifica(
+	'ne quella gia generata in PNG',
+	! in_array( 'gia-fatta-png', $slugRestanti, true )
+);
+
+verifica(
+	'ma quella che manca resta da fare',
+	array( 'da-fare' ) === $slugRestanti,
+	implode( ', ', $slugRestanti )
+);
+
+array_map( 'unlink', glob( $cartellaImg . '/*' ) );
+@rmdir( $cartellaImg );
+@unlink( $fileImg );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

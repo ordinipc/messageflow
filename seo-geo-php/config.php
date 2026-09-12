@@ -85,6 +85,14 @@ return array(
 		// con fatturazione attiva. Se il modello non è disponibile sul tuo piano,
 		// cambia qui il nome senza toccare il codice.
 		'modello_immagini'   => 'gemini-2.5-flash-image',
+
+		// Il modello restituisce PNG da 1-2 MB. Caricati cosi come sono
+		// risolvono IMG-05 ma fanno scattare IMG-03 (oltre 200 KB) e IMG-04
+		// (formato non moderno), e appesantiscono davvero il sito. Con questi
+		// due valori l immagine viene convertita in WebP e sta sotto i 200 KB.
+		'immagine_lato_max'  => 1200,
+		'immagine_qualita'   => 82,
+		'immagine_peso_max'  => 190000,   // poco sotto la soglia di IMG-03
 		'temperatura'        => 0.7,
 		// Spazio massimo per la risposta. Sui modelli 2.5 il ragionamento del
 		// modello consuma questo stesso budget prima di scrivere: con 8192 un
