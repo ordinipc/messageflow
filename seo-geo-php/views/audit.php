@@ -209,8 +209,21 @@ $scaricabili = array(
 	<p class="guida">Contiene già le meta ottimizzate, la mappa dei link interni, gli articoli correlati e i file per i crawler AI di questo sito. Si installa da <em>Plugin → Aggiungi nuovo → Carica plugin</em>.</p>
 	<p>
 		<a class="bottone" href="?p=download&amp;id=<?php echo (int) $audit['id']; ?>&amp;f=mdi-seo-geo-booster.zip">Scarica mdi-seo-geo-booster.zip</a>
-		<span class="sotto"><?php echo num( filesize( $zip ) / 1024 ); ?> KB</span>
+		<span class="sotto">
+			<?php $versione = \SeoGeo\Export::versionePlugin(); ?>
+			<?php echo $versione ? 'versione ' . e( $versione ) . ' · ' : ''; ?><?php echo num( filesize( $zip ) / 1024 ); ?> KB
+		</span>
 	</p>
+	<?php
+	// Lo zip in archivio e di quando si e fatta l analisi: se nel frattempo
+	// il gestionale e stato aggiornato, viene ricostruito al momento del
+	// download. Lo si dice, perche altrimenti il peso mostrato qui sopra
+	// non corrisponde a quello che si scarica.
+	$in_archivio = \SeoGeo\Export::versioneNelloZip( $zip );
+	?>
+	<?php if ( $versione && $in_archivio && $versione !== $in_archivio ) : ?>
+		<p class="nota">In archivio c'è la <?php echo e( $in_archivio ); ?>, ma il gestionale ha la <strong><?php echo e( $versione ); ?></strong>: il file viene rifatto al momento del download, quindi scarichi la <?php echo e( $versione ); ?>.</p>
+	<?php endif; ?>
 </section>
 <?php endif; ?>
 

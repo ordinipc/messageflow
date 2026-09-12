@@ -1028,6 +1028,71 @@ array_map( 'unlink', glob( $cartellaImg . '/*' ) );
 @rmdir( $cartellaImg );
 @unlink( $fileImg );
 
+echo "\nVersione del plugin da scaricare\n";
+
+// Lo zip del plugin veniva costruito una volta sola, quando si faceva
+// l analisi. Aggiornando il gestionale restava in archivio quello vecchio e
+// il pulsante continuava a servirlo: si installava una versione diversa da
+// quella nel gestionale, senza che niente lo dicesse.
+
+$versioneOra = \SeoGeo\Export::versionePlugin();
+
+verifica(
+	'la versione del plugin installato si legge',
+	(bool) preg_match( '/^\d+\.\d+/', $versioneOra ),
+	$versioneOra
+);
+
+$sorgentePlugin = __DIR__ . '/../plugin-wordpress/mdi-seo-geo-booster/mdi-seo-geo-booster.php';
+
+verifica(
+	'e coincide con quella scritta nel file del plugin',
+	false !== strpos( (string) file_get_contents( $sorgentePlugin ), 'Version:           ' . $versioneOra )
+);
+
+if ( ! class_exists( '\ZipArchive' ) ) {
+	echo "  · ZipArchive assente su questa macchina: verifica sullo zip saltata\n";
+} else {
+	$cartellaZip = sys_get_temp_dir() . '/seo-plugin-' . getmypid();
+	@mkdir( $cartellaZip . '/plugin-data', 0775, true );
+
+	$esitoZip = \SeoGeo\Export::plugin( array( 'cartella' => $cartellaZip ), $cartellaZip . '/plugin-data' );
+
+	verifica( 'lo zip del plugin viene creato', ! empty( $esitoZip['zip'] ) && is_file( (string) $esitoZip['zip'] ) );
+
+	verifica(
+		'e dentro c e la stessa versione del gestionale',
+		$versioneOra === \SeoGeo\Export::versioneNelloZip( (string) $esitoZip['zip'] ),
+		\SeoGeo\Export::versioneNelloZip( (string) $esitoZip['zip'] )
+	);
+
+	// La verifica che conta: uno zip vecchio deve essere riconosciuto come
+	// tale, perche e da li che parte la ricostruzione al download.
+	verifica(
+		'uno zip che non esiste non spaccia una versione',
+		'' === \SeoGeo\Export::versioneNelloZip( $cartellaZip . '/mai-esistito.zip' )
+	);
+
+	$archivio = new ZipArchive();
+	$archivio->open( (string) $esitoZip['zip'] );
+	$dentro = (string) $archivio->getFromName( 'mdi-seo-geo-booster/includes/class-mdi-api.php' );
+	$archivio->close();
+
+	foreach ( array( 'immagini-pesanti', 'comprimi-immagine', 'ripristina-immagine' ) as $rotta ) {
+		verifica( "lo zip contiene la rotta $rotta", false !== strpos( $dentro, "/$rotta" ) );
+	}
+
+	$rimuovi = static function ( $cartella ) use ( &$rimuovi ) {
+		foreach ( (array) glob( $cartella . '/*' ) as $voce ) {
+			is_dir( $voce ) ? $rimuovi( $voce ) : unlink( $voce );
+		}
+
+		@rmdir( $cartella );
+	};
+
+	$rimuovi( $cartellaZip );
+}
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

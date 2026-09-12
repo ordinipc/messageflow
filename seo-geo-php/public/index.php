@@ -1578,6 +1578,27 @@ if ( 'download' === $pagina ) {
 	$nome = basename( (string) ( $_GET['f'] ?? '' ) );
 	$sub  = preg_replace( '#[^a-z0-9/-]#i', '', (string) ( $_GET['d'] ?? '' ) );
 	$base = realpath( __DIR__ . '/../storage/export/audit-' . $id );
+
+	// Lo zip del plugin viene costruito una volta sola, quando si fa
+	// l analisi. Aggiornando il gestionale restava in archivio quello
+	// vecchio e il pulsante continuava a servirlo: si scaricava una
+	// versione del plugin diversa da quella installata, senza che niente
+	// lo dicesse. Se non coincide si ricostruisce adesso.
+	if ( $base && 'mdi-seo-geo-booster.zip' === $nome && ! $sub ) {
+		$installata = Export::versionePlugin();
+		$archiviata = Export::versioneNelloZip( $base . '/' . $nome );
+
+		if ( $installata && $installata !== $archiviata ) {
+			try {
+				Export::plugin( array( 'cartella' => $base ), $base . '/plugin-data' );
+			} catch ( Throwable $e ) {
+				// Se la ricostruzione non riesce si serve quello che c e:
+				// meglio un plugin vecchio che nessun plugin.
+				error_log( 'Ricostruzione del plugin non riuscita: ' . $e->getMessage() );
+			}
+		}
+	}
+
 	$file = realpath( $base . '/' . ( $sub ? $sub . '/' : '' ) . $nome );
 
 	// Il percorso richiesto deve restare dentro la cartella dell audit.

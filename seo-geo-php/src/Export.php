@@ -330,6 +330,51 @@ class Export {
 	}
 
 	/**
+	 * Versione del plugin installato in questa copia del gestionale.
+	 *
+	 * @return string Vuota se non si riesce a leggerla.
+	 */
+	public static function versionePlugin() {
+		$file = dirname( __DIR__ ) . '/plugin-wordpress/mdi-seo-geo-booster/mdi-seo-geo-booster.php';
+
+		if ( ! is_file( $file ) ) {
+			return '';
+		}
+
+		// Bastano le prime righe: l intestazione del plugin sta li.
+		$testa = (string) file_get_contents( $file, false, null, 0, 2048 );
+
+		return preg_match( '/^\s*\*\s*Version:\s*(.+)$/mi', $testa, $m ) ? trim( $m[1] ) : '';
+	}
+
+	/**
+	 * Versione del plugin dentro uno zip gia costruito.
+	 *
+	 * Serve a sapere se lo zip in archivio e vecchio: viene costruito una
+	 * volta sola, quando si fa l analisi, e aggiornando il gestionale
+	 * resterebbe indietro senza dirlo a nessuno.
+	 *
+	 * @param string $zip Percorso dello zip.
+	 * @return string Vuota se non si riesce a leggerla.
+	 */
+	public static function versioneNelloZip( $zip ) {
+		if ( ! is_file( $zip ) || ! class_exists( '\ZipArchive' ) ) {
+			return '';
+		}
+
+		$archivio = new \ZipArchive();
+
+		if ( true !== $archivio->open( $zip ) ) {
+			return '';
+		}
+
+		$testa = (string) $archivio->getFromName( 'mdi-seo-geo-booster/mdi-seo-geo-booster.php' );
+		$archivio->close();
+
+		return preg_match( '/^\s*\*\s*Version:\s*(.+)$/mi', $testa, $m ) ? trim( $m[1] ) : '';
+	}
+
+	/**
 	 * Assembla il plugin WordPress con i dati calcolati e ne crea lo zip.
 	 *
 	 * @param array  $ctx      Stesso contesto di tutto().
