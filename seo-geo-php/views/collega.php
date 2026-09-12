@@ -185,6 +185,9 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 			<?php if ( ! empty( $immagini['gia_ridotte'] ) ) : ?>
 				<p class="nota"><?php echo num( count( $immagini['gia_ridotte'] ) ); ?> sono già state ricompresse e restano sopra la soglia: quelle non migliorano.</p>
 			<?php endif; ?>
+			<?php if ( empty( $immagini['completo'] ) ) : ?>
+				<p class="nota">La libreria media è grande: finora ho guardato <?php echo num( $immagini['guardati'] ); ?> allegati su <?php echo num( $immagini['totale'] ); ?>. Comprimi questi, poi ricarica la pagina per vedere i successivi.</p>
+			<?php endif; ?>
 
 			<?php if ( ! empty( $immagini['sicure'] ) ) : ?>
 				<details>

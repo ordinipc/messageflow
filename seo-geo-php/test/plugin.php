@@ -615,6 +615,44 @@ if ( ! function_exists( 'imagewebp' ) ) {
 		is_wp_error( MDI_Api::comprimi_immagine( new WP_REST_Request( array( 'id' => 999999 ) ) ) )
 	);
 
+	// Una libreria media grande come quella vera: la rotta deve rispondere a
+	// blocchi e non fare una query per immagine, altrimenti va in timeout
+	// prima di mostrare qualsiasi cosa.
+	delete_transient( 'mdi_nomi_immagini_usate' );
+
+	foreach ( range( 1, 40 ) as $n ) {
+		stub_crea_allegato( 1000 + $n, 'massa-' . $n . '.png', 900, 26 );
+	}
+
+	$GLOBALS['wp']['query_fatte'] = 0;
+
+	$primo = MDI_Api::immagini_pesanti( new WP_REST_Request( array( 'oltre' => 100000, 'blocco' => 25 ) ) );
+
+	verifica( 'il primo blocco non guarda tutta la libreria', 25 === (int) $primo['guardati'], (string) $primo['guardati'] );
+	verifica( 'e dice che non ha finito', empty( $primo['finito'] ) );
+	verifica( 'e da dove riprendere', 25 === (int) $primo['prossimo'] );
+	verifica( 'il totale invece e quello vero', (int) $primo['totale'] >= 40, (string) $primo['totale'] );
+
+	$visti  = count( (array) $primo['immagini'] );
+	$offset = (int) $primo['prossimo'];
+	$giri   = 1;
+
+	while ( empty( $primo['finito'] ) && $giri < 20 ) {
+		$primo   = MDI_Api::immagini_pesanti( new WP_REST_Request( array( 'oltre' => 100000, 'blocco' => 25, 'offset' => $offset ) ) );
+		$visti  += count( (array) $primo['immagini'] );
+		$offset  = (int) $primo['prossimo'];
+		$giri++;
+	}
+
+	verifica( 'continuando a blocchi si arriva in fondo', ! empty( $primo['finito'] ) );
+	verifica( 'e si sono viste tutte le immagini pesanti', $visti >= 40, $visti . ' viste' );
+
+	verifica(
+		'le query sul contenuto sono una sola, non una per immagine',
+		(int) ( $GLOBALS['wp']['query_fatte'] ?? 0 ) <= 1,
+		(int) ( $GLOBALS['wp']['query_fatte'] ?? 0 ) . ' query'
+	);
+
 	array_map( 'unlink', glob( stub_cartella_caricamenti() . '/*' ) );
 }
 

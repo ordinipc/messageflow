@@ -35,10 +35,29 @@ class Compressione {
 	 * @param int       $soglia Soglia in byte.
 	 * @return array
 	 */
-	public static function elenco( WordPress $ponte, $soglia = 204800 ) {
-		$risposta = $ponte->immaginiPesanti( $soglia, 200, 0 );
+	public static function elenco( WordPress $ponte, $soglia = 204800, $secondi_max = 25 ) {
+		// Il sito risponde a blocchi: leggere tutta la libreria media in una
+		// richiesta sola andava in timeout dopo sessanta secondi e la pagina
+		// non mostrava niente. Si continua finche il sito dice di aver
+		// finito, o finche il tempo concesso alla pagina e esaurito.
+		$immagini = array();
+		$offset   = 0;
+		$totale   = 0;
+		$guardati = 0;
+		$finito   = false;
+		$scadenza = time() + (int) $secondi_max;
 
-		$immagini  = (array) ( $risposta['immagini'] ?? array() );
+		do {
+			$risposta = $ponte->immaginiPesanti( $soglia, 150, $offset );
+
+			$immagini = array_merge( $immagini, (array) ( $risposta['immagini'] ?? array() ) );
+			$totale   = (int) ( $risposta['totale'] ?? 0 );
+			$guardati = (int) ( $risposta['guardati'] ?? 0 );
+			$finito   = ! empty( $risposta['finito'] );
+			$avanzato = (int) ( $risposta['prossimo'] ?? 0 ) > $offset;
+			$offset   = (int) ( $risposta['prossimo'] ?? 0 );
+		} while ( ! $finito && $avanzato && time() < $scadenza );
+
 		$sicure    = array();
 		$nel_testo = array();
 		$gia       = array();
@@ -63,7 +82,9 @@ class Compressione {
 
 		return array(
 			'soglia'      => (int) ( $risposta['soglia'] ?? $soglia ),
-			'totale'      => (int) ( $risposta['totale'] ?? count( $immagini ) ),
+			'totale'      => $totale,
+			'guardati'    => $guardati,
+			'completo'    => $finito,
 			'sicure'      => $sicure,
 			'nel_testo'   => $nel_testo,
 			'gia_ridotte' => $gia,

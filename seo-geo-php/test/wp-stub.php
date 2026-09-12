@@ -319,6 +319,7 @@ function admin_url( $percorso = '' ) {
 
 // --- Transient (la cache a scadenza di WordPress) --------------------------
 
+define( 'MINUTE_IN_SECONDS', 60 );
 define( 'HOUR_IN_SECONDS', 3600 );
 
 function set_transient( $chiave, $valore, $durata = 0 ) {
@@ -778,6 +779,9 @@ class Stub_Wpdb {
 	}
 
 	public function get_var( $sql ) {
+		// Si contano: una query per immagine e proprio il difetto da evitare.
+		$GLOBALS['wp']['query_fatte'] = ( $GLOBALS['wp']['query_fatte'] ?? 0 ) + 1;
+
 		// Si interpreta solo la query che serve: quante volte il nome del
 		// file compare dentro il contenuto di un articolo non cestinato.
 		if ( ! preg_match( "/post_content LIKE '%(.+)%'/U", $sql, $m ) ) {

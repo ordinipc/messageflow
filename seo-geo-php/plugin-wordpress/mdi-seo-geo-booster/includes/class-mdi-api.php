@@ -372,12 +372,14 @@ class MDI_Api {
 	 * @return WP_REST_Response
 	 */
 	public static function immagini_pesanti( $richiesta ) {
-		global $wpdb;
-
 		$soglia = max( 1024, (int) ( $richiesta->get_param( 'oltre' ) ?: 204800 ) );
-		$limite = min( 200, max( 1, (int) ( $richiesta->get_param( 'limite' ) ?: 100 ) ) );
+		$blocco = min( 400, max( 20, (int) ( $richiesta->get_param( 'blocco' ) ?: 150 ) ) );
 		$offset = max( 0, (int) $richiesta->get_param( 'offset' ) );
 
+		// Gli identificativi costano poco; i file su disco no. Si guarda solo
+		// un blocco per volta e si dice al gestionale da dove riprendere:
+		// leggere tutta la libreria media in una richiesta sola supera il
+		// tempo massimo su qualsiasi hosting condiviso.
 		$ids = get_posts(
 			array(
 				'post_type'      => 'attachment',
@@ -390,9 +392,13 @@ class MDI_Api {
 			)
 		);
 
+		$totale = count( $ids );
+		$fetta  = array_slice( $ids, $offset, $blocco );
+		$usati  = self::nomi_usati_nei_contenuti();
+
 		$pesanti = array();
 
-		foreach ( $ids as $id ) {
+		foreach ( $fetta as $id ) {
 			$file = get_attached_file( $id );
 
 			if ( ! $file || ! file_exists( $file ) ) {
@@ -405,44 +411,96 @@ class MDI_Api {
 				continue;
 			}
 
-			$url = wp_get_attachment_url( $id );
-
-			// Cercare il nome del file, non l URL intero: dentro al contenuto
-			// puo comparire ridimensionato (nome-300x200.png) o con un altro
-			// protocollo, e in entrambi i casi va lasciato stare.
-			$nome = pathinfo( (string) $file, PATHINFO_FILENAME );
-
-			$nel_testo = (int) $wpdb->get_var(
-				$wpdb->prepare(
-					"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status <> 'trash' AND post_content LIKE %s",
-					'%' . $wpdb->esc_like( $nome ) . '.%'
-				)
-			);
+			$nome = strtolower( (string) pathinfo( (string) $file, PATHINFO_FILENAME ) );
 
 			$pesanti[] = array(
 				'wp_id'       => (string) $id,
 				'file'        => basename( (string) $file ),
-				'url'         => $url,
+				'url'         => wp_get_attachment_url( $id ),
 				'mime'        => get_post_mime_type( $id ),
 				'peso'        => $peso,
 				'genitore'    => (string) wp_get_post_parent_id( $id ),
-				'nel_testo'   => $nel_testo > 0,
+				'nel_testo'   => isset( $usati[ $nome ] ),
 				'gia_ridotta' => '' !== (string) get_post_meta( $id, self::META_IMG_PRIMA, true ),
 			);
 		}
 
-		$totale = count( $pesanti );
+		$prossimo = $offset + count( $fetta );
 
 		return rest_ensure_response(
 			array(
-				'ok'         => true,
-				'soglia'     => $soglia,
-				'totale'     => $totale,
-				'comprimibili' => count( array_filter( $pesanti, static function ( $a ) { return ! $a['nel_testo']; } ) ),
-				'offset'     => $offset,
-				'immagini'   => array_slice( $pesanti, $offset, $limite ),
+				'ok'       => true,
+				'soglia'   => $soglia,
+				'totale'   => $totale,
+				'guardati' => $prossimo,
+				'prossimo' => $prossimo,
+				'finito'   => $prossimo >= $totale,
+				'immagini' => $pesanti,
 			)
 		);
+	}
+
+	/**
+	 * Nomi dei file che compaiono dentro il testo dei contenuti.
+	 *
+	 * Una query LIKE per ogni immagine voleva dire, su un archivio con
+	 * duecento immagini pesanti, duecento scansioni complete della tabella
+	 * dei post: la richiesta andava in timeout e la pagina non mostrava
+	 * niente. Qui si legge il contenuto una volta sola, si tirano fuori i
+	 * nomi dei file citati e poi ogni immagine si controlla a colpo sicuro.
+	 *
+	 * Il nome viene ripulito dal suffisso delle copie ridimensionate che
+	 * WordPress genera (foto-300x200.jpg), altrimenti un immagine inserita
+	 * in formato medio sembrerebbe non essere usata da nessuna parte.
+	 *
+	 * @return array Nomi (senza estensione) come chiavi.
+	 */
+	private static function nomi_usati_nei_contenuti() {
+		$in_cache = get_transient( 'mdi_nomi_immagini_usate' );
+
+		if ( is_array( $in_cache ) ) {
+			return $in_cache;
+		}
+
+		$nomi   = array();
+		$offset = 0;
+
+		do {
+			$pagina = get_posts(
+				array(
+					'post_type'      => array( 'post', 'page' ),
+					'post_status'    => array( 'publish', 'draft', 'pending', 'private', 'future' ),
+					'posts_per_page' => 100,
+					'offset'         => $offset,
+					'orderby'        => 'ID',
+					'order'          => 'ASC',
+					'fields'         => 'ids',
+				)
+			);
+
+			foreach ( $pagina as $id ) {
+				$contenuto = (string) get_post_field( 'post_content', $id );
+
+				if ( '' === $contenuto || false === strpos( $contenuto, 'uploads' ) ) {
+					continue;
+				}
+
+				if ( ! preg_match_all( '#/uploads/[^"\')\s]*?([^/"\')\s]+)\.(?:jpe?g|png|webp|gif)#i', $contenuto, $trovati ) ) {
+					continue;
+				}
+
+				foreach ( $trovati[1] as $nome ) {
+					// foto-300x200 e la copia ridimensionata di foto.
+					$nomi[ strtolower( preg_replace( '/-\d+x\d+$/', '', $nome ) ) ] = true;
+				}
+			}
+
+			$offset += count( $pagina );
+		} while ( count( $pagina ) === 100 );
+
+		set_transient( 'mdi_nomi_immagini_usate', $nomi, 5 * MINUTE_IN_SECONDS );
+
+		return $nomi;
 	}
 
 	/**

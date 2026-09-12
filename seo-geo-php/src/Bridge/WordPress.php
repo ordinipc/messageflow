@@ -246,10 +246,10 @@ class WordPress {
 	 * @param int $offset Da quale partire.
 	 * @return array
 	 */
-	public function immaginiPesanti( $oltre = 204800, $limite = 100, $offset = 0 ) {
+	public function immaginiPesanti( $oltre = 204800, $blocco = 150, $offset = 0 ) {
 		return $this->chiama(
 			'GET',
-			'/immagini-pesanti?oltre=' . (int) $oltre . '&limite=' . (int) $limite . '&offset=' . (int) $offset
+			'/immagini-pesanti?oltre=' . (int) $oltre . '&blocco=' . (int) $blocco . '&offset=' . (int) $offset
 		);
 	}
 
