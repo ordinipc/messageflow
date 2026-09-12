@@ -808,6 +808,13 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 					$parametri[] = $ambito;
 				}
 
+				// Solo i contenuti che cambiano davvero. Senza questo filtro
+				// "prova su 5" prendeva i cinque articoli piu lunghi, che quasi
+				// mai sono fra quelli da correggere: il sito rispondeva "5
+				// aggiornati" riscrivendo cinque volte gli stessi valori, e non
+				// si capiva piu che cosa fosse stato toccato.
+				$sql .= Coda::soloDaCambiare();
+
 				$sql .= ' ORDER BY d.tipo DESC, d.parole DESC' . ( $limite ? ' LIMIT ' . $limite : '' );
 
 				$righe = $db->all( $sql, $parametri );
@@ -839,9 +846,20 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 					exit;
 				}
 
+				// Quali contenuti sono stati toccati, non solo quanti: senza
+				// l elenco non c e modo di andare a controllarli su WordPress.
+				Export::scrivi(
+					__DIR__ . '/../storage/export/audit-' . $id . '/applicate-meta.json',
+					json_encode(
+						array( 'quando' => date( 'Y-m-d H:i:s' ), 'ambito' => $ambito, 'righe' => $confronto ),
+						JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+					)
+				);
+
 				$etichetta_ambito = 'post' === $ambito ? ' articoli' : ( 'page' === $ambito ? ' pagine' : ' contenuti' );
 				$messaggio        = "Meta aggiornate su $fatti$etichetta_ambito."
-					. ( $limite ? ' Verifica il risultato sul sito, poi applica il resto.' : '' );
+					. ( $fatti ? ' Apri «Quali ho cambiato» per vedere quali sono e andare a controllarli.' : '' )
+					. ( $limite && $fatti ? ' Poi applica il resto.' : '' );
 				break;
 
 			case 'pilota':
@@ -885,8 +903,12 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 					'meta'          => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
 					'meta_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post'", array( $id ) )['n'],
 					'meta_pagine'   => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'page'", array( $id ) )['n'],
-					'cambi_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post' AND (m.title_cambiato = 1 OR m.description_cambiata = 1)", array( $id ) )['n'],
-					'cambi_pagine'  => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'page' AND (m.title_cambiato = 1 OR m.description_cambiata = 1)", array( $id ) )['n'],
+					// Stessa funzione che decide che cosa spedire davvero: il
+					// numero scritto nella pagina e quello che viene scritto sul
+					// sito devono venire dallo stesso conto, altrimenti si legge
+					// 18 e se ne aggiornano altri.
+					'cambi_articoli' => Coda::metaDaCambiare( $db, $id, 'post' ),
+					'cambi_pagine'  => Coda::metaDaCambiare( $db, $id, 'page' ),
 					'redirect'  => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
 					'categorie' => (int) $db->one( "SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id WHERE r.audit_id = ? AND r.regola = 'TAX-03'", array( $id ) )['n'],
 					'riscritture' => count( Riscrittura::candidati( $db, $id, array() ) ),
@@ -1022,6 +1044,7 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				'righe'    => $righe,
 				'sorgente' => $sorgente,
 				'quando'   => $dal_sito['quando'] ?? '',
+				'fatte'    => false,
 				'solo'     => isset( $_GET['tutti'] ) ? 'tutti' : 'modificati',
 				'tipo'     => in_array( $_GET['tipo'] ?? '', array( 'post', 'page' ), true ) ? $_GET['tipo'] : '',
 			)
@@ -1066,12 +1089,23 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				'errore_stato' => $errore_stato,
 				'esito'        => (string) ( $_GET['esito'] ?? '' ),
 				'errore'       => (string) ( $_GET['errore'] ?? '' ),
+				// Quando e stata scritta l ultima volta la lista delle meta:
+				// serve a offrire il link a "quali contenuti ho cambiato".
+				'applicate'    => ( static function () use ( $id ) {
+					$f = __DIR__ . '/../storage/export/audit-' . $id . '/applicate-meta.json';
+					$d = is_file( $f ) ? json_decode( (string) file_get_contents( $f ), true ) : null;
+					return is_array( $d ) && ! empty( $d['righe'] ) ? (string) ( $d['quando'] ?? '' ) : '';
+				} )(),
 				'conteggi'     => array(
 					'meta'          => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
 					'meta_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post'", array( $id ) )['n'],
 					'meta_pagine'   => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'page'", array( $id ) )['n'],
-					'cambi_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post' AND (m.title_cambiato = 1 OR m.description_cambiata = 1)", array( $id ) )['n'],
-					'cambi_pagine'  => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'page' AND (m.title_cambiato = 1 OR m.description_cambiata = 1)", array( $id ) )['n'],
+					// Stessa funzione che decide che cosa spedire davvero: il
+					// numero scritto nella pagina e quello che viene scritto sul
+					// sito devono venire dallo stesso conto, altrimenti si legge
+					// 18 e se ne aggiornano altri.
+					'cambi_articoli' => Coda::metaDaCambiare( $db, $id, 'post' ),
+					'cambi_pagine'  => Coda::metaDaCambiare( $db, $id, 'page' ),
 					'bozze'     => (int) $db->one( "SELECT COUNT(*) n FROM bozza WHERE audit_id = ? AND stato = 'ok'", array( $id ) )['n'],
 					'redirect'      => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
 					'redirect_slug' => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ? AND slug_cambiato = 1', array( $id ) )['n'],
@@ -1772,8 +1806,12 @@ switch ( $pagina ) {
 					'meta'          => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
 					'meta_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post'", array( $id ) )['n'],
 					'meta_pagine'   => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'page'", array( $id ) )['n'],
-					'cambi_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post' AND (m.title_cambiato = 1 OR m.description_cambiata = 1)", array( $id ) )['n'],
-					'cambi_pagine'  => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'page' AND (m.title_cambiato = 1 OR m.description_cambiata = 1)", array( $id ) )['n'],
+					// Stessa funzione che decide che cosa spedire davvero: il
+					// numero scritto nella pagina e quello che viene scritto sul
+					// sito devono venire dallo stesso conto, altrimenti si legge
+					// 18 e se ne aggiornano altri.
+					'cambi_articoli' => Coda::metaDaCambiare( $db, $id, 'post' ),
+					'cambi_pagine'  => Coda::metaDaCambiare( $db, $id, 'page' ),
 					'redirect'  => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
 					'categorie' => (int) $db->one( "SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id WHERE r.audit_id = ? AND r.regola = 'TAX-03'", array( $id ) )['n'],
 					'riscritture' => count( Riscrittura::candidati( $db, $id, array() ) ),
@@ -1844,7 +1882,13 @@ switch ( $pagina ) {
 			exit( 'Audit non trovato.' );
 		}
 
-		$file      = __DIR__ . '/../storage/export/audit-' . $id . '/anteprima-meta.json';
+		// Con ?applicate=1 si guarda l elenco di quello che e stato scritto davvero
+		// sul sito, non di quello che verrebbe scritto: stesso confronto,
+		// stessa pagina, ma e il registro delle modifiche gia fatte.
+		$fatte = isset( $_GET['applicate'] );
+		$nome  = $fatte ? 'applicate-meta.json' : 'anteprima-meta.json';
+
+		$file      = __DIR__ . '/../storage/export/audit-' . $id . '/' . $nome;
 		$dal_sito  = is_file( $file ) ? json_decode( (string) file_get_contents( $file ), true ) : null;
 		$righe     = array();
 		$sorgente  = 'sito';
@@ -1909,6 +1953,7 @@ switch ( $pagina ) {
 				'righe'    => $righe,
 				'sorgente' => $sorgente,
 				'quando'   => $dal_sito['quando'] ?? '',
+				'fatte'    => $fatte,
 				'solo'     => isset( $_GET['tutti'] ) ? 'tutti' : 'modificati',
 				'tipo'     => in_array( $_GET['tipo'] ?? '', array( 'post', 'page' ), true ) ? $_GET['tipo'] : '',
 			)
@@ -1953,12 +1998,23 @@ switch ( $pagina ) {
 				'errore_stato' => $errore_stato,
 				'esito'        => (string) ( $_GET['esito'] ?? '' ),
 				'errore'       => (string) ( $_GET['errore'] ?? '' ),
+				// Quando e stata scritta l ultima volta la lista delle meta:
+				// serve a offrire il link a "quali contenuti ho cambiato".
+				'applicate'    => ( static function () use ( $id ) {
+					$f = __DIR__ . '/../storage/export/audit-' . $id . '/applicate-meta.json';
+					$d = is_file( $f ) ? json_decode( (string) file_get_contents( $f ), true ) : null;
+					return is_array( $d ) && ! empty( $d['righe'] ) ? (string) ( $d['quando'] ?? '' ) : '';
+				} )(),
 				'conteggi'     => array(
 					'meta'          => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ?', array( $id ) )['n'],
 					'meta_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post'", array( $id ) )['n'],
 					'meta_pagine'   => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'page'", array( $id ) )['n'],
-					'cambi_articoli' => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'post' AND (m.title_cambiato = 1 OR m.description_cambiata = 1)", array( $id ) )['n'],
-					'cambi_pagine'  => (int) $db->one( "SELECT COUNT(*) n FROM meta_piano m JOIN documento d ON d.id = m.documento_id WHERE m.audit_id = ? AND d.tipo = 'page' AND (m.title_cambiato = 1 OR m.description_cambiata = 1)", array( $id ) )['n'],
+					// Stessa funzione che decide che cosa spedire davvero: il
+					// numero scritto nella pagina e quello che viene scritto sul
+					// sito devono venire dallo stesso conto, altrimenti si legge
+					// 18 e se ne aggiornano altri.
+					'cambi_articoli' => Coda::metaDaCambiare( $db, $id, 'post' ),
+					'cambi_pagine'  => Coda::metaDaCambiare( $db, $id, 'page' ),
 					'bozze'     => (int) $db->one( "SELECT COUNT(*) n FROM bozza WHERE audit_id = ? AND stato = 'ok'", array( $id ) )['n'],
 					'redirect'      => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
 					'redirect_slug' => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ? AND slug_cambiato = 1', array( $id ) )['n'],

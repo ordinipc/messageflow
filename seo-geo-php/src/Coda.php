@@ -71,9 +71,13 @@ class Coda {
 	 * cambiando. Il confronto è con quello che il sito aveva quando è stato
 	 * letto l ultima volta.
 	 *
+	 * Serve anche al pulsante "Applica sul sito", non solo al pilota: i due
+	 * percorsi devono toccare esattamente gli stessi contenuti, altrimenti il
+	 * numero mostrato nella pagina e quello che viene scritto non coincidono.
+	 *
 	 * @return string
 	 */
-	private static function soloDaCambiare() {
+	public static function soloDaCambiare() {
 		return " AND ( TRIM(COALESCE(m.title_nuovo, '')) <> TRIM(COALESCE(d.seo_title, ''))
 				  OR TRIM(COALESCE(m.description_nuova, '')) <> TRIM(COALESCE(d.seo_description, '')) )";
 	}

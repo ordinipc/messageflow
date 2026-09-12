@@ -7,6 +7,7 @@
  * @var array  $righe    Confronto per contenuto.
  * @var string $sorgente 'sito' se letto dal plugin, 'export' se dal database.
  * @var string $quando   Data dell anteprima.
+ * @var bool   $fatte    Vero se sono modifiche gia scritte sul sito.
  * @var string $solo     'modificati' oppure 'tutti'.
  * @var string $tipo     Filtro sul tipo di contenuto.
  */
@@ -43,10 +44,12 @@ if ( $tipo ) {
 
 ?>
 <section class="intestazione">
-	<p class="briciole"><a href="?p=home">Audit archiviati</a> › <a href="?p=audit&amp;id=<?php echo (int) $audit['id']; ?>"><?php echo e( $audit['sito_nome'] ); ?></a> › <a href="?p=collega&amp;id=<?php echo (int) $audit['id']; ?>">Applica sul sito</a> › Anteprima</p>
-	<h1>Anteprima delle modifiche</h1>
+	<p class="briciole"><a href="?p=home">Audit archiviati</a> › <a href="?p=audit&amp;id=<?php echo (int) $audit['id']; ?>"><?php echo e( $audit['sito_nome'] ); ?></a> › <a href="?p=collega&amp;id=<?php echo (int) $audit['id']; ?>">Applica sul sito</a> › <?php echo $fatte ? 'Quali ho cambiato' : 'Anteprima'; ?></p>
+	<h1><?php echo $fatte ? 'Quali contenuti ho cambiato' : 'Anteprima delle modifiche'; ?></h1>
 	<p class="guida">
-		<?php if ( 'sito' === $sorgente ) : ?>
+		<?php if ( $fatte ) : ?>
+			Scritto sul sito il <?php echo e( substr( $quando, 0, 16 ) ); ?>: a sinistra quello che c'era su WordPress prima, a destra quello che c'è adesso. Apri i contenuti elencati qui sotto e controllali. Se qualcosa non va, «Annulla tutto e ripristina» in <a href="?p=collega&amp;id=<?php echo (int) $audit['id']; ?>">Applica sul sito</a> rimette i valori di sinistra.
+		<?php elseif ( 'sito' === $sorgente ) : ?>
 			Confronto letto dal sito il <?php echo e( substr( $quando, 0, 16 ) ); ?>: a sinistra quello che c'è ora su WordPress, a destra quello che verrà scritto. <strong>Il sito non è stato modificato.</strong>
 		<?php else : ?>
 			Confronto calcolato dall'export: a sinistra i valori al momento dell'analisi, a destra quelli ottimizzati. Per leggere lo stato attuale del sito lancia l'anteprima da <a href="?p=collega&amp;id=<?php echo (int) $audit['id']; ?>">Applica sul sito</a>.
@@ -56,9 +59,9 @@ if ( $tipo ) {
 
 <div class="riquadri">
 	<div class="riquadro">
-		<span class="etichetta">Contenuti che cambiano</span>
+		<span class="etichetta"><?php echo $fatte ? 'Contenuti cambiati' : 'Contenuti che cambiano'; ?></span>
 		<strong><?php echo num( count( $modificate ) ); ?></strong>
-		<span class="sotto">su <?php echo num( count( $righe ) ); ?> analizzati</span>
+		<span class="sotto">su <?php echo num( count( $righe ) ); ?> <?php echo $fatte ? 'inviati' : 'analizzati'; ?></span>
 	</div>
 	<?php foreach ( array( 'Title SEO', 'Meta description', 'Estratto' ) as $campo ) : ?>
 		<div class="riquadro">

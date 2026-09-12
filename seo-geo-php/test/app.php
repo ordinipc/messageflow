@@ -786,6 +786,117 @@ verifica(
 	'Agenzia web a Palermo: siti che portano clienti' === \SeoGeo\Text::polishClause( 'Agenzia web a Palermo: siti che portano clienti' )
 );
 
+echo "\nQuali contenuti vengono spediti al sito\n";
+
+// Il pulsante "Applica" e il pilota automatico devono toccare esattamente gli
+// stessi contenuti. Finche il pulsante non filtrava, "prova su 5" prendeva i
+// cinque articoli piu lunghi - quasi mai fra quelli da correggere - e il sito
+// rispondeva "5 aggiornati" riscrivendo cinque volte gli stessi valori.
+
+$fileSped = sys_get_temp_dir() . '/seo-spedizione-' . getmypid() . '.sqlite';
+@unlink( $fileSped );
+$dbS = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileSped ) );
+
+$auditS = $dbS->insert(
+	'audit',
+	array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => date( 'Y-m-d H:i:s' ), 'punteggio' => 50 )
+);
+
+// Dieci articoli. I due da correggere sono i piu corti, cosi l ordinamento
+// per lunghezza (quello vero del pulsante) non li mette per primi.
+foreach ( range( 1, 10 ) as $i ) {
+	$cambia = in_array( $i, array( 4, 9 ), true );
+
+	$doc = $dbS->insert(
+		'documento',
+		array(
+			'audit_id'     => $auditS,
+			'wp_id'        => (string) ( 100 + $i ),
+			'titolo'       => 'Articolo ' . $i,
+			'percorso'     => '/a' . $i . '/',
+			'tipo'         => 'post',
+			'stato'        => 'publish',
+			'parole'       => $cambia ? 100 : 5000,
+			'seo_title'    => $cambia ? 'Titolo tagliato a' : 'Titolo gia a posto ' . $i,
+			'seo_description' => 'Descrizione ' . $i,
+		)
+	);
+
+	$dbS->insert(
+		'meta_piano',
+		array(
+			'audit_id'          => $auditS,
+			'documento_id'      => $doc,
+			'title_nuovo'       => $cambia ? 'Titolo rifatto per bene ' . $i : 'Titolo gia a posto ' . $i,
+			'description_nuova' => 'Descrizione ' . $i,
+		)
+	);
+}
+
+verifica(
+	'il conto dice quanti articoli cambiano davvero',
+	2 === \SeoGeo\Coda::metaDaCambiare( $dbS, $auditS, 'post' ),
+	(string) \SeoGeo\Coda::metaDaCambiare( $dbS, $auditS, 'post' )
+);
+
+// La query del pulsante, identica a quella di public/index.php.
+$queryPulsante = static function ( $limite ) use ( $dbS, $auditS ) {
+	return $dbS->all(
+		'SELECT d.wp_id AS id, m.title_nuovo AS title
+		 FROM meta_piano m JOIN documento d ON d.id = m.documento_id
+		 WHERE m.audit_id = ? AND d.tipo = ?' . \SeoGeo\Coda::soloDaCambiare()
+		 . ' ORDER BY d.tipo DESC, d.parole DESC' . ( $limite ? ' LIMIT ' . (int) $limite : '' ),
+		array( $auditS, 'post' )
+	);
+};
+
+$tutti = $queryPulsante( 0 );
+
+verifica(
+	'"applica a tutti" spedisce solo quelli da correggere, non tutti e dieci',
+	2 === count( $tutti ),
+	count( $tutti ) . ' spediti'
+);
+
+$idsSpediti = array_map( static fn( $r ) => (int) $r['id'], $tutti );
+sort( $idsSpediti );
+
+verifica(
+	'e sono proprio quei due',
+	array( 104, 109 ) === $idsSpediti,
+	implode( ', ', $idsSpediti )
+);
+
+$cinque = $queryPulsante( 5 );
+
+verifica(
+	'"prova su 5" pesca fra quelli da correggere, non fra gli articoli piu lunghi',
+	count( $cinque ) > 0 && count( $cinque ) <= 2,
+	count( $cinque ) . ' spediti'
+);
+
+$idsCinque = array_map( static fn( $r ) => (int) $r['id'], $cinque );
+
+verifica(
+	'e nessun articolo gia a posto finisce nella prova',
+	array() === array_diff( $idsCinque, array( 104, 109 ) ),
+	implode( ', ', $idsCinque )
+);
+
+// Il numero scritto nella pagina e quello che viene spedito devono venire
+// dallo stesso conto: altrimenti si legge 18 e se ne aggiornano 311.
+verifica(
+	'il numero mostrato e il numero spedito coincidono',
+	\SeoGeo\Coda::metaDaCambiare( $dbS, $auditS, 'post' ) === count( $tutti )
+);
+
+verifica(
+	'le pagine restano fuori dal conto degli articoli',
+	0 === \SeoGeo\Coda::metaDaCambiare( $dbS, $auditS, 'page' )
+);
+
+@unlink( $fileSped );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

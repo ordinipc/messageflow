@@ -131,14 +131,21 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 			hanno title o description da correggere. Prima di scrivere, il plugin mette da parte i valori
 			attuali: l'operazione si può annullare.
 		</p>
-		<p class="nota">Il modo sensato di procedere: <strong>anteprima</strong> per leggere il confronto, poi <strong>prova su 5</strong> e controlla su WordPress, infine applica a tutti.</p>
+		<p class="nota">Il modo sensato di procedere: <strong>anteprima</strong> per leggere il confronto, poi <strong>prova su 5</strong> e controlla su WordPress, infine applica agli altri. Vengono inviati solo i <?php echo num( $conteggi['cambi_articoli'] ); ?> che cambiano: gli altri non vengono toccati.</p>
 
 		<div class="azioni">
 			<?php azione( $audit['id'], 'meta_anteprima', 'Anteprima', '', 'bottone chiaro', null, array( 'ambito' => 'post' ) ); ?>
 			<a class="bottone chiaro" href="?p=anteprima&amp;id=<?php echo (int) $audit['id']; ?>">Vedi il confronto</a>
-			<?php azione( $audit['id'], 'meta', 'Prova su 5 articoli', 'Applicare le meta ai primi 5 articoli?', 'bottone chiaro', 5, array( 'ambito' => 'post' ) ); ?>
-			<?php azione( $audit['id'], 'meta', 'Applica a tutti gli articoli', 'Applicare le meta ottimizzate a ' . $conteggi['meta_articoli'] . ' articoli? I valori attuali verranno conservati.', 'bottone', null, array( 'ambito' => 'post' ) ); ?>
+			<?php azione( $audit['id'], 'meta', 'Prova su 5 articoli', 'Applicare le meta ai primi 5 dei ' . $conteggi['cambi_articoli'] . ' articoli da correggere?', 'bottone chiaro', 5, array( 'ambito' => 'post' ) ); ?>
+			<?php azione( $audit['id'], 'meta', 'Applica a tutti gli articoli', 'Applicare le meta ottimizzate ai ' . $conteggi['cambi_articoli'] . ' articoli da correggere? I valori attuali verranno conservati.', 'bottone', null, array( 'ambito' => 'post' ) ); ?>
 		</div>
+
+		<?php if ( ! empty( $applicate ) ) : ?>
+			<p class="nota">
+				Ultima scrittura sul sito: <?php echo e( substr( $applicate, 0, 16 ) ); ?> —
+				<a href="?p=anteprima&amp;applicate=1&amp;id=<?php echo (int) $audit['id']; ?>">quali contenuti ho cambiato</a>
+			</p>
+		<?php endif; ?>
 	</section>
 
 	<section class="scheda">
@@ -151,7 +158,7 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 
 		<div class="azioni">
 			<?php azione( $audit['id'], 'meta_anteprima', 'Anteprima delle pagine', '', 'bottone chiaro', null, array( 'ambito' => 'page' ) ); ?>
-			<?php azione( $audit['id'], 'meta', 'Applica alle pagine', 'Applicare le meta alle ' . $conteggi['meta_pagine'] . ' pagine?', 'bottone chiaro', null, array( 'ambito' => 'page' ) ); ?>
+			<?php azione( $audit['id'], 'meta', 'Applica alle pagine', 'Applicare le meta alle ' . $conteggi['cambi_pagine'] . ' pagine da correggere?', 'bottone chiaro', null, array( 'ambito' => 'page' ) ); ?>
 		</div>
 	</section>
 
