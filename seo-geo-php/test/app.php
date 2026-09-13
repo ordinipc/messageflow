@@ -1555,6 +1555,49 @@ verifica(
 	false !== strpos( (string) file_get_contents( __DIR__ . '/../views/layout.php' ), 'Versione::NUMERO' )
 );
 
+echo "\nNote del modello e stato delle bozze\n";
+
+// Nell elenco delle bozze compariva la parola "Array" al posto delle note.
+// Nel modo "migliora" si chiede un elenco di cosa e stato cambiato, e il
+// modello risponde con un elenco vero: salvato con un cast a stringa
+// diventava "Array".
+verifica(
+	'un elenco di note diventa una riga leggibile',
+	'Aggiunta la sintesi · Sistemati i titoli' === \SeoGeo\Ai\Rewriter::note( array( 'Aggiunta la sintesi', 'Sistemati i titoli' ) ),
+	\SeoGeo\Ai\Rewriter::note( array( 'Aggiunta la sintesi', 'Sistemati i titoli' ) )
+);
+
+verifica(
+	'e non compare mai la parola Array',
+	false === strpos( \SeoGeo\Ai\Rewriter::note( array( 'una', array( 'annidata', 'dentro' ) ) ), 'Array' ),
+	\SeoGeo\Ai\Rewriter::note( array( 'una', array( 'annidata', 'dentro' ) ) )
+);
+
+verifica( 'una nota normale resta com era', 'Ho sistemato i titoli.' === \SeoGeo\Ai\Rewriter::note( 'Ho sistemato i titoli.' ) );
+verifica( 'le voci vuote non lasciano separatori a vuoto', 'sola' === \SeoGeo\Ai\Rewriter::note( array( '', 'sola', '  ' ) ) );
+
+$sorgenteRiscritturaNote = (string) file_get_contents( __DIR__ . '/../src/Ai/Rewriter.php' );
+
+verifica(
+	'le note passano sempre da li, in tutte e due le strade',
+	2 === substr_count( $sorgenteRiscritturaNote, "self::note( \$dati['note'] ?? '' )" )
+);
+
+// Una riga di errore che resta accanto a una bozza riuscita racconta una
+// cosa che non e piu vera.
+verifica(
+	'una bozza riuscita toglie l errore di prima',
+	2 === substr_count( $sorgenteRiscritturaNote, "DELETE FROM bozza WHERE audit_id = ? AND documento_id = ? AND stato <> 'ok'" )
+);
+
+$vistaBozzeStato = (string) file_get_contents( __DIR__ . '/../views/bozze.php' );
+
+verifica(
+	'l elenco distingue le bozze gia scritte sul sito',
+	false !== strpos( $vistaBozzeStato, "\$online = 'ok' === \$b['stato'] && ! empty( \$b['inviata_il'] )" )
+		&& false !== strpos( $vistaBozzeStato, 'scritta sul sito' )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

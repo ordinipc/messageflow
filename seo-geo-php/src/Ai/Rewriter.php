@@ -93,6 +93,36 @@ class Rewriter {
 	}
 
 	/**
+	 * Le note del modello ridotte a una riga leggibile.
+	 *
+	 * Nel modo "migliora" si chiede un elenco di cosa e stato cambiato, e il
+	 * modello risponde con un elenco vero: un array. Salvato con un cast a
+	 * stringa diventava la parola "Array", che e quello che compariva nella
+	 * tabella delle bozze.
+	 *
+	 * @param mixed $note Quello che ha risposto il modello.
+	 * @return string
+	 */
+	public static function note( $note ) {
+		if ( is_array( $note ) ) {
+			$righe = array();
+
+			foreach ( $note as $voce ) {
+				$voce = is_array( $voce ) ? implode( ' ', array_map( 'strval', $voce ) ) : (string) $voce;
+				$voce = trim( $voce );
+
+				if ( '' !== $voce ) {
+					$righe[] = $voce;
+				}
+			}
+
+			return implode( ' · ', $righe );
+		}
+
+		return trim( (string) $note );
+	}
+
+	/**
 	 * Problemi che l audit ha trovato su questa pagina.
 	 *
 	 * Sono la sola ragione per cui il testo viene toccato: senza l elenco il
@@ -235,6 +265,15 @@ class Rewriter {
 
 				$nome_file = $a['slug'] . '.html';
 
+				// Un tentativo fallito in precedenza ha lasciato una riga di
+				// errore: adesso che la bozza c e, quella riga racconta una
+				// cosa che non e piu vera e va tolta, altrimenti nell elenco
+				// resta un ERRORE accanto a una bozza riuscita.
+				$db->run(
+					"DELETE FROM bozza WHERE audit_id = ? AND documento_id = ? AND stato <> 'ok'",
+					array( $auditId, (int) $a['doc_id'] )
+				);
+
 				$db->insert(
 					'bozza',
 					array(
@@ -250,7 +289,7 @@ class Rewriter {
 						'corpo_html'       => $corpo,
 						'faq'              => json_encode( $dati['faq'] ?? array(), JSON_UNESCAPED_UNICODE ),
 						'da_verificare'    => json_encode( $dati['da_verificare'] ?? array(), JSON_UNESCAPED_UNICODE ),
-						'note'             => (string) ( $dati['note'] ?? '' ),
+						'note'             => self::note( $dati['note'] ?? '' ),
 						'parole'           => $parole,
 						'token_in'         => 0,
 						'token_out'        => 0,
@@ -263,6 +302,12 @@ class Rewriter {
 				file_put_contents( $cartella . '/' . $nome_file, self::fileBozza( $dati, $a, $modello ) );
 				$fatte++;
 			} catch ( Throwable $e ) {
+				// Una riga di errore per contenuto, non una per tentativo.
+				$db->run(
+					"DELETE FROM bozza WHERE audit_id = ? AND documento_id = ? AND stato <> 'ok'",
+					array( $auditId, (int) $a['doc_id'] )
+				);
+
 				$db->insert(
 					'bozza',
 					array(
@@ -440,7 +485,7 @@ class Rewriter {
 						'faq'              => json_encode( $dati['faq'] ?? array(), JSON_UNESCAPED_UNICODE ),
 						'da_verificare'    => json_encode( $dati['da_verificare'] ?? array(), JSON_UNESCAPED_UNICODE ),
 						'note'             => 'Accorpa ' . count( $gruppo['assorbiti'] ) . ' articoli: ' . $titoli_assorbiti
-							. '. ' . (string) ( $dati['note'] ?? '' ),
+							. '. ' . self::note( $dati['note'] ?? '' ),
 						'parole'           => Text::wordCount( Html::stripTags( $corpo ) ),
 						'token_in'         => 0,
 						'token_out'        => 0,

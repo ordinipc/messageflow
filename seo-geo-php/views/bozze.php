@@ -167,13 +167,26 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 			<tbody>
 			<?php foreach ( $bozze as $b ) : ?>
 				<?php $verifiche = json_decode( (string) $b['da_verificare'], true ) ?: array(); ?>
+				<?php
+				// Tre stati, non due: una bozza gia scritta sul sito non e la
+				// stessa cosa di una ancora da decidere, e senza distinguerle
+				// non si sa piu che cosa si e gia messo online.
+				$online = 'ok' === $b['stato'] && ! empty( $b['inviata_il'] );
+				$stato  = 'ok' !== $b['stato'] ? 'errore' : ( $online ? 'online' : 'pronta' );
+				?>
 				<tr>
-					<td><span class="tag <?php echo 'ok' === $b['stato'] ? 'ok' : 'grave'; ?>"><?php echo 'ok' === $b['stato'] ? 'pronta' : 'errore'; ?></span></td>
+					<td><span class="tag <?php echo 'errore' === $stato ? 'grave' : 'ok'; ?>"><?php echo e( $stato ); ?></span></td>
 					<td>
 						<strong><?php echo e( $b['titolo'] ); ?></strong>
 						<div class="sotto">
 							<?php if ( 'ok' === $b['stato'] ) : ?>
-								da <?php echo num( $b['parole_originali'] ); ?> a <?php echo num( $b['parole'] ); ?> parole · <?php echo e( $b['note'] ); ?>
+								da <?php echo num( $b['parole_originali'] ); ?> a <?php echo num( $b['parole'] ); ?> parole
+								<?php if ( $online ) : ?>
+									· <strong>scritta sul sito</strong> il <?php echo e( substr( (string) $b['inviata_il'], 0, 16 ) ); ?>
+								<?php endif; ?>
+								<?php if ( '' !== trim( (string) $b['note'] ) ) : ?>
+									· <?php echo e( $b['note'] ); ?>
+								<?php endif; ?>
 							<?php else : ?>
 								<?php echo e( $b['errore'] ); ?>
 							<?php endif; ?>
