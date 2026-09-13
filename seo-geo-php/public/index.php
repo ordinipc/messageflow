@@ -753,23 +753,40 @@ if ( 'confronto-bozze' === $pagina ) {
 
 	$ponte = new WordPress( $cfg['wordpress'] );
 
+	$righe_confronto = $db->all(
+		"SELECT b.id, b.titolo, b.corpo_html, b.in_breve, b.meta_title, b.meta_description,
+				b.inviata_il, d.wp_id, d.url, d.titolo AS titolo_vecchio, d.testo AS testo_vecchio,
+				d.parole AS parole_vecchie, d.seo_title, d.seo_description
+		 FROM bozza b JOIN documento d ON d.id = b.documento_id
+		 WHERE b.audit_id = ? AND b.stato = 'ok'
+		 ORDER BY b.id DESC",
+		array( $id )
+	);
+
+	// Quali contenuti li disegna un costruttore visuale: va saputo PRIMA di
+	// premere "sovrascrivi", non dopo aver guardato un articolo convinti che
+	// fosse cambiato.
+	$costruttori = array();
+
+	if ( $righe_confronto && $ponte->pronto() ) {
+		try {
+			$risposta    = $ponte->costruttori( array_map( static fn( $r ) => (int) $r['wp_id'], $righe_confronto ) );
+			$costruttori = (array) ( $risposta['costruttori'] ?? array() );
+		} catch ( Throwable $e ) {
+			$costruttori = array();
+		}
+	}
+
 	vista(
 		'confronto-bozze',
 		array(
 			'titolo' => 'Vecchio e nuovo',
 			'audit'  => $audit,
 			'pronto' => $ponte->pronto(),
+			'costruttori' => $costruttori,
 			'esito'  => (string) ( $_GET['esito'] ?? '' ),
 			'errore' => (string) ( $_GET['errore'] ?? '' ),
-			'righe'  => $db->all(
-				"SELECT b.id, b.titolo, b.corpo_html, b.in_breve, b.meta_title, b.meta_description,
-						b.inviata_il, d.wp_id, d.url, d.titolo AS titolo_vecchio, d.testo AS testo_vecchio,
-						d.parole AS parole_vecchie, d.seo_title, d.seo_description
-				 FROM bozza b JOIN documento d ON d.id = b.documento_id
-				 WHERE b.audit_id = ? AND b.stato = 'ok'
-				 ORDER BY b.id DESC",
-				array( $id )
-			),
+			'righe'  => $righe_confronto,
 		)
 	);
 

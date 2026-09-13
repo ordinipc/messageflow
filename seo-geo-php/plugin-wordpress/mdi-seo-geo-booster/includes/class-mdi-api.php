@@ -162,6 +162,11 @@ class MDI_Api {
 			'callback' => array( __CLASS__, 'cestina' ),
 		) );
 
+		register_rest_route( self::NAMESPACE_API, '/costruttori', $comune + array(
+			'methods'  => 'POST',
+			'callback' => array( __CLASS__, 'costruttori' ),
+		) );
+
 		register_rest_route( self::NAMESPACE_API, '/sovrascrivi', $comune + array(
 			'methods'  => 'POST',
 			'callback' => array( __CLASS__, 'sovrascrivi' ),
@@ -1268,6 +1273,25 @@ class MDI_Api {
 			return new WP_Error( 'mdi_contenuto_vuoto', 'Nessun contenuto da scrivere.', array( 'status' => 400 ) );
 		}
 
+		// Se la pagina la disegna un costruttore visuale, quello che si vede
+		// non viene da post_content ma dai dati del costruttore. Scrivere in
+		// post_content riuscirebbe senza errori e non cambierebbe niente di
+		// visibile: il titolo cambia, il testo no. Meglio rifiutare che far
+		// credere fatto un lavoro che non si vede.
+		$costruttore = self::costruttore( $id );
+
+		if ( '' !== $costruttore && ! $richiesta->get_param( 'forza' ) ) {
+			return new WP_Error(
+				'mdi_costruttore_visuale',
+				sprintf(
+					'Questo contenuto e costruito con %s: il testo che si vede non sta in post_content, quindi sovrascriverlo non cambierebbe la pagina. '
+					. 'Il testo nuovo va incollato dentro al costruttore.',
+					$costruttore
+				),
+				array( 'status' => 409, 'costruttore' => $costruttore )
+			);
+		}
+
 		// La copia si scrive una volta sola: se si sovrascrive due volte, la
 		// copia deve restare quella del testo originale, non della versione
 		// intermedia, altrimenti l annulla riporta a meta strada.
@@ -1341,6 +1365,74 @@ class MDI_Api {
 				'indirizzo' => get_permalink( $id ),
 			)
 		);
+	}
+
+	/**
+	 * Per ognuno degli id, quale costruttore visuale lo disegna.
+	 *
+	 * Serve a dirlo PRIMA che qualcuno prema "sovrascrivi": scoprirlo dopo
+	 * significa aver guardato un articolo convinti che fosse cambiato.
+	 *
+	 * @param WP_REST_Request $richiesta Richiesta con 'ids'.
+	 * @return WP_REST_Response
+	 */
+	public static function costruttori( $richiesta ) {
+		$esito = array();
+
+		foreach ( (array) $richiesta->get_param( 'ids' ) as $id ) {
+			$id = (int) $id;
+
+			if ( ! $id ) {
+				continue;
+			}
+
+			$esito[ (string) $id ] = self::costruttore( $id );
+		}
+
+		return rest_ensure_response( array( 'ok' => true, 'costruttori' => $esito ) );
+	}
+
+	/**
+	 * Quale costruttore visuale disegna questo contenuto, se ce n e uno.
+	 *
+	 * Su un sito costruito cosi, post_content e un residuo: la pagina si
+	 * compone dai dati del costruttore. Una riscrittura scritta in
+	 * post_content non darebbe nessun errore e non si vedrebbe da nessuna
+	 * parte - ed e esattamente quello che e successo prima che questo
+	 * controllo esistesse.
+	 *
+	 * @param int $id Contenuto.
+	 * @return string Nome del costruttore, vuoto se il contenuto e normale.
+	 */
+	public static function costruttore( $id ) {
+		$id = (int) $id;
+
+		// Elementor: renderizza dai propri dati quando la modalita e
+		// "builder". Il campo dati da solo puo restare da una prova, quindi
+		// contano tutti e due.
+		$dati_elementor = get_post_meta( $id, '_elementor_data', true );
+		$modo_elementor = (string) get_post_meta( $id, '_elementor_edit_mode', true );
+
+		if ( $dati_elementor && ( 'builder' === $modo_elementor || '' === $modo_elementor ) ) {
+			return 'Elementor';
+		}
+
+		$altri = array(
+			'_et_pb_use_builder' => 'Divi',
+			'panels_data'        => 'SiteOrigin Page Builder',
+			'_fl_builder_enabled' => 'Beaver Builder',
+			'_wpb_vc_js_status'  => 'WPBakery',
+			'ct_builder_shortcodes' => 'Oxygen',
+			'_brizy'             => 'Brizy',
+		);
+
+		foreach ( $altri as $chiave => $nome ) {
+			if ( get_post_meta( $id, $chiave, true ) ) {
+				return $nome;
+			}
+		}
+
+		return '';
 	}
 
 	/**

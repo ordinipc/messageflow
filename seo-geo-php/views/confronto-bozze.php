@@ -6,11 +6,27 @@
  * @var array  $audit  Riga audit.
  * @var array  $righe  Bozze con il contenuto attuale del sito.
  * @var bool   $pronto Collegamento a WordPress configurato.
+ * @var array  $costruttori wp_id => costruttore visuale che disegna il contenuto.
  * @var string $esito  Messaggio.
  * @var string $errore Errore.
  */
 
-$da_inviare = array_values( array_filter( $righe, static fn( $r ) => empty( $r['inviata_il'] ) ) );
+// Un contenuto disegnato da un costruttore visuale non si puo sovrascrivere:
+// il testo che si vede non sta in post_content, quindi scriverci dentro
+// riesce senza errori e non cambia niente. Vanno esclusi qui, non scoperti
+// dopo aver guardato l articolo convinti che fosse cambiato.
+$con_costruttore = static function ( $riga ) use ( $costruttori ) {
+	return (string) ( $costruttori[ (string) $riga['wp_id'] ] ?? '' );
+};
+
+$da_inviare = array_values(
+	array_filter(
+		$righe,
+		static fn( $r ) => empty( $r['inviata_il'] ) && '' === $con_costruttore( $r )
+	)
+);
+
+$bloccate = array_values( array_filter( $righe, static fn( $r ) => '' !== $con_costruttore( $r ) ) );
 ?>
 <section class="intestazione">
 	<p class="briciole"><a href="?p=home">Audit archiviati</a> › <a href="?p=audit&amp;id=<?php echo (int) $audit['id']; ?>"><?php echo e( $audit['sito_nome'] ); ?></a> › <a href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>">Riscrittura</a> › Vecchio e nuovo</p>
@@ -39,8 +55,20 @@ $da_inviare = array_values( array_filter( $righe, static fn( $r ) => empty( $r['
 <section class="scheda">
 	<p class="guida">
 		<strong><?php echo num( count( $da_inviare ) ); ?></strong> da inviare ·
-		<?php echo num( count( $righe ) - count( $da_inviare ) ); ?> già online
+		<?php echo num( count( array_filter( $righe, static fn( $r ) => ! empty( $r['inviata_il'] ) ) ) ); ?> già online
+		<?php if ( $bloccate ) : ?>
+			· <strong><?php echo num( count( $bloccate ) ); ?> non sovrascrivibili</strong>
+		<?php endif; ?>
 	</p>
+	<?php if ( $bloccate ) : ?>
+		<p class="nota">
+			<?php echo num( count( $bloccate ) ); ?> contenuti sono disegnati con
+			<strong><?php echo e( $con_costruttore( $bloccate[0] ) ); ?></strong>: il testo che si vede non sta nel
+			contenuto di WordPress ma dentro al costruttore, quindi sovrascriverlo cambierebbe
+			il titolo e nient'altro. Per quelli il testo nuovo va incollato a mano nel costruttore —
+			apri la bozza, copia, e incolla nel blocco di testo.
+		</p>
+	<?php endif; ?>
 	<?php if ( $pronto && $da_inviare ) : ?>
 		<div class="azioni">
 			<button class="bottone" type="button" id="invia-tutte">Sovrascrivi tutte le <?php echo (int) count( $da_inviare ); ?></button>
@@ -79,10 +107,12 @@ $da_inviare = array_values( array_filter( $righe, static fn( $r ) => empty( $r['
 
 		<div class="azioni">
 			<a class="bottone chiaro" href="?p=bozza&amp;b=<?php echo (int) $riga['id']; ?>">Apri la bozza intera</a>
-			<?php if ( $pronto ) : ?>
+			<?php if ( $pronto && '' === $con_costruttore( $riga ) ) : ?>
 				<button class="bottone invia-una" type="button" data-bozza="<?php echo (int) $riga['id']; ?>">
 					<?php echo empty( $riga['inviata_il'] ) ? 'Sovrascrivi questo articolo' : 'Riscrivi di nuovo'; ?>
 				</button>
+			<?php elseif ( $pronto ) : ?>
+				<span class="nota"><strong>Da incollare a mano in <?php echo e( $con_costruttore( $riga ) ); ?>:</strong> sovrascrivere cambierebbe solo il titolo.</span>
 			<?php endif; ?>
 			<span class="nota esito-una"></span>
 		</div>

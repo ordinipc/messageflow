@@ -262,6 +262,16 @@ class WordPress {
 	}
 
 	/**
+	 * Per ognuno degli id, quale costruttore visuale disegna il contenuto.
+	 *
+	 * @param array $ids Contenuti su WordPress.
+	 * @return array
+	 */
+	public function costruttori( array $ids ) {
+		return $this->chiama( 'POST', '/costruttori', array( 'ids' => array_values( $ids ) ) );
+	}
+
+	/**
 	 * Immagini della libreria media che pesano piu della soglia.
 	 *
 	 * @param int $oltre  Soglia in byte.

@@ -770,6 +770,40 @@ verifica(
 	is_wp_error( MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 970, 'contenuto' => '   ' ) ) ) )
 );
 
+// Il caso vero: su 328 contenuti del sito, 271 hanno _elementor_data. Il
+// testo che si vede lo compone Elementor, non post_content. Sovrascrivere
+// riusciva senza errori e cambiava solo il titolo: un lavoro che sembrava
+// fatto e non si vedeva da nessuna parte.
+stub_crea_post( 980, 'Articolo con Elementor', '<p>Residuo in post_content.</p>' );
+update_post_meta( 980, '_elementor_data', '[{"elType":"section"}]' );
+
+verifica( 'un contenuto con Elementor viene riconosciuto', 'Elementor' === MDI_Api::costruttore( 980 ) );
+verifica( 'e uno normale no', '' === MDI_Api::costruttore( 970 ), MDI_Api::costruttore( 970 ) );
+
+$rifiutato = MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 980, 'contenuto' => '<p>Testo nuovo.</p>' ) ) );
+
+verifica( 'sovrascriverlo viene rifiutato invece di non fare niente', is_wp_error( $rifiutato ) );
+verifica(
+	'e il motivo dice che il testo sta nel costruttore',
+	is_wp_error( $rifiutato ) && false !== stripos( $rifiutato->get_error_message(), 'Elementor' ),
+	is_wp_error( $rifiutato ) ? $rifiutato->get_error_message() : ''
+);
+verifica( 'e il titolo non viene toccato', 'Articolo con Elementor' === get_post( 980 )->post_title );
+
+// Chi sa quello che fa deve poterlo forzare lo stesso.
+$forzato = MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 980, 'contenuto' => '<p>Testo nuovo.</p>', 'forza' => 1 ) ) );
+
+verifica( 'ma si puo forzare sapendo cosa si fa', ! is_wp_error( $forzato ) );
+
+// L elenco in blocco: serve a dirlo prima di premere il pulsante.
+$elencoCostruttori = MDI_Api::costruttori( new WP_REST_Request( array( 'ids' => array( 970, 980 ) ) ) );
+
+verifica( 'l elenco in blocco distingue i due casi',
+	'Elementor' === ( $elencoCostruttori['costruttori']['980'] ?? null )
+		&& '' === ( $elencoCostruttori['costruttori']['970'] ?? null ),
+	json_encode( $elencoCostruttori['costruttori'] ?? array() )
+);
+
 verifica(
 	'e un articolo inesistente pure',
 	is_wp_error( MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 999999, 'contenuto' => '<p>x</p>' ) ) ) )
