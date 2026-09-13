@@ -776,8 +776,27 @@ verifica(
 // fatto e non si vedeva da nessuna parte.
 stub_crea_post( 980, 'Articolo con Elementor', '<p>Residuo in post_content.</p>' );
 update_post_meta( 980, '_elementor_data', '[{"elType":"section"}]' );
+update_post_meta( 980, '_elementor_edit_mode', 'builder' );
 
 verifica( 'un contenuto con Elementor viene riconosciuto', 'Elementor' === MDI_Api::costruttore( 980 ) );
+
+// Il difetto segnalato: _elementor_data resta sul post anche solo per
+// averlo aperto una volta nell editor visuale e poi essere tornati
+// indietro. Quei contenuti si renderizzano da post_content come gli altri
+// e bloccarli voleva dire impedire una sovrascrittura che funziona.
+stub_crea_post( 981, 'Articolo aperto una volta con Elementor', '<p>Questo e il testo vero.</p>' );
+update_post_meta( 981, '_elementor_data', '[{"elType":"section"}]' );
+
+verifica(
+	'i dati di Elementor rimasti da una prova non bloccano il contenuto',
+	'' === MDI_Api::costruttore( 981 ),
+	MDI_Api::costruttore( 981 )
+);
+
+$scrittoResiduo = MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 981, 'contenuto' => '<p>Testo nuovo.</p>' ) ) );
+
+verifica( 'e si sovrascrive normalmente', ! is_wp_error( $scrittoResiduo ) );
+verifica( 'con il testo che cambia davvero', false !== strpos( get_post( 981 )->post_content, 'Testo nuovo' ), get_post( 981 )->post_content );
 verifica( 'e uno normale no', '' === MDI_Api::costruttore( 970 ), MDI_Api::costruttore( 970 ) );
 
 $rifiutato = MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 980, 'contenuto' => '<p>Testo nuovo.</p>' ) ) );

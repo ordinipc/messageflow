@@ -35,6 +35,10 @@ class Diagnostica {
 		'_yoast_wpseo_focuskw',
 		'_thumbnail_id',
 		'_elementor_data',
+		// Senza questo, non si sa se Elementor disegna davvero la pagina o se
+		// i suoi dati sono un residuo di una prova: e la differenza fra un
+		// contenuto sovrascrivibile e uno no.
+		'_elementor_edit_mode',
 	);
 
 	/**

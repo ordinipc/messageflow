@@ -1407,23 +1407,54 @@ class MDI_Api {
 	public static function costruttore( $id ) {
 		$id = (int) $id;
 
-		// Elementor: renderizza dai propri dati quando la modalita e
-		// "builder". Il campo dati da solo puo restare da una prova, quindi
-		// contano tutti e due.
-		$dati_elementor = get_post_meta( $id, '_elementor_data', true );
-		$modo_elementor = (string) get_post_meta( $id, '_elementor_edit_mode', true );
+		// Elementor lo si chiede a Elementor: e la sua API a sapere se un
+		// contenuto e costruito con lui. Indovinarlo dai meta porta a
+		// sbagliare, ed e quello che e successo: _elementor_data resta sul
+		// post anche solo per averlo aperto una volta nell editor visuale e
+		// poi essere tornati indietro, e quei contenuti si renderizzano da
+		// post_content come tutti gli altri.
+		if ( class_exists( '\\Elementor\\Plugin' ) ) {
+			$elementor = \Elementor\Plugin::$instance;
 
-		if ( $dati_elementor && ( 'builder' === $modo_elementor || '' === $modo_elementor ) ) {
+			if ( isset( $elementor->documents ) ) {
+				$documento = $elementor->documents->get( $id );
+
+				if ( $documento && method_exists( $documento, 'is_built_with_elementor' ) && $documento->is_built_with_elementor() ) {
+					return 'Elementor';
+				}
+
+				// Elementor c e e dice di no: e la risposta buona, non serve
+				// ripiegare sui meta.
+				if ( $documento ) {
+					return self::altroCostruttore( $id );
+				}
+			}
+		}
+
+		// Elementor non e attivo (o non risponde): allora vale il suo
+		// interruttore. Solo "builder" significa che la pagina la compone
+		// lui; i dati da soli sono un residuo e non contano.
+		if ( 'builder' === (string) get_post_meta( $id, '_elementor_edit_mode', true ) && get_post_meta( $id, '_elementor_data', true ) ) {
 			return 'Elementor';
 		}
 
+		return self::altroCostruttore( $id );
+	}
+
+	/**
+	 * Costruttori diversi da Elementor.
+	 *
+	 * @param int $id Contenuto.
+	 * @return string
+	 */
+	private static function altroCostruttore( $id ) {
 		$altri = array(
-			'_et_pb_use_builder' => 'Divi',
-			'panels_data'        => 'SiteOrigin Page Builder',
-			'_fl_builder_enabled' => 'Beaver Builder',
-			'_wpb_vc_js_status'  => 'WPBakery',
+			'_et_pb_use_builder'    => 'Divi',
+			'panels_data'           => 'SiteOrigin Page Builder',
+			'_fl_builder_enabled'   => 'Beaver Builder',
+			'_wpb_vc_js_status'     => 'WPBakery',
 			'ct_builder_shortcodes' => 'Oxygen',
-			'_brizy'             => 'Brizy',
+			'_brizy'                => 'Brizy',
 		);
 
 		foreach ( $altri as $chiave => $nome ) {
