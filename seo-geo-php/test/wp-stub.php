@@ -135,7 +135,10 @@ function get_post_meta( $id, $chiave, $singolo = false ) {
 }
 
 function update_post_meta( $id, $chiave, $valore ) {
-	$GLOBALS['wp']['meta'][ (int) $id ][ $chiave ] = $valore;
+	// Come WordPress: le barre aggiunte da wp_slash vengono tolte qui. Se lo
+	// stub le tenesse, il JSON di Elementor arriverebbe pieno di barre e la
+	// verifica direbbe il falso in un senso o nell altro.
+	$GLOBALS['wp']['meta'][ (int) $id ][ $chiave ] = is_string( $valore ) ? stripslashes( $valore ) : $valore;
 
 	return true;
 }
@@ -685,6 +688,11 @@ function update_attached_file( $id, $file ) {
 	$GLOBALS['wp']['allegati'][ (int) $id ] = $file;
 
 	return true;
+}
+
+function wp_slash( $valore ) {
+	// Come WordPress: aggiunge le barre, perche update_post_meta le toglie.
+	return is_array( $valore ) ? array_map( 'wp_slash', $valore ) : addslashes( (string) $valore );
 }
 
 function current_time( $tipo = 'mysql', $gmt = 0 ) {

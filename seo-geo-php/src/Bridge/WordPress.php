@@ -272,6 +272,16 @@ class WordPress {
 	}
 
 	/**
+	 * Che cosa contiene la struttura di Elementor di questi contenuti.
+	 *
+	 * @param array $ids Contenuti su WordPress.
+	 * @return array
+	 */
+	public function struttureElementor( array $ids ) {
+		return $this->chiama( 'POST', '/strutture-elementor', array( 'ids' => array_values( $ids ) ) );
+	}
+
+	/**
 	 * Immagini della libreria media che pesano piu della soglia.
 	 *
 	 * @param int $oltre  Soglia in byte.

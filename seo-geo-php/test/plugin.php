@@ -828,6 +828,123 @@ verifica(
 	is_wp_error( MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 999999, 'contenuto' => '<p>x</p>' ) ) ) )
 );
 
+echo "\nScrivere dentro a Elementor\n";
+
+// Struttura come la produce Elementor: sezione, colonna, widget. Il testo
+// dell articolo sta nelle impostazioni del widget text-editor.
+$strutturaElementor = static function ( array $widget ) {
+	return array(
+		array(
+			'id'       => 'sez1',
+			'elType'   => 'section',
+			'settings' => array(),
+			'elements' => array(
+				array(
+					'id'       => 'col1',
+					'elType'   => 'column',
+					'settings' => array(),
+					'elements' => $widget,
+				),
+			),
+		),
+	);
+};
+
+$unSoloTesto = $strutturaElementor(
+	array(
+		array( 'id' => 'w1', 'elType' => 'widget', 'widgetType' => 'heading', 'settings' => array( 'title' => 'Titolo in pagina' ) ),
+		array( 'id' => 'w2', 'elType' => 'widget', 'widgetType' => 'text-editor', 'settings' => array( 'editor' => '<p>Il testo vecchio dell articolo, abbastanza lungo.</p>' ) ),
+	)
+);
+
+stub_crea_post( 990, 'Articolo Elementor', '<p>Residuo.</p>' );
+update_post_meta( 990, '_elementor_data', wp_json_encode( $unSoloTesto ) );
+update_post_meta( 990, '_elementor_edit_mode', 'builder' );
+
+$letta = MDI_Api::struttura_elementor( 990 );
+
+verifica( 'la struttura viene letta', '' === $letta['errore'], $letta['errore'] );
+verifica( 'e trova un solo blocco di testo', 1 === count( $letta['testi'] ), (string) count( $letta['testi'] ) );
+
+$esitoScrittura = MDI_Api::sovrascrivi(
+	new WP_REST_Request( array( 'id' => 990, 'titolo' => 'Titolo nuovo', 'contenuto' => '<h2>Sezione</h2><p>Il testo nuovo, con le "virgolette" dentro.</p>' ) )
+);
+
+verifica( 'la sovrascrittura riesce', ! is_wp_error( $esitoScrittura ) );
+
+$esitoScrittura = is_wp_error( $esitoScrittura ) ? array() : (array) $esitoScrittura;
+
+verifica( 'e dice di aver scritto dentro a Elementor', 'elementor' === ( $esitoScrittura['dove'] ?? '' ), (string) ( $esitoScrittura['dove'] ?? '' ) );
+
+$dopoScrittura = json_decode( (string) get_post_meta( 990, '_elementor_data', true ), true );
+
+verifica( 'la struttura resta valida', is_array( $dopoScrittura ) );
+
+$widgetDopo = $dopoScrittura[0]['elements'][0]['elements'] ?? array();
+
+verifica( 'il testo dentro al widget e quello nuovo', false !== strpos( (string) ( $widgetDopo[1]['settings']['editor'] ?? '' ), 'testo nuovo' ), (string) ( $widgetDopo[1]['settings']['editor'] ?? '' ) );
+verifica( 'le virgolette sopravvivono al giro nel JSON', false !== strpos( (string) ( $widgetDopo[1]['settings']['editor'] ?? '' ), '"virgolette"' ) );
+verifica( 'il resto della pagina non viene toccato', 'Titolo in pagina' === ( $widgetDopo[0]['settings']['title'] ?? '' ) );
+verifica( 'e il CSS in cache viene buttato', '' === get_post_meta( 990, '_elementor_css', true ) );
+verifica( 'la struttura di prima resta da parte', '' !== get_post_meta( 990, MDI_Api::META_ELEMENTOR_PRIMA, true ) );
+
+// Due blocchi di testo: non si puo sapere quale sia l articolo e quale una
+// didascalia. Indovinare vorrebbe dire cancellare qualcosa che serviva.
+$dueTesti = $strutturaElementor(
+	array(
+		array( 'id' => 'w1', 'elType' => 'widget', 'widgetType' => 'text-editor', 'settings' => array( 'editor' => '<p>Primo blocco lungo con il corpo dell articolo.</p>' ) ),
+		array( 'id' => 'w2', 'elType' => 'widget', 'widgetType' => 'text-editor', 'settings' => array( 'editor' => '<p>Chiamaci per un preventivo.</p>' ) ),
+	)
+);
+
+stub_crea_post( 991, 'Articolo con due blocchi', '<p>Residuo.</p>' );
+update_post_meta( 991, '_elementor_data', wp_json_encode( $dueTesti ) );
+update_post_meta( 991, '_elementor_edit_mode', 'builder' );
+
+$dueEsito = MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 991, 'contenuto' => '<p>Nuovo.</p>' ) ) );
+
+verifica( 'con due blocchi di testo si rifiuta invece di indovinare', is_wp_error( $dueEsito ) );
+verifica(
+	'e dice quanti ne ha trovati',
+	is_wp_error( $dueEsito ) && false !== strpos( $dueEsito->get_error_message(), '2 blocchi' ),
+	is_wp_error( $dueEsito ) ? $dueEsito->get_error_message() : ''
+);
+verifica( 'e non tocca niente', false !== strpos( (string) get_post_meta( 991, '_elementor_data', true ), 'preventivo' ) );
+
+// Se la pagina ha un widget che rende post_content, il testo vero sta li e
+// la sovrascrittura normale funziona.
+$conPostContent = $strutturaElementor(
+	array( array( 'id' => 'w1', 'elType' => 'widget', 'widgetType' => 'theme-post-content', 'settings' => array() ) )
+);
+
+stub_crea_post( 992, 'Articolo che mostra post_content', '<p>Testo vecchio.</p>' );
+update_post_meta( 992, '_elementor_data', wp_json_encode( $conPostContent ) );
+update_post_meta( 992, '_elementor_edit_mode', 'builder' );
+
+$esitoPC = MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 992, 'contenuto' => '<p>Testo nuovo.</p>' ) ) );
+$esitoPC = is_wp_error( $esitoPC ) ? array() : (array) $esitoPC;
+
+verifica( 'quando Elementor mostra post_content si scrive li', 'contenuto' === ( $esitoPC['dove'] ?? '' ), (string) ( $esitoPC['dove'] ?? '' ) );
+verifica( 'e il testo cambia davvero', false !== strpos( get_post( 992 )->post_content, 'Testo nuovo' ) );
+
+// L annulla deve rimettere la struttura di Elementor, non solo
+// post_content: rimettere post_content su una pagina Elementor non si
+// vedrebbe, e sembrerebbe che l annulla non funzioni.
+MDI_Api::annulla_meta( new WP_REST_Request( array( 'ids' => array( 990 ) ) ) );
+
+$tornata = json_decode( (string) get_post_meta( 990, '_elementor_data', true ), true );
+$widgetTornato = $tornata[0]['elements'][0]['elements'][1]['settings']['editor'] ?? '';
+
+verifica( 'l annulla rimette il testo di prima dentro a Elementor', false !== strpos( (string) $widgetTornato, 'testo vecchio' ), (string) $widgetTornato );
+verifica( 'e toglie la copia di sicurezza', '' === get_post_meta( 990, MDI_Api::META_ELEMENTOR_PRIMA, true ) );
+
+// Il riassunto in blocco, per dire in pagina che cosa si potra fare.
+$riassunto = MDI_Api::strutture_elementor( new WP_REST_Request( array( 'ids' => array( 990, 991, 992 ) ) ) );
+
+verifica( 'il riassunto dice quale si puo scrivere', true === ( $riassunto['strutture']['990']['scrivibile'] ?? null ) );
+verifica( 'e quale no', false === ( $riassunto['strutture']['991']['scrivibile'] ?? null ) );
+verifica( 'e riconosce quello che mostra post_content', true === ( $riassunto['strutture']['992']['post_content'] ?? null ) );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

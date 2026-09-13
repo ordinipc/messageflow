@@ -7,6 +7,7 @@
  * @var array  $righe  Bozze con il contenuto attuale del sito.
  * @var bool   $pronto Collegamento a WordPress configurato.
  * @var array  $costruttori wp_id => costruttore visuale che disegna il contenuto.
+ * @var array  $strutture   wp_id => che cosa c e dentro alla struttura di Elementor.
  * @var string $esito  Messaggio.
  * @var string $errore Errore.
  */
@@ -19,14 +20,51 @@ $con_costruttore = static function ( $riga ) use ( $costruttori ) {
 	return (string) ( $costruttori[ (string) $riga['wp_id'] ] ?? '' );
 };
 
+// Con Elementor si scrive dentro al suo blocco di testo, ma solo quando ce
+// n e uno solo: con due non si puo sapere quale sia l articolo e quale una
+// didascalia, e indovinare vorrebbe dire cancellare qualcosa che serviva.
+$scrivibile = static function ( $riga ) use ( $costruttori, $strutture ) {
+	$costruttore = (string) ( $costruttori[ (string) $riga['wp_id'] ] ?? '' );
+
+	if ( '' === $costruttore ) {
+		return true;
+	}
+
+	if ( 'Elementor' !== $costruttore ) {
+		return false;
+	}
+
+	return ! empty( $strutture[ (string) $riga['wp_id'] ]['scrivibile'] );
+};
+
+$perche_no = static function ( $riga ) use ( $costruttori, $strutture ) {
+	$costruttore = (string) ( $costruttori[ (string) $riga['wp_id'] ] ?? '' );
+
+	if ( 'Elementor' !== $costruttore ) {
+		return 'è costruito con ' . $costruttore . ': il testo va incollato a mano nel costruttore';
+	}
+
+	$dentro = $strutture[ (string) $riga['wp_id'] ] ?? array();
+
+	if ( ! empty( $dentro['errore'] ) ) {
+		return 'la struttura di Elementor non è leggibile: ' . $dentro['errore'];
+	}
+
+	if ( empty( $dentro['blocchi'] ) ) {
+		return 'in Elementor non c\'è nessun blocco di testo: il contenuto è fatto di altri elementi';
+	}
+
+	return 'in Elementor ci sono ' . (int) $dentro['blocchi'] . ' blocchi di testo: non si può sapere quale sia l\'articolo';
+};
+
 $da_inviare = array_values(
 	array_filter(
 		$righe,
-		static fn( $r ) => empty( $r['inviata_il'] ) && '' === $con_costruttore( $r )
+		static fn( $r ) => empty( $r['inviata_il'] ) && $scrivibile( $r )
 	)
 );
 
-$bloccate = array_values( array_filter( $righe, static fn( $r ) => '' !== $con_costruttore( $r ) ) );
+$bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile( $r ) ) );
 ?>
 <section class="intestazione">
 	<p class="briciole"><a href="?p=home">Audit archiviati</a> › <a href="?p=audit&amp;id=<?php echo (int) $audit['id']; ?>"><?php echo e( $audit['sito_nome'] ); ?></a> › <a href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>">Riscrittura</a> › Vecchio e nuovo</p>
@@ -62,11 +100,12 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => '' !== $con_c
 	</p>
 	<?php if ( $bloccate ) : ?>
 		<p class="nota">
-			<?php echo num( count( $bloccate ) ); ?> contenuti sono disegnati con
-			<strong><?php echo e( $con_costruttore( $bloccate[0] ) ); ?></strong>: il testo che si vede non sta nel
-			contenuto di WordPress ma dentro al costruttore, quindi sovrascriverlo cambierebbe
-			il titolo e nient'altro. Per quelli il testo nuovo va incollato a mano nel costruttore —
-			apri la bozza, copia, e incolla nel blocco di testo.
+			<strong><?php echo num( count( $bloccate ) ); ?> vanno fatti a mano.</strong>
+			Sugli articoli costruiti con Elementor il testo si scrive dentro al suo blocco di testo,
+			e questo il programma lo fa da solo — ma solo quando quel blocco è uno solo.
+			Dove ce ne sono due o più non si può sapere quale sia l'articolo e quale una didascalia
+			o una promozione, e riscrivere il blocco sbagliato cancellerebbe qualcosa che serviva.
+			Il motivo preciso è scritto sotto a ogni contenuto.
 		</p>
 	<?php endif; ?>
 	<?php if ( $pronto && $da_inviare ) : ?>
@@ -107,12 +146,15 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => '' !== $con_c
 
 		<div class="azioni">
 			<a class="bottone chiaro" href="?p=bozza&amp;b=<?php echo (int) $riga['id']; ?>">Apri la bozza intera</a>
-			<?php if ( $pronto && '' === $con_costruttore( $riga ) ) : ?>
+			<?php if ( $pronto && $scrivibile( $riga ) ) : ?>
 				<button class="bottone invia-una" type="button" data-bozza="<?php echo (int) $riga['id']; ?>">
 					<?php echo empty( $riga['inviata_il'] ) ? 'Sovrascrivi questo articolo' : 'Riscrivi di nuovo'; ?>
 				</button>
+				<?php if ( '' !== $con_costruttore( $riga ) ) : ?>
+					<span class="nota">scrive dentro al blocco di testo di <?php echo e( $con_costruttore( $riga ) ); ?></span>
+				<?php endif; ?>
 			<?php elseif ( $pronto ) : ?>
-				<span class="nota"><strong>Da incollare a mano in <?php echo e( $con_costruttore( $riga ) ); ?>:</strong> sovrascrivere cambierebbe solo il titolo.</span>
+				<span class="nota"><strong>Da fare a mano:</strong> <?php echo e( $perche_no( $riga ) ); ?>.</span>
 			<?php endif; ?>
 			<span class="nota esito-una"></span>
 		</div>

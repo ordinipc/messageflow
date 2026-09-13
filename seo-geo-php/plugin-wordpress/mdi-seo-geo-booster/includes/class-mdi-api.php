@@ -30,6 +30,7 @@ class MDI_Api {
 	const META_CATEGORIE = '_mdi_backup_categorie';
 	const META_IMG_PRIMA = '_mdi_immagine_originale';
 	const META_TESTO_PRIMA = '_mdi_testo_originale';
+	const META_ELEMENTOR_PRIMA = '_mdi_elementor_originale';
 
 	/**
 	 * Aggancia le rotte e il gestore dei redirect.
@@ -160,6 +161,11 @@ class MDI_Api {
 		register_rest_route( self::NAMESPACE_API, '/cestina', $comune + array(
 			'methods'  => 'POST',
 			'callback' => array( __CLASS__, 'cestina' ),
+		) );
+
+		register_rest_route( self::NAMESPACE_API, '/strutture-elementor', $comune + array(
+			'methods'  => 'POST',
+			'callback' => array( __CLASS__, 'strutture_elementor' ),
 		) );
 
 		register_rest_route( self::NAMESPACE_API, '/costruttori', $comune + array(
@@ -1010,11 +1016,26 @@ class MDI_Api {
 			$backup    = get_post_meta( $id, self::META_BACKUP, true );
 			$categorie = get_post_meta( $id, self::META_CATEGORIE, true );
 			$testo     = get_post_meta( $id, self::META_TESTO_PRIMA, true );
+			$elementor = get_post_meta( $id, self::META_ELEMENTOR_PRIMA, true );
 
 			// Un contenuto può aver avuto solo le categorie cambiate, o solo
 			// il testo sovrascritto: senza questo il ripristino lo saltava.
-			if ( ! $backup && ! $categorie && ! $testo ) {
+			if ( ! $backup && ! $categorie && ! $testo && ! $elementor ) {
 				continue;
+			}
+
+			// La struttura di Elementor torna quella di prima. Senza questo,
+			// annullare rimetterebbe post_content - che su una pagina fatta
+			// con Elementor non si vede - lasciando sulla pagina il testo
+			// nuovo e facendo credere che l annulla non funzioni.
+			if ( $elementor ) {
+				update_post_meta( $id, '_elementor_data', wp_slash( (string) $elementor ) );
+				delete_post_meta( $id, '_elementor_css' );
+				delete_post_meta( $id, self::META_ELEMENTOR_PRIMA );
+
+				if ( class_exists( '\\Elementor\\Plugin' ) && isset( \Elementor\Plugin::$instance->files_manager ) ) {
+					\Elementor\Plugin::$instance->files_manager->clear_cache();
+				}
 			}
 
 			// Il testo dell articolo torna quello di prima. E la rete che
@@ -1280,7 +1301,23 @@ class MDI_Api {
 		// credere fatto un lavoro che non si vede.
 		$costruttore = self::costruttore( $id );
 
-		if ( '' !== $costruttore && ! $richiesta->get_param( 'forza' ) ) {
+		// Con Elementor si scrive dentro al suo blocco di testo, che e il
+		// posto dove il testo si vede davvero. Se la pagina non e fatta in
+		// un modo che si possa toccare senza indovinare, scrivi_in_elementor
+		// rifiuta e spiega cosa ha trovato.
+		if ( 'Elementor' === $costruttore && ! $richiesta->get_param( 'forza' ) ) {
+			$struttura = self::struttura_elementor( $id );
+
+			if ( ! $struttura['post_content'] ) {
+				$scritto = self::scrivi_in_elementor( $id, $contenuto );
+
+				if ( is_wp_error( $scritto ) ) {
+					return $scritto;
+				}
+
+				$dentro_elementor = true;
+			}
+		} elseif ( '' !== $costruttore && ! $richiesta->get_param( 'forza' ) ) {
 			return new WP_Error(
 				'mdi_costruttore_visuale',
 				sprintf(
@@ -1359,9 +1396,10 @@ class MDI_Api {
 
 		return rest_ensure_response(
 			array(
-				'ok'       => true,
-				'articolo' => $id,
-				'modifica' => admin_url( 'post.php?post=' . $id . '&action=edit' ),
+				'ok'        => true,
+				'articolo'  => $id,
+				'dove'      => ! empty( $dentro_elementor ) ? 'elementor' : 'contenuto',
+				'modifica'  => admin_url( 'post.php?post=' . $id . '&action=edit' ),
 				'indirizzo' => get_permalink( $id ),
 			)
 		);
@@ -1439,6 +1477,194 @@ class MDI_Api {
 		}
 
 		return self::altroCostruttore( $id );
+	}
+
+	/**
+	 * Che cosa c e dentro alla struttura di Elementor di un contenuto.
+	 *
+	 * Non si tocca niente prima di aver guardato: la struttura e il formato
+	 * interno di Elementor, cambia fra le versioni, e un articolo costruito
+	 * in un modo che non si e previsto va lasciato stare invece di essere
+	 * rovinato.
+	 *
+	 * @param int $id Contenuto.
+	 * @return array 'testi' (widget di testo con lunghezza e percorso),
+	 *               'post_content' (vero se un widget rende post_content),
+	 *               'errore'.
+	 */
+	public static function struttura_elementor( $id ) {
+		$grezzo = get_post_meta( (int) $id, '_elementor_data', true );
+
+		if ( is_array( $grezzo ) ) {
+			$grezzo = reset( $grezzo );
+		}
+
+		$albero = json_decode( (string) $grezzo, true );
+
+		if ( ! is_array( $albero ) ) {
+			return array( 'testi' => array(), 'post_content' => false, 'errore' => 'struttura di Elementor illeggibile' );
+		}
+
+		$testi        = array();
+		$post_content = false;
+
+		// Percorso come catena di indici: e cosi che si torna a scrivere nel
+		// punto esatto senza doversi fidare degli identificativi.
+		$scendi = static function ( $nodi, $percorso ) use ( &$scendi, &$testi, &$post_content ) {
+			foreach ( (array) $nodi as $i => $nodo ) {
+				if ( ! is_array( $nodo ) ) {
+					continue;
+				}
+
+				$qui  = array_merge( $percorso, array( $i ) );
+				$tipo = (string) ( $nodo['widgetType'] ?? '' );
+
+				// Questo widget rende post_content: allora il testo vero sta
+				// li, e la sovrascrittura normale funziona.
+				if ( in_array( $tipo, array( 'theme-post-content', 'post-content' ), true ) ) {
+					$post_content = true;
+				}
+
+				if ( 'text-editor' === $tipo && isset( $nodo['settings']['editor'] ) ) {
+					$testi[] = array(
+						'percorso'  => $qui,
+						'caratteri' => strlen( wp_strip_all_tags( (string) $nodo['settings']['editor'] ) ),
+					);
+				}
+
+				if ( ! empty( $nodo['elements'] ) ) {
+					$scendi( $nodo['elements'], array_merge( $qui, array( 'elements' ) ) );
+				}
+			}
+		};
+
+		$scendi( $albero, array() );
+
+		// Il piu lungo per primo: e quello che contiene l articolo.
+		usort( $testi, static function ( $a, $b ) { return $b['caratteri'] <=> $a['caratteri']; } );
+
+		return array( 'testi' => $testi, 'post_content' => $post_content, 'errore' => '' );
+	}
+
+	/**
+	 * Riassunto della struttura per piu contenuti, senza toccarli.
+	 *
+	 * @param WP_REST_Request $richiesta Richiesta con 'ids'.
+	 * @return WP_REST_Response
+	 */
+	public static function strutture_elementor( $richiesta ) {
+		$esito = array();
+
+		foreach ( (array) $richiesta->get_param( 'ids' ) as $id ) {
+			$id = (int) $id;
+
+			if ( ! $id || 'Elementor' !== self::costruttore( $id ) ) {
+				continue;
+			}
+
+			$struttura = self::struttura_elementor( $id );
+
+			$esito[ (string) $id ] = array(
+				'blocchi'      => count( $struttura['testi'] ),
+				'caratteri'    => $struttura['testi'] ? (int) $struttura['testi'][0]['caratteri'] : 0,
+				'post_content' => (bool) $struttura['post_content'],
+				'scrivibile'   => '' === $struttura['errore'] && ( $struttura['post_content'] || 1 === count( $struttura['testi'] ) ),
+				'errore'       => $struttura['errore'],
+			);
+		}
+
+		return rest_ensure_response( array( 'ok' => true, 'strutture' => $esito ) );
+	}
+
+	/**
+	 * Scrive il testo nuovo dentro al blocco di testo di Elementor.
+	 *
+	 * Si interviene solo quando c e un unico blocco di testo: e l articolo.
+	 * Se ce ne sono piu di uno non si puo sapere quale sia il corpo e quale
+	 * una didascalia o una promozione, e indovinare vorrebbe dire cancellare
+	 * qualcosa che serviva. In quel caso si rifiuta e si dice cosa si e
+	 * trovato.
+	 *
+	 * @param int    $id        Contenuto.
+	 * @param string $contenuto HTML nuovo.
+	 * @return true|WP_Error
+	 */
+	public static function scrivi_in_elementor( $id, $contenuto ) {
+		$id        = (int) $id;
+		$struttura = self::struttura_elementor( $id );
+
+		if ( '' !== $struttura['errore'] ) {
+			return new WP_Error( 'mdi_elementor_illeggibile', $struttura['errore'], array( 'status' => 422 ) );
+		}
+
+		if ( ! $struttura['testi'] ) {
+			return new WP_Error(
+				'mdi_elementor_senza_testo',
+				'In questa pagina Elementor non ha nessun blocco di testo: il contenuto e fatto di altri elementi e va cambiato a mano.',
+				array( 'status' => 422 )
+			);
+		}
+
+		if ( count( $struttura['testi'] ) > 1 ) {
+			return new WP_Error(
+				'mdi_elementor_piu_blocchi',
+				sprintf(
+					'Questa pagina ha %d blocchi di testo in Elementor: non si puo sapere quale sia l articolo e quale una didascalia, quindi non ci si scrive sopra. Va cambiata a mano.',
+					count( $struttura['testi'] )
+				),
+				array( 'status' => 409 )
+			);
+		}
+
+		$grezzo = get_post_meta( $id, '_elementor_data', true );
+
+		if ( is_array( $grezzo ) ) {
+			$grezzo = reset( $grezzo );
+		}
+
+		$albero = json_decode( (string) $grezzo, true );
+
+		// La copia si scrive una volta sola, come per il testo: dopo due
+		// passaggi deve restare l originale, non la versione intermedia.
+		if ( ! get_post_meta( $id, self::META_ELEMENTOR_PRIMA, true ) ) {
+			update_post_meta( $id, self::META_ELEMENTOR_PRIMA, wp_slash( (string) $grezzo ) );
+		}
+
+		// Si cammina fino al nodo trovato prima e si sostituisce solo il suo
+		// testo: tutto il resto della pagina resta identico.
+		$riferimento = &$albero;
+
+		foreach ( $struttura['testi'][0]['percorso'] as $passo ) {
+			if ( ! isset( $riferimento[ $passo ] ) ) {
+				return new WP_Error( 'mdi_elementor_percorso', 'Il blocco di testo non si trova piu dove era.', array( 'status' => 500 ) );
+			}
+
+			$riferimento = &$riferimento[ $passo ];
+		}
+
+		$riferimento['settings']['editor'] = $contenuto;
+		unset( $riferimento );
+
+		$nuovo = wp_json_encode( $albero, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+
+		if ( ! $nuovo ) {
+			return new WP_Error( 'mdi_elementor_json', 'Non si e riusciti a ricomporre la struttura di Elementor.', array( 'status' => 500 ) );
+		}
+
+		// wp_slash perche update_post_meta toglie le barre: senza, le
+		// virgolette dentro all HTML spezzerebbero il JSON di Elementor.
+		update_post_meta( $id, '_elementor_data', wp_slash( $nuovo ) );
+
+		// Il CSS di Elementor e generato e messo in cache per contenuto:
+		// cambiati i dati va rifatto, altrimenti la pagina puo restare con
+		// lo stile di prima.
+		delete_post_meta( $id, '_elementor_css' );
+
+		if ( class_exists( '\Elementor\Plugin' ) && isset( \Elementor\Plugin::$instance->files_manager ) ) {
+			\Elementor\Plugin::$instance->files_manager->clear_cache();
+		}
+
+		return true;
 	}
 
 	/**

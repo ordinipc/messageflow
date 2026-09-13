@@ -768,10 +768,21 @@ if ( 'confronto-bozze' === $pagina ) {
 	// fosse cambiato.
 	$costruttori = array();
 
+	$strutture = array();
+
 	if ( $righe_confronto && $ponte->pronto() ) {
+		$wp_ids = array_map( static fn( $r ) => (int) $r['wp_id'], $righe_confronto );
+
 		try {
-			$risposta    = $ponte->costruttori( array_map( static fn( $r ) => (int) $r['wp_id'], $righe_confronto ) );
+			$risposta    = $ponte->costruttori( $wp_ids );
 			$costruttori = (array) ( $risposta['costruttori'] ?? array() );
+
+			// Per quelli con Elementor si guarda anche dentro: si scrive solo
+			// dove c e un unico blocco di testo, e va detto prima.
+			if ( array_filter( $costruttori ) ) {
+				$dentro    = $ponte->struttureElementor( $wp_ids );
+				$strutture = (array) ( $dentro['strutture'] ?? array() );
+			}
 		} catch ( Throwable $e ) {
 			$costruttori = array();
 		}
@@ -784,6 +795,7 @@ if ( 'confronto-bozze' === $pagina ) {
 			'audit'  => $audit,
 			'pronto' => $ponte->pronto(),
 			'costruttori' => $costruttori,
+			'strutture'   => $strutture,
 			'esito'  => (string) ( $_GET['esito'] ?? '' ),
 			'errore' => (string) ( $_GET['errore'] ?? '' ),
 			'righe'  => $righe_confronto,
