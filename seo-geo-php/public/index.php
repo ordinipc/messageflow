@@ -984,10 +984,18 @@ if ( 'api-bozze' === $pagina ) {
 			// hosting condiviso. Mostrarlo fra gli errori faceva sembrare
 			// rotto un giro andato benissimo.
 			'per_tempo' => ! empty( $esito['interrotto'] ),
-			// Fermarsi anche quando un giro non fa scendere il conto: senza
-			// questa condizione un errore che si ripete manderebbe il
-			// browser in un ciclo infinito, e per giunta a pagamento.
-			'finito'   => 0 === $dopo || $dopo >= $prima_di,
+			// Ci si ferma quando non c e piu niente da fare, oppure quando un
+			// giro non ha concluso niente: un errore che si ripetesse
+			// manderebbe il browser in un ciclo infinito, e per giunta a
+			// pagamento.
+			//
+			// Ma un giro finito per tempo prima di completare anche un solo
+			// contenuto NON e bloccato: il giro dopo riparte con il tempo
+			// pieno. Senza questa distinzione, con il modo "migliora" - dove
+			// il prompt e piu grande e ogni articolo piu lento - il ciclo si
+			// fermava scrivendo "Fermata" con ancora centottantasette bozze
+			// da fare.
+			'finito'   => 0 === $dopo || ( $dopo >= $prima_di && empty( $esito['interrotto'] ) ),
 		)
 	);
 

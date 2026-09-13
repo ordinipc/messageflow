@@ -58,6 +58,46 @@ if ( isset( $richiesta['tools'] ) ) {
 	exit;
 }
 
+// Risposta spezzata su piu parti, con davanti un pezzo di ragionamento:
+// e cosi che rispondono i modelli che ragionano, e leggendo solo la prima
+// parte si otteneva un JSON tagliato a meta.
+if ( 'a-pezzi' === $modo ) {
+	$intero = json_encode(
+		array(
+			'titolo'           => 'Agenzia di Comunicazione a Palermo',
+			'meta_title'       => 'Agenzia di Comunicazione Palermo',
+			'meta_description' => 'Una description abbastanza lunga da superare la prima parte della risposta.',
+			'in_breve'         => 'Sintesi.',
+			'corpo_html'       => '<h2>Sezione</h2><p>Testo.</p>',
+			'faq'              => array( array( 'domanda' => 'D', 'risposta' => 'R' ) ),
+			'da_verificare'    => array(),
+			'note'             => 'x',
+		),
+		JSON_UNESCAPED_UNICODE
+	);
+
+	$meta = (int) floor( strlen( $intero ) / 2 );
+
+	echo json_encode(
+		array(
+			'candidates' => array(
+				array(
+					'content' => array(
+						'parts' => array(
+							array( 'text' => 'Sto ragionando su come strutturare...', 'thought' => true ),
+							array( 'text' => substr( $intero, 0, $meta ) ),
+							array( 'text' => substr( $intero, $meta ) ),
+						),
+					),
+					'finishReason' => 'STOP',
+				),
+			),
+			'usageMetadata' => array( 'promptTokenCount' => 900, 'candidatesTokenCount' => 700, 'thoughtsTokenCount' => 300 ),
+		)
+	);
+	exit;
+}
+
 $completo = json_encode(
 	array(
 		'titolo'           => 'Agenzia di Marketing a Palermo: Crescita su Misura per PMI',

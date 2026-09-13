@@ -416,6 +416,26 @@ verifica( 'una risposta intera viene letta', isset( $dati['corpo_html'] ) );
 $dati = $cliente( 'tronca' )->generaJson( 'istruzioni', 'richiesta' );
 verifica( 'una risposta tagliata fa riprovare con più spazio, e la seconda riesce', isset( $dati['corpo_html'] ) );
 
+// Il caso trovato in produzione: 3 articoli su 43 falliti con "Risposta non
+// in formato JSON: { "titolo": ... "meta_description": "Cerca un'ag", cioe un
+// JSON valido tagliato a meta senza MAX_TOKENS. Gemini aveva spezzato la
+// risposta su piu parti e ne leggevamo solo la prima.
+// Se torna a leggere una parte sola qui esplode: si raccoglie l errore,
+// cosi la suite dice quali verifiche non passano invece di morire.
+try {
+	$aPezzi = $cliente( 'a-pezzi' )->generaJson( 'istruzioni', 'richiesta' );
+} catch ( Throwable $e ) {
+	$aPezzi = array( 'errore' => $e->getMessage() );
+}
+
+verifica( 'una risposta spezzata su piu parti viene ricomposta', isset( $aPezzi['corpo_html'] ) );
+verifica( 'e arriva intera fino all ultimo campo', 'x' === ( $aPezzi['note'] ?? '' ), var_export( $aPezzi['note'] ?? null, true ) );
+verifica(
+	'il ragionamento non finisce dentro alla risposta',
+	false === strpos( (string) ( $aPezzi['titolo'] ?? '' ), 'ragionando' ),
+	(string) ( $aPezzi['titolo'] ?? '' )
+);
+
 $messaggio = errore_di( static fn() => $cliente( 'sempre-tronca' )->generaJson( 'istruzioni', 'richiesta' ) );
 verifica( 'se lo spazio non basta mai lo dice chiaramente', false !== stripos( $messaggio, 'esaurito lo spazio' ), $messaggio );
 verifica( 'e non dà la colpa al formato', false === stripos( $messaggio, 'non in formato JSON' ), $messaggio );
@@ -1196,8 +1216,17 @@ verifica(
 // Qui il ciclo costa soldi a ogni giro: se non sapesse fermarsi
 // continuerebbe a chiamare il modello a vuoto, a pagamento.
 verifica(
-	'un giro che non fa scendere il conto ferma il ciclo',
-	false !== strpos( $sorgenteIndice, "0 === \$dopo || \$dopo >= \$prima_di" )
+	'un giro che non conclude niente ferma il ciclo',
+	false !== strpos( $sorgenteIndice, "\$dopo >= \$prima_di && empty( \$esito['interrotto'] )" )
+);
+
+// Il difetto trovato sul sito vero: con il modo "migliora" il prompt e piu
+// grande e ogni articolo piu lento, cosi un giro finiva il tempo prima di
+// completare anche un solo contenuto. Veniva letto come "bloccato" e il
+// ciclo si fermava scrivendo "Fermata" con 187 bozze ancora da fare.
+verifica(
+	'ma un giro finito per tempo non e bloccato',
+	false !== strpos( $sorgenteIndice, "empty( \$esito['interrotto'] ) )" )
 );
 
 verifica(

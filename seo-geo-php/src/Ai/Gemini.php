@@ -100,6 +100,35 @@ class Gemini {
 	}
 
 	/**
+	 * Tutto il testo della risposta, non solo il primo pezzo.
+	 *
+	 * Gemini puo spezzare la risposta su piu parti, e i modelli che
+	 * ragionano ne aggiungono una marcata "thought" che non e la risposta.
+	 * Leggendo solo parts[0] si otteneva un JSON tagliato a meta - senza
+	 * MAX_TOKENS, quindi senza nemmeno capire perche - e l articolo finiva
+	 * fra quelli non riusciti con "Risposta non in formato JSON".
+	 *
+	 * @param array $dati Risposta decodificata.
+	 * @return string
+	 */
+	private static function testoDa( array $dati ) {
+		$pezzi = $dati['candidates'][0]['content']['parts'] ?? array();
+		$testo = '';
+
+		foreach ( (array) $pezzi as $pezzo ) {
+			// Il ragionamento non fa parte della risposta: incollarlo dentro
+			// romperebbe il JSON invece di completarlo.
+			if ( ! empty( $pezzo['thought'] ) ) {
+				continue;
+			}
+
+			$testo .= (string) ( $pezzo['text'] ?? '' );
+		}
+
+		return $testo;
+	}
+
+	/**
 	 * Estrae le fonti dalla risposta.
 	 *
 	 * Senza le fonti la ricerca non serve a niente: un numero senza l
@@ -251,7 +280,7 @@ class Gemini {
 				throw new RuntimeException( 'Richiesta bloccata dai filtri di sicurezza di Gemini (' . $dati['promptFeedback']['blockReason'] . ').' );
 			}
 
-			$testo = $dati['candidates'][0]['content']['parts'][0]['text'] ?? '';
+			$testo = self::testoDa( $dati );
 			$fine  = $dati['candidates'][0]['finishReason'] ?? '';
 
 			if ( '' === $testo ) {
