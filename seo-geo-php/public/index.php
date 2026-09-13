@@ -837,6 +837,8 @@ if ( 'api-sovrascrivi' === $pagina ) {
 				'titolo'           => (string) $riga['titolo'],
 				'contenuto'        => (string) $riga['corpo_html'],
 				'estratto'         => (string) $riga['in_breve'],
+				'in_breve'         => (string) $riga['in_breve'],
+				'faq'              => json_decode( (string) $riga['faq'], true ) ?: array(),
 				'meta_title'       => (string) $riga['meta_title'],
 				'meta_description' => (string) $riga['meta_description'],
 			)

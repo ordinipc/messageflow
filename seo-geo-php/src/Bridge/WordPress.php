@@ -242,8 +242,8 @@ class WordPress {
 	 * Scrive il testo nuovo direttamente sull articolo pubblicato.
 	 *
 	 * @param int   $id    Articolo su WordPress.
-	 * @param array $dati  'titolo', 'contenuto', 'estratto', 'meta_title',
-	 *                     'meta_description'.
+	 * @param array $dati  'titolo', 'contenuto', 'estratto', 'in_breve',
+	 *                     'faq', 'meta_title', 'meta_description'.
 	 * @return array
 	 */
 	public function sovrascrivi( $id, array $dati ) {
@@ -255,6 +255,10 @@ class WordPress {
 				'titolo'           => (string) ( $dati['titolo'] ?? '' ),
 				'contenuto'        => (string) ( $dati['contenuto'] ?? '' ),
 				'estratto'         => (string) ( $dati['estratto'] ?? '' ),
+				// La sintesi e le domande frequenti sono parte dell articolo:
+				// vanno scritte dentro al testo, non solo tenute a parte.
+				'in_breve'         => (string) ( $dati['in_breve'] ?? '' ),
+				'faq'              => array_values( (array) ( $dati['faq'] ?? array() ) ),
 				'meta_title'       => (string) ( $dati['meta_title'] ?? '' ),
 				'meta_description' => (string) ( $dati['meta_description'] ?? '' ),
 			)

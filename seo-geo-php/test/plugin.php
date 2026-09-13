@@ -945,6 +945,85 @@ verifica( 'il riassunto dice quale si puo scrivere', true === ( $riassunto['stru
 verifica( 'e quale no', false === ( $riassunto['strutture']['991']['scrivibile'] ?? null ) );
 verifica( 'e riconosce quello che mostra post_content', true === ( $riassunto['strutture']['992']['post_content'] ?? null ) );
 
+echo "\nSintesi e domande frequenti dentro all articolo\n";
+
+// Sul sito vero l articolo finiva con "Ecco alcune delle domande piu comuni"
+// e poi il vuoto: le domande frequenti stanno in un campo a parte della
+// bozza e la sovrascrittura non le mandava. Il testo lo componevano in due
+// posti diversi e solo uno le metteva.
+
+$faqProva = array(
+	array( 'domanda' => 'Quanto costa?', 'risposta' => 'Dipende dal progetto.' ),
+	array( 'domanda' => 'Quanto tempo serve?', 'risposta' => 'Qualche settimana.' ),
+);
+
+stub_crea_post( 995, 'Articolo da riscrivere', '<p>Vecchio.</p>' );
+
+MDI_Api::sovrascrivi(
+	new WP_REST_Request(
+		array(
+			'id'        => 995,
+			'contenuto' => '<h2>Sezione</h2><p>Il corpo.</p>',
+			'in_breve'  => 'La sintesi iniziale.',
+			'faq'       => $faqProva,
+		)
+	)
+);
+
+$scrittoConFaq = get_post( 995 )->post_content;
+
+verifica( 'il corpo c e', false !== strpos( $scrittoConFaq, 'Il corpo' ) );
+verifica( 'la sintesi iniziale c e', false !== strpos( $scrittoConFaq, 'La sintesi iniziale' ), $scrittoConFaq );
+verifica( 'il titoletto delle domande frequenti c e', false !== strpos( $scrittoConFaq, '<h2>Domande frequenti</h2>' ) );
+verifica( 'e ci sono tutte e due le domande', false !== strpos( $scrittoConFaq, 'Quanto costa?' ) && false !== strpos( $scrittoConFaq, 'Quanto tempo serve?' ) );
+verifica( 'con le risposte', false !== strpos( $scrittoConFaq, 'Dipende dal progetto' ) && false !== strpos( $scrittoConFaq, 'Qualche settimana' ) );
+verifica( 'il titoletto compare una volta sola', 1 === substr_count( $scrittoConFaq, '<h2>Domande frequenti</h2>' ) );
+
+// Senza domande frequenti non deve comparire un titoletto vuoto.
+stub_crea_post( 996, 'Articolo senza faq', '<p>Vecchio.</p>' );
+MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 996, 'contenuto' => '<p>Solo corpo.</p>' ) ) );
+
+verifica( 'senza domande frequenti non compare il titoletto', false === strpos( get_post( 996 )->post_content, 'Domande frequenti' ), get_post( 996 )->post_content );
+
+// Bozza e sovrascrittura devono comporre lo stesso testo: e il motivo per
+// cui adesso passano dallo stesso metodo.
+$daBozza = MDI_Api::componi_testo( '<h2>Sezione</h2><p>Il corpo.</p>', 'La sintesi iniziale.', $faqProva );
+
+verifica(
+	'la bozza e la sovrascrittura compongono lo stesso testo',
+	$daBozza === $scrittoConFaq,
+	'differiscono'
+);
+
+// E dentro a Elementor devono finirci lo stesso.
+$strutturaFaq = array(
+	array(
+		'id' => 's', 'elType' => 'section', 'settings' => array(),
+		'elements' => array(
+			array(
+				'id' => 'c', 'elType' => 'column', 'settings' => array(),
+				'elements' => array(
+					array( 'id' => 'w', 'elType' => 'widget', 'widgetType' => 'text-editor', 'settings' => array( 'editor' => '<p>Vecchio testo.</p>' ) ),
+				),
+			),
+		),
+	),
+);
+
+stub_crea_post( 997, 'Articolo Elementor con faq', '<p>Residuo.</p>' );
+update_post_meta( 997, '_elementor_data', wp_json_encode( $strutturaFaq ) );
+update_post_meta( 997, '_elementor_edit_mode', 'builder' );
+
+MDI_Api::sovrascrivi(
+	new WP_REST_Request( array( 'id' => 997, 'contenuto' => '<p>Il corpo.</p>', 'in_breve' => 'Sintesi.', 'faq' => $faqProva ) )
+);
+
+$dentroElementor = json_decode( (string) get_post_meta( 997, '_elementor_data', true ), true );
+$testoElementor  = $dentroElementor[0]['elements'][0]['elements'][0]['settings']['editor'] ?? '';
+
+verifica( 'anche dentro a Elementor ci finiscono le domande frequenti', false !== strpos( (string) $testoElementor, 'Quanto costa?' ), (string) $testoElementor );
+verifica( 'e la sintesi iniziale', false !== strpos( (string) $testoElementor, 'Sintesi.' ) );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

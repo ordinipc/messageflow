@@ -1120,22 +1120,7 @@ class MDI_Api {
 			return new WP_Error( 'mdi_corpo_vuoto', 'Corpo della bozza vuoto.', array( 'status' => 400 ) );
 		}
 
-		$contenuto = '';
-
-		if ( '' !== $breve ) {
-			$contenuto .= '<div class="mdi-in-breve"><p><strong>In breve:</strong> ' . esc_html( $breve ) . "</p></div>\n\n";
-		}
-
-		$contenuto .= wp_kses_post( $corpo );
-
-		if ( $faq ) {
-			$contenuto .= "\n\n<h2>Domande frequenti</h2>\n";
-
-			foreach ( $faq as $voce ) {
-				$contenuto .= '<h3>' . esc_html( $voce['domanda'] ?? '' ) . '</h3>' . "\n"
-					. '<p>' . esc_html( $voce['risposta'] ?? '' ) . "</p>\n";
-			}
-		}
+		$contenuto = self::componi_testo( $corpo, $breve, $faq );
 
 		// Se esiste già una bozza per questo articolo, viene aggiornata.
 		$esistenti = get_posts(
@@ -1266,6 +1251,40 @@ class MDI_Api {
 	}
 
 	/**
+	 * Il testo completo di un contenuto riscritto.
+	 *
+	 * Sintesi iniziale, corpo e domande frequenti. Sta in un punto solo
+	 * perche prima lo componevano in due: la bozza ci metteva le domande
+	 * frequenti, la sovrascrittura no, e sul sito l articolo finiva con
+	 * "Ecco alcune delle domande piu comuni" e poi il vuoto.
+	 *
+	 * @param string $corpo Corpo HTML.
+	 * @param string $breve Sintesi iniziale.
+	 * @param array  $faq   Domande e risposte.
+	 * @return string
+	 */
+	public static function componi_testo( $corpo, $breve, $faq ) {
+		$contenuto = '';
+
+		if ( '' !== trim( (string) $breve ) ) {
+			$contenuto .= '<div class="mdi-in-breve"><p><strong>In breve:</strong> ' . esc_html( $breve ) . "</p></div>\n\n";
+		}
+
+		$contenuto .= wp_kses_post( (string) $corpo );
+
+		foreach ( (array) $faq as $i => $voce ) {
+			if ( 0 === $i ) {
+				$contenuto .= "\n\n<h2>Domande frequenti</h2>\n";
+			}
+
+			$contenuto .= '<h3>' . esc_html( $voce['domanda'] ?? '' ) . '</h3>' . "\n"
+				. '<p>' . esc_html( $voce['risposta'] ?? '' ) . "</p>\n";
+		}
+
+		return $contenuto;
+	}
+
+	/**
 	 * Scrive il testo nuovo direttamente sull articolo pubblicato.
 	 *
 	 * La strada che passava da una bozza di WordPress creava un secondo
@@ -1293,6 +1312,15 @@ class MDI_Api {
 		if ( '' === trim( $contenuto ) ) {
 			return new WP_Error( 'mdi_contenuto_vuoto', 'Nessun contenuto da scrivere.', array( 'status' => 400 ) );
 		}
+
+		// Sintesi e domande frequenti fanno parte dell articolo, non sono
+		// contorno: senza, sul sito il testo finisce con "Ecco alcune delle
+		// domande piu comuni" e poi il vuoto.
+		$contenuto = self::componi_testo(
+			$contenuto,
+			(string) $richiesta->get_param( 'in_breve' ),
+			(array) $richiesta->get_param( 'faq' )
+		);
 
 		// Se la pagina la disegna un costruttore visuale, quello che si vede
 		// non viene da post_content ma dai dati del costruttore. Scrivere in
