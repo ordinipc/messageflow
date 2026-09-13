@@ -1464,6 +1464,44 @@ verifica(
 	false !== strpos( $sorgenteIndice, "0 === \$restano || 0 === count( \$risolti )" )
 );
 
+echo "\nFermarsi per tempo non e un guasto\n";
+
+// Sullo schermo compariva in rosso "Saltate: tempo massimo raggiunto", e un
+// giro andato benissimo sembrava rotto. Fermarsi al tetto di tempo e il
+// funzionamento normale su hosting condiviso.
+$sorgenteRiscrittura = (string) file_get_contents( __DIR__ . '/../src/Ai/Rewriter.php' );
+$sorgenteImmagini    = (string) file_get_contents( __DIR__ . '/../src/Ai/Immagini.php' );
+
+verifica(
+	'il tetto di tempo non finisce piu fra gli errori',
+	false === strpos( $sorgenteRiscrittura, "\$errori[] = 'tempo massimo raggiunto" )
+);
+
+verifica(
+	'ma viene comunque riferito a chi chiama',
+	2 === substr_count( $sorgenteRiscrittura, "'interrotto' => \$interrotto" )
+		&& false !== strpos( $sorgenteImmagini, "'interrotto' => \$interrotto" )
+);
+
+verifica(
+	'e la pagina lo scrive come lavoro in corso',
+	false !== strpos( $sorgenteIndice, "'per_tempo' => ! empty( \$esito['interrotto'] )" )
+		&& false !== strpos( $sorgenteBozze, 'il blocco si è chiuso al limite di tempo, continuo' )
+);
+
+verifica(
+	'gli errori veri restano separati',
+	false !== strpos( $sorgenteBozze, "'Non riuscite: '" )
+);
+
+// Con duecento contenuti la differenza fra dieci minuti e due ore cambia
+// quello che uno decide di fare: la stima si misura sul ritmo vero.
+verifica(
+	'e dice quanto manca, misurato sul ritmo vero',
+	false !== strpos( $sorgenteBozze, 'function stima()' )
+		&& false !== strpos( $sorgenteBozze, '(Date.now() - avvio) / fatte' )
+);
+
 @unlink( $fileMig );
 
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );

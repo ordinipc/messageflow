@@ -248,8 +248,11 @@ class Immagini {
 		$errori  = array();
 		$scadenza = isset( $opzioni['secondi_max'] ) ? time() + (int) $opzioni['secondi_max'] : null;
 
+		$interrotto = false;
+
 		foreach ( $documenti as $doc ) {
 			if ( $scadenza && time() > $scadenza ) {
+				$interrotto = true;
 				break;
 			}
 
@@ -279,8 +282,9 @@ class Immagini {
 		}
 
 		return array(
-			'candidati' => count( $documenti ),
-			'generate'  => $fatte,
+			'candidati'  => count( $documenti ),
+			'interrotto' => $interrotto,
+			'generate'   => $fatte,
 			'inviate'   => $inviate,
 			'errori'    => $errori,
 			'cartella'  => $cartella,

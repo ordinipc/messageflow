@@ -201,10 +201,15 @@ class Rewriter {
 				: 'nessun articolo da riscrivere: o hanno già tutti una bozza, o il triage non ne ha segnalato nessuno';
 		}
 
+		// Fermarsi al tetto di tempo non e un guasto: e il funzionamento
+		// normale su hosting condiviso, e chi guarda lo deve leggere come
+		// "continuo", non come "qualcosa e andato storto".
+		$interrotto = false;
+
 		foreach ( $articoli as $a ) {
 			if ( $scadenza && time() > $scadenza ) {
-				$errori[] = 'tempo massimo raggiunto prima di arrivare a "' . Text::truncate( $a['titolo'], 40 ) . '": riprova, riparte da qui';
-				break; // Su hosting condiviso conviene fermarsi prima del limite di esecuzione.
+				$interrotto = true;
+				break;
 			}
 
 			try {
@@ -283,12 +288,13 @@ class Rewriter {
 		}
 
 		return array(
-			'candidati' => count( $articoli ),
-			'generate'  => $fatte,
-			'fallite'   => $fallite,
-			'errori'    => $errori,
-			'consumo'   => $gemini->consumo(),
-			'cartella'  => $cartella,
+			'candidati'  => count( $articoli ),
+			'generate'   => $fatte,
+			'fallite'    => $fallite,
+			'errori'     => $errori,
+			'interrotto' => $interrotto,
+			'consumo'    => $gemini->consumo(),
+			'cartella'   => $cartella,
 		);
 	}
 
@@ -392,9 +398,11 @@ class Rewriter {
 				: 'nessun gruppo di articoli da accorpare';
 		}
 
+		$interrotto = false;
+
 		foreach ( $gruppi as $gruppo ) {
 			if ( $scadenza && time() > $scadenza ) {
-				$errori[] = 'tempo massimo raggiunto: riprova, riparte da qui';
+				$interrotto = true;
 				break;
 			}
 
@@ -455,12 +463,13 @@ class Rewriter {
 		}
 
 		return array(
-			'gruppi'   => count( $gruppi ),
-			'generate' => $fatti,
-			'fallite'  => $falliti,
-			'errori'   => $errori,
-			'consumo'  => $gemini->consumo(),
-			'cartella' => $cartella,
+			'gruppi'     => count( $gruppi ),
+			'generate'   => $fatti,
+			'fallite'    => $falliti,
+			'errori'     => $errori,
+			'interrotto' => $interrotto,
+			'consumo'    => $gemini->consumo(),
+			'cartella'   => $cartella,
 		);
 	}
 

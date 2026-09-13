@@ -980,6 +980,10 @@ if ( 'api-bozze' === $pagina ) {
 			'falliti'  => (int) ( $esito['fallite'] ?? count( $errori ) ),
 			'restanti' => $dopo,
 			'errori'   => $errori,
+			// Il tetto di tempo non e un guasto: e cosi che si lavora su
+			// hosting condiviso. Mostrarlo fra gli errori faceva sembrare
+			// rotto un giro andato benissimo.
+			'per_tempo' => ! empty( $esito['interrotto'] ),
 			// Fermarsi anche quando un giro non fa scendere il conto: senza
 			// questa condizione un errore che si ripete manderebbe il
 			// browser in un ciclo infinito, e per giunta a pagamento.

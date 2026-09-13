@@ -423,13 +423,14 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 		var blocco = 0;
 		var iniziato = 0;
 		var orologio = null;
+		var avvio = 0;
 
 		var pannello = document.createElement('div');
 		pannello.hidden = true;
 		pannello.innerHTML =
 			'<p><span class="spia"></span> <strong class="lotto-titolo">Sto lavorando…</strong></p>'
 			+ '<div class="barra" style="height:10px;margin-bottom:12px"><i class="ok lotto-barra" style="width:1%;height:10px"></i></div>'
-			+ '<p class="nota"><span class="lotto-fatte">0</span> fatte · <span class="lotto-restanti">0</span> da fare<span class="lotto-falliti"></span></p>'
+			+ '<p class="nota"><span class="lotto-fatte">0</span> fatte · <span class="lotto-restanti">0</span> da fare<span class="lotto-falliti"></span><span class="lotto-quanto"></span></p>'
 			+ '<p class="nota lotto-battito"></p>'
 			+ '<p class="nota grave lotto-errori" hidden></p>'
 			+ '<button type="button" class="bottone chiaro lotto-stop">Ferma</button>';
@@ -453,6 +454,25 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 			scrivi('lotto-fatte', fatte.toLocaleString('it-IT'));
 			scrivi('lotto-restanti', Math.max(0, restano).toLocaleString('it-IT'));
 			scrivi('lotto-falliti', falliti ? ' · ' + falliti + ' non riuscite' : '');
+			scrivi('lotto-quanto', stima());
+		}
+
+		// Quanto manca, misurato su quello che e successo finora invece che
+		// su una media inventata: con duecento contenuti la differenza fra
+		// "dieci minuti" e "due ore" cambia quello che uno decide di fare.
+		function stima() {
+			if (!fatte || !avvio) { return ''; }
+
+			var perContenuto = (Date.now() - avvio) / fatte;
+			var minuti = Math.round((perContenuto * restano) / 60000);
+
+			if (minuti < 1) { return ' · manca meno di un minuto'; }
+			if (minuti < 60) { return ' · mancano circa ' + minuti + ' minuti'; }
+
+			var ore = Math.floor(minuti / 60);
+
+			return ' · mancano circa ' + ore + ( 1 === ore ? ' ora' : ' ore' )
+				+ ( minuti % 60 ? ' e ' + (minuti % 60) + ' minuti' : '' );
 		}
 
 		function spegni(classe, testo) {
@@ -494,10 +514,16 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 					restano = d.restanti;
 					aggiorna();
 
+					// Gli errori veri restano in rosso; il tetto di tempo e
+					// il funzionamento normale e va scritto come tale.
 					if (d.errori && d.errori.length) {
 						var p = dentro('lotto-errori');
 						p.hidden = false;
-						p.textContent = 'Saltate: ' + d.errori.join(' · ');
+						p.textContent = 'Non riuscite: ' + d.errori.join(' · ');
+					}
+
+					if (d.per_tempo) {
+						scrivi('lotto-titolo', 'Sto lavorando… (il blocco si è chiuso al limite di tempo, continuo)');
 					}
 
 					if (d.finito || fermato) {
@@ -524,6 +550,7 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 			});
 
 			pannello.hidden = false;
+			avvio = Date.now();
 			aggiorna();
 			giro();
 		});
