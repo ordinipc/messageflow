@@ -1504,6 +1504,28 @@ verifica(
 
 @unlink( $fileMig );
 
+echo "\nChe versione ho installato\n";
+
+// Senza un numero visibile, "hai gia aggiornato?" si puo solo indovinare -
+// e indovinare male fa rifare lavoro gia fatto, o peggio fa credere fatto
+// un aggiornamento che non c e.
+verifica(
+	'il gestionale dichiara una versione',
+	(bool) preg_match( '/^\d+\.\d+\.\d+$/', \SeoGeo\Versione::NUMERO ),
+	\SeoGeo\Versione::NUMERO
+);
+
+verifica(
+	'e la stessa del plugin, cosi si confrontano',
+	\SeoGeo\Versione::NUMERO === \SeoGeo\Export::versionePlugin(),
+	\SeoGeo\Versione::NUMERO . ' contro ' . \SeoGeo\Export::versionePlugin()
+);
+
+verifica(
+	'e si vede in fondo a ogni pagina',
+	false !== strpos( (string) file_get_contents( __DIR__ . '/../views/layout.php' ), 'Versione::NUMERO' )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

@@ -39,7 +39,8 @@
 <footer class="piede">
 	<div class="contenitore">
 		Analisi SEO e GEO di un sito WordPress a partire dall esportazione WXR ·
-		database <?php echo e( $GLOBALS['cfg']['database']['driver'] ?? 'sqlite' ); ?>
+		database <?php echo e( $GLOBALS['cfg']['database']['driver'] ?? 'sqlite' ); ?> ·
+		gestionale <strong>v<?php echo e( \SeoGeo\Versione::NUMERO ); ?></strong>
 	</div>
 </footer>
 </body>
