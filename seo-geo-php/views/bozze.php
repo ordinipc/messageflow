@@ -783,9 +783,15 @@ $daFondere = in_array( $regola, array( 'LOC-05', 'ONP-06', 'CNT-03' ), true );
 			var invia = modulo.querySelector('[name="invia"]');
 			var quante = modulo.querySelector('[name="quante"]');
 
+			// Il problema da cui si e partiti viaggia con la richiesta: senza,
+			// il server lavorava sull archivio intero e rispondeva "nessun
+			// articolo da riscrivere" davanti a un elenco di duecento.
+			var regola = modulo.querySelector('[name="regola"]');
+
 			var indirizzo = '?p=api-bozze&id=' + idAudit
 				+ '&tipo=' + encodeURIComponent(tipo)
 				+ '&quante=' + encodeURIComponent(quante ? quante.value : 3)
+				+ (regola && regola.value ? '&regola=' + encodeURIComponent(regola.value) : '')
 				+ (invia && invia.checked ? '&invia=1' : '')
 				+ '&token=' + encodeURIComponent(token);
 

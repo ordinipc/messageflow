@@ -2829,7 +2829,38 @@ verifica(
 
 verifica(
 	'e anche la stima guarda la stessa cosa',
-	false !== strpos( $indiceSorgente, "Rewriter::candidati( \$db, \$id, array( 'regola' => \$regola_scelta, 'rigenera' => 1 ) )" )
+	false !== strpos( $indiceSorgente, "Rewriter::candidati( \$db, \$id, array( 'regola' => \$regola_scelta ) )" ),
+	'l elenco e la generazione contano cose diverse'
+);
+
+// Il difetto: il pulsante «Genera le bozze per GEO-10» chiamava la rotta a
+// lotti senza dire da che problema si era partiti. Il server lavorava sull
+// archivio intero, dove il triage non aveva segnalato nessuno di quei 244
+// articoli, e rispondeva «nessun articolo da riscrivere».
+verifica(
+	'il lotto porta con se la regola fino al server',
+	false !== strpos( $vistaBozze, "'&regola=' + encodeURIComponent(regola.value)" ),
+	'la richiesta non manda la regola'
+);
+
+verifica(
+	'e il server la legge',
+	false !== strpos( $indiceSorgente, "\$regola_lotto = preg_match(" ),
+	'la rotta a lotti non legge la regola'
+);
+
+// Leggerla e inutile se poi non arriva alla generazione: e il passaggio che
+// mancava, e toglierlo non faceva fallire niente.
+verifica(
+	'e la passa davvero alla generazione',
+	false !== strpos( $indiceSorgente, "\$opzioni['regola'] = \$regola_lotto;" ),
+	'la regola letta non arriva alla generazione'
+);
+
+verifica(
+	'anche il conto di quante ne restano guarda la stessa regola',
+	false !== strpos( $indiceSorgente, "'' !== \$regola_lotto ? array( 'regola' => \$regola_lotto ) : array()" ),
+	'la barra misura un lavoro diverso'
 );
 
 // I problemi che si risolvono fondendo due pagine non vanno mandati alla
@@ -3398,6 +3429,67 @@ verifica(
 @unlink( \SeoGeo\Allinea::segno( $auditAll ) );
 @unlink( \SeoGeo\Allinea::segno( $auditMuto ) );
 @unlink( $fileAll );
+
+// ---------------------------------------------------------------------------
+// Premere «Genera» deve generare
+//
+// Il caso vero: «Stai correggendo GEO-10, riguarda 244 contenuti», si preme e
+// la risposta e «0 fatte, 0 da fare: nessun articolo da riscrivere». I 244
+// esistono davvero, ma sono tutti classificati «mantenere» dal triage - che e
+// giusto, sono articoli buoni a cui manca solo la tabella - e la generazione
+// guardava solo «riscrivere» e «accorpare», che erano a zero.
+
+echo "\nPremere Genera su un problema preciso genera davvero\n";
+
+$fileGen = sys_get_temp_dir() . '/prova-genera-' . getmypid() . '.sqlite';
+@unlink( $fileGen );
+$dbGen = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileGen ) );
+
+$auditGen = $dbGen->insert(
+	'audit',
+	array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => date( 'Y-m-d H:i:s' ), 'punteggio' => 50 )
+);
+
+$ridGen = $dbGen->insert(
+	'rilievo',
+	array( 'audit_id' => $auditGen, 'regola' => 'GEO-10', 'area' => 'generative', 'gravita' => 'high', 'titolo' => 'Nessun blocco di dati sintetici', 'perche' => '', 'soluzione' => '', 'automatico' => 1, 'occorrenze' => 3 )
+);
+
+// Tre articoli buoni: il triage li tiene, ma a tutti manca la tabella.
+foreach ( array( '/uno/', '/due/', '/tre/' ) as $i => $percorso ) {
+	$doc = $dbGen->insert(
+		'documento',
+		array( 'audit_id' => $auditGen, 'wp_id' => (string) ( 50 + $i ), 'tipo' => 'post', 'stato' => 'publish', 'titolo' => 'Articolo ' . $i, 'percorso' => $percorso, 'url' => 'https://esempio.it' . $percorso, 'parole' => 800, 'testo' => 'testo' )
+	);
+
+	$dbGen->insert( 'triage', array( 'audit_id' => $auditGen, 'documento_id' => $doc, 'categoria' => 'mantenere', 'qualita' => 80, 'intento' => 'informazionale', 'motivo' => '', 'azione' => '', 'redirect_a' => '' ) );
+	$dbGen->insert( 'occorrenza', array( 'rilievo_id' => $ridGen, 'riferimento' => $percorso, 'dettaglio' => 'nessuna tabella' ) );
+}
+
+$senzaRegola = \SeoGeo\Ai\Rewriter::candidati( $dbGen, $auditGen, array() );
+$conRegola   = \SeoGeo\Ai\Rewriter::candidati( $dbGen, $auditGen, array( 'regola' => 'GEO-10' ) );
+
+verifica( 'sull archivio intero il triage non ne segnala nessuno', 0 === count( $senzaRegola ), (string) count( $senzaRegola ) );
+verifica( 'ma partendo dal problema si lavora su tutti e tre', 3 === count( $conRegola ), (string) count( $conRegola ) );
+
+// Il numero mostrato nel riquadro deve essere quello che verra generato: con
+// una bozza gia pronta, due.
+$dbGen->insert(
+	'bozza',
+	array( 'audit_id' => $auditGen, 'documento_id' => $conRegola[0]['doc_id'], 'wp_id' => '50', 'stato' => 'ok', 'modello' => 'x', 'titolo' => 'x', 'corpo_html' => 'x', 'creato_il' => date( 'Y-m-d H:i:s' ) )
+);
+
+$dopoBozza = \SeoGeo\Ai\Rewriter::candidati( $dbGen, $auditGen, array( 'regola' => 'GEO-10' ) );
+
+verifica( 'chi ha gia una bozza non viene ricontato', 2 === count( $dopoBozza ), (string) count( $dopoBozza ) );
+
+// E deve comparire fra gli esclusi, col motivo, invece di sparire e basta.
+$percheGen = \SeoGeo\Ai\Rewriter::esclusi( $dbGen, $auditGen, 'GEO-10' );
+$conBozza  = array_values( array_filter( $percheGen, static fn( $r ) => false !== strpos( $r['motivo'], 'riscrittura pronta' ) ) );
+
+verifica( 'e di lui si dice che la bozza ce l ha gia', 1 === count( $conBozza ), json_encode( $percheGen ) );
+
+@unlink( $fileGen );
 
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 

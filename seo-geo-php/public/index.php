@@ -1302,6 +1302,18 @@ if ( 'api-bozze' === $pagina ) {
 	$quante = max( 1, min( 25, (int) ( $_GET['quante'] ?? 3 ) ) );
 	$gemini = new Gemini( $cfg['ai'] );
 
+	// Da quale problema si e partiti. Senza questo il pulsante «Genera le
+	// bozze per GEO-10» lavorava sull archivio intero: il triage non aveva
+	// segnalato nessuno di quei 244 articoli - sono classificati «mantenere»,
+	// che e giusto, gli manca solo la tabella - e la risposta era «nessun
+	// articolo da riscrivere» su un elenco di duecentoquarantaquattro.
+	//
+	// La via senza JavaScript (?p=genera) la regola la leggeva gia; questa,
+	// che e quella che si usa davvero, no.
+	$regola_lotto = preg_match( '/^[A-Z]{3}-\d{2}$/', (string) ( $_GET['regola'] ?? '' ) )
+		? (string) $_GET['regola']
+		: '';
+
 	if ( ! $gemini->pronto() ) {
 		echo json_encode( array( 'errore' => 'Chiave Gemini mancante: mettila in Impostazioni.', 'finito' => true ) );
 		exit;
@@ -1316,8 +1328,14 @@ if ( 'api-bozze' === $pagina ) {
 	$budget     = $limite_php > 0 ? max( 20, $limite_php - 15 ) : 60;
 	$opzioni    = array( 'limite' => $quante, 'secondi_max' => $budget );
 
-	// Quante ne restano da fare, per tipo di lavoro.
-	$restanti = static function () use ( $db, $id, $tipo, $cfg ) {
+	if ( '' !== $regola_lotto ) {
+		$opzioni['regola'] = $regola_lotto;
+	}
+
+	// Quante ne restano da fare, per tipo di lavoro. Anche il conto deve
+	// guardare la stessa cosa che si sta generando, altrimenti la barra di
+	// avanzamento misura un lavoro diverso da quello in corso.
+	$restanti = static function () use ( $db, $id, $tipo, $cfg, $regola_lotto ) {
 		if ( 'accorpa' === $tipo ) {
 			return count( Rewriter::gruppi( $db, $id ) );
 		}
@@ -1326,7 +1344,9 @@ if ( 'api-bozze' === $pagina ) {
 			return count( Immagini::candidati( $db, $id ) );
 		}
 
-		return count( Rewriter::candidati( $db, $id, array() ) );
+		return count(
+			Rewriter::candidati( $db, $id, '' !== $regola_lotto ? array( 'regola' => $regola_lotto ) : array() )
+		);
 	};
 
 	$prima_di = $restanti();
@@ -3039,8 +3059,14 @@ switch ( $pagina ) {
 				'rilievo'   => $regola_scelta
 					? $db->one( 'SELECT * FROM rilievo WHERE audit_id = ? AND regola = ?', array( $id, $regola_scelta ) )
 					: null,
+				// Quelli su cui la generazione lavorera davvero: stesso
+				// filtro, stesso numero. Con 'rigenera' l elenco contava anche
+				// gli articoli che una bozza ce l hanno gia, e il pulsante
+				// prometteva piu lavoro di quanto ne avrebbe fatto. Chi ha gia
+				// una bozza compare in «perche non e in coda», con scritto
+				// quello.
 				'da_regola' => $regola_scelta
-					? Rewriter::candidati( $db, $id, array( 'regola' => $regola_scelta, 'rigenera' => 1 ) )
+					? Rewriter::candidati( $db, $id, array( 'regola' => $regola_scelta ) )
 					: array(),
 				// Quando la lista esce vuota ma la tabella dell audit segna
 				// due contenuti, bisogna poter vedere quali sono e perche non
