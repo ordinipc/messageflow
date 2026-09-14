@@ -924,9 +924,10 @@ verifica( 'il testo nuovo va nel blocco piu lungo', false !== strpos( (string) (
 verifica( 'il blocco corto resta dov era', false !== strpos( (string) ( $dueWidget[1]['settings']['editor'] ?? '' ), 'preventivo' ), (string) ( $dueWidget[1]['settings']['editor'] ?? '' ) );
 verifica( 'e non viene svuotato niente di corto', 0 === (int) ( $dueEsito['svuotati'] ?? -1 ), (string) ( $dueEsito['svuotati'] ?? 'assente' ) );
 
-// Due blocchi lunghi: sono due pezzi dello stesso articolo, ormai
-// riscritto. Lasciare il secondo vorrebbe dire mostrare due volte lo
-// stesso contenuto, uno vecchio e uno nuovo.
+// Due blocchi lunghi. Prima il secondo veniva svuotato, dando per scontato
+// che fosse il resto dello stesso articolo. Su una pagina vera quella
+// supposizione si e rivelata falsa e ha smontato il disegno: un blocco lungo
+// puo essere l apertura o un riquadro. Adesso non si tocca niente.
 $dueLunghi = $strutturaElementor(
 	array(
 		array( 'id' => 'w1', 'elType' => 'widget', 'widgetType' => 'text-editor', 'settings' => array( 'editor' => '<p>' . str_repeat( 'Prima meta dell articolo. ', 20 ) . '</p>' ) ),
@@ -944,9 +945,35 @@ $spezzato = is_wp_error( $spezzato ) ? array() : (array) $spezzato;
 $spezzatoDopo = json_decode( (string) get_post_meta( 993, '_elementor_data', true ), true );
 $spezzatoWidget = $spezzatoDopo[0]['elements'][0]['elements'] ?? array();
 
-verifica( 'il secondo blocco lungo viene svuotato', 1 === (int) ( $spezzato['svuotati'] ?? 0 ), (string) ( $spezzato['svuotati'] ?? 'assente' ) );
-verifica( 'cosi il testo vecchio non resta sotto a quello nuovo', '' === ( $spezzatoWidget[1]['settings']['editor'] ?? 'x' ) );
+verifica( 'nessun blocco viene svuotato', 0 === (int) ( $spezzato['svuotati'] ?? -1 ), (string) ( $spezzato['svuotati'] ?? 'assente' ) );
+verifica( 'il secondo blocco resta dov era', false !== strpos( (string) ( $spezzatoWidget[1]['settings']['editor'] ?? '' ), 'Seconda meta' ) );
 verifica( 'e il nuovo c e', false !== strpos( (string) ( $spezzatoWidget[0]['settings']['editor'] ?? '' ), 'Articolo riscritto' ) );
+
+// Chi rivuole il vecchio comportamento lo accende dal filtro: resta
+// possibile, ma non e piu quello che succede senza chiederlo.
+verifica(
+	'lo svuotamento resta disponibile, ma va acceso',
+	false !== strpos( file_get_contents( MDI_SEO_GEO_DIR . 'includes/class-mdi-api.php' ), "apply_filters( 'mdi_seo_geo_soglia_blocco', 0 )" )
+);
+
+// Il CSS: si rifa quello della pagina, non quello di tutto il sito.
+$sorgenteApi = file_get_contents( MDI_SEO_GEO_DIR . 'includes/class-mdi-api.php' );
+
+verifica(
+	'non si butta via il CSS di tutto il sito per un articolo',
+	false === strpos( $sorgenteApi, 'files_manager->clear_cache();' )
+);
+verifica(
+	'si rifa solo quello della pagina toccata',
+	false !== strpos( $sorgenteApi, 'private static function rigenera_css_elementor' )
+		&& 2 === substr_count( $sorgenteApi, 'self::rigenera_css_elementor( $id );' )
+);
+
+// La struttura si consegna a Elementor scritta come la scrive lui.
+verifica(
+	'la struttura si codifica come fa Elementor',
+	false === strpos( $sorgenteApi, 'JSON_UNESCAPED_SLASHES' )
+);
 
 // Nessun blocco di testo: se ne aggiunge uno, senza toccare quello che c e.
 $senzaTesto = $strutturaElementor(

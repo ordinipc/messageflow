@@ -1035,12 +1035,9 @@ class MDI_Api {
 			// nuovo e facendo credere che l annulla non funzioni.
 			if ( $elementor ) {
 				update_post_meta( $id, '_elementor_data', wp_slash( (string) $elementor ) );
-				delete_post_meta( $id, '_elementor_css' );
 				delete_post_meta( $id, self::META_ELEMENTOR_PRIMA );
 
-				if ( class_exists( '\\Elementor\\Plugin' ) && isset( \Elementor\Plugin::$instance->files_manager ) ) {
-					\Elementor\Plugin::$instance->files_manager->clear_cache();
-				}
+				self::rigenera_css_elementor( $id );
 			}
 
 			// Il testo dell articolo torna quello di prima. E la rete che
@@ -1706,26 +1703,36 @@ class MDI_Api {
 				return $scritto;
 			}
 
-			// Gli altri blocchi lunghi erano il resto dell articolo, ormai
-			// riscritto: lasciarli vorrebbe dire mostrare due volte lo stesso
-			// contenuto, uno vecchio e uno nuovo. Si svuotano.
+			// Gli altri blocchi non si toccano.
 			//
-			// I blocchi corti no: quelli sono didascalie, inviti a chiamare,
-			// note a margine. Non fanno parte del testo e restano dove sono.
-			$soglia = (int) apply_filters( 'mdi_seo_geo_soglia_blocco', 200 );
+			// Prima venivano svuotati quelli lunghi, con l idea che fossero
+			// il resto dello stesso articolo. Era una supposizione, e su una
+			// pagina vera si e rivelata falsa: un blocco lungo puo essere
+			// l apertura, un riquadro, una parte del disegno della pagina.
+			// Svuotarlo cancella qualcosa che serviva, e chi preme
+			// «sovrascrivi» non si aspetta che sparisca un pezzo di pagina.
+			//
+			// Il testo doppio si vede e si annulla; una pagina smontata no.
+			// Chi rivuole il vecchio comportamento alza la soglia dal filtro.
+			$soglia = (int) apply_filters( 'mdi_seo_geo_soglia_blocco', 0 );
 
-			foreach ( array_slice( $struttura['testi'], 1 ) as $altro ) {
-				if ( (int) $altro['caratteri'] < $soglia ) {
-					continue;
-				}
+			if ( $soglia > 0 ) {
+				foreach ( array_slice( $struttura['testi'], 1 ) as $altro ) {
+					if ( (int) $altro['caratteri'] < $soglia ) {
+						continue;
+					}
 
-				if ( ! is_wp_error( self::scrivi_nel_nodo( $albero, $altro['percorso'], '' ) ) ) {
-					$svuotati++;
+					if ( ! is_wp_error( self::scrivi_nel_nodo( $albero, $altro['percorso'], '' ) ) ) {
+						$svuotati++;
+					}
 				}
 			}
 		}
 
-		$nuovo = wp_json_encode( $albero, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+		// Le stesse opzioni che usa Elementor quando salva un documento: la
+		// struttura la rilegge il suo codice, e conviene consegnargliela
+		// scritta come l avrebbe scritta lui.
+		$nuovo = wp_json_encode( $albero );
 
 		if ( ! $nuovo ) {
 			return new WP_Error( 'mdi_elementor_json', 'Non si e riusciti a ricomporre la struttura di Elementor.', array( 'status' => 500 ) );
@@ -1737,14 +1744,37 @@ class MDI_Api {
 
 		// Il CSS di Elementor e generato e messo in cache per contenuto:
 		// cambiati i dati va rifatto, altrimenti la pagina puo restare con
-		// lo stile di prima.
-		delete_post_meta( $id, '_elementor_css' );
-
-		if ( class_exists( '\Elementor\Plugin' ) && isset( \Elementor\Plugin::$instance->files_manager ) ) {
-			\Elementor\Plugin::$instance->files_manager->clear_cache();
-		}
+		// lo stile di prima. Solo questa pagina, pero.
+		self::rigenera_css_elementor( $id );
 
 		return array( 'svuotati' => $svuotati, 'aggiunto' => $aggiunto );
+	}
+
+	/**
+	 * Rifa il CSS di Elementor di una pagina sola.
+	 *
+	 * Prima si chiamava files_manager->clear_cache(), che butta via il CSS
+	 * generato di TUTTO il sito: il kit con i colori globali, gli stili
+	 * delle sezioni, tutto. Se poi la rigenerazione non riparte — la
+	 * cartella degli upload non scrivibile, una cache davanti — il sito
+	 * resta senza i suoi stili: sfondo nero, testi non centrati, il disegno
+	 * sparito. Per pubblicare un articolo non vale la pena rischiarlo.
+	 *
+	 * Basta togliere il CSS di questa pagina: Elementor lo rifa da solo
+	 * alla prima visita, e il resto del sito non viene toccato.
+	 *
+	 * @param int $id Contenuto.
+	 * @return void
+	 */
+	private static function rigenera_css_elementor( $id ) {
+		$id = (int) $id;
+
+		delete_post_meta( $id, '_elementor_css' );
+
+		if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
+			$css = new \Elementor\Core\Files\CSS\Post( $id );
+			$css->delete();
+		}
 	}
 
 	/**

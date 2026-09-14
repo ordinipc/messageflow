@@ -1742,12 +1742,13 @@ verifica(
 );
 
 // Non basta poterlo fare: prima di premere si deve sapere che cosa
-// succedera, perche su piu blocchi qualcosa viene svuotato.
+// succedera, e adesso che gli altri blocchi non si svuotano piu va detto
+// che un pezzo di testo vecchio puo restare in pagina sotto al nuovo.
 verifica(
 	'e dice in anticipo che cosa fara su ogni contenuto',
 	false !== strpos( $vistaConfronto, '$cosa_fara' )
 		&& false !== strpos( $vistaConfronto, 'ne verrà aggiunto uno in fondo' )
-		&& false !== strpos( $vistaConfronto, 'gli altri lunghi vengono svuotati' )
+		&& false !== strpos( $vistaConfronto, 'gli altri non si toccano' )
 );
 
 // Sapere che diciassette non si possono fare non serve se poi vanno

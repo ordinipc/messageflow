@@ -71,7 +71,7 @@ $cosa_fara = static function ( $riga ) use ( $costruttori, $strutture ) {
 		return 'scrive dentro all\'unico blocco di testo di Elementor';
 	}
 
-	return 'in Elementor ci sono ' . (int) $dentro['blocchi'] . ' blocchi di testo: il testo nuovo va nel più lungo, gli altri lunghi vengono svuotati perché sono il resto dello stesso articolo, quelli corti restano';
+	return 'in Elementor ci sono ' . (int) $dentro['blocchi'] . ' blocchi di testo: il testo nuovo va nel più lungo, gli altri non si toccano — se uno conteneva un pezzo del vecchio articolo, quel pezzo resta in pagina sotto al nuovo';
 };
 
 // Il testo che parte davvero e questo: ripulito dai dati strutturati che il
