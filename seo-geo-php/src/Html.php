@@ -200,6 +200,139 @@ class Html {
 	}
 
 	/**
+	 * Toglie dal testo i dati strutturati finiti dentro al contenuto.
+	 *
+	 * In produzione un articolo e andato online con il JSON-LD stampato in
+	 * mezzo al testo, segnaposto compresi: il modello, a cui l audit aveva
+	 * detto che mancava lo schema Article, lo aveva "risolto" scrivendo lo
+	 * schema nel corpo dell articolo. WordPress toglie il tag <script> ma
+	 * tiene quello che c e dentro, e il risultato e un muro di parentesi
+	 * graffe in mezzo alla pagina.
+	 *
+	 * Lo schema lo stampa il plugin nel <head>, dove va. Nel corpo non ci
+	 * deve arrivare, ne dentro a un tag ne come testo nudo.
+	 *
+	 * @param string $html Markup.
+	 * @return string
+	 */
+	public static function senzaDatiStrutturati( $html ) {
+		$out = preg_replace(
+			'#<script\b[^>]*application/ld\+json[^>]*>[\s\S]*?</script>#i',
+			'',
+			(string) $html
+		);
+
+		return self::senzaJsonNudo( (string) $out );
+	}
+
+	/**
+	 * Toglie i blocchi JSON-LD rimasti come testo, senza il tag che li
+	 * conteneva.
+	 *
+	 * Si scorre carattere per carattere invece di usare un unica espressione
+	 * regolare perche il JSON-LD e annidato: contare le graffe e l unico modo
+	 * di sapere dove finisce senza mangiarsi il testo che segue.
+	 *
+	 * @param string $testo Testo o markup.
+	 * @return string
+	 */
+	private static function senzaJsonNudo( $testo ) {
+		$lunghezza = strlen( $testo );
+		$out       = '';
+		$i         = 0;
+
+		while ( $i < $lunghezza ) {
+			if ( '{' !== $testo[ $i ] || ! self::apreJsonLd( $testo, $i ) ) {
+				$out .= $testo[ $i ];
+				$i++;
+				continue;
+			}
+
+			$fine = self::fineDellOggetto( $testo, $i );
+
+			if ( $fine < 0 ) {
+				// Graffe non bilanciate: meglio lasciare il testo com e che
+				// tagliare fino in fondo alla pagina.
+				$out .= $testo[ $i ];
+				$i++;
+				continue;
+			}
+
+			$i = $fine + 1;
+		}
+
+		return trim( preg_replace( '/\n{3,}/', "\n\n", $out ) );
+	}
+
+	/**
+	 * Se a partire da questa graffa comincia un oggetto JSON-LD.
+	 *
+	 * Si riconosce dalla chiave @context di schema.org: un oggetto qualsiasi
+	 * scritto nel testo (un esempio di codice, una formula) non si tocca.
+	 *
+	 * @param string $testo   Testo.
+	 * @param int    $inizio  Posizione della graffa aperta.
+	 * @return bool
+	 */
+	private static function apreJsonLd( $testo, $inizio ) {
+		$finestra = substr( $testo, $inizio, 120 );
+
+		return (bool) preg_match( '/^\{\s*["\']?@context["\']?\s*:/', $finestra );
+	}
+
+	/**
+	 * Posizione della graffa che chiude l oggetto aperto in $inizio.
+	 *
+	 * @param string $testo  Testo.
+	 * @param int    $inizio Posizione della graffa aperta.
+	 * @return int -1 se non si chiude.
+	 */
+	private static function fineDellOggetto( $testo, $inizio ) {
+		$lunghezza = strlen( $testo );
+		$aperte    = 0;
+		$dentro    = false;
+		$virgoletta = '';
+
+		for ( $i = $inizio; $i < $lunghezza; $i++ ) {
+			$c = $testo[ $i ];
+
+			if ( $dentro ) {
+				if ( '\\' === $c ) {
+					$i++;
+					continue;
+				}
+
+				if ( $c === $virgoletta ) {
+					$dentro = false;
+				}
+
+				continue;
+			}
+
+			if ( '"' === $c || "'" === $c ) {
+				$dentro     = true;
+				$virgoletta = $c;
+				continue;
+			}
+
+			if ( '{' === $c ) {
+				$aperte++;
+				continue;
+			}
+
+			if ( '}' === $c ) {
+				$aperte--;
+
+				if ( 0 === $aperte ) {
+					return $i;
+				}
+			}
+		}
+
+		return -1;
+	}
+
+	/**
 	 * Primo paragrafo con un minimo di sostanza.
 	 *
 	 * @param string $html Markup.

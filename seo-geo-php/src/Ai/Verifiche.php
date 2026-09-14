@@ -71,6 +71,30 @@ class Verifiche {
 	}
 
 	/**
+	 * Quanti segnaposto restano in una bozza.
+	 *
+	 * Serve prima di scrivere sul sito: un articolo pubblicato con dentro
+	 * «[DA VERIFICARE: data di pubblicazione]» e peggio dell articolo di
+	 * prima, e chi legge la pagina lo vede subito.
+	 *
+	 * @param array $bozza Riga bozza.
+	 * @return string[] Etichette ancora da compilare.
+	 */
+	public static function restano( array $bozza ) {
+		$testo = (string) ( $bozza['corpo_html'] ?? '' )
+			. ' ' . (string) ( $bozza['in_breve'] ?? '' )
+			. ' ' . (string) ( $bozza['meta_description'] ?? '' )
+			. ' ' . (string) ( $bozza['titolo'] ?? '' )
+			. ' ' . (string) ( $bozza['faq'] ?? '' );
+
+		if ( ! preg_match_all( self::SCHEMA, $testo, $trovate ) ) {
+			return array();
+		}
+
+		return array_values( array_unique( array_map( 'trim', $trovate[1] ) ) );
+	}
+
+	/**
 	 * Etichette diverse che chiedono la stessa cosa vanno insieme.
 	 *
 	 * @param string $etichetta Etichetta grezza.

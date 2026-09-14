@@ -73,10 +73,24 @@ $cosa_fara = static function ( $riga ) use ( $costruttori, $strutture ) {
 	return 'in Elementor ci sono ' . (int) $dentro['blocchi'] . ' blocchi di testo: il testo nuovo va nel più lungo, gli altri lunghi vengono svuotati perché sono il resto dello stesso articolo, quelli corti restano';
 };
 
+// Un articolo con dentro «[DA VERIFICARE: data di pubblicazione]» pubblicato
+// e peggio dell articolo di prima: il segnaposto lo legge chiunque apra la
+// pagina. Finche i dati non sono compilati, quella bozza non parte.
+$mancanti = static function ( $riga ) {
+	return \SeoGeo\Ai\Verifiche::restano( $riga );
+};
+
+$da_completare = array_values(
+	array_filter(
+		$righe,
+		static fn( $r ) => empty( $r['inviata_il'] ) && $scrivibile( $r ) && $mancanti( $r )
+	)
+);
+
 $da_inviare = array_values(
 	array_filter(
 		$righe,
-		static fn( $r ) => empty( $r['inviata_il'] ) && $scrivibile( $r )
+		static fn( $r ) => empty( $r['inviata_il'] ) && $scrivibile( $r ) && ! $mancanti( $r )
 	)
 );
 
@@ -113,7 +127,19 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 		<?php if ( $bloccate ) : ?>
 			· <strong><?php echo num( count( $bloccate ) ); ?> non sovrascrivibili</strong>
 		<?php endif; ?>
+		<?php if ( $da_completare ) : ?>
+			· <strong><?php echo num( count( $da_completare ) ); ?> con dati da verificare</strong>
+		<?php endif; ?>
 	</p>
+	<?php if ( $da_completare ) : ?>
+		<p class="nota">
+			<?php echo num( count( $da_completare ) ); ?> bozze hanno ancora dei segnaposto
+			<code>[DA VERIFICARE: …]</code> nel testo: pubblicate così si leggerebbero in pagina.
+			Restano fuori da «Sovrascrivi tutte» finché non sono compilate — si fa da
+			<a href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>#verifiche">Riscrittura assistita</a>,
+			dove Gemini cerca online i dati che mancano.
+		</p>
+	<?php endif; ?>
 	<?php if ( $bloccate ) : ?>
 		<?php
 		// Il conto da solo non dice niente: "17 non sovrascrivibili" fa
@@ -163,6 +189,7 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 		'da-inviare' => array( 'Da inviare', count( $da_inviare ) ),
 		'online'     => array( 'Già online', count( $gia_online ) ),
 		'a-mano'     => array( 'Da fare a mano', count( $bloccate ) ),
+		'da-completare' => array( 'Con dati da verificare', count( $da_completare ) ),
 	);
 	?>
 	<p class="filtri">
@@ -197,6 +224,8 @@ if ( 'da-inviare' === $filtro ) {
 	$elenco = $gia_online;
 } elseif ( 'a-mano' === $filtro ) {
 	$elenco = $bloccate;
+} elseif ( 'da-completare' === $filtro ) {
+	$elenco = $da_completare;
 }
 ?>
 
@@ -223,21 +252,35 @@ if ( 'da-inviare' === $filtro ) {
 			<div>
 				<span class="etichetta">Dopo · <?php echo num( str_word_count( strip_tags( (string) $riga['corpo_html'] ) ) ); ?> parole</span>
 				<p class="nota"><strong>Title:</strong> <?php echo e( $riga['meta_title'] ?: '(nessuno)' ); ?></p>
-				<div class="testo-bozza"><?php echo $riga['corpo_html']; ?></div>
+				<div class="testo-bozza"><?php echo \SeoGeo\Html::senzaDatiStrutturati( \SeoGeo\Html::sanifica( (string) $riga['corpo_html'] ) ); ?></div>
 			</div>
 		</div>
 
+		<?php $buchi = $mancanti( $riga ); ?>
+		<?php if ( $buchi ) : ?>
+			<p class="avviso grave">
+				<strong>Dati da verificare, <?php echo num( count( $buchi ) ); ?>:</strong>
+				<?php echo e( implode( ' · ', array_slice( $buchi, 0, 4 ) ) ); ?><?php echo count( $buchi ) > 4 ? ' · e altri ' . num( count( $buchi ) - 4 ) : ''; ?>.
+				Finché ci sono, questo testo non si manda online: i segnaposto si leggerebbero in pagina.
+			</p>
+		<?php endif; ?>
+
 		<div class="azioni">
 			<a class="bottone chiaro" href="?p=bozza&amp;b=<?php echo (int) $riga['id']; ?>">Apri la bozza intera</a>
-			<?php if ( $pronto && $scrivibile( $riga ) ) : ?>
+			<?php if ( $pronto && $scrivibile( $riga ) && ! $buchi ) : ?>
 				<button class="bottone invia-una" type="button" data-bozza="<?php echo (int) $riga['id']; ?>">
 					<?php echo empty( $riga['inviata_il'] ) ? 'Sovrascrivi questo articolo' : 'Riscrivi di nuovo'; ?>
 				</button>
 				<?php if ( '' !== $cosa_fara( $riga ) ) : ?>
 					<span class="nota"><?php echo e( $cosa_fara( $riga ) ); ?></span>
 				<?php endif; ?>
+			<?php elseif ( $pronto && $buchi ) : ?>
+				<a class="bottone chiaro" href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>#verifiche">Compila i dati mancanti</a>
 			<?php elseif ( $pronto ) : ?>
 				<span class="nota"><strong>Da fare a mano:</strong> <?php echo e( $perche_no( $riga ) ); ?>.</span>
+			<?php endif; ?>
+			<?php if ( $pronto && ! empty( $riga['inviata_il'] ) ) : ?>
+				<button class="bottone chiaro ripristina-una" type="button" data-bozza="<?php echo (int) $riga['id']; ?>">Rimetti il testo di prima</button>
 			<?php endif; ?>
 			<span class="nota esito-una"></span>
 		</div>
@@ -275,6 +318,30 @@ if ( 'da-inviare' === $filtro ) {
 					esito.textContent = 'Scritto sul sito.';
 					bottone.textContent = 'Riscrivi di nuovo';
 					bottone.disabled = false;
+				})
+				.catch(function (e) { esito.textContent = 'Errore: ' + e.message; bottone.disabled = false; });
+		});
+	});
+
+	Array.prototype.forEach.call(document.querySelectorAll('.ripristina-una'), function (bottone) {
+		bottone.addEventListener('click', function () {
+			var scheda = bottone.closest('.confronto');
+			var esito = scheda.querySelector('.esito-una');
+
+			if (!confirm('Rimettere sull articolo il testo che c era prima della sovrascrittura?')) {
+				return;
+			}
+
+			bottone.disabled = true;
+			esito.textContent = 'Sto rimettendo il testo di prima…';
+
+			fetch('?p=api-ripristina&id=' + idAudit + '&bozza=' + bottone.dataset.bozza + '&token=' + encodeURIComponent(token))
+				.then(function (r) { return r.json(); })
+				.then(function (d) {
+					if (d.errore) { esito.textContent = 'Errore: ' + d.errore; bottone.disabled = false; return; }
+
+					esito.textContent = 'Rimesso il testo di prima.';
+					bottone.hidden = true;
 				})
 				.catch(function (e) { esito.textContent = 'Errore: ' + e.message; bottone.disabled = false; });
 		});

@@ -1616,11 +1616,12 @@ class MDI_Api {
 	/**
 	 * Scrive il testo nuovo dentro al blocco di testo di Elementor.
 	 *
-	 * Si interviene solo quando c e un unico blocco di testo: e l articolo.
-	 * Se ce ne sono piu di uno non si puo sapere quale sia il corpo e quale
-	 * una didascalia o una promozione, e indovinare vorrebbe dire cancellare
-	 * qualcosa che serviva. In quel caso si rifiuta e si dice cosa si e
-	 * trovato.
+	 * Il testo nuovo va nel blocco piu lungo: e quello che contiene
+	 * l articolo. Gli altri blocchi lunghi sono il resto dello stesso
+	 * articolo, ormai riscritto, e vengono svuotati per non mostrare due
+	 * volte lo stesso contenuto; quelli corti (didascalie, richiami) restano
+	 * dove sono. Se non c e nessun blocco di testo se ne aggiunge uno in
+	 * fondo. Si rifiuta solo quando la struttura non si apre.
 	 *
 	 * @param int    $id        Contenuto.
 	 * @param string $contenuto HTML nuovo.

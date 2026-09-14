@@ -124,7 +124,7 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 		<div class="azioni"><?php azione( $audit['id'], 'config', 'Invia i dati aziendali al sito' ); ?></div>
 	</section>
 
-	<section class="scheda">
+	<section class="scheda" id="meta">
 		<h2>Meta degli articoli</h2>
 		<p class="guida">
 			<?php echo num( $conteggi['cambi_articoli'] ); ?> dei <?php echo num( $conteggi['meta_articoli'] ); ?> articoli
@@ -469,7 +469,7 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 		<?php endif; ?>
 	</section>
 
-	<section class="scheda">
+	<section class="scheda" id="redirect">
 		<h2>Redirect 301</h2>
 		<p class="guida">
 			Un redirect serve quando un URL sparisce davvero. Gli articoli riscritti restano
@@ -487,7 +487,7 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 		</div>
 	</section>
 
-	<section class="scheda">
+	<section class="scheda" id="categorie">
 		<h2>Categorie</h2>
 		<p class="guida">Riassegna le categorie ai <?php echo num( $conteggi['categorie'] ); ?> articoli che l'audit segnala come classificati fuori tema.</p>
 		<div class="azioni"><?php azione( $audit['id'], 'categorie', 'Ricategorizza', 'Riassegnare le categorie a ' . $conteggi['categorie'] . ' articoli?' ); ?></div>

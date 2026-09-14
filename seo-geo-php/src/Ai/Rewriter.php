@@ -9,6 +9,7 @@ namespace SeoGeo\Ai;
 
 use SeoGeo\Db;
 use SeoGeo\Html;
+use SeoGeo\Rimedi;
 use SeoGeo\Text;
 use Throwable;
 
@@ -152,14 +153,31 @@ class Rewriter {
 
 		$segnaposto = implode( ',', array_fill( 0, count( $riferimenti ), '?' ) );
 
-		return $db->all(
+		$trovati = $db->all(
 			"SELECT r.regola, r.titolo, r.gravita, o.dettaglio
 			 FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id
 			 WHERE r.audit_id = ? AND o.riferimento IN ($segnaposto)
 			 ORDER BY CASE r.gravita WHEN 'alto' THEN 0 WHEN 'medio' THEN 1 ELSE 2 END
-			 LIMIT 25",
+			 LIMIT 40",
 			array_merge( array( $auditId ), $riferimenti )
 		);
+
+		// Chi scrive il testo non puo risolvere i problemi tecnici, e dirglielo
+		// fa danni: davanti a «manca lo schema Article» un modello scrive il
+		// JSON-LD dentro all articolo, e quello finisce in pagina come testo.
+		// Quelli li stampa il plugin: qui restano solo i problemi del testo.
+		$rimedi  = Rimedi::mappa( (int) $auditId );
+		$restano = array();
+
+		foreach ( $trovati as $riga ) {
+			if ( 'plugin' === ( $rimedi[ (string) $riga['regola'] ]['come'] ?? '' ) ) {
+				continue;
+			}
+
+			$restano[] = $riga;
+		}
+
+		return array_slice( $restano, 0, 25 );
 	}
 
 	/**
@@ -253,7 +271,12 @@ class Rewriter {
 					? $gemini->generaJson( $istruzioni, Prompt::miglioramento( $a, $a, $link, self::problemi( $db, $auditId, $a ), $cfg ) )
 					: $gemini->generaJson( $istruzioni, Prompt::articolo( $a, $a, $link, $cfg ) );
 
-				$corpo = (string) ( $dati['corpo_html'] ?? '' );
+				// Il modello, davanti a un audit che dice «manca lo schema
+				// Article», a volte lo scrive nel corpo dell articolo. Il
+				// tag <script> lo toglie WordPress, il JSON dentro no: resta
+				// in pagina come testo. Lo schema lo stampa il plugin, qui
+				// non ci deve arrivare.
+				$corpo = Html::senzaDatiStrutturati( (string) ( $dati['corpo_html'] ?? '' ) );
 
 				if ( '' === trim( $corpo ) ) {
 					throw new \RuntimeException( 'il modello non ha restituito il corpo dell articolo' );
@@ -457,7 +480,12 @@ class Rewriter {
 				$link = self::linkSuggeriti( $db, $auditId, $vincitore['percorso'] );
 				$dati = $gemini->generaJson( $istruzioni, Prompt::accorpamento( $vincitore, $gruppo['assorbiti'], $link, $cfg ) );
 
-				$corpo = (string) ( $dati['corpo_html'] ?? '' );
+				// Il modello, davanti a un audit che dice «manca lo schema
+				// Article», a volte lo scrive nel corpo dell articolo. Il
+				// tag <script> lo toglie WordPress, il JSON dentro no: resta
+				// in pagina come testo. Lo schema lo stampa il plugin, qui
+				// non ci deve arrivare.
+				$corpo = Html::senzaDatiStrutturati( (string) ( $dati['corpo_html'] ?? '' ) );
 
 				if ( '' === trim( $corpo ) ) {
 					throw new \RuntimeException( 'il modello non ha restituito il corpo dell articolo' );

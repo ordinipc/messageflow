@@ -113,7 +113,16 @@ update_option(
 
 // La mappa keyword → URL vive in data/internal-links.json: per il collaudo si
 // scrive davvero, così viene esercitato anche il caricamento del file.
-$file_link = MDI_SEO_GEO_DIR . 'data/internal-links.json';
+// La cartella data/ nel plugin la riempie l export: in un albero appena
+// clonato non c e, e senza questo il file non si scriveva e il collaudo
+// misurava una mappa vuota invece dei link.
+$cartella_link = MDI_SEO_GEO_DIR . 'data';
+
+if ( ! is_dir( $cartella_link ) ) {
+	mkdir( $cartella_link, 0777, true );
+}
+
+$file_link = $cartella_link . '/internal-links.json';
 file_put_contents( $file_link, wp_json_encode( array( 'siti web a palermo' => 'https://esempio.it/realizzazione-siti-web-a-palermo/' ) ) );
 
 $testo = '<p>Realizziamo siti web a Palermo per le imprese del territorio.</p>';
@@ -999,11 +1008,20 @@ $widgetTornato = $tornata[0]['elements'][0]['elements'][1]['settings']['editor']
 verifica( 'l annulla rimette il testo di prima dentro a Elementor', false !== strpos( (string) $widgetTornato, 'testo vecchio' ), (string) $widgetTornato );
 verifica( 'e toglie la copia di sicurezza', '' === get_post_meta( 990, MDI_Api::META_ELEMENTOR_PRIMA, true ) );
 
+// Resta fuori solo quello che non si riesce ad aprire: da quando anche i
+// contenuti con piu blocchi di testo si sovrascrivono, avere due blocchi non
+// e piu un motivo per fermarsi.
+stub_crea_post( 989, 'Articolo con la struttura rotta', '<p>Residuo.</p>' );
+update_post_meta( 989, '_elementor_data', 'questo non e JSON {{{' );
+update_post_meta( 989, '_elementor_edit_mode', 'builder' );
+
 // Il riassunto in blocco, per dire in pagina che cosa si potra fare.
-$riassunto = MDI_Api::strutture_elementor( new WP_REST_Request( array( 'ids' => array( 990, 991, 992 ) ) ) );
+$riassunto = MDI_Api::strutture_elementor( new WP_REST_Request( array( 'ids' => array( 990, 991, 992, 989 ) ) ) );
 
 verifica( 'il riassunto dice quale si puo scrivere', true === ( $riassunto['strutture']['990']['scrivibile'] ?? null ) );
-verifica( 'e quale no', false === ( $riassunto['strutture']['991']['scrivibile'] ?? null ) );
+verifica( 'anche con piu blocchi di testo', true === ( $riassunto['strutture']['991']['scrivibile'] ?? null ) );
+verifica( 'e quale no', false === ( $riassunto['strutture']['989']['scrivibile'] ?? null ) );
+verifica( 'dicendo anche perche', false !== strpos( (string) ( $riassunto['strutture']['989']['errore'] ?? '' ), 'illeggibile' ), (string) ( $riassunto['strutture']['989']['errore'] ?? '' ) );
 verifica( 'e riconosce quello che mostra post_content', true === ( $riassunto['strutture']['992']['post_content'] ?? null ) );
 
 echo "\nSintesi e domande frequenti dentro all articolo\n";

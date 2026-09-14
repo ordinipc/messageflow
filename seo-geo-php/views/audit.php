@@ -24,6 +24,13 @@ foreach ( $conteggi as $c ) {
 
 $daRivedere = ( $perCategoria['eliminare'] ?? 0 ) + ( $perCategoria['accorpare'] ?? 0 ) + ( $perCategoria['riscrivere'] ?? 0 );
 
+// Dove si risolve ogni problema. Senza questo la colonna «Correzione» dice
+// «automatica» e basta, che lascia chi legge con l elenco in mano e nessun
+// posto dove andare.
+$rimedi    = \SeoGeo\Rimedi::mappa( $audit['id'] );
+$riassunto = \SeoGeo\Rimedi::riassunto( $rilievi, $audit['id'] );
+$perArea   = \SeoGeo\Rimedi::perArea( $rilievi, $audit['id'] );
+
 $scaricabili = array(
 	array( '', 'problemi.csv', 'Elenco completo dei problemi' ),
 	array( '', 'triage.csv', 'Classificazione degli articoli' ),
@@ -73,12 +80,21 @@ $scaricabili = array(
 	<div class="riquadro">
 		<span class="etichetta">Problemi rilevati</span>
 		<strong><?php echo num( $audit['problemi_totali'] ); ?></strong>
-		<span class="sotto">su <?php echo count( $rilievi ); ?> controlli non superati</span>
+		<span class="sotto">
+			su <?php echo count( $rilievi ); ?> controlli non superati ·
+			<?php echo (int) $riassunto['plugin']; ?> li chiude il plugin,
+			<?php echo (int) $riassunto['azione']; ?> un pulsante,
+			<?php echo (int) $riassunto['manuale']; ?> a mano
+		</span>
 	</div>
 	<div class="riquadro">
 		<span class="etichetta">Articoli da rivedere</span>
 		<strong><?php echo num( $daRivedere ); ?></strong>
-		<span class="sotto">su <?php echo num( $audit['articoli'] ); ?> pubblicati</span>
+		<span class="sotto">
+			<?php echo num( $perCategoria['eliminare'] ?? 0 ); ?> da eliminare,
+			<?php echo num( $perCategoria['accorpare'] ?? 0 ); ?> da accorpare,
+			<?php echo num( $perCategoria['riscrivere'] ?? 0 ); ?> da riscrivere
+		</span>
 	</div>
 	<div class="riquadro">
 		<span class="etichetta">Triage editoriale</span>
@@ -92,10 +108,23 @@ $scaricabili = array(
 	<div class="aree">
 	<?php foreach ( $aree as $a ) : ?>
 		<?php $classe = $a['punteggio'] >= 70 ? 'ok' : ( $a['punteggio'] >= 45 ? 'medio' : 'grave' ); ?>
+		<?php $rim = $perArea[ $a['chiave'] ] ?? array(); ?>
 		<div class="area">
 			<div class="nome">
 				<?php echo e( $a['etichetta'] ); ?>
 				<small><?php echo (int) $a['rilievi']; ?> controlli non superati · peso <?php echo (int) $a['peso']; ?>%</small>
+				<small>
+					<?php if ( ! empty( $rim['dove'] ) ) : ?>
+						<a href="<?php echo e( $rim['dove'] ); ?>">Correggi da «<?php echo e( $rim['etichetta'] ); ?>»</a>
+						<?php if ( ! empty( $rim['plugin'] ) ) : ?>
+							· altri <?php echo (int) $rim['plugin']; ?> li chiude il plugin
+						<?php endif; ?>
+					<?php elseif ( ! empty( $rim['plugin'] ) ) : ?>
+						<a href="?p=collega&amp;id=<?php echo (int) $audit['id']; ?>">Li chiude il plugin: <?php echo (int) $rim['plugin']; ?> su <?php echo (int) $a['rilievi']; ?></a>
+					<?php elseif ( (int) $a['rilievi'] > 0 ) : ?>
+						nessuna correzione automatica: si sistema a mano
+					<?php endif; ?>
+				</small>
 			</div>
 			<div class="barra"><i class="<?php echo $classe; ?>" style="width:<?php echo max( 2, (int) $a['punteggio'] ); ?>%"></i></div>
 			<div class="valore <?php echo $classe; ?>"><?php echo (int) $a['punteggio']; ?></div>
@@ -134,7 +163,19 @@ $scaricabili = array(
 						<div class="sotto"><?php echo e( $r['perche'] ); ?></div>
 					</td>
 					<td class="num"><?php echo num( $r['occorrenze'] ); ?></td>
-					<td><?php echo $r['automatico'] ? '<span class="tag ok">automatica</span>' : '<span class="tag basso">manuale</span>'; ?></td>
+					<?php $rim = $rimedi[ $r['regola'] ] ?? array(); ?>
+					<td class="rimedio">
+						<?php if ( 'azione' === ( $rim['come'] ?? '' ) ) : ?>
+							<a class="bottone chiaro piccolo" href="<?php echo e( $rim['dove'] ); ?>"><?php echo e( $rim['etichetta'] ); ?></a>
+							<div class="sotto"><?php echo e( $rim['spiega'] ); ?></div>
+						<?php elseif ( 'plugin' === ( $rim['come'] ?? '' ) ) : ?>
+							<span class="tag ok">lo fa il plugin</span>
+							<div class="sotto"><?php echo e( $rim['spiega'] ); ?></div>
+						<?php else : ?>
+							<span class="tag basso">a mano</span>
+							<div class="sotto"><?php echo e( $r['soluzione'] ); ?></div>
+						<?php endif; ?>
+					</td>
 				</tr>
 			<?php endforeach; ?>
 			</tbody>
@@ -230,6 +271,14 @@ $scaricabili = array(
 <section class="scheda">
 	<h2>File di correzione</h2>
 	<p class="guida">Generati durante l analisi e pronti da applicare sul sito.</p>
+	<p class="nota">
+		Sono copie da portare fuori: servono se vuoi importarli in Rank Math, caricarli sull hosting o
+		tenerli da parte. <strong>Non è da qui che si correggono i problemi.</strong> Sul sito scrive il
+		<a href="?p=collega&amp;id=<?php echo (int) $audit['id']; ?>">collegamento</a> — che manda le stesse
+		cose direttamente a WordPress — oppure il
+		<a href="?p=pilota&amp;id=<?php echo (int) $audit['id']; ?>">pilota automatico</a>. Scaricare un file
+		non cambia niente sul sito, e nemmeno rifare l analisi.
+	</p>
 	<ul class="elenco-file">
 	<?php foreach ( $scaricabili as $f ) : ?>
 		<?php $percorso = __DIR__ . '/../storage/export/audit-' . (int) $audit['id'] . '/' . ( $f[0] ? $f[0] . '/' : '' ) . $f[1]; ?>

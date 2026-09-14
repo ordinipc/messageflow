@@ -51,6 +51,36 @@ function errore_di( callable $azione ) {
 }
 
 /**
+ * Regole che l audit dichiara correggibili in automatico ma per cui nessuno
+ * sa dire dove si clicchi.
+ *
+ * @param array $rimedi Mappa dei rimedi.
+ * @return string[]
+ */
+function regole_auto_senza_rimedio( array $rimedi ) {
+	$fuori = array();
+
+	foreach ( glob( __DIR__ . '/../src/Rules/*.php' ) as $file ) {
+		$sorgente = file_get_contents( $file );
+
+		preg_match_all(
+			"/'id'\s*=>\s*'([A-Z]{3}-[0-9]+)'(.*?)(?='id'\s*=>\s*'[A-Z]{3}-|\z)/s",
+			$sorgente,
+			$trovate,
+			PREG_SET_ORDER
+		);
+
+		foreach ( $trovate as $regola ) {
+			if ( preg_match( "/'auto'\s*=>\s*true/", $regola[2] ) && ! isset( $rimedi[ $regola[1] ] ) ) {
+				$fuori[] = $regola[1];
+			}
+		}
+	}
+
+	return $fuori;
+}
+
+/**
  * Costruisce un sito minimo con un solo contenuto.
  *
  * @param array $meta Meta del contenuto.
@@ -1429,14 +1459,29 @@ $dbM->insert( 'occorrenza', array( 'rilievo_id' => $rilievoM, 'riferimento' => '
 
 $rilievoBasso = $dbM->insert(
 	'rilievo',
-	array( 'audit_id' => $auditM, 'regola' => 'IMG-06', 'area' => 'media', 'gravita' => 'basso', 'titolo' => 'Immagini senza dimensioni', 'perche' => 'x', 'soluzione' => 'y', 'automatico' => 1, 'occorrenze' => 1 )
+	array( 'audit_id' => $auditM, 'regola' => 'CNT-09', 'area' => 'content', 'gravita' => 'basso', 'titolo' => 'Titoletti che ripetono il titolo', 'perche' => 'x', 'soluzione' => 'y', 'automatico' => 1, 'occorrenze' => 1 )
 );
-$dbM->insert( 'occorrenza', array( 'rilievo_id' => $rilievoBasso, 'riferimento' => '/ecommerce/', 'dettaglio' => '2 immagini senza dimensioni' ) );
+$dbM->insert( 'occorrenza', array( 'rilievo_id' => $rilievoBasso, 'riferimento' => '/ecommerce/', 'dettaglio' => '3 titoletti ripetono il titolo' ) );
+
+// Un rilievo che si risolve nel <head> e non nel testo: dirlo a chi scrive
+// l articolo non serve, e in produzione ha fatto danni — il modello, davanti
+// a «manca lo schema Article», ha scritto il JSON-LD dentro all articolo e
+// quello e finito in pagina come testo.
+$rilievoSchema = $dbM->insert(
+	'rilievo',
+	array( 'audit_id' => $auditM, 'regola' => 'SCH-01', 'area' => 'structured', 'gravita' => 'alto', 'titolo' => 'Manca lo schema Article', 'perche' => 'x', 'soluzione' => 'y', 'automatico' => 1, 'occorrenze' => 1 )
+);
+$dbM->insert( 'occorrenza', array( 'rilievo_id' => $rilievoSchema, 'riferimento' => 'https://esempio.it/ecommerce/', 'dettaglio' => 'nessun JSON-LD Article' ) );
 
 $problemiM = \SeoGeo\Ai\Rewriter::problemi( $dbM, $auditM, $docM );
 
 verifica( 'i problemi della pagina vengono ritrovati', 2 === count( $problemiM ), (string) count( $problemiM ) );
-verifica( 'per indirizzo completo e per percorso', 'STR-02' === $problemiM[0]['regola'] && 'IMG-06' === $problemiM[1]['regola'] );
+verifica( 'per indirizzo completo e per percorso', 'STR-02' === $problemiM[0]['regola'] && 'CNT-09' === $problemiM[1]['regola'] );
+verifica(
+	'i problemi che risolve il plugin non arrivano a chi scrive il testo',
+	! in_array( 'SCH-01', array_column( $problemiM, 'regola' ), true ),
+	implode( ',', array_column( $problemiM, 'regola' ) )
+);
 verifica( 'e i piu gravi vengono per primi', 'alto' === $problemiM[0]['gravita'], $problemiM[0]['gravita'] );
 
 $problemiAltrove = \SeoGeo\Ai\Rewriter::problemi( $dbM, $auditM, array( 'url' => 'https://esempio.it/altra/', 'percorso' => '/altra/' ) );
@@ -1723,7 +1768,7 @@ verifica(
 
 verifica(
 	'il gestionale accetta solo le viste previste',
-	false !== strpos( $sorgenteIndice, "array( 'da-inviare', 'online', 'a-mano' ), true )" )
+	false !== strpos( $sorgenteIndice, "array( 'da-inviare', 'online', 'a-mano', 'da-completare' ), true )" )
 );
 
 verifica(
@@ -1736,6 +1781,194 @@ verifica(
 	'l H1 non viene contato',
 	false !== strpos( (string) ( $conH1Trovati[0]['dettaglio'] ?? '' ), '2 titoletti' ),
 	(string) ( $conH1Trovati[0]['dettaglio'] ?? '' )
+);
+
+// --- Dove si risolve ogni problema ----------------------------------------
+//
+// In produzione la tabella dei problemi diceva «Correzione: automatica» e
+// non offriva niente da premere: l elenco in mano e nessun posto dove
+// andare. Queste verifiche tengono insieme le tre cose che devono
+// combaciare — la regola dell audit, il rimedio e la pagina che lo esegue.
+
+$rimedi = \SeoGeo\Rimedi::mappa( 7 );
+
+verifica(
+	'ogni regola che l audit dichiara automatica sa dove si risolve',
+	array() === ( $senzaRimedio = regole_auto_senza_rimedio( $rimedi ) ),
+	implode( ', ', $senzaRimedio )
+);
+
+$destinazioni = array();
+foreach ( $rimedi as $regola => $r ) {
+	if ( 'azione' === $r['come'] ) {
+		$destinazioni[ $r['dove'] ][] = $regola;
+	}
+}
+
+$ancoreMancanti = array();
+foreach ( $destinazioni as $dove => $regole ) {
+	$pezzi  = explode( '#', $dove );
+	$pagina = array();
+	parse_str( ltrim( $pezzi[0], '?' ), $pagina );
+	$vista  = __DIR__ . '/../views/' . ( $pagina['p'] ?? '' ) . '.php';
+
+	if ( ! is_file( $vista ) ) {
+		$ancoreMancanti[] = $dove . ' (vista assente)';
+		continue;
+	}
+
+	if ( isset( $pezzi[1] ) && false === strpos( file_get_contents( $vista ), 'id="' . $pezzi[1] . '"' ) ) {
+		$ancoreMancanti[] = $dove . ' (ancora assente)';
+	}
+}
+
+verifica(
+	'ogni pulsante di correzione porta a una sezione che esiste davvero',
+	array() === $ancoreMancanti,
+	implode( ', ', $ancoreMancanti )
+);
+
+$vistaAudit = file_get_contents( __DIR__ . '/../views/audit.php' );
+
+verifica(
+	'la colonna «Correzione» non si limita più a dire «automatica»',
+	false === strpos( $vistaAudit, ">automatica</span>" )
+		&& false !== strpos( $vistaAudit, '\'azione\' === ( $rim[\'come\'] ?? \'\' )' )
+);
+
+verifica(
+	'il punteggio per area dice dove si corregge',
+	false !== strpos( $vistaAudit, 'Correggi da' )
+		&& false !== strpos( $vistaAudit, '$perArea[ $a[' )
+);
+
+verifica(
+	'i file di correzione dicono che non applicano niente da soli',
+	false !== strpos( $vistaAudit, 'Non è da qui che si correggono i problemi' )
+);
+
+$finti = array(
+	array( 'regola' => 'SCH-01', 'area' => 'structured', 'occorrenze' => 30 ),
+	array( 'regola' => 'ONP-01', 'area' => 'onpage', 'occorrenze' => 12 ),
+	array( 'regola' => 'ONP-10', 'area' => 'onpage', 'occorrenze' => 90 ),
+	array( 'regola' => 'TEC-08', 'area' => 'technical', 'occorrenze' => 4 ),
+);
+
+$conti = \SeoGeo\Rimedi::riassunto( $finti, 7 );
+
+verifica(
+	'il riassunto separa plugin, pulsante e lavoro a mano',
+	1 === $conti['plugin'] && 2 === $conti['azione'] && 1 === $conti['manuale'],
+	json_encode( $conti )
+);
+
+$aree = \SeoGeo\Rimedi::perArea( $finti, 7 );
+
+verifica(
+	'per ogni area si propone il rimedio che tocca più contenuti',
+	false !== strpos( (string) $aree['onpage']['dove'], 'bozze' ),
+	(string) ( $aree['onpage']['dove'] ?? '' )
+);
+
+verifica(
+	'un area senza rimedi guidati non inventa un collegamento',
+	'' === $aree['technical']['dove'] && 1 === $aree['technical']['manuale']
+);
+
+// --- Lo schema non deve finire dentro all articolo ------------------------
+//
+// In produzione un articolo e andato online con il JSON-LD stampato in mezzo
+// al testo, segnaposto compresi. WordPress toglie il tag <script> ma tiene
+// quello che c e dentro: in pagina resta un muro di graffe.
+
+echo "\nLo schema resta fuori dal testo\n";
+
+$conSchema = '<p>Testo prima.</p>' . "\n\n"
+	. '{ "@context": "https://schema.org", "@graph": [ { "@type": "Article", "headline": "Web Agency { a }", '
+	. '"image": { "@type": "ImageObject", "url": "[DA VERIFICARE: URL dell immagine principale]" } } ] }' . "\n\n"
+	. '<p>Testo dopo.</p>';
+
+$ripulito = \SeoGeo\Html::senzaDatiStrutturati( $conSchema );
+
+verifica( 'il JSON-LD nudo sparisce dal corpo', false === strpos( $ripulito, '@context' ), $ripulito );
+verifica( 'il testo prima e dopo resta', false !== strpos( $ripulito, 'Testo prima' ) && false !== strpos( $ripulito, 'Testo dopo' ) );
+
+verifica(
+	'e sparisce anche quando e dentro a uno <script>',
+	false === strpos(
+		\SeoGeo\Html::senzaDatiStrutturati( '<p>a</p><script type="application/ld+json">{"@context":"x"}</script><p>b</p>' ),
+		'@context'
+	)
+);
+
+verifica(
+	'un oggetto qualsiasi nel testo non si tocca',
+	false !== strpos( \SeoGeo\Html::senzaDatiStrutturati( '<p>Scrivi {"chiave": 1} nel file.</p>' ), '"chiave"' )
+);
+
+verifica(
+	'graffe non bilanciate non mangiano il resto della pagina',
+	false !== strpos(
+		\SeoGeo\Html::senzaDatiStrutturati( '{ "@context": "x", "a": [ <p>coda</p>' ),
+		'coda'
+	)
+);
+
+$indiceSorgente = file_get_contents( __DIR__ . '/../public/index.php' );
+
+verifica(
+	'si ripulisce anche al momento di inviare, non solo quando si genera',
+	false !== strpos( $indiceSorgente, 'Html::senzaDatiStrutturati( (string) $riga[' )
+);
+
+verifica(
+	'il prompt vieta di scrivere dati strutturati nel corpo',
+	false !== strpos( \SeoGeo\Ai\Prompt::miglioramento( $docM, $docM, array(), $problemiM, $cfgMig ), 'Non scrivere dati strutturati' )
+);
+
+// --- Segnaposto: non si pubblica un articolo con dentro [DA VERIFICARE] ---
+
+$conBuchi = array(
+	'corpo_html'       => '<p>Costa [DA VERIFICARE: prezzo medio] e dura [DA VERIFICARE: tempi].</p>',
+	'in_breve'         => '',
+	'meta_description' => '',
+	'titolo'           => '',
+	'faq'              => '',
+);
+
+$buchi = \SeoGeo\Ai\Verifiche::restano( $conBuchi );
+
+verifica( 'i segnaposto rimasti si contano', 2 === count( $buchi ), implode( ' | ', $buchi ) );
+verifica( 'e si dice quali sono', in_array( 'prezzo medio', $buchi, true ), implode( ' | ', $buchi ) );
+
+verifica(
+	'una bozza senza segnaposto non viene fermata',
+	array() === \SeoGeo\Ai\Verifiche::restano( array( 'corpo_html' => '<p>Tutto compilato.</p>' ) )
+);
+
+verifica(
+	'anche i segnaposto nelle domande frequenti fermano l invio',
+	array() !== \SeoGeo\Ai\Verifiche::restano( array( 'faq' => '[{"risposta":"[DA VERIFICARE: orari]"}]' ) )
+);
+
+verifica(
+	'il gestionale si rifiuta di mandare online una bozza con i segnaposto',
+	false !== strpos( $indiceSorgente, 'Verifiche::restano(' )
+		&& false !== strpos( $indiceSorgente, 'Mancano ancora dei dati da verificare' )
+);
+
+$vistaConfronto2 = file_get_contents( __DIR__ . '/../views/confronto-bozze.php' );
+
+verifica(
+	'e quelle bozze restano fuori da «Sovrascrivi tutte»',
+	false !== strpos( $vistaConfronto2, '$da_completare' )
+		&& false !== strpos( $vistaConfronto2, "! \$mancanti( \$r )" )
+);
+
+verifica(
+	'si puo rimettere il testo di prima su un articolo solo',
+	false !== strpos( $indiceSorgente, "'api-ripristina' === \$pagina" )
+		&& false !== strpos( $vistaConfronto2, 'ripristina-una' )
 );
 
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );

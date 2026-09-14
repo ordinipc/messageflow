@@ -98,6 +98,11 @@ COSA NON FARE
 - Non promettere posizionamenti, primi posti su Google o risultati garantiti.
 - Non copiare il testo di partenza: riscrivilo, ampliandolo con sostanza nuova.
 - Non usare emoji, non usare grassetti a pioggia, non aprire con una domanda retorica.
+- Non scrivere MAI dati strutturati, JSON-LD, schema.org, <script>, <head> o meta tag
+  dentro al corpo dell articolo. Li stampa il plugin nella testata della pagina. Se
+  l elenco dei problemi parla di schema, Article, Organization, FAQPage, canonical,
+  robots o Open Graph, quel problema non è tuo: ignoralo e non scrivere niente.
+  Il corpo dell articolo contiene solo testo che un lettore legge.
 TXT;
 	}
 
@@ -277,6 +282,9 @@ COSA NON DEVI FARE
 - Non allungare per allungare: se l articolo è già completo, tocca poco.
 - Non costruire tabelle di prezzi o fasce di costo: senza le cifre vere
   diventano griglie di [DA VERIFICARE] che non si possono pubblicare.
+- Non scrivere dati strutturati, JSON-LD, schema.org, <script> o meta tag nel
+  corpo: li stampa il plugin nella testata. Se fra i problemi ne compare uno,
+  ignoralo: non si risolve scrivendo nel testo.
 
 TESTO ATTUALE
 ---

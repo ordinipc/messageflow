@@ -18,6 +18,7 @@ use SeoGeo\Coda;
 use SeoGeo\Db;
 use SeoGeo\Diagnosi;
 use SeoGeo\Diagnostica;
+use SeoGeo\Html;
 use SeoGeo\Redirezioni;
 use SeoGeo\Export;
 use SeoGeo\Impostazioni;
@@ -754,7 +755,7 @@ if ( 'confronto-bozze' === $pagina ) {
 	$ponte = new WordPress( $cfg['wordpress'] );
 
 	$righe_confronto = $db->all(
-		"SELECT b.id, b.titolo, b.corpo_html, b.in_breve, b.meta_title, b.meta_description,
+		"SELECT b.id, b.titolo, b.corpo_html, b.in_breve, b.meta_title, b.meta_description, b.faq,
 				b.inviata_il, d.wp_id, d.url, d.titolo AS titolo_vecchio, d.testo AS testo_vecchio,
 				d.parole AS parole_vecchie, d.seo_title, d.seo_description
 		 FROM bozza b JOIN documento d ON d.id = b.documento_id
@@ -796,7 +797,7 @@ if ( 'confronto-bozze' === $pagina ) {
 			'pronto' => $ponte->pronto(),
 			'costruttori' => $costruttori,
 			'strutture'   => $strutture,
-			'filtro'      => in_array( $_GET['filtro'] ?? '', array( 'da-inviare', 'online', 'a-mano' ), true ) ? $_GET['filtro'] : '',
+			'filtro'      => in_array( $_GET['filtro'] ?? '', array( 'da-inviare', 'online', 'a-mano', 'da-completare' ), true ) ? $_GET['filtro'] : '',
 			'esito'  => (string) ( $_GET['esito'] ?? '' ),
 			'errore' => (string) ( $_GET['errore'] ?? '' ),
 			'righe'  => $righe_confronto,
@@ -831,12 +832,36 @@ if ( 'api-sovrascrivi' === $pagina ) {
 		exit;
 	}
 
+	// Un articolo e andato online con il JSON-LD stampato in mezzo al testo:
+	// il modello aveva "risolto" cosi il rilievo sullo schema mancante. Le
+	// bozze gia scritte in archivio ce l hanno ancora dentro, quindi si
+	// ripulisce qui, al momento di inviare, non solo quando si genera.
+	$corpo = Html::senzaDatiStrutturati( (string) $riga['corpo_html'] );
+
+	// Con i segnaposto dentro, l articolo pubblicato e peggio di quello di
+	// prima: chi legge la pagina vede «[DA VERIFICARE: ...]». Si ferma qui e
+	// si dice quale dato manca.
+	$mancano = Verifiche::restano( array( 'corpo_html' => $corpo ) + $riga );
+
+	if ( $mancano ) {
+		http_response_code( 409 );
+		echo json_encode(
+			array(
+				'errore' => 'Mancano ancora dei dati da verificare: ' . implode( '; ', array_slice( $mancano, 0, 3 ) )
+					. ( count( $mancano ) > 3 ? ' e altri ' . ( count( $mancano ) - 3 ) : '' )
+					. '. Compilali da «Riscrittura assistita» prima di mandarlo online.',
+				'bozza'  => (int) $riga['id'],
+			)
+		);
+		exit;
+	}
+
 	try {
 		$esito = $ponte->sovrascrivi(
 			(int) $riga['wp_id'],
 			array(
 				'titolo'           => (string) $riga['titolo'],
-				'contenuto'        => (string) $riga['corpo_html'],
+				'contenuto'        => $corpo,
 				'estratto'         => (string) $riga['in_breve'],
 				'in_breve'         => (string) $riga['in_breve'],
 				'faq'              => json_decode( (string) $riga['faq'], true ) ?: array(),
@@ -857,6 +882,52 @@ if ( 'api-sovrascrivi' === $pagina ) {
 				'modifica'  => (string) ( $esito['modifica'] ?? '' ),
 			)
 		);
+	} catch ( Throwable $e ) {
+		http_response_code( 500 );
+		echo json_encode( array( 'errore' => $e->getMessage(), 'bozza' => (int) $riga['id'] ) );
+	}
+
+	exit;
+}
+
+if ( 'api-ripristina' === $pagina ) {
+	header( 'Content-Type: application/json; charset=utf-8' );
+
+	if ( ! hash_equals( token(), $_GET['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		echo json_encode( array( 'errore' => 'Sessione scaduta: ricarica la pagina.' ) );
+		exit;
+	}
+
+	// Rimettere il testo di prima su un articolo solo. «Annulla tutto e
+	// ripristina» esisteva gia, ma rimette tutti: se e andato storto un
+	// articolo su duecento, tornare indietro su tutti non e una scelta.
+	$id    = (int) ( $_GET['id'] ?? 0 );
+	$bozza = (int) ( $_GET['bozza'] ?? 0 );
+	$ponte = new WordPress( $cfg['wordpress'] );
+
+	$riga = $db->one(
+		'SELECT b.id, d.wp_id FROM bozza b JOIN documento d ON d.id = b.documento_id
+		 WHERE b.id = ? AND b.audit_id = ?',
+		array( $bozza, $id )
+	);
+
+	if ( ! $riga ) {
+		http_response_code( 404 );
+		echo json_encode( array( 'errore' => 'Bozza non trovata.' ) );
+		exit;
+	}
+
+	try {
+		$esito = $ponte->annulla( array( (int) $riga['wp_id'] ) );
+
+		if ( empty( $esito['ripristinati'] ) ) {
+			throw new RuntimeException( 'Sul sito non c\'è una copia del testo precedente per questo articolo.' );
+		}
+
+		$db->run( 'UPDATE bozza SET inviata_il = NULL WHERE id = ?', array( (int) $riga['id'] ) );
+
+		echo json_encode( array( 'ok' => true, 'bozza' => (int) $riga['id'] ) );
 	} catch ( Throwable $e ) {
 		http_response_code( 500 );
 		echo json_encode( array( 'errore' => $e->getMessage(), 'bozza' => (int) $riga['id'] ) );
