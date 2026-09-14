@@ -1042,6 +1042,22 @@ stub_crea_post( 989, 'Articolo con la struttura rotta', '<p>Residuo.</p>' );
 update_post_meta( 989, '_elementor_data', 'questo non e JSON {{{' );
 update_post_meta( 989, '_elementor_edit_mode', 'builder' );
 
+// Un modello di Elementor non e un contenuto: e il disegno con cui il sito
+// stampa TUTTI gli articoli. Scriverci dentro il testo di un articolo li
+// smonterebbe tutti in una volta.
+stub_crea_post( 988, 'Articolo singolo', '<p>Modello.</p>' );
+$GLOBALS['wp']['post'][988]->post_type = 'elementor_library';
+
+$suModello = MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 988, 'contenuto' => '<p>Testo di un articolo.</p>' ) ) );
+
+verifica( 'su un modello di Elementor non si scrive', is_wp_error( $suModello ) );
+verifica(
+	'e si dice perche',
+	false !== stripos( is_wp_error( $suModello ) ? $suModello->get_error_message() : '', 'articoli e pagine' ),
+	is_wp_error( $suModello ) ? $suModello->get_error_message() : 'nessun errore'
+);
+verifica( 'e il modello non viene toccato', '<p>Modello.</p>' === get_post( 988 )->post_content );
+
 // Il riassunto in blocco, per dire in pagina che cosa si potra fare.
 $riassunto = MDI_Api::strutture_elementor( new WP_REST_Request( array( 'ids' => array( 990, 991, 992, 989 ) ) ) );
 

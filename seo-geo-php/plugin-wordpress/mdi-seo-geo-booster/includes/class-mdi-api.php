@@ -1309,6 +1309,23 @@ class MDI_Api {
 			return new WP_Error( 'mdi_post_assente', 'Articolo non trovato: ' . $id, array( 'status' => 404 ) );
 		}
 
+		// Si scrive solo su articoli e pagine. Un modello di Elementor
+		// (elementor_library) non e un contenuto: e il disegno con cui il
+		// sito stampa TUTTI gli articoli. Scriverci dentro il testo di un
+		// articolo li smonterebbe tutti in una volta, e da fuori sembrerebbe
+		// che un articolo solo ha rotto il blog intero.
+		if ( ! in_array( $post->post_type, array( 'post', 'page' ), true ) ) {
+			return new WP_Error(
+				'mdi_tipo_non_ammesso',
+				sprintf(
+					'Il contenuto %d e di tipo «%s»: si scrive solo su articoli e pagine.',
+					$id,
+					$post->post_type
+				),
+				array( 'status' => 409 )
+			);
+		}
+
 		$contenuto = (string) $richiesta->get_param( 'contenuto' );
 
 		if ( '' === trim( $contenuto ) ) {
