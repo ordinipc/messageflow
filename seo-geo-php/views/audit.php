@@ -6,9 +6,22 @@
  * @var array $confronto Esito del confronto degli indirizzi.
  * @var array $audit    Riga audit.
  * @var array $aree     Punteggi per area.
- * @var array $rilievi  Rilievi ordinati per gravità.
+ * @var array $rilievi  Rilievi ancora aperti, ordinati per gravità.
+ * @var array $sistemati Rilievi che il lavoro fatto ha già chiuso.
  * @var array $conteggi Conteggi del triage.
  */
+
+$sistemati = $sistemati ?? array();
+
+// I problemi che restano davvero: le occorrenze della fotografia meno quelle
+// chiuse da quando e stata scattata.
+$problemiAperti = 0;
+$problemiChiusi = 0;
+
+foreach ( array_merge( $rilievi, $sistemati ) as $r ) {
+	$problemiAperti += (int) $r['occorrenze'];
+	$problemiChiusi += (int) ( $r['chiuse'] ?? 0 );
+}
 
 $gravita = array(
 	'critical' => array( 'Critico', 'grave' ),
@@ -79,8 +92,11 @@ $scaricabili = array(
 	</div>
 	<div class="riquadro">
 		<span class="etichetta">Problemi rilevati</span>
-		<strong><?php echo num( $audit['problemi_totali'] ); ?></strong>
+		<strong><?php echo num( $problemiAperti ); ?></strong>
 		<span class="sotto">
+			<?php if ( $problemiChiusi ) : ?>
+				<?php echo num( $problemiChiusi ); ?> già sistemati da quando il sito è stato letto ·
+			<?php endif; ?>
 			su <?php echo count( $rilievi ); ?> controlli non superati ·
 			<?php echo (int) $riassunto['plugin']; ?> li chiude il plugin,
 			<?php echo (int) $riassunto['azione']; ?> un pulsante,
@@ -149,11 +165,13 @@ $scaricabili = array(
 <section class="scheda">
 	<h2>Problemi rilevati</h2>
 	<p class="guida">
-		Sono i controlli non superati quando il sito è stato letto, il
-		<?php echo e( substr( $audit['creato_il'], 0, 16 ) ); ?>. I numeri non scendono da soli mentre
-		correggi: leggere davvero tutto il sito richiede minuti, non si può fare a ogni ricarica della
-		pagina. Applica le correzioni e poi rileggi: qui sotto trovi il pulsante, e il confronto con
-		questa analisi resta in fondo alla pagina.
+		Il sito è stato letto il <?php echo e( substr( $audit['creato_il'], 0, 16 ) ); ?>. I numeri
+		qui sotto sono quelli di allora <strong>meno il lavoro applicato da allora</strong>: ogni
+		volta che il gestionale scrive qualcosa sul sito, le occorrenze che quel lavoro chiude
+		smettono di essere contate, e i controlli chiusi del tutto finiscono più in basso, in «Già
+		sistemati».
+		Quello che non si vede da qui è ciò che cambi a mano dentro WordPress: per quello serve
+		rileggere il sito.
 	</p>
 	<form method="post" action="?p=risincronizza">
 		<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
@@ -173,7 +191,12 @@ $scaricabili = array(
 						<a href="?p=rilievo&amp;id=<?php echo (int) $r['id']; ?>"><?php echo e( $r['titolo'] ); ?></a>
 						<div class="sotto"><?php echo e( $r['perche'] ); ?></div>
 					</td>
-					<td class="num"><?php echo num( $r['occorrenze'] ); ?></td>
+					<td class="num">
+						<?php echo num( $r['occorrenze'] ); ?>
+						<?php if ( ! empty( $r['chiuse'] ) ) : ?>
+							<div class="sotto"><?php echo num( $r['chiuse'] ); ?> sistemate</div>
+						<?php endif; ?>
+					</td>
 					<?php $rim = $rimedi[ $r['regola'] ] ?? array(); ?>
 					<td class="rimedio">
 						<?php if ( 'azione' === ( $rim['come'] ?? '' ) ) : ?>
@@ -193,6 +216,36 @@ $scaricabili = array(
 		</table>
 	</div>
 </section>
+
+<?php if ( $sistemati ) : ?>
+<section class="scheda">
+	<h2>Già sistemati</h2>
+	<p class="guida">
+		Questi controlli erano fuori posto quando il sito è stato letto, ma da allora il lavoro è
+		stato fatto e scritto sul sito. Restano qui, invece di sparire, perché un problema risolto e
+		un problema dimenticato non devono avere lo stesso aspetto. Alla prossima rilettura del sito
+		spariranno da soli.
+	</p>
+	<div class="tabellabox">
+		<table>
+			<thead>
+				<tr><th>Regola</th><th>Problema</th><th class="num">Sistemate</th></tr>
+			</thead>
+			<tbody>
+			<?php foreach ( $sistemati as $r ) : ?>
+				<tr>
+					<td class="mono"><?php echo e( $r['regola'] ); ?></td>
+					<td>
+						<a href="?p=rilievo&amp;id=<?php echo (int) $r['id']; ?>"><?php echo e( $r['titolo'] ); ?></a>
+					</td>
+					<td class="num"><?php echo num( $r['chiuse'] ); ?> su <?php echo num( $r['occorrenze_iniziali'] ); ?></td>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
+		</table>
+	</div>
+</section>
+<?php endif; ?>
 
 <form class="scheda" method="post" action="?p=risincronizza">
 	<input type="hidden" name="token" value="<?php echo e( token() ); ?>">

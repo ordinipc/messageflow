@@ -8,6 +8,7 @@
 namespace SeoGeo\Ai;
 
 use SeoGeo\Bridge\WordPress;
+use SeoGeo\Applicato;
 use SeoGeo\Db;
 use SeoGeo\Text;
 use Throwable;
@@ -115,6 +116,7 @@ class Immagini {
 			}
 
 			$db->run( 'UPDATE documento SET ha_thumbnail = 1 WHERE id = ?', array( $per_wp[ (string) $wp_id ] ) );
+			Applicato::miniature( $db, $auditId, array( $wp_id ) );
 			$fatti++;
 		}
 
@@ -388,6 +390,9 @@ class Immagini {
 					// database dell analisi, e nel database non era cambiato
 					// niente.
 					$db->run( 'UPDATE documento SET ha_thumbnail = 1 WHERE id = ?', array( (int) $doc['id'] ) );
+
+					// E anche fra i problemi non ci deve piu stare.
+					Applicato::miniature( $db, $auditId, array( $doc['wp_id'] ) );
 				}
 			} catch ( Throwable $e ) {
 				$errori[] = $doc['titolo'] . ': ' . $e->getMessage();

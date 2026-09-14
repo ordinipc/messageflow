@@ -33,17 +33,38 @@ $gravita = array(
 	<p><?php echo e( $rilievo['soluzione'] ); ?></p>
 </section>
 
+<?php
+$chiuse  = count( array_filter( $occorrenze, static fn( $o ) => ! empty( $o['applicato'] ) ) );
+$restano = (int) $rilievo['occorrenze'] - $chiuse;
+?>
+
 <section class="scheda">
-	<h2><?php echo num( $rilievo['occorrenze'] ); ?> occorrenze</h2>
+	<h2><?php echo num( max( 0, $restano ) ); ?> occorrenze da sistemare</h2>
+	<?php if ( $chiuse ) : ?>
+		<p class="guida">
+			Altre <?php echo num( $chiuse ); ?> sono già state sistemate dal gestionale dopo la lettura
+			del sito: restano in elenco, segnate, finché il sito non viene riletto.
+		</p>
+	<?php endif; ?>
 	<?php if ( count( $occorrenze ) < (int) $rilievo['occorrenze'] ) : ?>
 		<p class="guida">Sono mostrate le prime <?php echo count( $occorrenze ); ?>: l elenco completo è in <code>problemi.csv</code>.</p>
 	<?php endif; ?>
 	<div class="tabellabox">
 		<table>
-			<thead><tr><th>URL / elemento</th><th>Dettaglio</th></tr></thead>
+			<thead><tr><th>URL / elemento</th><th>Dettaglio</th><th>Stato</th></tr></thead>
 			<tbody>
 			<?php foreach ( $occorrenze as $o ) : ?>
-				<tr><td class="mono"><?php echo e( $o['riferimento'] ); ?></td><td><?php echo e( $o['dettaglio'] ); ?></td></tr>
+				<tr>
+					<td class="mono"><?php echo e( $o['riferimento'] ); ?></td>
+					<td><?php echo e( $o['dettaglio'] ); ?></td>
+					<td>
+						<?php if ( ! empty( $o['applicato'] ) ) : ?>
+							<span class="tag ok">sistemato</span>
+						<?php else : ?>
+							<span class="tag basso">da fare</span>
+						<?php endif; ?>
+					</td>
+				</tr>
 			<?php endforeach; ?>
 			</tbody>
 		</table>

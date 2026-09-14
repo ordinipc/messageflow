@@ -12,6 +12,7 @@ use SeoGeo\Ai\Immagini;
 use SeoGeo\Ai\Rewriter as Riscrittura;
 use SeoGeo\Ai\Rewriter;
 use SeoGeo\Ai\Verifiche;
+use SeoGeo\Applicato;
 use SeoGeo\Audit;
 use SeoGeo\Bridge\WordPress;
 use SeoGeo\Coda;
@@ -870,6 +871,16 @@ if ( 'api-sovrascrivi' === $pagina ) {
 			array( date( 'Y-m-d H:i:s' ), $corpo, (int) $riga['id'] )
 		);
 
+		// Il testo online adesso e questo: la copia locale lo deve sapere e
+		// i problemi che la riscrittura ha risolto vanno chiusi.
+		Applicato::contenuto(
+			$db,
+			(int) $riga['audit_id'],
+			(int) $riga['documento_id'],
+			$corpo,
+			0 === strpos( (string) $riga['note'], 'Accorpa ' )
+		);
+
 		echo json_encode(
 			array(
 				'ok'        => true,
@@ -1384,6 +1395,8 @@ if ( 'api-comprimi' === $pagina ) {
 	$limite_php = (int) ini_get( 'max_execution_time' );
 	$secondi    = $limite_php > 0 ? max( 10, min( 40, $limite_php - 10 ) ) : 40;
 
+	$id = (int) ( $_GET['id'] ?? 0 );
+
 	try {
 		$ponte = new WordPress( $cfg['wordpress'] );
 
@@ -1396,6 +1409,8 @@ if ( 'api-comprimi' === $pagina ) {
 				'secondi_max' => $secondi,
 			)
 		);
+
+		Applicato::immagini( $db, $id, (array) ( $esito['riuscite'] ?? array() ) );
 
 		echo json_encode(
 			array(
@@ -1513,6 +1528,14 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 					$esito     = $ponte->inviaMeta( $blocco, $anteprima );
 					$fatti    += (int) ( $esito['aggiornati'] ?? 0 );
 					$confronto = array_merge( $confronto, (array) ( $esito['dettaglio'] ?? array() ) );
+
+					// Quello che il sito ha accettato non e piu un problema:
+					// si scrive nella copia locale e si chiudono le regole
+					// delle meta, altrimenti la tabella ripropone all
+					// infinito gli stessi contenuti.
+					if ( ! $anteprima ) {
+						Applicato::meta( $db, $id, $blocco );
+					}
 				}
 
 				if ( $anteprima ) {
@@ -1863,6 +1886,11 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 
 				$esito     = $ponte->inviaRedirect( $righe );
 				$attivi    = (int) ( $esito['redirect'] ?? 0 );
+
+				if ( $attivi ) {
+					Applicato::redirect( $db, $id, array_column( $righe, 'da' ) );
+				}
+
 				$messaggio = $con_slug
 					? "$attivi redirect attivi: $obbligatori per i contenuti rimossi più quelli degli slug accorciati. Ricorda di cambiare davvero gli slug in WordPress, altrimenti i redirect non servono a niente."
 					: "$attivi redirect attivi, solo per i contenuti eliminati o accorpati. Gli slug degli articoli che restano online non sono stati toccati.";
@@ -1919,7 +1947,8 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				$occorrenze = $db->all(
 					"SELECT o.riferimento, o.dettaglio FROM occorrenza o
 					 JOIN rilievo r ON r.id = o.rilievo_id
-					 WHERE r.audit_id = ? AND r.regola = 'TAX-03'",
+					 WHERE r.audit_id = ? AND r.regola = 'TAX-03'
+					   AND COALESCE( o.applicato, 0 ) = 0",
 					array( $id )
 				);
 
@@ -2015,6 +2044,10 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				foreach ( array_chunk( $righe, 40 ) as $blocco ) {
 					$esito  = $ponte->inviaMeta( $blocco, false );
 					$fatti += (int) ( $esito['aggiornati'] ?? 0 );
+
+					// Si allinea la copia locale, ma senza chiudere niente:
+					// rimettere le meta vecchie fa tornare i problemi vecchi.
+					Applicato::meta( $db, $id, $blocco, false );
 				}
 
 				$messaggio = sprintf(
@@ -2059,6 +2092,9 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 						'secondi_max' => 45,
 					)
 				);
+
+				// Le immagini sistemate non devono restare fra i problemi.
+				Applicato::immagini( $db, $id, (array) ( $esito['riuscite'] ?? array() ) );
 
 				$messaggio = sprintf(
 					'%d immagini ricompresse, da %s a %s: %s risparmiati.',
@@ -2415,6 +2451,19 @@ switch ( $pagina ) {
 			array( $id, $audit['sito_url'] )
 		);
 
+		// I conti della tabella non sono piu quelli della fotografia: sono
+		// quelli della fotografia meno il lavoro registrato da allora. Senza
+		// questo passaggio la pagina continua a segnalare problemi che sono
+		// gia stati risolti, e chi la legge smette di crederle.
+		$separati = Applicato::separa(
+			$db->all(
+				"SELECT * FROM rilievo WHERE audit_id = ?
+				 ORDER BY CASE gravita WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END, occorrenze DESC",
+				array( $id )
+			),
+			Applicato::residui( $db, $id )
+		);
+
 		vista(
 			'audit',
 			array(
@@ -2424,11 +2473,8 @@ switch ( $pagina ) {
 				'precedente' => $precedente,
 				'nuovo'     => isset( $_GET['nuovo'] ),
 				'aree'      => $db->all( 'SELECT * FROM area WHERE audit_id = ? ORDER BY punteggio ASC', array( $id ) ),
-				'rilievi'   => $db->all(
-					"SELECT * FROM rilievo WHERE audit_id = ?
-					 ORDER BY CASE gravita WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END, occorrenze DESC",
-					array( $id )
-				),
+				'rilievi'   => $separati['aperti'],
+				'sistemati' => $separati['chiusi'],
 				'conteggi'  => $db->all( 'SELECT categoria, COUNT(*) n FROM triage WHERE audit_id = ? GROUP BY categoria', array( $id ) ),
 				'db'        => $db,
 				'cfg'       => $cfg,
@@ -2991,7 +3037,12 @@ switch ( $pagina ) {
 			array(
 				'titolo'      => $rilievo['regola'],
 				'rilievo'     => $rilievo,
-				'occorrenze'  => $db->all( 'SELECT * FROM occorrenza WHERE rilievo_id = ? LIMIT 500', array( $id ) ),
+				// Prima quelle ancora da fare: chi apre questa pagina vuole
+				// sapere che cosa gli resta, non ripercorrere il fatto.
+				'occorrenze'  => $db->all(
+					'SELECT * FROM occorrenza WHERE rilievo_id = ? ORDER BY COALESCE( applicato, 0 ) ASC, id ASC LIMIT 500',
+					array( $id )
+				),
 				'audit'       => $db->one( 'SELECT * FROM audit WHERE id = ?', array( $rilievo['audit_id'] ) ),
 			)
 		);

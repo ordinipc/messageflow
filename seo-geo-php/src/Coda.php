@@ -538,6 +538,11 @@ class Coda {
 
 				$esito = $ponte->inviaMeta( $righe, false );
 
+				// Il pilota passa di qui centinaia di volte: se non segna
+				// quello che ha scritto, al giro dopo riparte dagli stessi
+				// contenuti e non finisce mai.
+				Applicato::meta( $db, $auditId, $righe );
+
 				return sprintf(
 					'%d %s aggiornate',
 					(int) ( $esito['aggiornati'] ?? 0 ),
@@ -590,6 +595,12 @@ class Coda {
 					array( $title, $description, $auditId, (int) $documento['id'] )
 				);
 
+				Applicato::meta(
+					$db,
+					$auditId,
+					array( array( 'id' => $documento['wp_id'], 'title' => $title, 'description' => $description ) )
+				);
+
 				return 'title e description riscritti su "' . $doc['focus'] . '"';
 
 			case 'redirect':
@@ -609,6 +620,10 @@ class Coda {
 
 				$esito = $ponte->inviaRedirect( $righe );
 
+				// Un vecchio indirizzo che adesso rimanda da qualche parte non
+				// e piu un indirizzo perso.
+				Applicato::redirect( $db, $auditId, array_column( $righe, 'da' ) );
+
 				return sprintf( '%d redirect attivi', (int) ( $esito['redirect'] ?? 0 ) );
 
 			case 'categorie':
@@ -616,7 +631,8 @@ class Coda {
 
 				foreach ( $db->all(
 					"SELECT o.riferimento, o.dettaglio FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id
-					 WHERE r.audit_id = ? AND r.regola = 'TAX-03'",
+					 WHERE r.audit_id = ? AND r.regola = 'TAX-03'
+					   AND COALESCE( o.applicato, 0 ) = 0",
 					array( $auditId )
 				) as $riga ) {
 					if ( ! preg_match( '/suggerita "([^"]+)"/', $riga['dettaglio'], $m ) ) {
@@ -626,7 +642,13 @@ class Coda {
 					$documento = $db->one( 'SELECT wp_id FROM documento WHERE audit_id = ? AND percorso = ?', array( $auditId, $riga['riferimento'] ) );
 
 					if ( $documento ) {
-						$assegnazioni[] = array( 'id' => (int) $documento['wp_id'], 'categoria' => $m[1] );
+						$assegnazioni[] = array(
+							'id'        => (int) $documento['wp_id'],
+							'categoria' => $m[1],
+							// Serve solo qui, per sapere che cosa chiudere
+							// dopo: al sito si mandano id e categoria.
+							'percorso'  => (string) $riga['riferimento'],
+						);
 					}
 				}
 
@@ -634,7 +656,27 @@ class Coda {
 					throw new SaltaCompito( 'Nessuna categoria da correggere.' );
 				}
 
-				$esito = $ponte->inviaCategorie( $assegnazioni );
+				// Al sito vanno solo id e categoria: il percorso serve qui.
+				$esito = $ponte->inviaCategorie(
+					array_map(
+						static function ( $a ) {
+							return array( 'id' => $a['id'], 'categoria' => $a['categoria'] );
+						},
+						$assegnazioni
+					)
+				);
+
+				if ( ! empty( $esito['assegnate'] ) ) {
+					// Senza questo il pilota ricategorizza gli stessi articoli
+					// a ogni giro: il compito legge l analisi, e nell analisi
+					// non era cambiato niente.
+					Applicato::chiudi(
+						$db,
+						$auditId,
+						array( 'TAX-03' ),
+						array_column( $assegnazioni, 'percorso' )
+					);
+				}
 
 				return sprintf( '%d articoli ricategorizzati', (int) ( $esito['assegnate'] ?? 0 ) );
 
@@ -727,6 +769,14 @@ class Coda {
 				$db->run(
 					'UPDATE bozza SET inviata_il = ?, corpo_html = ? WHERE id = ?',
 					array( date( 'Y-m-d H:i:s' ), $corpo, (int) $riga['id'] )
+				);
+
+				Applicato::contenuto(
+					$db,
+					$auditId,
+					(int) $compito['riferimento'],
+					$corpo,
+					0 === strpos( (string) $riga['note'], 'Accorpa ' )
 				);
 
 				return 'riscrittura scritta sull articolo originale';

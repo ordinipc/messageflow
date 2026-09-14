@@ -3034,6 +3034,129 @@ verifica(
 	(string) substr_count( $indiceSorgente, "Redirezioni::confronto( \$db, \$audit['sito_url'], " )
 );
 
+
+// ---------------------------------------------------------------------------
+// I conti scendono quando il lavoro viene fatto
+//
+// Il difetto che questo blocco sorveglia: il gestionale scriveva title e
+// description sul sito, il sito rispondeva "fatto", e la tabella dei problemi
+// continuava a segnare gli stessi numeri perche leggeva la fotografia scattata
+// prima. Chi guardava vedeva errori che non esistevano piu, e gli stessi
+// articoli venivano riproposti all infinito.
+
+echo "\nIl lavoro fatto si vede sui conti\n";
+
+$fileApp = sys_get_temp_dir() . '/prova-applicato-' . getmypid() . '.sqlite';
+@unlink( $fileApp );
+$dbApp = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileApp ) );
+
+$auditApp = $dbApp->insert(
+	'audit',
+	array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => date( 'Y-m-d H:i:s' ), 'punteggio' => 50, 'problemi_totali' => 3 )
+);
+
+foreach ( array(
+	array( 'wp_id' => '10', 'titolo' => 'Uno', 'percorso' => '/uno/', 'url' => 'https://esempio.it/uno/', 'seo_title' => 'Titolo vecchio lunghissimo che viene troncato in SERP', 'seo_description' => 'vecchia' ),
+	array( 'wp_id' => '11', 'titolo' => 'Due', 'percorso' => '/due/', 'url' => 'https://esempio.it/due/', 'seo_title' => 'Anche questo titolo e decisamente troppo lungo per la SERP', 'seo_description' => 'vecchia' ),
+	array( 'wp_id' => '12', 'titolo' => 'Tre', 'percorso' => '/tre/', 'url' => 'https://esempio.it/tre/', 'seo_title' => 'E pure il terzo titolo sfora la lunghezza massima consentita', 'seo_description' => 'vecchia' ),
+) as $documento ) {
+	$dbApp->insert( 'documento', $documento + array( 'audit_id' => $auditApp, 'tipo' => 'post', 'stato' => 'publish' ) );
+}
+
+$rilievoApp = $dbApp->insert(
+	'rilievo',
+	array(
+		'audit_id'   => $auditApp,
+		'regola'     => 'ONP-01',
+		'area'       => 'onpage',
+		'gravita'    => 'high',
+		'titolo'     => 'Title SEO troppo lungo',
+		'perche'     => '',
+		'soluzione'  => '',
+		'automatico' => 1,
+		'occorrenze' => 3,
+	)
+);
+
+foreach ( array( '/uno/', '/due/', '/tre/' ) as $percorso ) {
+	$dbApp->insert( 'occorrenza', array( 'rilievo_id' => $rilievoApp, 'riferimento' => $percorso, 'dettaglio' => '' ) );
+}
+
+$primaApp = \SeoGeo\Applicato::residui( $dbApp, $auditApp );
+
+verifica( 'prima di toccare niente restano tutte e tre le occorrenze', 3 === $primaApp['ONP-01']['aperte'], json_encode( $primaApp ) );
+
+// Si spediscono le meta di due contenuti: e il momento in cui prima il conto
+// restava fermo.
+\SeoGeo\Applicato::meta(
+	$dbApp,
+	$auditApp,
+	array(
+		array( 'id' => '10', 'title' => 'Titolo corto e giusto', 'description' => 'nuova' ),
+		array( 'id' => '11', 'title' => 'Anche questo corto', 'description' => 'nuova' ),
+	)
+);
+
+$dopoApp = \SeoGeo\Applicato::residui( $dbApp, $auditApp );
+
+verifica( 'dopo averne scritte due sul sito ne resta una sola', 1 === $dopoApp['ONP-01']['aperte'], json_encode( $dopoApp ) );
+
+// La copia locale deve dire quello che il sito dice adesso: e quella che
+// "solo quelle da cambiare" legge per decidere chi rispedire.
+$rimasto = $dbApp->one( 'SELECT seo_title FROM documento WHERE audit_id = ? AND wp_id = ?', array( $auditApp, '10' ) );
+
+verifica( 'e la copia locale del contenuto e allineata al sito', 'Titolo corto e giusto' === $rimasto['seo_title'], (string) $rimasto['seo_title'] );
+
+// Rispedire le stesse meta non deve far scendere il conto sotto il vero.
+\SeoGeo\Applicato::meta( $dbApp, $auditApp, array( array( 'id' => '10', 'title' => 'Titolo corto e giusto', 'description' => 'nuova' ) ) );
+
+$ancoraApp = \SeoGeo\Applicato::residui( $dbApp, $auditApp );
+
+verifica( 'rifarlo due volte non conta due volte', 1 === $ancoraApp['ONP-01']['aperte'], json_encode( $ancoraApp ) );
+
+// Un ripristino rimette le meta vecchie: i problemi tornano, quindi non si
+// chiude niente.
+$rilieviApp = $dbApp->all( 'SELECT * FROM rilievo WHERE audit_id = ?', array( $auditApp ) );
+$separati   = \SeoGeo\Applicato::separa( $rilieviApp, $ancoraApp );
+
+verifica( 'il rilievo con un occorrenza aperta resta fra i problemi', 1 === count( $separati['aperti'] ), json_encode( $separati ) );
+verifica( 'e porta con se quante ne sono state sistemate', 2 === (int) $separati['aperti'][0]['chiuse'], json_encode( $separati['aperti'][0] ) );
+
+// Chiuso l ultimo, il rilievo si sposta fra i sistemati invece di sparire.
+\SeoGeo\Applicato::meta( $dbApp, $auditApp, array( array( 'id' => '12', 'title' => 'Corto anche lui', 'description' => 'nuova' ) ) );
+
+$finiti  = \SeoGeo\Applicato::separa( $rilieviApp, \SeoGeo\Applicato::residui( $dbApp, $auditApp ) );
+
+verifica( 'chiuse tutte, il rilievo esce dai problemi', 0 === count( $finiti['aperti'] ), json_encode( $finiti['aperti'] ) );
+verifica( 'ma non sparisce: finisce fra i gia sistemati', 1 === count( $finiti['chiusi'] ), json_encode( $finiti['chiusi'] ) );
+verifica( 'e ricorda quante erano in partenza', 3 === (int) $finiti['chiusi'][0]['occorrenze_iniziali'], json_encode( $finiti['chiusi'][0] ) );
+
+// Un rilievo senza occorrenze salvate non si puo fingere risolto.
+$soloSito = $dbApp->insert(
+	'rilievo',
+	array( 'audit_id' => $auditApp, 'regola' => 'GEO-01', 'area' => 'generative', 'gravita' => 'high', 'titolo' => 'llms.txt assente', 'perche' => '', 'soluzione' => '', 'automatico' => 1, 'occorrenze' => 1 )
+);
+
+$conSito = \SeoGeo\Applicato::separa(
+	$dbApp->all( 'SELECT * FROM rilievo WHERE audit_id = ?', array( $auditApp ) ),
+	\SeoGeo\Applicato::residui( $dbApp, $auditApp )
+);
+
+verifica(
+	'un rilievo senza occorrenze salvate resta fra i problemi',
+	1 === count( array_filter( $conSito['aperti'], static fn( $r ) => 'GEO-01' === $r['regola'] ) ),
+	json_encode( $conSito['aperti'] )
+);
+
+// E la riscrittura assistita non deve riproporre chi e gia stato sistemato.
+verifica(
+	'la riscrittura assistita salta le occorrenze gia chiuse',
+	false !== strpos( file_get_contents( __DIR__ . '/../src/Ai/Rewriter.php' ), 'COALESCE( o.applicato, 0 ) = 0' ),
+	'il filtro non c e'
+);
+
+@unlink( $fileApp );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

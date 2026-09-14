@@ -244,6 +244,10 @@ class Compressione {
 			'risparmio'   => max( 0, $prima - $dopo ),
 			'errori'      => $errori,
 			'non_toccate' => count( $elenco['nel_testo'] ),
+			// I file che adesso sono a posto: servono a chiudere le
+			// occorrenze di IMG-03 e IMG-04 sull analisi, che altrimenti
+			// continuano a contare immagini gia ricompresse.
+			'riuscite'    => $riuscite,
 		);
 	}
 

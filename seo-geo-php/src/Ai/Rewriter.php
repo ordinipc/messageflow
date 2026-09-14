@@ -59,6 +59,7 @@ class Rewriter {
 						SELECT 1 FROM occorrenza o
 						JOIN rilievo r ON r.id = o.rilievo_id
 						WHERE r.audit_id = t.audit_id AND r.regola = ?
+						  AND COALESCE( o.applicato, 0 ) = 0
 						  AND ( o.riferimento = d.url
 								OR o.riferimento = d.percorso
 								OR o.riferimento = RTRIM( d.url, '/' ) )
@@ -180,6 +181,7 @@ class Rewriter {
 			"SELECT r.regola, r.titolo, r.gravita, o.dettaglio
 			 FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id
 			 WHERE r.audit_id = ? AND o.riferimento IN ($segnaposto)
+			   AND COALESCE( o.applicato, 0 ) = 0
 			 ORDER BY CASE r.gravita WHEN 'alto' THEN 0 WHEN 'medio' THEN 1 ELSE 2 END
 			 LIMIT 40",
 			array_merge( array( $auditId ), $riferimenti )
