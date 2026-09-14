@@ -362,12 +362,19 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 		<?php endif; ?>
 	</section>
 
-	<section class="scheda">
+	<section class="scheda" id="annulla">
 		<h2>Annulla</h2>
 		<p class="guida">
-			Riporta title, description ed estratto ai valori che c'erano prima. Il ripristino delle sole
-			pagine serve quando gli articoli vanno bene e a essere state toccate per sbaglio sono le
-			pagine servizio, che di solito sono scritte a mano.
+			Riporta tutto com'era prima: <strong>il testo dell'articolo</strong>, il title, la description,
+			l'estratto e le categorie. Se l'articolo è fatto con Elementor viene rimessa anche la sua
+			struttura, se no il testo tornerebbe in WordPress e sulla pagina non si vedrebbe.
+		</p>
+		<p class="nota">
+			Vale per tutti i contenuti in una volta sola. Per rimettere il testo di
+			<strong>un articolo solo</strong>, il pulsante «Rimetti il testo di prima» è accanto a
+			quell'articolo in <a href="?p=confronto-bozze&amp;id=<?php echo (int) $audit['id']; ?>&amp;filtro=online">Vecchio e nuovo → Già online</a>.
+			Il ripristino delle sole pagine serve quando gli articoli vanno bene e a essere state toccate
+			per sbaglio sono le pagine servizio, che di solito sono scritte a mano.
 		</p>
 		<div class="azioni">
 			<?php azione( $audit['id'], 'annulla_pagine', 'Ripristina solo le pagine', 'Riportare le pagine alle meta precedenti?', 'bottone chiaro' ); ?>
