@@ -117,9 +117,10 @@ class Allinea {
 	 * @param int       $secondiMax Tetto di tempo.
 	 * @return array Regola => quante occorrenze sono state chiuse.
 	 */
-	public static function esegui( Db $db, WordPress $ponte, $auditId, array $cfg, $secondiMax = 12 ) {
+	public static function esegui( Db $db, WordPress $ponte, $auditId, array $cfg, $secondiMax = 20 ) {
 		$scadenza = time() + (int) $secondiMax;
 		$chiuse   = array();
+		$parziale = false;
 
 		$segna = static function ( $regola, $quante ) use ( &$chiuse ) {
 			if ( $quante > 0 ) {
@@ -159,16 +160,22 @@ class Allinea {
 			}
 		}
 
-		// 4. Le immagini in evidenza che adesso ci sono.
-		if ( $ponte->pronto() && time() < $scadenza ) {
+		// 4. Le misure vere dei contenuti, cento per richiesta: lunghezza del
+		//    title e della description, chiave nel title, estratto, immagine
+		//    in evidenza, parole. Con queste si rifanno i conti delle regole
+		//    che prima restavano ferme per sempre.
+		if ( $ponte->pronto() ) {
 			try {
-				$segna( 'IMG-05', self::daiThumbnail( $db, $ponte, $auditId ) );
+				foreach ( self::daiContenuti( $db, $ponte, $auditId, $scadenza, $parziale ) as $regola => $quante ) {
+					$segna( $regola, $quante );
+				}
 			} catch ( Throwable $e ) {
+				// Il sito non risponde: i conti restano quelli di prima.
 				unset( $e );
 			}
 		}
 
-		self::scrivi( $auditId, $chiuse );
+		self::scrivi( $auditId, $chiuse, $parziale );
 
 		return $chiuse;
 	}
@@ -246,45 +253,128 @@ class Allinea {
 	}
 
 	/**
-	 * Chiude IMG-05 per i contenuti che adesso hanno l immagine in evidenza.
+	 * Regola => come si rilegge sulle misure vere del contenuto.
 	 *
-	 * @param Db        $db      Database.
-	 * @param WordPress $ponte   Sito.
-	 * @param int       $auditId Audit.
-	 * @return int
+	 * Ogni funzione risponde a una domanda sola: guardando il sito adesso,
+	 * questo contenuto ha ancora quel problema? Chi risponde «no» esce dal
+	 * conto. Chi non ha una misura utile - la chiave di ricerca non e
+	 * impostata, per dire - resta dov e: non sapere non e una risoluzione.
+	 *
+	 * @return array<string,callable>
 	 */
-	private static function daiThumbnail( Db $db, WordPress $ponte, $auditId ) {
+	private static function riletture() {
+		return array(
+			// Title oltre i 60 caratteri.
+			'ONP-01' => static fn( array $m ) => (int) $m['titolo_lungh'] <= 60,
+			// Title sotto i 30, ma solo se c e.
+			'ONP-02' => static fn( array $m ) => 0 === (int) $m['titolo_lungh'] || (int) $m['titolo_lungh'] >= 30,
+			// Description fuori dalla finestra 120-158.
+			'ONP-03' => static function ( array $m ) {
+				$n = (int) $m['descr_lungh'];
+
+				return 0 === $n || ( $n >= 120 && $n <= 158 );
+			},
+			// Description assente.
+			'ONP-04' => static fn( array $m ) => (int) $m['descr_lungh'] > 0,
+			// Chiave di ricerca dentro al title.
+			'ONP-05' => static fn( array $m ) => ! empty( $m['ha_chiave'] ) && ! empty( $m['chiave_titolo'] ),
+			// Estratto assente.
+			'ONP-12' => static fn( array $m ) => ! empty( $m['estratto'] ),
+			// Immagine in evidenza assente.
+			'IMG-05' => static fn( array $m ) => ! empty( $m['thumbnail'] ),
+			// Testo troppo corto.
+			'CNT-01' => static fn( array $m ) => (int) $m['parole'] >= 300,
+			'CNT-02' => static fn( array $m ) => (int) $m['parole'] >= 600,
+		);
+	}
+
+	/**
+	 * Rilegge le regole di contenuto sulle misure vere del sito.
+	 *
+	 * Si lavora a blocchi di cento e si smette quando il tempo e finito: su un
+	 * sito grande i conti si sistemano in qualche apertura di pagina invece
+	 * che in una sola lunghissima.
+	 *
+	 * @param Db        $db       Database.
+	 * @param WordPress $ponte    Sito.
+	 * @param int       $auditId  Audit.
+	 * @param int       $scadenza Istante oltre il quale ci si ferma.
+	 * @param bool      $parziale Diventa vero se si e smesso a meta.
+	 * @return array Regola => quante occorrenze sono state chiuse.
+	 */
+	private static function daiContenuti( Db $db, WordPress $ponte, $auditId, $scadenza, &$parziale = false ) {
+		$riletture = self::riletture();
+		$segnaposto = implode( ',', array_fill( 0, count( $riletture ), '?' ) );
+
 		$righe = $db->all(
-			"SELECT d.id, d.wp_id, d.percorso
+			"SELECT o.id AS occ, r.regola, d.id AS doc, d.wp_id, d.percorso
 			 FROM occorrenza o
 			 JOIN rilievo r ON r.id = o.rilievo_id
 			 JOIN documento d ON d.audit_id = r.audit_id AND d.percorso = o.riferimento
-			 WHERE r.audit_id = ? AND r.regola = 'IMG-05' AND COALESCE( o.applicato, 0 ) = 0
-			 LIMIT 200",
-			array( (int) $auditId )
+			 WHERE r.audit_id = ? AND COALESCE( o.applicato, 0 ) = 0
+			   AND r.regola IN ( $segnaposto )
+			   AND d.wp_id <> ''
+			 ORDER BY d.id ASC",
+			array_merge( array( (int) $auditId ), array_keys( $riletture ) )
 		);
 
 		if ( ! $righe ) {
-			return 0;
+			return array();
 		}
 
-		$risposta  = $ponte->miniature( array_column( $righe, 'wp_id' ) );
-		$miniature = (array) ( $risposta['miniature'] ?? array() );
-
-		$sistemati = array();
+		// Uno stesso contenuto compare sotto piu regole: si chiede una volta
+		// sola e si rilegge tutto quello che lo riguarda.
+		$perWp = array();
 
 		foreach ( $righe as $riga ) {
-			if ( ! empty( $miniature[ (string) $riga['wp_id'] ] ) ) {
-				$sistemati[] = (string) $riga['percorso'];
-				$db->run( 'UPDATE documento SET ha_thumbnail = 1 WHERE id = ?', array( (int) $riga['id'] ) );
+			$perWp[ (string) $riga['wp_id'] ][] = $riga;
+		}
+
+		$chiuse = array();
+
+		foreach ( array_chunk( array_keys( $perWp ), 100 ) as $blocco ) {
+			if ( time() >= $scadenza ) {
+				$parziale = true;
+				break;
+			}
+
+			try {
+				$risposta = $ponte->misure( $blocco );
+			} catch ( Throwable $e ) {
+				// Un blocco che non arriva non deve buttare via quelli gia
+				// letti: si tiene quello che si e capito e si smette.
+				$parziale = true;
+				break;
+			}
+
+			$misure = (array) ( $risposta['misure'] ?? array() );
+
+			foreach ( $blocco as $wpId ) {
+				$m = $misure[ (string) $wpId ] ?? null;
+
+				if ( ! is_array( $m ) ) {
+					continue;
+				}
+
+				foreach ( $perWp[ (string) $wpId ] as $riga ) {
+					$regola = (string) $riga['regola'];
+
+					if ( ! isset( $riletture[ $regola ] ) || ! $riletture[ $regola ]( $m ) ) {
+						continue;
+					}
+
+					$db->run( 'UPDATE occorrenza SET applicato = 1 WHERE id = ?', array( (int) $riga['occ'] ) );
+
+					$chiuse[ $regola ] = ( $chiuse[ $regola ] ?? 0 ) + 1;
+
+					if ( 'IMG-05' === $regola ) {
+						$db->run( 'UPDATE documento SET ha_thumbnail = 1 WHERE id = ?', array( (int) $riga['doc'] ) );
+					}
+				}
 			}
 		}
 
-		if ( ! $sistemati ) {
-			return 0;
-		}
-
-		return Applicato::chiudi( $db, $auditId, array( 'IMG-05' ), $sistemati );
+		return $chiuse;
 	}
 
 	/**
@@ -320,10 +410,11 @@ class Allinea {
 	 * Segna quando e stato fatto e che cosa ha chiuso.
 	 *
 	 * @param int   $auditId Audit.
-	 * @param array $chiuse  Regola => quante.
+	 * @param array $chiuse   Regola => quante.
+	 * @param bool  $parziale Se il giro si e fermato prima della fine.
 	 * @return void
 	 */
-	private static function scrivi( $auditId, array $chiuse ) {
+	private static function scrivi( $auditId, array $chiuse, $parziale = false ) {
 		$file = self::segno( $auditId );
 		$dir  = dirname( $file );
 
@@ -334,7 +425,7 @@ class Allinea {
 		file_put_contents(
 			$file,
 			(string) json_encode(
-				array( 'quando' => date( 'Y-m-d H:i:s' ), 'chiuse' => $chiuse ),
+				array( 'quando' => date( 'Y-m-d H:i:s' ), 'chiuse' => $chiuse, 'parziale' => (bool) $parziale ),
 				JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
 			)
 		);

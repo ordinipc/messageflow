@@ -1259,14 +1259,31 @@ verifica(
 	false !== strpos( $sorgenteIndice, "empty( \$esito['interrotto'] ) )" )
 );
 
-verifica(
-	'i tre lotti usano lo stesso ciclo',
-	3 === substr_count( $sorgenteBozze, 'class="scheda a-lotti"' )
-);
+// Ogni pulsante che lavora a lotti deve passare dallo stesso ciclo: e quello
+// che tiene il cronometro, riprova e sa dire quanti ne restano.
+$quantiLotti = substr_count( $sorgenteBozze, 'class="scheda a-lotti"' ) + substr_count( $sorgenteBozze, 'class="a-lotti ' );
+
+verifica( 'i lotti usano tutti lo stesso ciclo', $quantiLotti >= 4, (string) $quantiLotti );
 
 verifica(
 	'ognuno dichiara che cosa lavora e quanti ne restano',
-	3 === substr_count( $sorgenteBozze, 'data-tipo=' ) && 3 === substr_count( $sorgenteBozze, 'data-restanti=' )
+	$quantiLotti === substr_count( $sorgenteBozze, 'data-tipo=' ) && $quantiLotti === substr_count( $sorgenteBozze, 'data-restanti=' ),
+	$quantiLotti . ' moduli, ' . substr_count( $sorgenteBozze, 'data-tipo=' ) . ' data-tipo'
+);
+
+// Il pulsante che avvia deve stare dentro al riquadro della regola: stava in
+// una scheda piu in basso, e chi arrivava dalla tabella dei problemi leggeva
+// l elenco dei contenuti e concludeva che non c era modo di partire.
+verifica(
+	'il pulsante per avviare sta nel riquadro della regola',
+	false !== strpos( $sorgenteBozze, 'Genera le bozze per <?php echo e( $regola ); ?>' ),
+	'il pulsante non e nel riquadro'
+);
+
+verifica(
+	'e se manca la chiave si dice perche il pulsante non c e',
+	false !== strpos( $sorgenteBozze, "Il pulsante per avviare non c'è perché manca la chiave" ),
+	'manca la spiegazione'
 );
 
 verifica(
@@ -2798,7 +2815,16 @@ $vistaBozze = file_get_contents( __DIR__ . '/../views/bozze.php' );
 
 verifica(
 	'il pulsante compare in base ai contenuti della regola, non dell archivio',
-	false !== strpos( $vistaBozze, "( ! empty( \$regola ) ? count( \$da_regola ) : \$stima['articoli'] ) > 0" )
+	false !== strpos( $vistaBozze, "\$pronto && ! \$daFondere && count( \$da_regola ) > 0" ),
+	'la condizione guarda ancora l archivio'
+);
+
+// E il riquadro generico non deve comparire quando si sta lavorando su una
+// regola: due moduli identici uno sopra l altro erano solo confusione.
+verifica(
+	'il lotto sull archivio intero sparisce quando si lavora su una regola',
+	false !== strpos( $vistaBozze, "\$pronto && empty( \$regola ) && \$stima['articoli'] > 0" ),
+	'il modulo generico compare comunque'
 );
 
 verifica(
@@ -3246,7 +3272,9 @@ $mettiRilievo = static function ( $regola, array $riferimenti ) use ( $dbAll, $a
 $mettiRilievo( 'SCH-01', array( '/con-foto/', '/senza-foto/' ) );
 $mettiRilievo( 'ONP-07', array( '/vecchio-indirizzo/', '/mai-spostato/' ) );
 $mettiRilievo( 'IMG-05', array( '/con-foto/', '/senza-foto/' ) );
-$mettiRilievo( 'CNT-01', array( '/con-foto/' ) );
+$mettiRilievo( 'CNT-01', array( '/con-foto/', '/senza-foto/' ) );
+$mettiRilievo( 'ONP-01', array( '/con-foto/', '/senza-foto/' ) );
+$mettiRilievo( 'ONP-03', array( '/con-foto/', '/senza-foto/' ) );
 
 // Un sito che risponde: stampa lo schema, ha un redirect attivo, e uno solo
 // dei due articoli ha l immagine in evidenza.
@@ -3265,6 +3293,18 @@ $sitoVivo = new class() extends \SeoGeo\Bridge\WordPress {
 
 	public function miniature( array $ids ) {
 		return array( 'miniature' => array( '30' => true, '31' => false ) );
+	}
+
+	public function misure( array $ids ) {
+		return array(
+			'misure' => array(
+				// Titolo rientrato nei 60, description ancora fuori misura,
+				// immagine in evidenza caricata.
+				'30' => array( 'titolo_lungh' => 55, 'descr_lungh' => 200, 'chiave_titolo' => true, 'ha_chiave' => true, 'estratto' => true, 'thumbnail' => true, 'parole' => 900 ),
+				// Titolo ancora troppo lungo, e l articolo resta corto.
+				'31' => array( 'titolo_lungh' => 88, 'descr_lungh' => 140, 'chiave_titolo' => false, 'ha_chiave' => true, 'estratto' => false, 'thumbnail' => false, 'parole' => 120 ),
+			),
+		);
 	}
 };
 
@@ -3287,7 +3327,9 @@ $aperte = static function ( $regola ) use ( $dbAll, $auditAll ) {
 };
 
 verifica( 'quello che il plugin stampa si chiude da solo', 0 === $aperte( 'SCH-01' ), (string) $aperte( 'SCH-01' ) );
-verifica( 'ma quello che il plugin non stampa resta aperto', 1 === $aperte( 'CNT-01' ), (string) $aperte( 'CNT-01' ) );
+verifica( 'il title rientrato nei 60 si chiude, quello ancora lungo no', 1 === $aperte( 'ONP-01' ), (string) $aperte( 'ONP-01' ) );
+verifica( 'la description fuori misura resta aperta, quella a posto si chiude', 1 === $aperte( 'ONP-03' ), (string) $aperte( 'ONP-03' ) );
+verifica( 'l articolo arrivato a 900 parole si chiude, quello a 120 no', 1 === $aperte( 'CNT-01' ), (string) $aperte( 'CNT-01' ) );
 verifica( 'il redirect attivo si chiude, quello mai fatto no', 1 === $aperte( 'ONP-07' ), (string) $aperte( 'ONP-07' ) );
 verifica( 'si chiude solo l articolo che ha davvero la foto', 1 === $aperte( 'IMG-05' ), (string) $aperte( 'IMG-05' ) );
 verifica( 'e sul sito viene segnato che la foto c e', 1 === (int) $dbAll->one( 'SELECT ha_thumbnail FROM documento WHERE wp_id = ?', array( '30' ) )['ha_thumbnail'] );
@@ -3305,6 +3347,13 @@ $ridMuto   = $dbMuto->insert( 'rilievo', array( 'audit_id' => $auditMuto, 'regol
 $dbMuto->insert( 'occorrenza', array( 'rilievo_id' => $ridMuto, 'riferimento' => '/uno/', 'dettaglio' => '' ) );
 $dbMuto->insert( 'occorrenza', array( 'rilievo_id' => $ridMuto, 'riferimento' => '/due/', 'dettaglio' => '' ) );
 
+// Serve anche una regola di quelle che si rileggono chiedendo le misure al
+// sito, con un documento collegato: senza, la parte che interroga il sito
+// non verrebbe nemmeno raggiunta e il collaudo non proverebbe niente.
+$dbMuto->insert( 'documento', array( 'audit_id' => $auditMuto, 'wp_id' => '40', 'tipo' => 'post', 'stato' => 'publish', 'titolo' => 'Uno', 'percorso' => '/uno/', 'url' => 'https://esempio.it/uno/' ) );
+$ridMisure = $dbMuto->insert( 'rilievo', array( 'audit_id' => $auditMuto, 'regola' => 'ONP-01', 'area' => 'onpage', 'gravita' => 'high', 'titolo' => 'x', 'perche' => '', 'soluzione' => '', 'automatico' => 1, 'occorrenze' => 1 ) );
+$dbMuto->insert( 'occorrenza', array( 'rilievo_id' => $ridMisure, 'riferimento' => '/uno/', 'dettaglio' => '' ) );
+
 $sitoRotto = new class() extends \SeoGeo\Bridge\WordPress {
 	public function __construct() {}
 
@@ -3315,13 +3364,15 @@ $sitoRotto = new class() extends \SeoGeo\Bridge\WordPress {
 	public function redirectAttivi() { throw new \RuntimeException( 'sito irraggiungibile' ); }
 
 	public function miniature( array $ids ) { throw new \RuntimeException( 'sito irraggiungibile' ); }
+
+	public function misure( array $ids ) { throw new \RuntimeException( 'sito irraggiungibile' ); }
 };
 
 $esitoMuto = \SeoGeo\Allinea::esegui( $dbMuto, $sitoRotto, $auditMuto, array() );
 
 verifica(
 	'se il sito non risponde non si chiude niente',
-	2 === (int) $dbMuto->one(
+	3 === (int) $dbMuto->one(
 		'SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id
 		 WHERE r.audit_id = ? AND COALESCE( o.applicato, 0 ) = 0',
 		array( $auditMuto )
@@ -3331,6 +3382,18 @@ verifica(
 
 // E non si richiede al sito a ogni ricarica della pagina.
 verifica( 'appena fatto, non si rifa subito', false === \SeoGeo\Allinea::scaduto( $auditMuto ) );
+
+verifica(
+	'il plugin sa rispondere con le misure di un contenuto',
+	false !== strpos( file_get_contents( __DIR__ . '/../plugin-wordpress/mdi-seo-geo-booster/includes/class-mdi-api.php' ), "public static function misure(" ),
+	'la rotta non c e'
+);
+
+verifica(
+	'e la rotta e registrata',
+	false !== strpos( file_get_contents( __DIR__ . '/../plugin-wordpress/mdi-seo-geo-booster/includes/class-mdi-api.php' ), "'/misure'" ),
+	'la rotta non e registrata'
+);
 
 @unlink( \SeoGeo\Allinea::segno( $auditAll ) );
 @unlink( \SeoGeo\Allinea::segno( $auditMuto ) );

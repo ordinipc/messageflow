@@ -188,6 +188,11 @@ class MDI_Api {
 			'callback' => array( __CLASS__, 'miniature' ),
 		) );
 
+		register_rest_route( self::NAMESPACE_API, '/misure', $comune + array(
+			'methods'  => 'POST',
+			'callback' => array( __CLASS__, 'misure' ),
+		) );
+
 		register_rest_route( self::NAMESPACE_API, '/costruttori', $comune + array(
 			'methods'  => 'POST',
 			'callback' => array( __CLASS__, 'costruttori' ),
@@ -1792,12 +1797,73 @@ class MDI_Api {
 	}
 
 	/**
-	 * Quali fra questi contenuti hanno l immagine in evidenza.
+	 * Le misure che servono a rivalutare i rilievi, contenuto per contenuto.
 	 *
-	 * Il gestionale conta le immagini mancanti sul database dell analisi, che
-	 * e la fotografia di quel momento: caricarne una non lo cambia, e il
-	 * conteggio resta fermo. Questa risposta lo riallinea con il sito senza
-	 * dover rifare l analisi intera.
+	 * Il gestionale conta i problemi sul database dell analisi, che e la
+	 * fotografia di quel momento: correggere un title non la cambia, e il
+	 * numero resta fermo. Rileggere tutto il sito costa minuti e non si puo
+	 * fare a ogni apertura di pagina.
+	 *
+	 * Qui il sito risponde con i soli numeri che servono - quanto e lungo il
+	 * title, quanto la description, se la chiave c e dentro, se c e l estratto
+	 * e l immagine in evidenza, quante parole - per cento contenuti in una
+	 * richiesta. Tanto basta a rifare i conti senza rifare l analisi.
+	 *
+	 * @param WP_REST_Request $richiesta Richiesta con 'ids'.
+	 * @return WP_REST_Response
+	 */
+	public static function misure( $richiesta ) {
+		$esito = array();
+
+		foreach ( (array) $richiesta->get_param( 'ids' ) as $id ) {
+			$id   = (int) $id;
+			$post = $id ? get_post( $id ) : null;
+
+			if ( ! $post ) {
+				continue;
+			}
+
+			$titolo = (string) get_post_meta( $id, 'rank_math_title', true );
+
+			if ( '' === $titolo ) {
+				$titolo = (string) get_post_meta( $id, '_yoast_wpseo_title', true );
+			}
+
+			$descrizione = (string) get_post_meta( $id, 'rank_math_description', true );
+
+			if ( '' === $descrizione ) {
+				$descrizione = (string) get_post_meta( $id, '_yoast_wpseo_metadesc', true );
+			}
+
+			$chiave = (string) get_post_meta( $id, 'rank_math_focus_keyword', true );
+
+			if ( '' === $chiave ) {
+				$chiave = (string) get_post_meta( $id, '_yoast_wpseo_focuskw', true );
+			}
+
+			$chiave = trim( (string) explode( ',', $chiave )[0] );
+
+			// Le variabili di Rank Math (%title%, %sep%) non sono testo che
+			// finisce in SERP: si contano come le conta il gestionale.
+			$titolo      = trim( (string) preg_replace( '/%[a-z_]+%/i', '', $titolo ) );
+			$descrizione = trim( $descrizione );
+
+			$esito[ (string) $id ] = array(
+				'titolo_lungh'  => function_exists( 'mb_strlen' ) ? mb_strlen( $titolo ) : strlen( $titolo ),
+				'descr_lungh'   => function_exists( 'mb_strlen' ) ? mb_strlen( $descrizione ) : strlen( $descrizione ),
+				'chiave_titolo' => '' !== $chiave && false !== stripos( $titolo, $chiave ),
+				'ha_chiave'     => '' !== $chiave,
+				'estratto'      => '' !== trim( (string) $post->post_excerpt ),
+				'thumbnail'     => (bool) get_post_thumbnail_id( $id ),
+				'parole'        => str_word_count( wp_strip_all_tags( (string) $post->post_content ) ),
+			);
+		}
+
+		return rest_ensure_response( array( 'ok' => true, 'misure' => $esito ) );
+	}
+
+	/**
+	 * Quali fra questi contenuti hanno l immagine in evidenza.
 	 *
 	 * @param WP_REST_Request $richiesta Richiesta con 'ids'.
 	 * @return WP_REST_Response

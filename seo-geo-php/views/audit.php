@@ -186,6 +186,12 @@ $scaricabili = array(
 			niente di nuovo da togliere.
 		</p>
 	<?php endif; ?>
+	<?php if ( ! empty( $allinea['parziale'] ) ) : ?>
+		<p class="guida">
+			Il controllo si è fermato prima della fine per non tenere ferma la pagina: riapri fra
+			qualche minuto e riprende da dove era arrivato.
+		</p>
+	<?php endif; ?>
 	<p class="guida">
 		Quello che resta è la lettura completa: le cose che costano minuti da verificare — la
 		lunghezza dei testi, le meta di ogni articolo, il peso di ogni file — si aggiornano

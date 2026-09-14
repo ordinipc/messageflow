@@ -158,19 +158,44 @@ $daFondere = in_array( $regola, array( 'LOC-05', 'ONP-06', 'CNT-03' ), true );
 		</p>
 	<?php endif; ?>
 
+	<?php if ( $pronto && ! $daFondere && count( $da_regola ) > 0 ) : ?>
+		<form class="a-lotti avvio-regola" method="post" action="?p=genera" data-tipo="articoli" data-restanti="<?php echo (int) count( $da_regola ); ?>" data-nome="bozze">
+			<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+			<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
+			<input type="hidden" name="regola" value="<?php echo e( $regola ); ?>">
+
+			<h3>Correggi questi <?php echo num( count( $da_regola ) ); ?> articoli</h3>
+			<p class="guida">
+				Si lavora a lotti: ogni articolo richiede 10-30 secondi e il server ha un tempo massimo.
+				Le riscritture non vanno online da sole — finiscono in «Vecchio e nuovo», dove le guardi
+				prima di applicarle.
+			</p>
+
+			<label for="quante-regola">Quanti articoli in questo lotto</label>
+			<input id="quante-regola" type="number" name="quante" value="<?php echo (int) $cfg['ai']['articoli_per_volta']; ?>" min="1" max="25" style="width:110px;padding:8px;border:1px solid var(--linea);border-radius:4px">
+
+			<p>
+				<button class="bottone" type="submit">Genera le bozze per <?php echo e( $regola ); ?></button>
+			</p>
+		</form>
+	<?php elseif ( ! $pronto && count( $da_regola ) > 0 ) : ?>
+		<p class="avviso">
+			Il pulsante per avviare non c'è perché manca la chiave di Google Gemini: senza, nessuna
+			riscrittura può partire. Le istruzioni sono nel riquadro «Manca la chiave API», in cima a
+			questa pagina.
+		</p>
+	<?php endif; ?>
+
 	<p class="nota"><a href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>">Lavora invece su tutto l'archivio</a></p>
 </section>
 <?php endif; ?>
 
-<?php if ( $pronto && ! $daFondere && ( ! empty( $regola ) ? count( $da_regola ) : $stima['articoli'] ) > 0 ) : ?>
-<form class="scheda a-lotti" method="post" action="?p=genera" data-tipo="articoli" data-restanti="<?php echo (int) ( ! empty( $regola ) ? count( $da_regola ) : $stima['articoli'] ); ?>" data-nome="bozze">
+<?php if ( $pronto && empty( $regola ) && $stima['articoli'] > 0 ) : ?>
+<form class="scheda a-lotti" method="post" action="?p=genera" data-tipo="articoli" data-restanti="<?php echo (int) $stima['articoli']; ?>" data-nome="bozze">
 	<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
 	<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
-	<?php if ( ! empty( $regola ) ) : ?>
-		<input type="hidden" name="regola" value="<?php echo e( $regola ); ?>">
-	<?php endif; ?>
 
-	<h2>Genera un lotto<?php echo ! empty( $regola ) ? ' per ' . e( $regola ) : ''; ?></h2>
+	<h2>Genera un lotto</h2>
 	<p class="guida">Si procede a lotti per non superare il tempo massimo di esecuzione del server. Ogni articolo richiede 10-30 secondi.</p>
 
 	<label for="quante">Quanti articoli in questo lotto</label>

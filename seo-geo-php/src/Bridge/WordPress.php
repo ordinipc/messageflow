@@ -300,6 +300,17 @@ class WordPress {
 	 * @param int[] $ids Identificativi WordPress.
 	 * @return array
 	 */
+	public function misure( array $ids ) {
+		return $this->chiama( 'POST', '/misure', array( 'ids' => array_values( $ids ) ) );
+	}
+
+	/**
+	 * Quali fra questi contenuti hanno l immagine in evidenza, adesso, sul
+	 * sito.
+	 *
+	 * @param int[] $ids Identificativi WordPress.
+	 * @return array
+	 */
 	public function miniature( array $ids ) {
 		return $this->chiama( 'POST', '/miniature', array( 'ids' => array_values( $ids ) ) );
 	}
