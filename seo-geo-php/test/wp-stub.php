@@ -690,6 +690,10 @@ function update_attached_file( $id, $file ) {
 	return true;
 }
 
+function apply_filters( $hook, $valore ) {
+	return $valore;
+}
+
 function wp_slash( $valore ) {
 	// Come WordPress: aggiunge le barre, perche update_post_meta le toglie.
 	return is_array( $valore ) ? array_map( 'wp_slash', $valore ) : addslashes( (string) $valore );

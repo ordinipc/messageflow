@@ -1693,8 +1693,16 @@ $vistaConfronto = (string) file_get_contents( __DIR__ . '/../views/confronto-boz
 verifica(
 	'il riepilogo dice perche non si possono sovrascrivere',
 	false !== strpos( $vistaConfronto, 'vanno fatti a mano:' )
-		&& false !== strpos( $vistaConfronto, "con più di un blocco di testo in Elementor" )
-		&& false !== strpos( $vistaConfronto, 'senza nessun blocco di testo in Elementor' )
+		&& false !== strpos( $vistaConfronto, 'con la struttura di Elementor illeggibile' )
+);
+
+// Non basta poterlo fare: prima di premere si deve sapere che cosa
+// succedera, perche su piu blocchi qualcosa viene svuotato.
+verifica(
+	'e dice in anticipo che cosa fara su ogni contenuto',
+	false !== strpos( $vistaConfronto, '$cosa_fara' )
+		&& false !== strpos( $vistaConfronto, 'ne verrà aggiunto uno in fondo' )
+		&& false !== strpos( $vistaConfronto, 'gli altri lunghi vengono svuotati' )
 );
 
 // Sapere che diciassette non si possono fare non serve se poi vanno

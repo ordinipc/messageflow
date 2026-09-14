@@ -47,15 +47,30 @@ $perche_no = static function ( $riga ) use ( $costruttori, $strutture ) {
 
 	$dentro = $strutture[ (string) $riga['wp_id'] ] ?? array();
 
-	if ( ! empty( $dentro['errore'] ) ) {
-		return 'la struttura di Elementor non è leggibile: ' . $dentro['errore'];
+	return 'la struttura di Elementor non è leggibile: ' . ( $dentro['errore'] ?: 'non si apre' );
+};
+
+// Che cosa succedera a questo contenuto, detto prima di premere.
+$cosa_fara = static function ( $riga ) use ( $costruttori, $strutture ) {
+	if ( '' === (string) ( $costruttori[ (string) $riga['wp_id'] ] ?? '' ) ) {
+		return '';
+	}
+
+	$dentro = $strutture[ (string) $riga['wp_id'] ] ?? array();
+
+	if ( ! empty( $dentro['post_content'] ) ) {
+		return 'Elementor mostra il contenuto di WordPress: si scrive lì';
 	}
 
 	if ( empty( $dentro['blocchi'] ) ) {
-		return 'in Elementor non c\'è nessun blocco di testo: il contenuto è fatto di altri elementi';
+		return 'in Elementor non c\'è un blocco di testo: ne verrà aggiunto uno in fondo, il resto della pagina non si tocca';
 	}
 
-	return 'in Elementor ci sono ' . (int) $dentro['blocchi'] . ' blocchi di testo: non si può sapere quale sia l\'articolo';
+	if ( 1 === (int) $dentro['blocchi'] ) {
+		return 'scrive dentro all\'unico blocco di testo di Elementor';
+	}
+
+	return 'in Elementor ci sono ' . (int) $dentro['blocchi'] . ' blocchi di testo: il testo nuovo va nel più lungo, gli altri lunghi vengono svuotati perché sono il resto dello stesso articolo, quelli corti restano';
 };
 
 $da_inviare = array_values(
@@ -110,15 +125,9 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 			$costruttore = (string) ( $costruttori[ (string) $riga['wp_id'] ] ?? '' );
 			$dentro      = $strutture[ (string) $riga['wp_id'] ] ?? array();
 
-			if ( 'Elementor' !== $costruttore ) {
-				$chiave = 'costruiti con ' . ( $costruttore ?: 'un altro costruttore' );
-			} elseif ( ! empty( $dentro['errore'] ) ) {
-				$chiave = 'con la struttura di Elementor illeggibile';
-			} elseif ( empty( $dentro['blocchi'] ) ) {
-				$chiave = 'senza nessun blocco di testo in Elementor';
-			} else {
-				$chiave = 'con più di un blocco di testo in Elementor';
-			}
+			$chiave = 'Elementor' !== $costruttore
+				? 'costruiti con ' . ( $costruttore ?: 'un altro costruttore' )
+				: 'con la struttura di Elementor illeggibile';
 
 			$motivi[ $chiave ] = ( $motivi[ $chiave ] ?? 0 ) + 1;
 		}
@@ -138,11 +147,9 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 			?>.
 		</p>
 		<p class="nota">
-			Sugli articoli costruiti con Elementor il testo si scrive dentro al suo blocco di testo,
-			e questo il programma lo fa da solo — ma solo quando quel blocco è uno solo.
-			Dove ce ne sono due o più non si può sapere quale sia l'articolo e quale una didascalia
-			o una promozione, e riscrivere il blocco sbagliato cancellerebbe qualcosa che serviva.
-			Per quelli: apri la bozza, copia il testo e incollalo nel blocco giusto dentro Elementor.
+			Restano fuori solo i contenuti la cui struttura non si riesce ad aprire, e quelli
+			costruiti con un costruttore diverso da Elementor. Per quelli: apri la bozza,
+			copia il testo e incollalo dentro al costruttore.
 		</p>
 	<?php endif; ?>
 
@@ -226,8 +233,8 @@ if ( 'da-inviare' === $filtro ) {
 				<button class="bottone invia-una" type="button" data-bozza="<?php echo (int) $riga['id']; ?>">
 					<?php echo empty( $riga['inviata_il'] ) ? 'Sovrascrivi questo articolo' : 'Riscrivi di nuovo'; ?>
 				</button>
-				<?php if ( '' !== $con_costruttore( $riga ) ) : ?>
-					<span class="nota">scrive dentro al blocco di testo di <?php echo e( $con_costruttore( $riga ) ); ?></span>
+				<?php if ( '' !== $cosa_fara( $riga ) ) : ?>
+					<span class="nota"><?php echo e( $cosa_fara( $riga ) ); ?></span>
 				<?php endif; ?>
 			<?php elseif ( $pronto ) : ?>
 				<span class="nota"><strong>Da fare a mano:</strong> <?php echo e( $perche_no( $riga ) ); ?>.</span>

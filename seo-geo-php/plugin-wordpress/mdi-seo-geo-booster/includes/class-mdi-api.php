@@ -1327,7 +1327,8 @@ class MDI_Api {
 		// post_content riuscirebbe senza errori e non cambierebbe niente di
 		// visibile: il titolo cambia, il testo no. Meglio rifiutare che far
 		// credere fatto un lavoro che non si vede.
-		$costruttore = self::costruttore( $id );
+		$costruttore      = self::costruttore( $id );
+		$dentro_elementor = false;
 
 		// Con Elementor si scrive dentro al suo blocco di testo, che e il
 		// posto dove il testo si vede davvero. Se la pagina non e fatta in
@@ -1343,7 +1344,7 @@ class MDI_Api {
 					return $scritto;
 				}
 
-				$dentro_elementor = true;
+				$dentro_elementor = $scritto;
 			}
 		} elseif ( '' !== $costruttore && ! $richiesta->get_param( 'forza' ) ) {
 			return new WP_Error(
@@ -1427,6 +1428,11 @@ class MDI_Api {
 				'ok'        => true,
 				'articolo'  => $id,
 				'dove'      => ! empty( $dentro_elementor ) ? 'elementor' : 'contenuto',
+				// Che cosa e stato fatto dentro alla struttura: svuotare un
+				// blocco o aggiungerne uno non e la stessa cosa che
+				// riscriverne uno, e chi guarda deve poterlo sapere.
+				'svuotati'  => (int) ( is_array( $dentro_elementor ) ? $dentro_elementor['svuotati'] : 0 ),
+				'aggiunto'  => ! empty( $dentro_elementor['aggiunto'] ),
 				'modifica'  => admin_url( 'post.php?post=' . $id . '&action=edit' ),
 				'indirizzo' => get_permalink( $id ),
 			)
@@ -1596,7 +1602,10 @@ class MDI_Api {
 				'blocchi'      => count( $struttura['testi'] ),
 				'caratteri'    => $struttura['testi'] ? (int) $struttura['testi'][0]['caratteri'] : 0,
 				'post_content' => (bool) $struttura['post_content'],
-				'scrivibile'   => '' === $struttura['errore'] && ( $struttura['post_content'] || 1 === count( $struttura['testi'] ) ),
+				// Si scrive in tutte le pagine la cui struttura si riesce a
+				// leggere: nel blocco piu lungo, o in uno aggiunto se non ce
+				// n e nessuno. Resta fuori solo quello che non si apre.
+				'scrivibile'   => '' === $struttura['errore'],
 				'errore'       => $struttura['errore'],
 			);
 		}
@@ -1625,25 +1634,6 @@ class MDI_Api {
 			return new WP_Error( 'mdi_elementor_illeggibile', $struttura['errore'], array( 'status' => 422 ) );
 		}
 
-		if ( ! $struttura['testi'] ) {
-			return new WP_Error(
-				'mdi_elementor_senza_testo',
-				'In questa pagina Elementor non ha nessun blocco di testo: il contenuto e fatto di altri elementi e va cambiato a mano.',
-				array( 'status' => 422 )
-			);
-		}
-
-		if ( count( $struttura['testi'] ) > 1 ) {
-			return new WP_Error(
-				'mdi_elementor_piu_blocchi',
-				sprintf(
-					'Questa pagina ha %d blocchi di testo in Elementor: non si puo sapere quale sia l articolo e quale una didascalia, quindi non ci si scrive sopra. Va cambiata a mano.',
-					count( $struttura['testi'] )
-				),
-				array( 'status' => 409 )
-			);
-		}
-
 		$grezzo = get_post_meta( $id, '_elementor_data', true );
 
 		if ( is_array( $grezzo ) ) {
@@ -1658,20 +1648,49 @@ class MDI_Api {
 			update_post_meta( $id, self::META_ELEMENTOR_PRIMA, wp_slash( (string) $grezzo ) );
 		}
 
-		// Si cammina fino al nodo trovato prima e si sostituisce solo il suo
-		// testo: tutto il resto della pagina resta identico.
-		$riferimento = &$albero;
+		$svuotati = 0;
+		$aggiunto = false;
 
-		foreach ( $struttura['testi'][0]['percorso'] as $passo ) {
-			if ( ! isset( $riferimento[ $passo ] ) ) {
-				return new WP_Error( 'mdi_elementor_percorso', 'Il blocco di testo non si trova piu dove era.', array( 'status' => 500 ) );
+		if ( ! $struttura['testi'] ) {
+			// Nessun blocco di testo: se ne aggiunge uno in fondo alla prima
+			// colonna. E l unico modo di scriverci senza toccare gli
+			// elementi che ci sono gia, e resta annullabile come tutto il
+			// resto perche la struttura di prima e messa da parte.
+			if ( ! self::aggiungi_blocco_testo( $albero, $contenuto ) ) {
+				return new WP_Error(
+					'mdi_elementor_senza_colonna',
+					'In questa pagina non si e trovata nessuna colonna dove mettere il testo.',
+					array( 'status' => 422 )
+				);
 			}
 
-			$riferimento = &$riferimento[ $passo ];
-		}
+			$aggiunto = true;
+		} else {
+			// Il blocco piu lungo e l articolo: li va il testo nuovo.
+			$scritto = self::scrivi_nel_nodo( $albero, $struttura['testi'][0]['percorso'], $contenuto );
 
-		$riferimento['settings']['editor'] = $contenuto;
-		unset( $riferimento );
+			if ( is_wp_error( $scritto ) ) {
+				return $scritto;
+			}
+
+			// Gli altri blocchi lunghi erano il resto dell articolo, ormai
+			// riscritto: lasciarli vorrebbe dire mostrare due volte lo stesso
+			// contenuto, uno vecchio e uno nuovo. Si svuotano.
+			//
+			// I blocchi corti no: quelli sono didascalie, inviti a chiamare,
+			// note a margine. Non fanno parte del testo e restano dove sono.
+			$soglia = (int) apply_filters( 'mdi_seo_geo_soglia_blocco', 200 );
+
+			foreach ( array_slice( $struttura['testi'], 1 ) as $altro ) {
+				if ( (int) $altro['caratteri'] < $soglia ) {
+					continue;
+				}
+
+				if ( ! is_wp_error( self::scrivi_nel_nodo( $albero, $altro['percorso'], '' ) ) ) {
+					$svuotati++;
+				}
+			}
+		}
 
 		$nuovo = wp_json_encode( $albero, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
 
@@ -1692,7 +1711,79 @@ class MDI_Api {
 			\Elementor\Plugin::$instance->files_manager->clear_cache();
 		}
 
+		return array( 'svuotati' => $svuotati, 'aggiunto' => $aggiunto );
+	}
+
+	/**
+	 * Scrive il testo dentro al nodo indicato dal percorso.
+	 *
+	 * @param array  $albero    Struttura, per riferimento.
+	 * @param array  $percorso  Catena di indici.
+	 * @param string $contenuto Testo da mettere.
+	 * @return true|WP_Error
+	 */
+	private static function scrivi_nel_nodo( array &$albero, array $percorso, $contenuto ) {
+		$riferimento = &$albero;
+
+		foreach ( $percorso as $passo ) {
+			if ( ! isset( $riferimento[ $passo ] ) ) {
+				return new WP_Error( 'mdi_elementor_percorso', 'Il blocco di testo non si trova piu dove era.', array( 'status' => 500 ) );
+			}
+
+			$riferimento = &$riferimento[ $passo ];
+		}
+
+		$riferimento['settings']['editor'] = $contenuto;
+		unset( $riferimento );
+
 		return true;
+	}
+
+	/**
+	 * Aggiunge un blocco di testo in fondo alla prima colonna che trova.
+	 *
+	 * Serve alle pagine dove Elementor non ha nessun widget di testo: il
+	 * contenuto e fatto di altri elementi e non c e un posto dove scrivere.
+	 * Si aggiunge invece di sostituire, cosi quello che c e resta.
+	 *
+	 * @param array  $albero    Struttura, per riferimento.
+	 * @param string $contenuto Testo da mettere.
+	 * @return bool Vero se si e trovata una colonna.
+	 */
+	private static function aggiungi_blocco_testo( array &$albero, $contenuto ) {
+		foreach ( $albero as &$sezione ) {
+			if ( ! is_array( $sezione ) || empty( $sezione['elements'] ) ) {
+				continue;
+			}
+
+			foreach ( $sezione['elements'] as &$colonna ) {
+				if ( ! is_array( $colonna ) || 'column' !== ( $colonna['elType'] ?? '' ) ) {
+					continue;
+				}
+
+				if ( ! isset( $colonna['elements'] ) || ! is_array( $colonna['elements'] ) ) {
+					$colonna['elements'] = array();
+				}
+
+				$colonna['elements'][] = array(
+					'id'         => substr( md5( uniqid( 'mdi', true ) ), 0, 7 ),
+					'elType'     => 'widget',
+					'widgetType' => 'text-editor',
+					'settings'   => array( 'editor' => $contenuto ),
+					'elements'   => array(),
+				);
+
+				unset( $colonna, $sezione );
+
+				return true;
+			}
+
+			unset( $colonna );
+		}
+
+		unset( $sezione );
+
+		return false;
 	}
 
 	/**

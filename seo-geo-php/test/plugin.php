@@ -802,9 +802,11 @@ verifica( 'e uno normale no', '' === MDI_Api::costruttore( 970 ), MDI_Api::costr
 $rifiutato = MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 980, 'contenuto' => '<p>Testo nuovo.</p>' ) ) );
 
 verifica( 'sovrascriverlo viene rifiutato invece di non fare niente', is_wp_error( $rifiutato ) );
+// Questa struttura non ha nessuna colonna: non c e nessun posto dove
+// scrivere, ed e l unico caso che resta impossibile.
 verifica(
-	'e il motivo dice che il testo sta nel costruttore',
-	is_wp_error( $rifiutato ) && false !== stripos( $rifiutato->get_error_message(), 'Elementor' ),
+	'e il motivo dice che non c e un posto dove scrivere',
+	is_wp_error( $rifiutato ) && false !== stripos( $rifiutato->get_error_message(), 'colonna' ),
 	is_wp_error( $rifiutato ) ? $rifiutato->get_error_message() : ''
 );
 verifica( 'e il titolo non viene toccato', 'Articolo con Elementor' === get_post( 980 )->post_title );
@@ -902,14 +904,73 @@ update_post_meta( 991, '_elementor_data', wp_json_encode( $dueTesti ) );
 update_post_meta( 991, '_elementor_edit_mode', 'builder' );
 
 $dueEsito = MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 991, 'contenuto' => '<p>Nuovo.</p>' ) ) );
+$dueEsito = is_wp_error( $dueEsito ) ? array() : (array) $dueEsito;
 
-verifica( 'con due blocchi di testo si rifiuta invece di indovinare', is_wp_error( $dueEsito ) );
-verifica(
-	'e dice quanti ne ha trovati',
-	is_wp_error( $dueEsito ) && false !== strpos( $dueEsito->get_error_message(), '2 blocchi' ),
-	is_wp_error( $dueEsito ) ? $dueEsito->get_error_message() : ''
+verifica( 'con piu blocchi di testo scrive lo stesso', ! empty( $dueEsito['ok'] ) );
+
+$dueDopo = json_decode( (string) get_post_meta( 991, '_elementor_data', true ), true );
+$dueWidget = $dueDopo[0]['elements'][0]['elements'] ?? array();
+
+verifica( 'il testo nuovo va nel blocco piu lungo', false !== strpos( (string) ( $dueWidget[0]['settings']['editor'] ?? '' ), 'Nuovo' ), (string) ( $dueWidget[0]['settings']['editor'] ?? '' ) );
+verifica( 'il blocco corto resta dov era', false !== strpos( (string) ( $dueWidget[1]['settings']['editor'] ?? '' ), 'preventivo' ), (string) ( $dueWidget[1]['settings']['editor'] ?? '' ) );
+verifica( 'e non viene svuotato niente di corto', 0 === (int) ( $dueEsito['svuotati'] ?? -1 ), (string) ( $dueEsito['svuotati'] ?? 'assente' ) );
+
+// Due blocchi lunghi: sono due pezzi dello stesso articolo, ormai
+// riscritto. Lasciare il secondo vorrebbe dire mostrare due volte lo
+// stesso contenuto, uno vecchio e uno nuovo.
+$dueLunghi = $strutturaElementor(
+	array(
+		array( 'id' => 'w1', 'elType' => 'widget', 'widgetType' => 'text-editor', 'settings' => array( 'editor' => '<p>' . str_repeat( 'Prima meta dell articolo. ', 20 ) . '</p>' ) ),
+		array( 'id' => 'w2', 'elType' => 'widget', 'widgetType' => 'text-editor', 'settings' => array( 'editor' => '<p>' . str_repeat( 'Seconda meta dell articolo. ', 15 ) . '</p>' ) ),
+	)
 );
-verifica( 'e non tocca niente', false !== strpos( (string) get_post_meta( 991, '_elementor_data', true ), 'preventivo' ) );
+
+stub_crea_post( 993, 'Articolo spezzato in due', '<p>Residuo.</p>' );
+update_post_meta( 993, '_elementor_data', wp_json_encode( $dueLunghi ) );
+update_post_meta( 993, '_elementor_edit_mode', 'builder' );
+
+$spezzato = MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 993, 'contenuto' => '<p>Articolo riscritto.</p>' ) ) );
+$spezzato = is_wp_error( $spezzato ) ? array() : (array) $spezzato;
+
+$spezzatoDopo = json_decode( (string) get_post_meta( 993, '_elementor_data', true ), true );
+$spezzatoWidget = $spezzatoDopo[0]['elements'][0]['elements'] ?? array();
+
+verifica( 'il secondo blocco lungo viene svuotato', 1 === (int) ( $spezzato['svuotati'] ?? 0 ), (string) ( $spezzato['svuotati'] ?? 'assente' ) );
+verifica( 'cosi il testo vecchio non resta sotto a quello nuovo', '' === ( $spezzatoWidget[1]['settings']['editor'] ?? 'x' ) );
+verifica( 'e il nuovo c e', false !== strpos( (string) ( $spezzatoWidget[0]['settings']['editor'] ?? '' ), 'Articolo riscritto' ) );
+
+// Nessun blocco di testo: se ne aggiunge uno, senza toccare quello che c e.
+$senzaTesto = $strutturaElementor(
+	array( array( 'id' => 'w1', 'elType' => 'widget', 'widgetType' => 'image', 'settings' => array( 'image' => array( 'url' => 'x.jpg' ) ) ) )
+);
+
+stub_crea_post( 994, 'Articolo senza blocchi di testo', '<p>Residuo.</p>' );
+update_post_meta( 994, '_elementor_data', wp_json_encode( $senzaTesto ) );
+update_post_meta( 994, '_elementor_edit_mode', 'builder' );
+
+$senza = MDI_Api::sovrascrivi( new WP_REST_Request( array( 'id' => 994, 'contenuto' => '<p>Testo aggiunto.</p>' ) ) );
+$senza = is_wp_error( $senza ) ? array() : (array) $senza;
+
+verifica( 'senza blocchi di testo ne viene aggiunto uno', ! empty( $senza['aggiunto'] ) );
+
+$senzaDopo = json_decode( (string) get_post_meta( 994, '_elementor_data', true ), true );
+$senzaWidget = $senzaDopo[0]['elements'][0]['elements'] ?? array();
+
+verifica( 'l immagine che c era resta', 'image' === ( $senzaWidget[0]['widgetType'] ?? '' ) );
+verifica( 'e il testo nuovo si aggiunge in fondo', false !== strpos( (string) ( $senzaWidget[1]['settings']['editor'] ?? '' ), 'Testo aggiunto' ), json_encode( $senzaWidget[1] ?? null ) );
+verifica( 'il blocco aggiunto e un text-editor', 'text-editor' === ( $senzaWidget[1]['widgetType'] ?? '' ) );
+
+// Tutto resta annullabile: la struttura di prima e messa da parte anche
+// in questi due casi nuovi.
+verifica( 'anche qui la struttura di prima resta da parte', '' !== get_post_meta( 993, MDI_Api::META_ELEMENTOR_PRIMA, true ) && '' !== get_post_meta( 994, MDI_Api::META_ELEMENTOR_PRIMA, true ) );
+
+MDI_Api::annulla_meta( new WP_REST_Request( array( 'ids' => array( 993 ) ) ) );
+$tornatoSpezzato = json_decode( (string) get_post_meta( 993, '_elementor_data', true ), true );
+
+verifica(
+	'e l annulla rimette tutti e due i blocchi',
+	false !== strpos( (string) ( $tornatoSpezzato[0]['elements'][0]['elements'][1]['settings']['editor'] ?? '' ), 'Seconda meta' )
+);
 
 // Se la pagina ha un widget che rende post_content, il testo vero sta li e
 // la sovrascrittura normale funziona.
