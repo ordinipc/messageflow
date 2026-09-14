@@ -91,6 +91,75 @@ class Rewriter {
 	}
 
 	/**
+	 * Perche i contenuti con questo problema non sono in lista.
+	 *
+	 * «Nessun contenuto ha piu questo problema» e una risposta che non si
+	 * puo controllare: la tabella dell audit dice 2, questa pagina dice 0, e
+	 * chi legge deve scegliere a quale delle due credere. Qui si prende ogni
+	 * occorrenza della regola e si dice, una per una, che fine ha fatto.
+	 *
+	 * @param Db     $db      Database.
+	 * @param int    $auditId Audit.
+	 * @param string $regola  Regola.
+	 * @return array[] 'riferimento', 'titolo', 'url', 'tipo', 'motivo', 'azione'.
+	 */
+	public static function esclusi( Db $db, $auditId, $regola ) {
+		$righe = $db->all(
+			"SELECT o.riferimento, o.applicato, o.dettaglio,
+					d.id AS doc_id, d.titolo, d.url, d.tipo, d.parole,
+					t.categoria,
+					( SELECT COUNT(*) FROM bozza b WHERE b.documento_id = d.id AND b.stato = 'ok' ) AS bozze
+			 FROM occorrenza o
+			 JOIN rilievo r ON r.id = o.rilievo_id
+			 LEFT JOIN documento d
+					ON d.audit_id = r.audit_id
+				   AND ( d.percorso = o.riferimento OR d.url = o.riferimento )
+			 LEFT JOIN triage t ON t.documento_id = d.id AND t.audit_id = r.audit_id
+			 WHERE r.audit_id = ? AND r.regola = ?
+			 ORDER BY COALESCE( o.applicato, 0 ) ASC, o.id ASC
+			 LIMIT 200",
+			array( (int) $auditId, (string) $regola )
+		);
+
+		$fuori = array();
+
+		foreach ( $righe as $r ) {
+			$motivo = '';
+			$azione = '';
+
+			if ( ! empty( $r['applicato'] ) ) {
+				$motivo = 'già sistemato dal gestionale dopo la lettura del sito';
+			} elseif ( null === $r['doc_id'] ) {
+				$motivo = 'non risulta più fra i contenuti analizzati';
+			} elseif ( 'page' === (string) $r['tipo'] ) {
+				// Vincolo voluto: le pagine servizio sono poche e scritte a
+				// mano, la riscrittura automatica non le tocca.
+				$motivo = 'è una pagina, non un articolo: la riscrittura automatica non tocca le pagine';
+				$azione = 'manuale';
+			} elseif ( (int) $r['bozze'] > 0 ) {
+				$motivo = 'ha già una riscrittura pronta';
+				$azione = 'bozza';
+			} elseif ( null === $r['categoria'] ) {
+				$motivo = 'non è stato classificato dal triage';
+			} else {
+				$motivo = 'classificato come «' . $r['categoria'] . '»';
+			}
+
+			$fuori[] = array(
+				'riferimento' => (string) $r['riferimento'],
+				'titolo'      => (string) ( $r['titolo'] ?: $r['riferimento'] ),
+				'url'         => (string) $r['url'],
+				'tipo'        => (string) $r['tipo'],
+				'dettaglio'   => (string) $r['dettaglio'],
+				'motivo'      => $motivo,
+				'azione'      => $azione,
+			);
+		}
+
+		return $fuori;
+	}
+
+	/**
 	 * Stima di token e costo senza chiamare l API.
 	 *
 	 * @param array $articoli Candidati.

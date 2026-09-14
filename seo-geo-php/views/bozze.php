@@ -6,6 +6,7 @@
  * @var string $regola    Problema da cui si e arrivati, se c e.
  * @var array  $rilievo   Riga del rilievo corrispondente.
  * @var array  $da_regola Contenuti che hanno quel problema.
+ * @var array  $esclusi   Occorrenze della regola che non finiscono in coda, col perche.
  * @var array $audit  Riga audit.
  * @var array $cfg    Configurazione.
  * @var bool  $pronto Chiave API presente.
@@ -77,6 +78,7 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 // alla riscrittura singola sarebbe mandare allo strumento sbagliato.
 $daFondere = in_array( $regola, array( 'LOC-05', 'ONP-06', 'CNT-03' ), true );
 ?>
+<?php $esclusi = $esclusi ?? array(); ?>
 <?php if ( ! empty( $regola ) ) : ?>
 <section class="scheda">
 	<h2>Stai correggendo <?php echo e( $regola ); ?><?php echo ! empty( $rilievo['titolo'] ) ? ': ' . e( $rilievo['titolo'] ) : ''; ?></h2>
@@ -103,6 +105,43 @@ $daFondere = in_array( $regola, array( 'LOC-05', 'ONP-06', 'CNT-03' ), true );
 				<?php endif; ?>
 			</ul>
 		</details>
+	<?php elseif ( ! empty( $esclusi ) ) : ?>
+		<?php $aMano = array_values( array_filter( $esclusi, static fn( $x ) => 'manuale' === $x['azione'] ) ); ?>
+		<p class="avviso">
+			La riscrittura assistita non ha niente da fare qui, ma il problema c'è ancora su
+			<strong><?php echo num( count( $esclusi ) ); ?></strong>
+			<?php echo 1 === count( $esclusi ) ? 'contenuto' : 'contenuti'; ?>.
+			Ecco quali sono e perché nessuno di loro finisce in coda.
+		</p>
+		<div class="tabellabox">
+			<table>
+				<thead><tr><th>Contenuto</th><th>Rilevato</th><th>Perché non è in coda</th></tr></thead>
+				<tbody>
+				<?php foreach ( $esclusi as $x ) : ?>
+					<tr>
+						<td>
+							<?php if ( $x['url'] ) : ?>
+								<a href="<?php echo e( $x['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( $x['titolo'] ); ?></a>
+							<?php else : ?>
+								<?php echo e( $x['titolo'] ); ?>
+							<?php endif; ?>
+							<div class="sotto mono"><?php echo e( $x['riferimento'] ); ?></div>
+						</td>
+						<td><?php echo e( $x['dettaglio'] ); ?></td>
+						<td><?php echo e( $x['motivo'] ); ?></td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+		</div>
+		<?php if ( $aMano ) : ?>
+			<p class="guida">
+				<?php echo num( count( $aMano ) ); ?>
+				<?php echo 1 === count( $aMano ) ? 'è una pagina' : 'sono pagine'; ?>:
+				si correggono aprendo la pagina in WordPress e allungando il testo. È una scelta voluta —
+				le pagine servizio sono poche e scritte a mano, e il gestionale non le riscrive da solo.
+			</p>
+		<?php endif; ?>
 	<?php else : ?>
 		<p class="avviso ok-bg">
 			Nessun contenuto ha più questo problema: o è già stato corretto, o riguarda pagine

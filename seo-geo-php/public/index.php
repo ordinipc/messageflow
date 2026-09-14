@@ -3005,6 +3005,12 @@ switch ( $pagina ) {
 				'da_regola' => $regola_scelta
 					? Rewriter::candidati( $db, $id, array( 'regola' => $regola_scelta, 'rigenera' => 1 ) )
 					: array(),
+				// Quando la lista esce vuota ma la tabella dell audit segna
+				// due contenuti, bisogna poter vedere quali sono e perche non
+				// ci sono: «non c e niente» non e una risposta verificabile.
+				'esclusi'   => $regola_scelta
+					? Rewriter::esclusi( $db, $id, $regola_scelta )
+					: array(),
 				'segnaposto_aperti' => Verifiche::segnaposto( $db, $id ),
 				// Quante bozze restano bloccate: e il numero che si vede in
 				// «Vecchio e nuovo» come «con dati da verificare», e deve

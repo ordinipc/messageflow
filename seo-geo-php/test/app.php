@@ -3155,6 +3155,60 @@ verifica(
 	'il filtro non c e'
 );
 
+// ---------------------------------------------------------------------------
+// «Non c e niente da fare» deve dire di chi sta parlando
+//
+// La tabella dell audit segnava 2 contenuti con CNT-01, si premeva
+// «Riscrittura assistita» e la pagina rispondeva che non c era niente. Due
+// numeri diversi per la stessa cosa, e nessun modo di sapere quale fosse
+// quello giusto.
+
+echo "\nQuando la coda e vuota si dice perche\n";
+
+$rilievoCnt = $dbApp->insert(
+	'rilievo',
+	array( 'audit_id' => $auditApp, 'regola' => 'CNT-01', 'area' => 'content', 'gravita' => 'critical', 'titolo' => 'Contenuto molto scarno', 'perche' => '', 'soluzione' => '', 'automatico' => 0, 'occorrenze' => 4 )
+);
+
+// Una pagina: esclusa per scelta, la riscrittura non tocca le pagine.
+$dbApp->insert( 'documento', array( 'audit_id' => $auditApp, 'wp_id' => '20', 'tipo' => 'page', 'stato' => 'publish', 'titolo' => 'Chi siamo', 'percorso' => '/chi-siamo/', 'url' => 'https://esempio.it/chi-siamo/', 'parole' => 120 ) );
+$dbApp->insert( 'occorrenza', array( 'rilievo_id' => $rilievoCnt, 'riferimento' => '/chi-siamo/', 'dettaglio' => '120 parole' ) );
+
+// Un articolo mai classificato dal triage.
+$dbApp->insert( 'documento', array( 'audit_id' => $auditApp, 'wp_id' => '21', 'tipo' => 'post', 'stato' => 'publish', 'titolo' => 'Nota breve', 'percorso' => '/nota/', 'url' => 'https://esempio.it/nota/', 'parole' => 90 ) );
+$dbApp->insert( 'occorrenza', array( 'rilievo_id' => $rilievoCnt, 'riferimento' => '/nota/', 'dettaglio' => '90 parole' ) );
+
+// Un articolo gia sistemato dal gestionale.
+$dbApp->insert( 'occorrenza', array( 'rilievo_id' => $rilievoCnt, 'riferimento' => '/uno/', 'dettaglio' => '80 parole', 'applicato' => 1 ) );
+
+// Un riferimento che non corrisponde piu a nessun contenuto.
+$dbApp->insert( 'occorrenza', array( 'rilievo_id' => $rilievoCnt, 'riferimento' => '/sparito/', 'dettaglio' => '10 parole' ) );
+
+$perche = \SeoGeo\Ai\Rewriter::esclusi( $dbApp, $auditApp, 'CNT-01' );
+
+$motivoDi = static function ( $riferimento ) use ( $perche ) {
+	foreach ( $perche as $riga ) {
+		if ( $riferimento === $riga['riferimento'] ) {
+			return $riga['motivo'];
+		}
+	}
+
+	return '';
+};
+
+verifica( 'si elencano tutte e quattro le occorrenze', 4 === count( $perche ), json_encode( $perche ) );
+verifica( 'di una pagina si dice che e una pagina', false !== strpos( $motivoDi( '/chi-siamo/' ), 'è una pagina' ), $motivoDi( '/chi-siamo/' ) );
+verifica( 'di un articolo mai classificato si dice quello', false !== strpos( $motivoDi( '/nota/' ), 'triage' ), $motivoDi( '/nota/' ) );
+verifica( 'di uno gia sistemato si dice che e sistemato', false !== strpos( $motivoDi( '/uno/' ), 'già sistemato' ), $motivoDi( '/uno/' ) );
+verifica( 'di un riferimento sparito si dice che non c e piu', false !== strpos( $motivoDi( '/sparito/' ), 'non risulta' ), $motivoDi( '/sparito/' ) );
+
+// Il titolo serve a riconoscerlo: un percorso da solo non basta.
+verifica(
+	'ogni riga porta il titolo del contenuto',
+	'Chi siamo' === ( array_values( array_filter( $perche, static fn( $r ) => '/chi-siamo/' === $r['riferimento'] ) )[0]['titolo'] ?? '' ),
+	json_encode( $perche )
+);
+
 @unlink( $fileApp );
 
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
