@@ -46,6 +46,10 @@ class Technical {
 				'perche' => 'Senza direttiva esplicita il comportamento dipende dalle impostazioni globali: pagine di servizio possono finire indicizzate e abbassare la qualità media del sito.',
 				'soluzione' => 'Il plugin imposta index,follow,max-snippet:-1,max-image-preview:large sui contenuti utili e noindex sulle pagine di servizio.',
 				'check' => static function ( Site $s ) {
+					if ( Base::loFaIlSito( $s, 'robots' ) ) {
+						return array();
+					}
+
 					$out = array();
 					foreach ( $s->pubblicati as $d ) {
 						if ( '' === $d['robots'] ) {
@@ -61,6 +65,10 @@ class Technical {
 				'perche' => 'Senza questa direttiva Google mostra miniature piccole e la pagina non è ammessa in Google Discover.',
 				'soluzione' => 'Aggiunta automatica nella meta robots dal plugin.',
 				'check' => static function ( Site $s ) {
+					if ( Base::loFaIlSito( $s, 'robots' ) ) {
+						return array();
+					}
+
 					$out = array();
 					foreach ( $s->pubblicati as $d ) {
 						if ( ! preg_match( '/max-image-preview/', $d['robots'] ) ) {
@@ -76,6 +84,10 @@ class Technical {
 				'perche' => 'Il canonical esplicito protegge dalle duplicazioni generate da parametri UTM, paginazione e varianti con o senza slash finale.',
 				'soluzione' => 'Il plugin stampa un canonical assoluto e autoreferenziale su ogni URL.',
 				'check' => static function ( Site $s ) {
+					if ( Base::loFaIlSito( $s, 'canonical' ) ) {
+						return array();
+					}
+
 					$out = array();
 					foreach ( $s->pubblicati as $d ) {
 						if ( '' === $d['canonical'] ) {

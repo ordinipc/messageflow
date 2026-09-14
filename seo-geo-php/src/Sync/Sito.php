@@ -215,6 +215,10 @@ class Sito {
 				'descrizione' => $conteggi['sito']['descrizione'] ?? '',
 				'lingua'      => $conteggi['sito']['lingua'] ?? 'it-IT',
 				'baseUrl'     => rtrim( (string) ( $conteggi['sito']['url'] ?? '' ), '/' ),
+				// Che cosa stampa il plugin nella testata: i dati strutturati
+				// stanno nel <head>, non nel testo degli articoli, e le
+				// regole devono saperlo invece di cercarli dove non sono.
+				'stampa'      => (array) ( $conteggi['sito']['stampa'] ?? array() ),
 				'autori'      => $autori,
 			),
 			'items'     => $items,

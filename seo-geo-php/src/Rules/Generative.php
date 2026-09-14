@@ -121,6 +121,10 @@ class Generative {
 				'perche' => 'Lo schema speakable indica quali frammenti sono adatti alla lettura vocale e alla sintesi: aiuta assistenti vocali e riassunti AI.',
 				'soluzione' => 'speakable aggiunto allo schema Article dal plugin.',
 				'check' => static function ( Site $s ) {
+					if ( Base::loFaIlSito( $s, 'jsonld' ) ) {
+						return array();
+					}
+
 					$out = array();
 					foreach ( $s->pubblicati as $d ) {
 						if ( ! preg_match( '/speakable/i', $d['contenuto'] ) ) {

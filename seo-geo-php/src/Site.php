@@ -48,6 +48,18 @@ class Site {
 	/** @var array[] */
 	public $autori = array();
 
+	/**
+	 * Che cosa stampa il plugin nella testata di ogni pagina.
+	 *
+	 * Vuoto quando l analisi viene da un export, che del sito servito non
+	 * sa niente. Le regole che riguardano il <head> lo guardano prima di
+	 * segnalare qualcosa: cercare nel testo di un articolo una cosa che sta
+	 * nella testata dava un rilievo che non si poteva chiudere mai.
+	 *
+	 * @var array<string,bool>
+	 */
+	public $stampa = array();
+
 	/** @var array<string,int> Percorso => numero di link interni ricevuti. */
 	private $inbound = array();
 
@@ -59,6 +71,7 @@ class Site {
 		$this->categorie = $parsed['categorie'];
 		$this->tag       = $parsed['tag'];
 		$this->autori    = $parsed['sito']['autori'];
+		$this->stampa    = (array) ( $parsed['sito']['stampa'] ?? array() );
 		$this->url       = rtrim( $parsed['sito']['link'] ?: $parsed['sito']['baseUrl'], '/' );
 		$this->host      = preg_replace( '#^www\.#', '', (string) parse_url( $this->url, PHP_URL_HOST ) );
 

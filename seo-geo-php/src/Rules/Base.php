@@ -20,6 +20,28 @@ class Base {
 	const BASSO   = 'low';
 
 	/**
+	 * Se il sito stampa gia questa cosa nella testata di ogni pagina.
+	 *
+	 * I dati strutturati, il canonical, le direttive robots e l Open Graph
+	 * non stanno nel testo degli articoli: li mette il plugin nel <head> al
+	 * momento di servire la pagina. Cercarli nel contenuto dava un rilievo
+	 * critico su tutti i contenuti che non si poteva chiudere in nessun
+	 * modo - nemmeno riscrivendo gli articoli. E infatti il modello, a cui
+	 * quel rilievo veniva passato, ha provato a "risolverlo" scrivendo il
+	 * JSON-LD dentro all articolo.
+	 *
+	 * Quando l analisi viene da un export il dato non c e, e le regole
+	 * segnalano come prima: di quel sito non si sa che cosa serva.
+	 *
+	 * @param Site   $s    Sito.
+	 * @param string $cosa Chiave dichiarata dal plugin.
+	 * @return bool
+	 */
+	public static function loFaIlSito( Site $s, $cosa ) {
+		return ! empty( $s->stampa[ $cosa ] );
+	}
+
+	/**
 	 * Problema riferito a un documento.
 	 *
 	 * @param array  $doc       Documento.

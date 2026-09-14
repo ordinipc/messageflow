@@ -2423,6 +2423,91 @@ $pulita  = \SeoGeo\Html::senzaDatiStrutturati( $sporca );
 verifica( 'una bozza sporca risulta da ripulire', $pulita !== $sporca );
 verifica( 'una bozza gia ripulita non ci rientra', $pulita === \SeoGeo\Html::senzaDatiStrutturati( $pulita ) );
 
+// --- Quello che sta nella testata non si cerca nel testo -------------------
+//
+// SCH-01 diceva «nessun JSON-LD nel contenuto» su tutti e 328 i contenuti,
+// come rilievo CRITICO, e leggeva il testo degli articoli. I dati
+// strutturati stanno nel <head>, li stampa il plugin al momento di servire
+// la pagina: nel testo non ci sono mai, quindi quel rilievo non si poteva
+// chiudere in nessun modo. E il modello, a cui quel rilievo veniva passato,
+// ha provato a «risolverlo» scrivendo il JSON-LD dentro all articolo.
+
+echo "\nI rilievi sulla testata\n";
+
+/**
+ * Sito minimo, con o senza la dichiarazione di cosa stampa il plugin.
+ *
+ * @param array $stampa Dichiarazione del plugin.
+ * @return \SeoGeo\Site
+ */
+function sito_che_stampa( array $stampa ) {
+	return new \SeoGeo\Site(
+		array(
+			'sito' => array(
+				'titolo' => 'Prova', 'link' => 'https://esempio.it', 'baseUrl' => 'https://esempio.it',
+				'descrizione' => '', 'lingua' => 'it-IT', 'autori' => array(),
+				'stampa' => $stampa,
+			),
+			'items' => array(
+				array(
+					'wp_id' => '1', 'tipo' => 'post', 'stato' => 'publish', 'titolo' => 'Articolo',
+					'slug' => 'articolo', 'link' => 'https://esempio.it/articolo/', 'data' => '2026-01-01',
+					'modificato' => '2026-01-01', 'autore' => 'admin', 'categorie' => array(), 'tag' => array(),
+					'estratto' => '', 'contenuto' => '<p>Testo senza nessuno schema dentro.</p>',
+					'meta' => array(), 'commenti' => 0,
+				),
+			),
+			'categorie' => array(), 'tag' => array(),
+		)
+	);
+}
+
+$regoleTutte = array();
+
+foreach ( \SeoGeo\Audit::regole() as $r ) {
+	$regoleTutte[ $r['id'] ] = $r;
+}
+
+$senza = sito_che_stampa( array() );
+$con   = sito_che_stampa( array( 'jsonld' => true, 'canonical' => true, 'robots' => true, 'opengraph' => true, 'local' => true ) );
+
+verifica(
+	'senza plugin il rilievo sullo schema resta, perche del sito non si sa niente',
+	array() !== $regoleTutte['SCH-01']['check']( $senza )
+);
+
+verifica(
+	'ma se il plugin dichiara di stamparlo, non si segnala piu',
+	array() === $regoleTutte['SCH-01']['check']( $con ),
+	json_encode( $regoleTutte['SCH-01']['check']( $con ) )
+);
+
+foreach ( array( 'SCH-02', 'SCH-03', 'SCH-04', 'SCH-05', 'GEO-07', 'LOC-03', 'TEC-02', 'TEC-03', 'TEC-04' ) as $id ) {
+	verifica(
+		'lo stesso vale per ' . $id,
+		array() === $regoleTutte[ $id ]['check']( $con ),
+		json_encode( $regoleTutte[ $id ]['check']( $con ) )
+	);
+}
+
+// Le regole sul testo non c entrano: quelle devono continuare a funzionare.
+verifica(
+	'le regole sul testo non vengono zittite dal plugin',
+	array() !== $regoleTutte['CNT-01']['check']( $con ) || array() !== $regoleTutte['ONP-04']['check']( $con ),
+	'nessuna delle due segnala piu niente'
+);
+
+verifica(
+	'il plugin dichiara che cosa stampa',
+	false !== strpos( file_get_contents( __DIR__ . '/../plugin-wordpress/mdi-seo-geo-booster/includes/class-mdi-api.php' ), 'public static function cosa_stampa()' )
+);
+
+verifica(
+	'e la dichiarazione arriva fino al sito analizzato',
+	false !== strpos( file_get_contents( __DIR__ . '/../src/Sync/Sito.php' ), "'stampa'" )
+		&& false !== strpos( file_get_contents( __DIR__ . '/../src/Site.php' ), 'public $stampa' )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

@@ -231,6 +231,13 @@ class MDI_Api {
 					'descrizione' => get_bloginfo( 'description' ),
 					'url'         => home_url( '/' ),
 					'lingua'      => get_bloginfo( 'language' ),
+					// Che cosa stampa il plugin nella testata di ogni pagina.
+					// Serve all analisi: i dati strutturati stanno nel <head>,
+					// non nel testo dell articolo, e cercarli nel testo dava
+					// un rilievo critico che non si poteva chiudere in nessun
+					// modo - e che ha spinto il modello a scrivere il JSON-LD
+					// dentro agli articoli.
+					'stampa'      => self::cosa_stampa(),
 				),
 				// Gli autori servono a valutare l attribuzione dei contenuti:
 				// un articolo firmato da una persona reale vale più di uno
@@ -1540,6 +1547,30 @@ class MDI_Api {
 		}
 
 		return self::altroCostruttore( $id );
+	}
+
+	/**
+	 * Che cosa il plugin stampa nella testata di ogni pagina.
+	 *
+	 * Sono cose che non si vedono guardando il testo di un articolo: stanno
+	 * nel <head>, le mette il plugin al momento di servire la pagina. Chi
+	 * analizza il sito leggendo i contenuti non le troverebbe mai.
+	 *
+	 * @return array<string,bool>
+	 */
+	public static function cosa_stampa() {
+		$config = (bool) get_option( self::OPZIONE_CONFIG, false );
+
+		return array(
+			'jsonld'    => class_exists( 'MDI_Schema' ),
+			'canonical' => class_exists( 'MDI_Meta' ),
+			'robots'    => class_exists( 'MDI_Meta' ),
+			'opengraph' => class_exists( 'MDI_Meta' ),
+			// LocalBusiness e Person escono solo quando i dati aziendali
+			// sono stati compilati: senza, non c e niente da dichiarare.
+			'local'     => class_exists( 'MDI_Schema' ) && $config,
+			'autore'    => class_exists( 'MDI_Schema' ) && $config,
+		);
 	}
 
 	/**

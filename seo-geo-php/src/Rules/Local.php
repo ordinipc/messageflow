@@ -60,6 +60,10 @@ class Local {
 				'perche' => 'Senza LocalBusiness o ProfessionalService Google non ha un entità aziendale da associare a orari, area servita e recensioni: è il prerequisito tecnico del local pack.',
 				'soluzione' => 'Schema ProfessionalService completo generato dal plugin.',
 				'check' => static function ( Site $s ) {
+					if ( Base::loFaIlSito( $s, 'local' ) ) {
+						return array();
+					}
+
 					foreach ( $s->pubblicati as $d ) {
 						if ( preg_match( '/LocalBusiness|ProfessionalService/i', $d['contenuto'] ) ) {
 							return array();
