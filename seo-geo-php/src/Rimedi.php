@@ -54,13 +54,13 @@ class Rimedi {
 			'GEO-01' => 'llms.txt generato dal sito',
 			'GEO-02' => 'robots.txt con le direttive per i crawler AI',
 			'GEO-07' => 'markup speakable',
-			'IMG-06' => 'width e height sulle immagini',
+			'IMG-06' => 'width e height presi dalla libreria media',
 			'LNK-01' => 'link interni verso le pagine senza collegamenti in entrata',
 			'LNK-02' => 'link interni inseriti nel contenuto',
 			'LNK-04' => 'rel="nofollow sponsored" sui link esterni configurati',
 			'IMG-01' => 'alt generato dal titolo su ogni immagine del contenuto',
 			'IMG-02' => 'alt generato anche per gli allegati della libreria media',
-			'CNT-07' => 'CSS inline ripulito dal contenuto',
+
 		);
 
 		$mappa = array();
@@ -95,6 +95,7 @@ class Rimedi {
 			'CNT-03' => array( $bozze, 'Riscrittura assistita', 'I testi sovrapposti si accorpano in uno solo con «Fondi i gruppi».' ),
 			'ONP-06' => array( $bozze, 'Riscrittura assistita', 'La cannibalizzazione si risolve accorpando con «Fondi i gruppi».' ),
 			'LOC-05' => array( $bozze, 'Riscrittura assistita', 'Le landing locali sovrapposte si accorpano con «Fondi i gruppi».' ),
+			'CNT-07' => array( $bozze, 'Riscrittura assistita', 'La riscrittura rifà il testo senza gli stili incollati dentro.' ),
 			'CNT-01' => array( $bozze, 'Riscrittura assistita', 'Gli articoli troppo corti si riscrivono alla lunghezza giusta.' ),
 			'CNT-02' => array( $bozze, 'Riscrittura assistita', 'Gli articoli sotto soglia si riscrivono più completi.' ),
 			'LOC-02' => array( $impostazioni, 'Impostazioni', 'Compila indirizzo e partita IVA: vengono inviati al sito e finiscono nello schema.' ),

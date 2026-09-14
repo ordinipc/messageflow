@@ -26,6 +26,10 @@ class Generative {
 				'perche' => 'llms.txt è lo standard con cui si dichiara ai modelli quali contenuti del sito sono autorevoli e come vanno citati. Senza, il crawler AI deve indovinare la struttura del sito.',
 				'soluzione' => 'Generazione di llms.txt e llms-full.txt con mappa dei servizi, delle guide e dei dati aziendali.',
 				'check' => static function ( Site $s ) {
+					if ( Base::loFaIlSito( $s, 'llms' ) ) {
+						return array();
+					}
+
 					return array( Base::sito( 'nessun llms.txt dichiarato: da pubblicare in radice' ) );
 				},
 			),
@@ -35,6 +39,10 @@ class Generative {
 				'perche' => 'Se GPTBot, ClaudeBot, PerplexityBot e Google-Extended non sono ammessi esplicitamente il sito non può comparire nelle risposte AI, che intercettano una quota crescente di ricerche informazionali.',
 				'soluzione' => 'robots.txt rigenerato con allow espliciti per i crawler generativi, sitemap e llms.txt.',
 				'check' => static function ( Site $s ) {
+					if ( Base::loFaIlSito( $s, 'robots_txt' ) ) {
+						return array();
+					}
+
 					return array( Base::sito( 'robots.txt da rigenerare con direttive esplicite per i crawler AI' ) );
 				},
 			),

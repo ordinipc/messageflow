@@ -2469,7 +2469,16 @@ foreach ( \SeoGeo\Audit::regole() as $r ) {
 }
 
 $senza = sito_che_stampa( array() );
-$con   = sito_che_stampa( array( 'jsonld' => true, 'canonical' => true, 'robots' => true, 'opengraph' => true, 'local' => true ) );
+$con   = sito_che_stampa(
+	array(
+		'jsonld' => true, 'canonical' => true, 'robots' => true, 'opengraph' => true,
+		'local' => true, 'autore' => true,
+		// Queste il plugin le fa mentre serve la pagina: nel testo salvato
+		// su WordPress non ci sono, e cercarle li non finisce mai.
+		'link_interni' => true, 'nofollow' => true, 'alt' => true, 'dimensioni' => true,
+		'llms' => true, 'robots_txt' => true,
+	)
+);
 
 verifica(
 	'senza plugin il rilievo sullo schema resta, perche del sito non si sa niente',
@@ -2482,7 +2491,7 @@ verifica(
 	json_encode( $regoleTutte['SCH-01']['check']( $con ) )
 );
 
-foreach ( array( 'SCH-02', 'SCH-03', 'SCH-04', 'SCH-05', 'GEO-07', 'LOC-03', 'TEC-02', 'TEC-03', 'TEC-04' ) as $id ) {
+foreach ( array( 'SCH-02', 'SCH-03', 'SCH-04', 'SCH-05', 'GEO-07', 'LOC-03', 'TEC-02', 'TEC-03', 'TEC-04', 'GEO-01', 'GEO-02', 'LNK-01', 'LNK-02', 'LNK-04', 'IMG-01', 'IMG-02', 'IMG-06' ) as $id ) {
 	verifica(
 		'lo stesso vale per ' . $id,
 		array() === $regoleTutte[ $id ]['check']( $con ),
@@ -2495,6 +2504,27 @@ verifica(
 	'le regole sul testo non vengono zittite dal plugin',
 	array() !== $regoleTutte['CNT-01']['check']( $con ) || array() !== $regoleTutte['ONP-04']['check']( $con ),
 	'nessuna delle due segnala piu niente'
+);
+
+// Dichiarare una cosa che il plugin non fa e peggio che non dichiararla:
+// si zittisce un rilievo vero.
+$sorgenteMedia = file_get_contents( __DIR__ . '/../plugin-wordpress/mdi-seo-geo-booster/includes/class-mdi-media.php' );
+
+verifica(
+	'il plugin mette davvero width e height, visto che lo dichiara',
+	false !== strpos( $sorgenteMedia, 'misure_da_src' )
+		&& false !== strpos( $sorgenteMedia, 'attachment_url_to_postid' )
+);
+
+verifica(
+	'e non si dichiara il CSS inline, che il plugin non ripulisce',
+	false === strpos( file_get_contents( __DIR__ . '/../plugin-wordpress/mdi-seo-geo-booster/includes/class-mdi-api.php' ), "'css_inline'" )
+);
+
+verifica(
+	'infatti CNT-07 non risulta chiuso dal plugin',
+	'plugin' !== ( \SeoGeo\Rimedi::per( 'CNT-07', 1 )['come'] ?? '' ),
+	(string) ( \SeoGeo\Rimedi::per( 'CNT-07', 1 )['come'] ?? 'nessun rimedio' )
 );
 
 verifica(

@@ -25,6 +25,10 @@ class Links {
 				'perche' => 'Una pagina che nessun altra pagina collega riceve pochissimo PageRank interno e viene scansionata di rado: è la prima causa di articoli mai posizionati.',
 				'soluzione' => 'Mappa di link interni keyword-URL applicata automaticamente dal plugin.',
 				'check' => static function ( Site $s ) {
+					if ( Base::loFaIlSito( $s, 'link_interni' ) ) {
+						return array();
+					}
+
 					$out = array();
 					foreach ( $s->pubblicati as $d ) {
 						if ( 0 === $s->inbound( $d['percorso'] ) && 'home' !== $d['slug'] ) {
@@ -40,6 +44,10 @@ class Links {
 				'perche' => 'Senza link in uscita l articolo è un vicolo cieco: non distribuisce autorità e non porta l utente verso le pagine che convertono.',
 				'soluzione' => 'Inserimento automatico di 3-5 link contestuali verso pagine pilastro e correlati.',
 				'check' => static function ( Site $s ) {
+					if ( Base::loFaIlSito( $s, 'link_interni' ) ) {
+						return array();
+					}
+
 					$out = array();
 					foreach ( $s->pubblicati as $d ) {
 						if ( 0 === count( $d['link_interni'] ) && $d['parole'] > 150 ) {
@@ -76,6 +84,10 @@ class Links {
 				'perche' => 'Centinaia di link dofollow verso social e aggregatori trasferiscono fuori il valore del dominio senza ritorno.',
 				'soluzione' => 'Il plugin applica rel="nofollow sponsored" ai domini configurati.',
 				'check' => static function ( Site $s ) {
+					if ( Base::loFaIlSito( $s, 'nofollow' ) ) {
+						return array();
+					}
+
 					$conteggi = array();
 					foreach ( $s->pubblicati as $d ) {
 						foreach ( $d['link_esterni'] as $l ) {

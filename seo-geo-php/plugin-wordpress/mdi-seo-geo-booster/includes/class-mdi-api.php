@@ -1561,7 +1561,11 @@ class MDI_Api {
 	public static function cosa_stampa() {
 		$config = (bool) get_option( self::OPZIONE_CONFIG, false );
 
+		$link = class_exists( 'MDI_Links' );
+		$img  = class_exists( 'MDI_Media' );
+
 		return array(
+			// Nella testata della pagina.
 			'jsonld'    => class_exists( 'MDI_Schema' ),
 			'canonical' => class_exists( 'MDI_Meta' ),
 			'robots'    => class_exists( 'MDI_Meta' ),
@@ -1570,6 +1574,18 @@ class MDI_Api {
 			// sono stati compilati: senza, non c e niente da dichiarare.
 			'local'     => class_exists( 'MDI_Schema' ) && $config,
 			'autore'    => class_exists( 'MDI_Schema' ) && $config,
+
+			// Dentro al contenuto, ma solo mentre la pagina viene servita:
+			// nel testo salvato su WordPress queste cose non ci sono, e
+			// cercarle li da un rilievo che non si chiude mai.
+			'link_interni' => $link,
+			'nofollow'     => $link,
+			'alt'          => $img,
+			'dimensioni'   => $img,
+
+			// File serviti dal plugin.
+			'llms'       => class_exists( 'MDI_AI' ),
+			'robots_txt' => class_exists( 'MDI_AI' ),
 		);
 	}
 

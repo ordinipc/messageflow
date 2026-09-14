@@ -58,10 +58,74 @@ class MDI_Media {
 					$attr .= ' decoding="async"';
 				}
 
+				// width e height espliciti: senza, il browser non sa quanto
+				// spazio riservare e la pagina salta mentre carica (CLS).
+				// Le misure si prendono dall allegato, non si inventano: se
+				// non si trova l immagine in libreria si lascia com e.
+				if ( ! preg_match( '/\bwidth=/i', $attr ) && ! preg_match( '/\bheight=/i', $attr ) ) {
+					$misure = self::misure_da_src( $attr );
+
+					if ( $misure ) {
+						$attr .= ' width="' . (int) $misure[0] . '" height="' . (int) $misure[1] . '"';
+					}
+				}
+
 				return '<img' . $attr . '>';
 			},
 			$content
 		);
+	}
+
+	/**
+	 * Larghezza e altezza di un immagine, prese dalla libreria media.
+	 *
+	 * Non si indovinano: si cerca l allegato dall indirizzo del file e si
+	 * leggono le sue misure. Se l immagine non e in libreria - una
+	 * ridimensionata, una caricata altrove - non si scrive niente, che e
+	 * meglio di due numeri sbagliati.
+	 *
+	 * @param string $attr Attributi del tag img.
+	 * @return array|null array( larghezza, altezza ) oppure null.
+	 */
+	private static function misure_da_src( $attr ) {
+		if ( ! preg_match( '/\bsrc=("|\')([^"\']+)\1/i', $attr, $trovato ) ) {
+			return null;
+		}
+
+		$src = $trovato[2];
+
+		// Le varianti generate da WordPress finiscono con -1024x768: si
+		// tolgono per ritrovare il file originale in libreria.
+		$originale = preg_replace( '/-\d+x\d+(\.[a-z]{3,4})$/i', '$1', $src );
+
+		static $cache = array();
+
+		if ( isset( $cache[ $originale ] ) ) {
+			return $cache[ $originale ];
+		}
+
+		$id = attachment_url_to_postid( $originale );
+
+		if ( ! $id ) {
+			$cache[ $originale ] = null;
+
+			return null;
+		}
+
+		$dati = wp_get_attachment_metadata( $id );
+
+		// Se il tag punta a una variante, valgono le misure di quella.
+		if ( preg_match( '/-(\d+)x(\d+)\.[a-z]{3,4}$/i', $src, $variante ) ) {
+			$cache[ $originale ] = array( (int) $variante[1], (int) $variante[2] );
+
+			return $cache[ $originale ];
+		}
+
+		$cache[ $originale ] = ( ! empty( $dati['width'] ) && ! empty( $dati['height'] ) )
+			? array( (int) $dati['width'], (int) $dati['height'] )
+			: null;
+
+		return $cache[ $originale ];
 	}
 
 	/**

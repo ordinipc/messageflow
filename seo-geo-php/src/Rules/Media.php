@@ -25,6 +25,10 @@ class Media {
 				'perche' => 'L alt è il testo con cui Google capisce l immagine: senza, si perde traffico da Google Immagini e la pagina non è accessibile.',
 				'soluzione' => 'Generazione automatica dell alt da titolo pagina e focus keyword, applicata dal plugin.',
 				'check' => static function ( Site $s ) {
+					if ( Base::loFaIlSito( $s, 'alt' ) ) {
+						return array();
+					}
+
 					$out = array();
 					foreach ( $s->pubblicati as $d ) {
 						$senza = 0;
@@ -46,6 +50,10 @@ class Media {
 				'perche' => 'L alt impostato in libreria viene ereditato ovunque l immagine venga inserita: compilarlo una volta risolve decine di pagine.',
 				'soluzione' => 'Export CSV con alt suggerito per ogni allegato.',
 				'check' => static function ( Site $s ) {
+					if ( Base::loFaIlSito( $s, 'alt' ) ) {
+						return array();
+					}
+
 					$out = array();
 					foreach ( $s->allegati as $a ) {
 						if ( '' === $a['alt'] && preg_match( '/jpe?g|png|webp|gif|svg/', $a['ext'] ) ) {
@@ -106,6 +114,10 @@ class Media {
 				'perche' => 'Senza dimensioni il browser non riserva lo spazio e genera Cumulative Layout Shift, penalizzato dai Core Web Vitals.',
 				'soluzione' => 'Il plugin aggiunge dimensioni, loading e decoding alle immagini del contenuto.',
 				'check' => static function ( Site $s ) {
+					if ( Base::loFaIlSito( $s, 'dimensioni' ) ) {
+						return array();
+					}
+
 					$out = array();
 					foreach ( $s->pubblicati as $d ) {
 						$n = 0;
