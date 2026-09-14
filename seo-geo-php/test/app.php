@@ -2860,6 +2860,58 @@ verifica(
 	false !== strpos( $indiceSorgente, 'b.meta_description, b.faq, b.note,' )
 );
 
+// --- Il pilota automatico deve arrivare in fondo --------------------------
+//
+// «applica_bozza» chiamava applicaBozza(), che su WordPress cerca una bozza
+// creata da inviaBozza(). Da quando le riscritture non passano piu da una
+// bozza di WordPress - creava un doppione in bacheca da applicare a mano -
+// quella bozza non esiste: il pilota falliva su OGNI riscrittura con
+// «nessuna bozza collegata a questo articolo», e chi premeva il pulsante si
+// ritrovava una fila di errori senza capire perche.
+
+echo "\nPilota automatico: pubblicazione\n";
+
+$sorgenteCoda = file_get_contents( __DIR__ . '/../src/Coda.php' );
+
+verifica(
+	'il pilota scrive sull articolo che esiste, come il pulsante',
+	false !== strpos( $sorgenteCoda, '$ponte->sovrascrivi(' )
+		&& false === strpos( $sorgenteCoda, '$ponte->applicaBozza(' )
+);
+
+verifica(
+	'prende la bozza dall archivio del gestionale',
+	false !== strpos( $sorgenteCoda, "WHERE b.audit_id = ? AND b.documento_id = ? AND b.stato = 'ok'" )
+);
+
+verifica(
+	'ripulisce il testo prima di mandarlo, come fa il pulsante',
+	false !== strpos( $sorgenteCoda, 'Html::senzaDatiStrutturati( (string) $riga[' )
+);
+
+verifica(
+	'e segna la bozza come inviata, cosi non si ripresenta',
+	false !== strpos( $sorgenteCoda, "UPDATE bozza SET inviata_il = ?, corpo_html = ? WHERE id = ?" )
+);
+
+// L ordine delle operazioni: i redirect prima di cestinare, se no chi arriva
+// da Google trova pagina non trovata.
+$posRedirect = strpos( $sorgenteCoda, "\$aggiungi( 'redirect'," );
+$posAccorpa  = strpos( $sorgenteCoda, "'accorpa',\n" );
+$posCestina  = strpos( $sorgenteCoda, "\$aggiungi( 'cestina'," );
+
+verifica(
+	'i redirect vengono messi in coda prima del cestino',
+	$posRedirect > 0 && $posCestina > 0 && $posRedirect < $posCestina,
+	$posRedirect . ' < ' . $posCestina
+);
+
+verifica(
+	'e la pubblicazione prima del cestino',
+	false !== strpos( $sorgenteCoda, "\$aggiungi( 'applica_bozza'," )
+		&& strpos( $sorgenteCoda, "\$aggiungi( 'applica_bozza'," ) < $posCestina
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

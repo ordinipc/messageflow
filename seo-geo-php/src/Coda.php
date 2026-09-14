@@ -12,6 +12,7 @@ use SeoGeo\Ai\Immagini;
 use SeoGeo\Ai\Rewriter;
 use SeoGeo\Bridge\WordPress;
 use SeoGeo\Fix\Meta;
+use SeoGeo\Html;
 use SeoGeo\Search\Prestazioni;
 use Throwable;
 
@@ -684,15 +685,51 @@ class Coda {
 				return $esito['inviate'] ? 'immagine generata e caricata sul sito' : 'immagine generata';
 
 			case 'applica_bozza':
-				$documento = $db->one( 'SELECT wp_id FROM documento WHERE id = ?', array( (int) $compito['riferimento'] ) );
+				// Si scrive sull articolo che esiste gia, come fa il pulsante
+				// «Sovrascrivi».
+				//
+				// Prima si chiamava applicaBozza(), che cerca su WordPress una
+				// bozza creata da inviaBozza(). Da quando le riscritture non
+				// passano piu da una bozza di WordPress - creava un doppione
+				// in bacheca da applicare a mano - quella bozza non esiste, e
+				// il pilota falliva su ogni riscrittura con «nessuna bozza
+				// collegata a questo articolo».
+				$riga = $db->one(
+					"SELECT b.*, d.wp_id FROM bozza b
+					 JOIN documento d ON d.id = b.documento_id
+					 WHERE b.audit_id = ? AND b.documento_id = ? AND b.stato = 'ok'
+					 ORDER BY b.id DESC LIMIT 1",
+					array( (int) $compito['audit_id'], (int) $compito['riferimento'] )
+				);
 
-				if ( ! $documento ) {
-					throw new SaltaCompito( 'Articolo non trovato.' );
+				if ( ! $riga ) {
+					throw new SaltaCompito( 'Nessuna bozza pronta per questo articolo.' );
 				}
 
-				$ponte->applicaBozza( (int) $documento['wp_id'] );
+				// Il testo che parte e quello ripulito dai dati strutturati:
+				// il modello a volte li scrive nel corpo, e in pagina si
+				// leggono come un muro di parentesi graffe.
+				$corpo = Html::senzaDatiStrutturati( (string) $riga['corpo_html'] );
 
-				return 'riscrittura pubblicata nell articolo originale';
+				$ponte->sovrascrivi(
+					(int) $riga['wp_id'],
+					array(
+						'titolo'           => (string) $riga['titolo'],
+						'contenuto'        => $corpo,
+						'estratto'         => (string) $riga['in_breve'],
+						'in_breve'         => (string) $riga['in_breve'],
+						'faq'              => json_decode( (string) $riga['faq'], true ) ?: array(),
+						'meta_title'       => (string) $riga['meta_title'],
+						'meta_description' => (string) $riga['meta_description'],
+					)
+				);
+
+				$db->run(
+					'UPDATE bozza SET inviata_il = ?, corpo_html = ? WHERE id = ?',
+					array( date( 'Y-m-d H:i:s' ), $corpo, (int) $riga['id'] )
+				);
+
+				return 'riscrittura scritta sull articolo originale';
 
 			case 'cestina':
 				$ids = array_filter( explode( ',', (string) $compito['riferimento'] ) );
