@@ -273,6 +273,10 @@ class Db {
 		// così un database esistente continua a funzionare senza reinstallazione.
 		$this->aggiungiColonna( 'documento', 'testo', $txt );
 		$this->aggiungiColonna( 'documento', 'ha_thumbnail', 'INT' );
+		// Un occorrenza applicata sul sito non deve continuare a contare:
+		// il conteggio dei pulsanti legge l analisi, che e la fotografia di
+		// quel momento, e restava fermo anche dopo aver premuto.
+		$this->aggiungiColonna( 'occorrenza', 'applicato', 'INT' );
 		$this->aggiungiColonna( 'bozza', 'file', $vc );
 		// Quando il testo nuovo e stato scritto sull articolo pubblicato:
 		// serve a distinguere nell elenco quelle gia online da quelle ancora

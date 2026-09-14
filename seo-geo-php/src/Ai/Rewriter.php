@@ -32,7 +32,18 @@ class Rewriter {
 	 * @return array[]
 	 */
 	public static function candidati( Db $db, $auditId, array $opzioni = array() ) {
-		$categorie = $opzioni['categorie'] ?? array( 'riscrivere', 'accorpare' );
+		$regola = trim( (string) ( $opzioni['regola'] ?? '' ) );
+
+		// Quando si sta correggendo un problema preciso - «manca la sezione
+		// FAQ», «nessun H2» - contano i contenuti che hanno quel problema,
+		// non la categoria del triage: un articolo puo essere buono e
+		// mancargli comunque le domande frequenti.
+		$categorie = $opzioni['categorie'] ?? (
+			'' !== $regola
+				? array( 'riscrivere', 'accorpare', 'mantenere' )
+				: array( 'riscrivere', 'accorpare' )
+		);
+
 		$segnaposto = implode( ',', array_fill( 0, count( $categorie ), '?' ) );
 
 		$sql = "SELECT t.*, d.id AS doc_id, d.wp_id, d.titolo, d.url, d.slug, d.parole, d.testo,
@@ -42,6 +53,18 @@ class Rewriter {
 				WHERE t.audit_id = ? AND t.categoria IN ($segnaposto)";
 
 		$parametri = array_merge( array( $auditId ), array_values( $categorie ) );
+
+		if ( '' !== $regola ) {
+			$sql .= " AND EXISTS (
+						SELECT 1 FROM occorrenza o
+						JOIN rilievo r ON r.id = o.rilievo_id
+						WHERE r.audit_id = t.audit_id AND r.regola = ?
+						  AND ( o.riferimento = d.url
+								OR o.riferimento = d.percorso
+								OR o.riferimento = RTRIM( d.url, '/' ) )
+					)";
+			$parametri[] = $regola;
+		}
 
 		if ( ! empty( $opzioni['solo_documento'] ) ) {
 			$sql        .= ' AND d.id = ?';

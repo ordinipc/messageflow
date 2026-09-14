@@ -2538,6 +2538,89 @@ verifica(
 		&& false !== strpos( file_get_contents( __DIR__ . '/../src/Site.php' ), 'public $stampa' )
 );
 
+// --- Il pulsante deve portare con se il problema ---------------------------
+//
+// Cliccando «Riscrittura assistita» da un problema preciso si finiva nella
+// pagina giusta senza sapere su che cosa lavorare, e la generazione
+// ricominciava da capo su tutto l archivio.
+
+echo "\nDal problema alla correzione\n";
+
+verifica(
+	'il rimedio porta con se la regola',
+	false !== strpos( (string) ( \SeoGeo\Rimedi::per( 'GEO-04', 7 )['dove'] ?? '' ), 'regola=GEO-04' ),
+	(string) ( \SeoGeo\Rimedi::per( 'GEO-04', 7 )['dove'] ?? '' )
+);
+
+verifica(
+	'e la pagina dice su che cosa si sta lavorando',
+	false !== strpos( file_get_contents( __DIR__ . '/../views/bozze.php' ), 'Stai correggendo' )
+		&& false !== strpos( file_get_contents( __DIR__ . '/../views/bozze.php' ), '$da_regola' )
+);
+
+verifica(
+	'la generazione riceve la regola dal modulo',
+	false !== strpos( $indiceSorgente, "\$opzioni['regola'] = \$_POST['regola'];" )
+);
+
+// La selezione per regola, sul database vero.
+$fileReg = sys_get_temp_dir() . '/seo-regola-' . getmypid() . '.sqlite';
+@unlink( $fileReg );
+$dbR = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileReg ) );
+
+$auditR = $dbR->insert(
+	'audit',
+	array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => date( 'Y-m-d H:i:s' ), 'punteggio' => 50 )
+);
+
+$rilievoR = $dbR->insert(
+	'rilievo',
+	array( 'audit_id' => $auditR, 'regola' => 'GEO-04', 'area' => 'generative', 'gravita' => 'high', 'titolo' => 'Nessuna sezione FAQ', 'perche' => 'x', 'soluzione' => 'y', 'automatico' => 1, 'occorrenze' => 1 )
+);
+
+foreach ( array( 'con-problema', 'senza-problema' ) as $n => $slug ) {
+	$docR = $dbR->insert(
+		'documento',
+		array(
+			'audit_id' => $auditR, 'wp_id' => (string) ( 600 + $n ), 'titolo' => $slug, 'slug' => $slug,
+			'percorso' => '/' . $slug . '/', 'url' => 'https://esempio.it/' . $slug . '/',
+			'tipo' => 'post', 'stato' => 'publish', 'parole' => 700,
+		)
+	);
+
+	// Categoria «mantenere»: un articolo buono a cui mancano comunque le FAQ.
+	$dbR->insert( 'triage', array( 'audit_id' => $auditR, 'documento_id' => $docR, 'categoria' => 'mantenere', 'intento' => 'informazionale' ) );
+
+	if ( 'con-problema' === $slug ) {
+		$dbR->insert( 'occorrenza', array( 'rilievo_id' => $rilievoR, 'riferimento' => 'https://esempio.it/' . $slug . '/', 'dettaglio' => 'nessuna FAQ' ) );
+	}
+}
+
+$perRegola = \SeoGeo\Ai\Rewriter::candidati( $dbR, $auditR, array( 'regola' => 'GEO-04', 'rigenera' => 1 ) );
+
+verifica( 'si seleziona solo chi ha quel problema', 1 === count( $perRegola ), (string) count( $perRegola ) );
+verifica( 'ed e quello giusto', 'con-problema' === ( $perRegola[0]['slug'] ?? '' ), (string) ( $perRegola[0]['slug'] ?? '' ) );
+
+// Senza regola valgono le categorie di sempre: «mantenere» resta fuori.
+$senzaRegola = \SeoGeo\Ai\Rewriter::candidati( $dbR, $auditR, array( 'rigenera' => 1 ) );
+
+verifica( 'senza regola gli articoli da mantenere restano fuori', 0 === count( $senzaRegola ), (string) count( $senzaRegola ) );
+
+@unlink( $fileReg );
+
+// --- I conteggi dei pulsanti scendono quando si applica --------------------
+
+verifica(
+	'le occorrenze applicate non si contano piu',
+	false !== strpos( $indiceSorgente, "COALESCE( o.applicato, 0 ) = 0" )
+		&& false !== strpos( $indiceSorgente, "UPDATE occorrenza SET applicato = 1" )
+);
+
+verifica(
+	'e la colonna viene creata da sola sugli archivi gia esistenti',
+	false !== strpos( file_get_contents( __DIR__ . '/../src/Db.php' ), "aggiungiColonna( 'occorrenza', 'applicato', 'INT' )" )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

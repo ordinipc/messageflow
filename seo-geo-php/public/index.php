@@ -1566,7 +1566,7 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 					'cambi_articoli' => Coda::metaDaCambiare( $db, $id, 'post' ),
 					'cambi_pagine'  => Coda::metaDaCambiare( $db, $id, 'page' ),
 					'redirect'  => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
-					'categorie' => (int) $db->one( "SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id WHERE r.audit_id = ? AND r.regola = 'TAX-03'", array( $id ) )['n'],
+					'categorie' => (int) $db->one( "SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id WHERE r.audit_id = ? AND r.regola = 'TAX-03' AND COALESCE( o.applicato, 0 ) = 0", array( $id ) )['n'],
 					'riscritture' => count( Riscrittura::candidati( $db, $id, array() ) ),
 					'gruppi'    => count( Riscrittura::gruppi( $db, $id ) ),
 					'immagini'  => count( Immagini::candidati( $db, $id, array() ) ),
@@ -1779,7 +1779,7 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 					'bozze'     => (int) $db->one( "SELECT COUNT(*) n FROM bozza WHERE audit_id = ? AND stato = 'ok'", array( $id ) )['n'],
 					'redirect'      => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
 					'redirect_slug' => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ? AND slug_cambiato = 1', array( $id ) )['n'],
-					'categorie' => (int) $db->one( "SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id WHERE r.audit_id = ? AND r.regola = 'TAX-03'", array( $id ) )['n'],
+					'categorie' => (int) $db->one( "SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id WHERE r.audit_id = ? AND r.regola = 'TAX-03' AND COALESCE( o.applicato, 0 ) = 0", array( $id ) )['n'],
 				),
 			)
 		);
@@ -1864,7 +1864,20 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				}
 
 				$esito     = $ponte->inviaCategorie( $assegnazioni );
-				$messaggio = ( (int) ( $esito['assegnate'] ?? 0 ) ) . ' articoli ricategorizzati.';
+				$assegnate = (int) ( $esito['assegnate'] ?? 0 );
+
+				// Segnare quello che e stato applicato: senza, il pulsante
+				// continuava a proporre gli stessi 93 articoli anche dopo
+				// averli ricategorizzati, perche il conto legge l analisi.
+				if ( $assegnate ) {
+					$db->run(
+						"UPDATE occorrenza SET applicato = 1
+						 WHERE rilievo_id IN ( SELECT id FROM rilievo WHERE audit_id = ? AND regola = 'TAX-03' )",
+						array( $id )
+					);
+				}
+
+				$messaggio = $assegnate . ' articoli ricategorizzati.';
 				break;
 
 			case 'redirect_cambiati':
@@ -2215,6 +2228,13 @@ if ( 'genera' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	$budget     = $limite_php > 0 ? max( 20, $limite_php - 15 ) : 90;
 	$opzioni    = array( 'limite' => $quante, 'secondi_max' => $budget );
 
+	// Quando si e partiti da un problema preciso si lavora solo sui
+	// contenuti che ce l hanno: premere «genera» dopo essere arrivati da
+	// «Nessuna sezione FAQ» deve fare le FAQ, non ricominciare da capo.
+	if ( preg_match( '/^[A-Z]{3}-\\d{2}$/', (string) ( $_POST['regola'] ?? '' ) ) ) {
+		$opzioni['regola'] = $_POST['regola'];
+	}
+
 	try {
 		if ( 'accorpa' === $tipo ) {
 			$esito = Rewriter::consolida( $db, $gemini, $id, $cfg, $opzioni );
@@ -2562,7 +2582,7 @@ switch ( $pagina ) {
 					'cambi_articoli' => Coda::metaDaCambiare( $db, $id, 'post' ),
 					'cambi_pagine'  => Coda::metaDaCambiare( $db, $id, 'page' ),
 					'redirect'  => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
-					'categorie' => (int) $db->one( "SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id WHERE r.audit_id = ? AND r.regola = 'TAX-03'", array( $id ) )['n'],
+					'categorie' => (int) $db->one( "SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id WHERE r.audit_id = ? AND r.regola = 'TAX-03' AND COALESCE( o.applicato, 0 ) = 0", array( $id ) )['n'],
 					'riscritture' => count( Riscrittura::candidati( $db, $id, array() ) ),
 					'gruppi'    => count( Riscrittura::gruppi( $db, $id ) ),
 					'immagini'  => count( Immagini::candidati( $db, $id, array() ) ),
@@ -2794,7 +2814,7 @@ switch ( $pagina ) {
 					'bozze'     => (int) $db->one( "SELECT COUNT(*) n FROM bozza WHERE audit_id = ? AND stato = 'ok'", array( $id ) )['n'],
 					'redirect'      => (int) $db->one( "SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''", array( $id ) )['n'],
 					'redirect_slug' => (int) $db->one( 'SELECT COUNT(*) n FROM meta_piano WHERE audit_id = ? AND slug_cambiato = 1', array( $id ) )['n'],
-					'categorie' => (int) $db->one( "SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id WHERE r.audit_id = ? AND r.regola = 'TAX-03'", array( $id ) )['n'],
+					'categorie' => (int) $db->one( "SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id WHERE r.audit_id = ? AND r.regola = 'TAX-03' AND COALESCE( o.applicato, 0 ) = 0", array( $id ) )['n'],
 				),
 			)
 		);
@@ -2808,6 +2828,13 @@ switch ( $pagina ) {
 			http_response_code( 404 );
 			exit( 'Audit non trovato.' );
 		}
+
+		// Da quale problema si e arrivati. Il pulsante nella tabella dei
+		// problemi lo porta con se: senza, si finiva nella pagina giusta
+		// senza sapere su che cosa si stava lavorando.
+		$regola_scelta = preg_match( '/^[A-Z]{3}-\d{2}$/', (string) ( $_GET['regola'] ?? '' ) )
+			? (string) $_GET['regola']
+			: '';
 
 		$gemini    = new Gemini( $cfg['ai'] );
 		$candidati = Rewriter::candidati( $db, $id, array() );
@@ -2834,6 +2861,16 @@ switch ( $pagina ) {
 				'gruppi'    => count( Rewriter::gruppi( $db, $id ) ),
 				// I buchi [DA VERIFICARE] rimasti nelle bozze, raggruppati:
 				// su duecento bozze le etichette distinte sono poche decine.
+				// Da quale problema si e arrivati: il pulsante nella tabella
+				// dei problemi porta la regola con se, cosi la pagina sa su
+				// che cosa si sta lavorando invece di mostrare tutto.
+				'regola'    => $regola_scelta,
+				'rilievo'   => $regola_scelta
+					? $db->one( 'SELECT * FROM rilievo WHERE audit_id = ? AND regola = ?', array( $id, $regola_scelta ) )
+					: null,
+				'da_regola' => $regola_scelta
+					? Rewriter::candidati( $db, $id, array( 'regola' => $regola_scelta, 'rigenera' => 1 ) )
+					: array(),
 				'segnaposto_aperti' => Verifiche::segnaposto( $db, $id ),
 				// Quante bozze restano bloccate: e il numero che si vede in
 				// «Vecchio e nuovo» come «con dati da verificare», e deve

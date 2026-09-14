@@ -3,6 +3,9 @@
  * Riscrittura assistita: stima, generazione a lotti ed elenco delle bozze.
  *
  * @package SeoGeoAudit
+ * @var string $regola    Problema da cui si e arrivati, se c e.
+ * @var array  $rilievo   Riga del rilievo corrispondente.
+ * @var array  $da_regola Contenuti che hanno quel problema.
  * @var array $audit  Riga audit.
  * @var array $cfg    Configurazione.
  * @var bool  $pronto Chiave API presente.
@@ -68,12 +71,49 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 	</div>
 </div>
 
-<?php if ( $pronto && $stima['articoli'] > 0 ) : ?>
-<form class="scheda a-lotti" method="post" action="?p=genera" data-tipo="articoli" data-restanti="<?php echo (int) $stima['articoli']; ?>" data-nome="bozze">
+<?php if ( ! empty( $regola ) ) : ?>
+<section class="scheda">
+	<h2>Stai correggendo <?php echo e( $regola ); ?><?php echo ! empty( $rilievo['titolo'] ) ? ': ' . e( $rilievo['titolo'] ) : ''; ?></h2>
+	<?php if ( ! empty( $rilievo['perche'] ) ) : ?>
+		<p class="guida"><?php echo e( $rilievo['perche'] ); ?></p>
+	<?php endif; ?>
+
+	<?php if ( $da_regola ) : ?>
+		<p class="guida">
+			Riguarda <strong><?php echo num( count( $da_regola ) ); ?> contenuti</strong>. La generazione qui sotto
+			lavora <strong>solo su questi</strong>: non ricomincia da capo su tutto l'archivio.
+		</p>
+		<details>
+			<summary>Quali sono</summary>
+			<ul class="guida">
+				<?php foreach ( array_slice( $da_regola, 0, 40 ) as $riga ) : ?>
+					<li><a href="<?php echo e( $riga['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( $riga['titolo'] ); ?></a> · <?php echo num( $riga['parole'] ); ?> parole</li>
+				<?php endforeach; ?>
+				<?php if ( count( $da_regola ) > 40 ) : ?>
+					<li>e altri <?php echo num( count( $da_regola ) - 40 ); ?></li>
+				<?php endif; ?>
+			</ul>
+		</details>
+	<?php else : ?>
+		<p class="avviso ok-bg">
+			Nessun contenuto ha più questo problema: o è già stato corretto, o riguarda pagine
+			che la riscrittura non tocca. Rileggi il sito dalla pagina dell'audit per aggiornare il conto.
+		</p>
+	<?php endif; ?>
+
+	<p class="nota"><a href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>">Lavora invece su tutto l'archivio</a></p>
+</section>
+<?php endif; ?>
+
+<?php if ( $pronto && $stima['articoli'] > 0 && ( empty( $regola ) || $da_regola ) ) : ?>
+<form class="scheda a-lotti" method="post" action="?p=genera" data-tipo="articoli" data-restanti="<?php echo (int) ( ! empty( $regola ) ? count( $da_regola ) : $stima['articoli'] ); ?>" data-nome="bozze">
 	<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
 	<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
+	<?php if ( ! empty( $regola ) ) : ?>
+		<input type="hidden" name="regola" value="<?php echo e( $regola ); ?>">
+	<?php endif; ?>
 
-	<h2>Genera un lotto</h2>
+	<h2>Genera un lotto<?php echo ! empty( $regola ) ? ' per ' . e( $regola ) : ''; ?></h2>
 	<p class="guida">Si procede a lotti per non superare il tempo massimo di esecuzione del server. Ogni articolo richiede 10-30 secondi.</p>
 
 	<label for="quante">Quanti articoli in questo lotto</label>

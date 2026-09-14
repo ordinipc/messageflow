@@ -38,6 +38,13 @@ class Rimedi {
 		$bozze     = '?p=bozze&id=' . $id;
 		$impostazioni = '?p=impostazioni';
 
+		// Il pulsante deve portare con se il problema da cui si e partiti:
+		// arrivare nella pagina della riscrittura senza sapere su che cosa
+		// si sta lavorando lascia esattamente dove si era.
+		$perRegola = static function ( $regola ) use ( $bozze ) {
+			return $bozze . '&regola=' . rawurlencode( $regola );
+		};
+
 		// Quello che il plugin fa da solo una volta installato: stampa i dati
 		// strutturati, il canonical, le direttive robots, l Open Graph e i
 		// file per i crawler AI su ogni pagina del sito.
@@ -85,22 +92,22 @@ class Rimedi {
 			'ONP-07' => array( $collega . '#redirect', 'Redirect 301', 'Gli slug accorciati hanno già il loro redirect 301 pronto da attivare; poi lo slug va cambiato in WordPress.' ),
 			'IMG-03' => array( $collega . '#immagini-pesanti', 'Immagini pesanti', 'Le immagini oltre i 200 KB vengono ricompresse in WebP sul sito.' ),
 			'IMG-04' => array( $collega . '#immagini-pesanti', 'Immagini pesanti', 'La stessa ricompressione converte i JPG e i PNG in WebP.' ),
-			'IMG-05' => array( $bozze, 'Riscrittura assistita', 'Le immagini in evidenza mancanti vengono generate e caricate.' ),
+			'IMG-05' => array( $perRegola( 'IMG-05' ), 'Riscrittura assistita', 'Le immagini in evidenza mancanti vengono generate e caricate.' ),
 			'TAX-03' => array( $collega . '#categorie', 'Categorie', 'Gli articoli fuori tema vengono riassegnati alla categoria giusta.' ),
-			'CNT-09' => array( $bozze, 'Riscrittura assistita', 'La riscrittura rifà i titoletti che ripetono il titolo.' ),
-			'GEO-03' => array( $bozze, 'Riscrittura assistita', 'La riscrittura apre l articolo con il blocco di sintesi.' ),
-			'GEO-04' => array( $bozze, 'Riscrittura assistita', 'La riscrittura aggiunge le domande frequenti.' ),
-			'GEO-10' => array( $bozze, 'Riscrittura assistita', 'La riscrittura aggiunge elenchi e tabelle dove servono.' ),
-			'ONP-10' => array( $bozze, 'Riscrittura assistita', 'La riscrittura dà una struttura di H2 al testo.' ),
-			'CNT-03' => array( $bozze, 'Riscrittura assistita', 'I testi sovrapposti si accorpano in uno solo con «Fondi i gruppi».' ),
-			'ONP-06' => array( $bozze, 'Riscrittura assistita', 'La cannibalizzazione si risolve accorpando con «Fondi i gruppi».' ),
-			'LOC-05' => array( $bozze, 'Riscrittura assistita', 'Le landing locali sovrapposte si accorpano con «Fondi i gruppi».' ),
-			'CNT-07' => array( $bozze, 'Riscrittura assistita', 'La riscrittura rifà il testo senza gli stili incollati dentro.' ),
-			'CNT-01' => array( $bozze, 'Riscrittura assistita', 'Gli articoli troppo corti si riscrivono alla lunghezza giusta.' ),
-			'CNT-02' => array( $bozze, 'Riscrittura assistita', 'Gli articoli sotto soglia si riscrivono più completi.' ),
+			'CNT-09' => array( $perRegola( 'CNT-09' ), 'Riscrittura assistita', 'La riscrittura rifà i titoletti che ripetono il titolo.' ),
+			'GEO-03' => array( $perRegola( 'GEO-03' ), 'Riscrittura assistita', 'La riscrittura apre l articolo con il blocco di sintesi.' ),
+			'GEO-04' => array( $perRegola( 'GEO-04' ), 'Riscrittura assistita', 'La riscrittura aggiunge le domande frequenti.' ),
+			'GEO-10' => array( $perRegola( 'GEO-10' ), 'Riscrittura assistita', 'La riscrittura aggiunge elenchi e tabelle dove servono.' ),
+			'ONP-10' => array( $perRegola( 'ONP-10' ), 'Riscrittura assistita', 'La riscrittura dà una struttura di H2 al testo.' ),
+			'CNT-03' => array( $perRegola( 'CNT-03' ), 'Riscrittura assistita', 'I testi sovrapposti si accorpano in uno solo con «Fondi i gruppi».' ),
+			'ONP-06' => array( $perRegola( 'ONP-06' ), 'Riscrittura assistita', 'La cannibalizzazione si risolve accorpando con «Fondi i gruppi».' ),
+			'LOC-05' => array( $perRegola( 'LOC-05' ), 'Riscrittura assistita', 'Le landing locali sovrapposte si accorpano con «Fondi i gruppi».' ),
+			'CNT-07' => array( $perRegola( 'CNT-07' ), 'Riscrittura assistita', 'La riscrittura rifà il testo senza gli stili incollati dentro.' ),
+			'CNT-01' => array( $perRegola( 'CNT-01' ), 'Riscrittura assistita', 'Gli articoli troppo corti si riscrivono alla lunghezza giusta.' ),
+			'CNT-02' => array( $perRegola( 'CNT-02' ), 'Riscrittura assistita', 'Gli articoli sotto soglia si riscrivono più completi.' ),
 			'LOC-02' => array( $impostazioni, 'Impostazioni', 'Compila indirizzo e partita IVA: vengono inviati al sito e finiscono nello schema.' ),
 			'LOC-01' => array( $impostazioni, 'Impostazioni', 'Compila il telefono: finisce nello schema LocalBusiness, e lo shortcode [mdi_nap] lo stampa nel footer.' ),
-			'LOC-07' => array( $bozze, 'Riscrittura assistita', 'La riscrittura aggiunge i riferimenti geografici alle landing locali.' ),
+			'LOC-07' => array( $perRegola( 'LOC-07' ), 'Riscrittura assistita', 'La riscrittura aggiunge i riferimenti geografici alle landing locali.' ),
 			'GEO-06' => array( $impostazioni, 'Impostazioni', 'Compila i dati dell autore: il plugin li usa per lo schema Person.' ),
 			'EAT-01' => array( $impostazioni, 'Impostazioni', 'Compila i dati dell autore: il plugin stampa l author box e lo schema.' ),
 		);
