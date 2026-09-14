@@ -99,13 +99,49 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 		<?php endif; ?>
 	</p>
 	<?php if ( $bloccate ) : ?>
+		<?php
+		// Il conto da solo non dice niente: "17 non sovrascrivibili" fa
+		// chiedere perche. Il motivo c e gia sotto a ogni contenuto, ma
+		// scorrere 227 righe per contarli a mano non e un modo di saperlo.
+		$motivi = array();
+
+		foreach ( $bloccate as $riga ) {
+			$costruttore = (string) ( $costruttori[ (string) $riga['wp_id'] ] ?? '' );
+			$dentro      = $strutture[ (string) $riga['wp_id'] ] ?? array();
+
+			if ( 'Elementor' !== $costruttore ) {
+				$chiave = 'costruiti con ' . ( $costruttore ?: 'un altro costruttore' );
+			} elseif ( ! empty( $dentro['errore'] ) ) {
+				$chiave = 'con la struttura di Elementor illeggibile';
+			} elseif ( empty( $dentro['blocchi'] ) ) {
+				$chiave = 'senza nessun blocco di testo in Elementor';
+			} else {
+				$chiave = 'con più di un blocco di testo in Elementor';
+			}
+
+			$motivi[ $chiave ] = ( $motivi[ $chiave ] ?? 0 ) + 1;
+		}
+
+		arsort( $motivi );
+		?>
 		<p class="nota">
-			<strong><?php echo num( count( $bloccate ) ); ?> vanno fatti a mano.</strong>
+			<strong><?php echo num( count( $bloccate ) ); ?> vanno fatti a mano:</strong>
+			<?php
+			$pezzi = array();
+
+			foreach ( $motivi as $chiave => $quanti ) {
+				$pezzi[] = num( $quanti ) . ' ' . $chiave;
+			}
+
+			echo e( implode( ', ', $pezzi ) );
+			?>.
+		</p>
+		<p class="nota">
 			Sugli articoli costruiti con Elementor il testo si scrive dentro al suo blocco di testo,
 			e questo il programma lo fa da solo — ma solo quando quel blocco è uno solo.
 			Dove ce ne sono due o più non si può sapere quale sia l'articolo e quale una didascalia
 			o una promozione, e riscrivere il blocco sbagliato cancellerebbe qualcosa che serviva.
-			Il motivo preciso è scritto sotto a ogni contenuto.
+			Per quelli: apri la bozza, copia il testo e incollalo nel blocco giusto dentro Elementor.
 		</p>
 	<?php endif; ?>
 	<?php if ( $pronto && $da_inviare ) : ?>

@@ -1685,6 +1685,24 @@ $conH1 = $sitoConTitoletti(
 
 $conH1Trovati = call_user_func( $regole['CNT-09']['check'], $conH1 );
 
+// "17 non sovrascrivibili" da solo fa chiedere perche: il motivo c e gia
+// sotto a ogni contenuto, ma scorrere duecento righe per contarli a mano
+// non e un modo di saperlo.
+$vistaConfronto = (string) file_get_contents( __DIR__ . '/../views/confronto-bozze.php' );
+
+verifica(
+	'il riepilogo dice perche non si possono sovrascrivere',
+	false !== strpos( $vistaConfronto, 'vanno fatti a mano:' )
+		&& false !== strpos( $vistaConfronto, "con più di un blocco di testo in Elementor" )
+		&& false !== strpos( $vistaConfronto, 'senza nessun blocco di testo in Elementor' )
+);
+
+verifica(
+	'e distingue anche gli altri costruttori e le strutture illeggibili',
+	false !== strpos( $vistaConfronto, "'costruiti con '" )
+		&& false !== strpos( $vistaConfronto, 'con la struttura di Elementor illeggibile' )
+);
+
 verifica(
 	'l H1 non viene contato',
 	false !== strpos( (string) ( $conH1Trovati[0]['dettaglio'] ?? '' ), '2 titoletti' ),
