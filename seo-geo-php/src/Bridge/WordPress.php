@@ -266,6 +266,16 @@ class WordPress {
 	}
 
 	/**
+	 * Che cosa c e davvero dentro a un contenuto, adesso, sul sito.
+	 *
+	 * @param int $wpId Contenuto su WordPress.
+	 * @return array
+	 */
+	public function diagnosiContenuto( $wpId ) {
+		return $this->chiama( 'GET', '/diagnosi-contenuto?id=' . (int) $wpId );
+	}
+
+	/**
 	 * Quali fra questi contenuti hanno l immagine in evidenza, adesso, sul
 	 * sito.
 	 *

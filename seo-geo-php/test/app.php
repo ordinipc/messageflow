@@ -2333,6 +2333,49 @@ verifica(
 	false !== strpos( $vistaCollega, "<strong>il testo dell'articolo</strong>" )
 );
 
+// --- Confrontare due articoli senza guardare i pixel ----------------------
+//
+// Mezza giornata passata a confrontare screenshot per capire se una pagina
+// fosse cambiata o no. Dalle immagini non si capisce: la differenza fra due
+// articoli si legge dal database del sito.
+
+echo "\nConfronto fra due contenuti\n";
+
+verifica(
+	'il gestionale sa chiedere che cosa c e dentro a un contenuto',
+	false !== strpos( $indiceSorgente, "'confronta-contenuti' === \$pagina" )
+		&& false !== strpos( file_get_contents( __DIR__ . '/../src/Bridge/WordPress.php' ), 'diagnosiContenuto' )
+);
+
+verifica(
+	'si puo indicare l articolo con l indirizzo o con il numero',
+	false !== strpos( $indiceSorgente, "ctype_digit( \$cercato )" )
+		&& false !== strpos( $indiceSorgente, 'parse_url( $cercato, PHP_URL_PATH )' )
+);
+
+$vistaConfronta = file_get_contents( __DIR__ . '/../views/confronta-contenuti.php' );
+
+verifica(
+	'e la pagina mette in evidenza solo quello che e diverso',
+	false !== strpos( $vistaConfronta, '$diverse' )
+		&& false !== strpos( $vistaConfronta, 'diverso</span>' )
+);
+
+verifica(
+	'titolo e data non vengono contati come differenze: cambiano sempre',
+	false !== strpos( $vistaConfronta, "\$ovvie = array( 'id', 'titolo', 'modificato', 'revisioni' );" )
+);
+
+verifica(
+	'e se non c e nessuna differenza lo dice, invece di lasciare una tabella muta',
+	false !== strpos( $vistaConfronta, 'sono impostati allo stesso modo' )
+);
+
+verifica(
+	'la pagina e raggiungibile dall audit',
+	false !== strpos( file_get_contents( __DIR__ . '/../views/audit.php' ), 'Confronta due articoli' )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

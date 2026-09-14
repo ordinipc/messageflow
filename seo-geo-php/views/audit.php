@@ -238,6 +238,12 @@ $scaricabili = array(
 </section>
 
 <section class="scheda">
+	<h2>Due articoli si vedono diversi e non si capisce perché</h2>
+	<p class="guida">Legge dal sito che cosa c'è dentro a due articoli e dice che cosa è diverso davvero: chi ha scritto il testo, com'è fatta la struttura di Elementor, e come sono impostati nel tema — che è quello che decide l'aspetto dell'intestazione.</p>
+	<p><a class="bottone chiaro" href="?p=confronta-contenuti&amp;id=<?php echo (int) $audit['id']; ?>">Confronta due articoli</a></p>
+</section>
+
+<section class="scheda">
 	<h2>Riscrittura assistita</h2>
 	<p class="guida">Genera le bozze dei contenuti da riscrivere partendo dalle schede dell'audit, con Google Gemini. Le bozze restano in attesa di revisione: nulla viene pubblicato.</p>
 	<p><a class="bottone" href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>">Apri la riscrittura</a></p>

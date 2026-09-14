@@ -168,6 +168,11 @@ class MDI_Api {
 			'callback' => array( __CLASS__, 'strutture_elementor' ),
 		) );
 
+		register_rest_route( self::NAMESPACE_API, '/diagnosi-contenuto', $comune + array(
+			'methods'  => 'GET',
+			'callback' => array( __CLASS__, 'diagnosi_contenuto' ),
+		) );
+
 		register_rest_route( self::NAMESPACE_API, '/miniature', $comune + array(
 			'methods'  => 'POST',
 			'callback' => array( __CLASS__, 'miniature' ),
@@ -1530,6 +1535,100 @@ class MDI_Api {
 		}
 
 		return self::altroCostruttore( $id );
+	}
+
+	/**
+	 * Che cosa c e davvero dentro a un contenuto, adesso.
+	 *
+	 * Nata dopo mezza giornata passata a confrontare screenshot per capire
+	 * se una pagina fosse cambiata o no. Dalle immagini non si capisce: qui
+	 * si legge dal database.
+	 *
+	 * Non restituisce il testo, solo misure e segni di riconoscimento: serve
+	 * a capire che cosa e successo, non a leggere i contenuti da fuori.
+	 *
+	 * @param WP_REST_Request $richiesta Richiesta con 'id'.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function diagnosi_contenuto( $richiesta ) {
+		$id   = (int) $richiesta->get_param( 'id' );
+		$post = get_post( $id );
+
+		if ( ! $post ) {
+			return new WP_Error( 'mdi_post_assente', 'Contenuto non trovato: ' . $id, array( 'status' => 404 ) );
+		}
+
+		$testo     = (string) $post->post_content;
+		$elementor = get_post_meta( $id, '_elementor_data', true );
+
+		if ( is_array( $elementor ) ) {
+			$elementor = reset( $elementor );
+		}
+
+		$struttura = self::struttura_elementor( $id );
+
+		// Le impostazioni per-articolo del tema: sono quelle che decidono
+		// intestazione, allineamento e altezza, e cambiano l aspetto della
+		// pagina senza che il testo c entri niente.
+		$tema = array();
+
+		foreach ( (array) get_post_meta( $id ) as $chiave => $valori ) {
+			if ( ! preg_match( '/^_?(blocksy|ct)_/i', (string) $chiave ) ) {
+				continue;
+			}
+
+			$valore = maybe_unserialize( $valori[0] ?? '' );
+
+			$tema[ (string) $chiave ] = is_scalar( $valore )
+				? (string) $valore
+				: wp_json_encode( $valore );
+		}
+
+		$prima = get_post_meta( $id, self::META_TESTO_PRIMA, true );
+		$prima = $prima ? json_decode( (string) $prima, true ) : null;
+
+		return rest_ensure_response(
+			array(
+				'ok'                => true,
+				'id'                => $id,
+				'tipo'              => $post->post_type,
+				'titolo'            => $post->post_title,
+				'modificato'        => $post->post_modified,
+				// I segni che il testo lo abbiamo scritto noi.
+				'scritto_da_noi'    => array(
+					'in_breve'          => false !== strpos( $testo, 'mdi-in-breve' ),
+					'domande_frequenti' => false !== strpos( $testo, '<h2>Domande frequenti</h2>' ),
+					'segnaposto'        => (int) preg_match_all( '/\[DA VERIFICARE:/', $testo ),
+					'dati_strutturati'  => false !== strpos( $testo, '"@context"' ),
+				),
+				'testo'             => array(
+					'caratteri'  => strlen( $testo ),
+					'paragrafi'  => (int) substr_count( $testo, '<p' ),
+					'titoletti'  => (int) substr_count( $testo, '<h2' ),
+				),
+				'elementor'         => array(
+					'costruttore'   => self::costruttore( $id ),
+					'modo'          => (string) get_post_meta( $id, '_elementor_edit_mode', true ),
+					'caratteri'     => strlen( (string) $elementor ),
+					'blocchi_testo' => count( $struttura['testi'] ),
+					'post_content'  => (bool) $struttura['post_content'],
+					'errore'        => (string) $struttura['errore'],
+					'css_in_cache'  => '' !== (string) get_post_meta( $id, '_elementor_css', true ),
+				),
+				// Le nostre copie di sicurezza: se ci sono, il ripristino e
+				// possibile; se non ci sono, non lo e e va detto.
+				'copie_di_sicurezza' => array(
+					'testo'     => (bool) $prima,
+					'quando'    => (string) ( $prima['quando'] ?? '' ),
+					'elementor' => '' !== (string) get_post_meta( $id, self::META_ELEMENTOR_PRIMA, true ),
+					'meta'      => '' !== (string) get_post_meta( $id, self::META_BACKUP, true ),
+				),
+				'revisioni'         => count( (array) wp_get_post_revisions( $id ) ),
+				// Le impostazioni del tema per questo articolo: qui si vede
+				// se due articoli hanno l intestazione impostata diversa.
+				'impostazioni_tema' => $tema,
+			)
+		);
 	}
 
 	/**

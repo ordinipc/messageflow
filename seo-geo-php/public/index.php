@@ -877,6 +877,75 @@ if ( 'api-sovrascrivi' === $pagina ) {
 	exit;
 }
 
+if ( 'confronta-contenuti' === $pagina ) {
+	// Mezza giornata passata a confrontare screenshot per capire se una
+	// pagina fosse cambiata. Dalle immagini non si capisce: qui si legge
+	// dal database del sito e si dice che cosa e diverso fra due articoli.
+	$id    = (int) ( $_GET['id'] ?? 0 );
+	$audit = $db->one( 'SELECT * FROM audit WHERE id = ?', array( $id ) );
+
+	if ( ! $audit ) {
+		http_response_code( 404 );
+		exit( 'Audit non trovato.' );
+	}
+
+	$ponte = new WordPress( $cfg['wordpress'] );
+
+	$cercati = array(
+		trim( (string) ( $_GET['a'] ?? '' ) ),
+		trim( (string) ( $_GET['b'] ?? '' ) ),
+	);
+
+	$diagnosi = array();
+	$errore   = '';
+
+	foreach ( $cercati as $posizione => $cercato ) {
+		if ( '' === $cercato ) {
+			continue;
+		}
+
+		// Si accetta l indirizzo o il numero: chi guarda una pagina ha
+		// l indirizzo in mano, chi guarda la bacheca ha il numero.
+		$wp_id = ctype_digit( $cercato ) ? (int) $cercato : 0;
+
+		if ( ! $wp_id ) {
+			$percorso = (string) parse_url( $cercato, PHP_URL_PATH );
+
+			$riga = $db->one(
+				'SELECT wp_id FROM documento WHERE audit_id = ? AND ( url = ? OR percorso = ? OR percorso = ? ) LIMIT 1',
+				array( $id, $cercato, $percorso, rtrim( (string) $percorso, '/' ) . '/' )
+			);
+
+			$wp_id = (int) ( $riga['wp_id'] ?? 0 );
+		}
+
+		if ( ! $wp_id ) {
+			$errore = 'Non trovo questo contenuto nell analisi: ' . $cercato . '. Prova con il numero dell articolo (lo trovi nell indirizzo quando lo modifichi: post=1234).';
+			continue;
+		}
+
+		try {
+			$diagnosi[ $posizione ] = $ponte->diagnosiContenuto( $wp_id );
+		} catch ( Throwable $e ) {
+			$errore = $e->getMessage();
+		}
+	}
+
+	vista(
+		'confronta-contenuti',
+		array(
+			'titolo'   => 'Che cosa c e dentro',
+			'audit'    => $audit,
+			'pronto'   => $ponte->pronto(),
+			'cercati'  => $cercati,
+			'diagnosi' => $diagnosi,
+			'errore'   => $errore,
+		)
+	);
+
+	exit;
+}
+
 if ( 'api-annulla' === $pagina ) {
 	header( 'Content-Type: application/json; charset=utf-8' );
 

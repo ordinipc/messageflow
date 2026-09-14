@@ -1042,6 +1042,30 @@ stub_crea_post( 989, 'Articolo con la struttura rotta', '<p>Residuo.</p>' );
 update_post_meta( 989, '_elementor_data', 'questo non e JSON {{{' );
 update_post_meta( 989, '_elementor_edit_mode', 'builder' );
 
+// La diagnosi: che cosa c e davvero dentro a un contenuto. Nata dopo mezza
+// giornata passata a confrontare screenshot senza capire se una pagina fosse
+// cambiata o no.
+stub_crea_post( 987, 'Articolo da diagnosticare', '<div class="mdi-in-breve"><p><strong>In breve:</strong> x</p></div><p>Testo [DA VERIFICARE: prezzo].</p><h2>Domande frequenti</h2>' );
+update_post_meta( 987, 'blocksy_post_meta', array( 'hero_alignment' => 'center' ) );
+
+$diagnosi = MDI_Api::diagnosi_contenuto( new WP_REST_Request( array( 'id' => 987 ) ) );
+$diagnosi = is_wp_error( $diagnosi ) ? array() : (array) $diagnosi;
+
+verifica( 'la diagnosi riconosce il testo scritto da noi', true === ( $diagnosi['scritto_da_noi']['in_breve'] ?? null ) );
+verifica( 'e le domande frequenti', true === ( $diagnosi['scritto_da_noi']['domande_frequenti'] ?? null ) );
+verifica( 'e conta i segnaposto rimasti', 1 === ( $diagnosi['scritto_da_noi']['segnaposto'] ?? 0 ), (string) ( $diagnosi['scritto_da_noi']['segnaposto'] ?? 'assente' ) );
+verifica(
+	'e riporta le impostazioni del tema, che decidono l aspetto',
+	isset( $diagnosi['impostazioni_tema']['blocksy_post_meta'] )
+		&& false !== strpos( (string) $diagnosi['impostazioni_tema']['blocksy_post_meta'], 'hero_alignment' ),
+	wp_json_encode( $diagnosi['impostazioni_tema'] ?? array() )
+);
+verifica( 'e dice se la copia di sicurezza c e', false === ( $diagnosi['copie_di_sicurezza']['testo'] ?? null ) );
+
+// Non restituisce il testo: serve a capire che cosa e successo, non a
+// leggere i contenuti da fuori.
+verifica( 'ma non manda fuori il testo dell articolo', ! isset( $diagnosi['testo']['contenuto'] ) && is_int( $diagnosi['testo']['caratteri'] ?? null ) );
+
 // Un modello di Elementor non e un contenuto: e il disegno con cui il sito
 // stampa TUTTI gli articoli. Scriverci dentro il testo di un articolo li
 // smonterebbe tutti in una volta.

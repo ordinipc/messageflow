@@ -130,8 +130,37 @@ function get_post_field( $campo, $id ) {
 	return $post ? ( $post->$campo ?? '' ) : '';
 }
 
-function get_post_meta( $id, $chiave, $singolo = false ) {
-	return $GLOBALS['wp']['meta'][ (int) $id ][ $chiave ] ?? '';
+function get_post_meta( $id, $chiave = '', $singolo = false ) {
+	$tutte = $GLOBALS['wp']['meta'][ (int) $id ] ?? array();
+
+	// Come WordPress: senza chiave restituisce tutte le meta, ognuna dentro
+	// a un array. Il gestionale lo usa per leggere le impostazioni del tema,
+	// di cui non conosce i nomi in anticipo.
+	if ( '' === $chiave ) {
+		$fuori = array();
+
+		foreach ( $tutte as $nome => $valore ) {
+			$fuori[ $nome ] = array( is_scalar( $valore ) ? $valore : serialize( $valore ) );
+		}
+
+		return $fuori;
+	}
+
+	return $tutte[ $chiave ] ?? '';
+}
+
+function maybe_unserialize( $valore ) {
+	if ( ! is_string( $valore ) ) {
+		return $valore;
+	}
+
+	$dati = @unserialize( $valore );
+
+	return false === $dati && 'b:0;' !== $valore ? $valore : $dati;
+}
+
+function wp_get_post_revisions( $id ) {
+	return $GLOBALS['wp']['revisioni'][ (int) $id ] ?? array();
 }
 
 function update_post_meta( $id, $chiave, $valore ) {
