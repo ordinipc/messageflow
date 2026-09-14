@@ -266,6 +266,15 @@ class WordPress {
 	}
 
 	/**
+	 * Quali redirect sono davvero attivi sul sito, adesso.
+	 *
+	 * @return array
+	 */
+	public function redirectAttivi() {
+		return $this->chiama( 'GET', '/redirect-attivi' );
+	}
+
+	/**
 	 * Lo stato del CSS generato del sito.
 	 *
 	 * @return array

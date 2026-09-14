@@ -45,7 +45,49 @@ class Redirezioni {
 	 * @param string $sito Indirizzo del sito.
 	 * @return array 'cambiati', 'motivo', 'ultima', 'prima', 'confrontati'.
 	 */
-	public static function confronto( Db $db, $sito ) {
+	/**
+	 * Toglie dall elenco i redirect che sul sito sono gia attivi.
+	 *
+	 * Se il sito non risponde si lascia l elenco com e: meglio un avviso di
+	 * troppo che nascondere un indirizzo rotto perche il collegamento era
+	 * giu per un minuto.
+	 *
+	 * @param array $cambiati Indirizzi cambiati.
+	 * @param mixed $ponte    Collegamento al sito, se c e.
+	 * @return array
+	 */
+	private static function senzaQuelliGiaFatti( array $cambiati, $ponte ) {
+		if ( ! $cambiati || ! $ponte || ! method_exists( $ponte, 'redirectAttivi' ) || ! $ponte->pronto() ) {
+			return $cambiati;
+		}
+
+		try {
+			$risposta = $ponte->redirectAttivi();
+		} catch ( \Throwable $e ) {
+			return $cambiati;
+		}
+
+		$attivi = array();
+
+		foreach ( (array) ( $risposta['percorsi'] ?? array() ) as $percorso ) {
+			$attivi[ self::normalizza( (string) $percorso ) ] = true;
+		}
+
+		if ( ! $attivi ) {
+			return $cambiati;
+		}
+
+		return array_values(
+			array_filter(
+				$cambiati,
+				static function ( $riga ) use ( $attivi ) {
+					return ! isset( $attivi[ self::normalizza( (string) $riga['da'] ) ] );
+				}
+			)
+		);
+	}
+
+	public static function confronto( Db $db, $sito, $ponte = null ) {
 		$vuoto = array( 'cambiati' => array(), 'motivo' => '', 'ultima' => null, 'prima' => null, 'confrontati' => 0 );
 
 		// Le analisi si riconoscono dal dominio, non dalla stringa esatta:
@@ -125,6 +167,16 @@ class Redirezioni {
 				'quando' => $ultima['creato_il'],
 			);
 		}
+
+		// Quelli gia sistemati non si segnalano piu.
+		//
+		// L avviso nasce dal confronto fra due analisi archiviate, e attivare
+		// il redirect non cambia ne l una ne l altra: senza questo, «un
+		// contenuto ha cambiato indirizzo» restava li per sempre anche dopo
+		// averlo sistemato. Non si tiene un segno a parte, si chiede al sito:
+		// conta quello che e attivo adesso, non quello che si ricorda di aver
+		// premuto.
+		$cambiati = self::senzaQuelliGiaFatti( $cambiati, $ponte );
 
 		if ( ! $confrontati ) {
 			return array(

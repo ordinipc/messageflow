@@ -2953,6 +2953,87 @@ verifica(
 	false !== strpos( $indiceSorgente, "WHERE t.audit_id = ? AND t.redirect_a <> '' AND d.wp_id <> ''" )
 );
 
+// --- «Ha cambiato indirizzo» deve smettere dopo che l hai sistemato -------
+//
+// L avviso nasce dal confronto fra due analisi archiviate. Attivare il
+// redirect non cambia ne l una ne l altra: restava li per sempre, e premendo
+// «Sistemali adesso» si riotteneva lo stesso avviso.
+
+echo "\nIndirizzi cambiati: l avviso si spegne\n";
+
+$fileRed = sys_get_temp_dir() . '/seo-redirect-' . getmypid() . '.sqlite';
+@unlink( $fileRed );
+$dbRed = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileRed ) );
+
+foreach ( array( '2026-01-01 10:00:00', '2026-02-01 10:00:00' ) as $quando ) {
+	$aRed = $dbRed->insert(
+		'audit',
+		array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => $quando, 'punteggio' => 50 )
+	);
+
+	// Lo stesso contenuto, con il percorso cambiato fra le due analisi.
+	$dbRed->insert(
+		'documento',
+		array(
+			'audit_id' => $aRed, 'wp_id' => '700', 'titolo' => 'Articolo',
+			'slug' => 'nuovo', 'tipo' => 'post', 'stato' => 'publish', 'parole' => 500,
+			'percorso' => '2026-01-01 10:00:00' === $quando ? '/vecchio-indirizzo/' : '/nuovo-indirizzo/',
+			'url'      => 'https://esempio.it/' . ( '2026-01-01 10:00:00' === $quando ? 'vecchio-indirizzo' : 'nuovo-indirizzo' ) . '/',
+		)
+	);
+}
+
+$senzaPonte = \SeoGeo\Redirezioni::confronto( $dbRed, 'https://esempio.it' );
+
+verifica( 'un indirizzo cambiato viene segnalato', 1 === count( $senzaPonte['cambiati'] ), json_encode( $senzaPonte['cambiati'] ) );
+
+// Un sito che dichiara quel redirect gia attivo.
+$sitoConRedirect = new class() extends \SeoGeo\Bridge\WordPress {
+	public function __construct() {}
+
+	public function pronto() { return true; }
+
+	public function redirectAttivi() {
+		return array( 'percorsi' => array( '/vecchio-indirizzo/' ) );
+	}
+};
+
+$conPonte = \SeoGeo\Redirezioni::confronto( $dbRed, 'https://esempio.it', $sitoConRedirect );
+
+verifica( 'ma se sul sito e gia attivo non si segnala piu', 0 === count( $conPonte['cambiati'] ), json_encode( $conPonte['cambiati'] ) );
+
+// Un sito che non risponde non deve nascondere un indirizzo rotto.
+$sitoMuto = new class() extends \SeoGeo\Bridge\WordPress {
+	public function __construct() {}
+
+	public function pronto() { return true; }
+
+	public function redirectAttivi() {
+		throw new \RuntimeException( 'sito irraggiungibile' );
+	}
+};
+
+$conMuto = \SeoGeo\Redirezioni::confronto( $dbRed, 'https://esempio.it', $sitoMuto );
+
+verifica(
+	'se il sito non risponde l avviso resta, invece di sparire per sbaglio',
+	1 === count( $conMuto['cambiati'] ),
+	json_encode( $conMuto['cambiati'] )
+);
+
+@unlink( $fileRed );
+
+verifica(
+	'il plugin sa dire quali redirect sono attivi',
+	false !== strpos( file_get_contents( __DIR__ . '/../plugin-wordpress/mdi-seo-geo-booster/includes/class-mdi-api.php' ), 'public static function redirect_attivi()' )
+);
+
+verifica(
+	'e le pagine lo chiedono al sito',
+	2 === substr_count( $indiceSorgente, "Redirezioni::confronto( \$db, \$audit['sito_url'], " ),
+	(string) substr_count( $indiceSorgente, "Redirezioni::confronto( \$db, \$audit['sito_url'], " )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

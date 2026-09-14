@@ -113,6 +113,11 @@ class MDI_Api {
 			'callback' => array( __CLASS__, 'salva_redirect' ),
 		) );
 
+		register_rest_route( self::NAMESPACE_API, '/redirect-attivi', $comune + array(
+			'methods'  => 'GET',
+			'callback' => array( __CLASS__, 'redirect_attivi' ),
+		) );
+
 		register_rest_route( self::NAMESPACE_API, '/immagine', $comune + array(
 			'methods'  => 'POST',
 			'callback' => array( __CLASS__, 'carica_immagine' ),
@@ -1586,6 +1591,28 @@ class MDI_Api {
 			// File serviti dal plugin.
 			'llms'       => class_exists( 'MDI_AI' ),
 			'robots_txt' => class_exists( 'MDI_AI' ),
+		);
+	}
+
+	/**
+	 * Quali redirect sono davvero attivi sul sito, adesso.
+	 *
+	 * Il gestionale segnalava «un contenuto ha cambiato indirizzo» finche
+	 * c era: l avviso nasce dal confronto fra due analisi archiviate, e
+	 * attivare il redirect non cambia ne l una ne l altra. Chiedendolo al
+	 * sito invece si sa com e adesso.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public static function redirect_attivi() {
+		$tabella = (array) get_option( self::OPZIONE_REDIRECT, array() );
+
+		return rest_ensure_response(
+			array(
+				'ok'       => true,
+				'quanti'   => count( $tabella ),
+				'percorsi' => array_values( array_map( 'strval', array_keys( $tabella ) ) ),
+			)
 		);
 	}
 
