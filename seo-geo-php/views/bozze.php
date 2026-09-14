@@ -137,6 +137,15 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 		<?php endif; ?>
 	</p>
 
+	<?php if ( $wp_pronto ) : ?>
+		<p class="nota">
+			Questo numero viene dall'analisi, che è la fotografia di quel momento: se hai già caricato
+			delle immagini, lì dentro non è cambiato niente e il conto resta fermo.
+			<a href="?p=ricontrolla-immagini&amp;id=<?php echo (int) $audit['id']; ?>&amp;token=<?php echo e( token() ); ?>">Chiedilo al sito</a>
+			e il conto si riallinea, senza rifare l'analisi.
+		</p>
+	<?php endif; ?>
+
 	<label for="quante_img">Quante immagini in questo lotto</label>
 	<input id="quante_img" type="number" name="quante" value="3" min="1" max="10" style="width:110px;padding:8px;border:1px solid var(--linea);border-radius:4px">
 

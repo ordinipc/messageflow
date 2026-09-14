@@ -2109,6 +2109,181 @@ verifica(
 		&& false !== strpos( $indiceSorgente, "'bozze_bloccate'" )
 );
 
+// --- Il conto delle immagini deve scendere quando le carichi ---------------
+//
+// In produzione la pagina diceva «8 mancanti» anche dopo averle caricate
+// tutte e otto: il numero legge il database dell analisi, e caricare
+// un immagine non lo cambiava. L unico modo di aggiornarlo era rifare
+// l analisi intera.
+
+echo "\nImmagini in evidenza: il conto si aggiorna\n";
+
+$fileImg = sys_get_temp_dir() . '/seo-immagini-' . getmypid() . '.sqlite';
+@unlink( $fileImg );
+$dbI = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileImg ) );
+
+$auditI = $dbI->insert(
+	'audit',
+	array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => date( 'Y-m-d H:i:s' ), 'punteggio' => 50 )
+);
+
+foreach ( array( 401, 402, 403 ) as $n ) {
+	$dbI->insert(
+		'documento',
+		array(
+			'audit_id' => $auditI, 'wp_id' => (string) $n, 'titolo' => 'Articolo ' . $n, 'slug' => 'i' . $n,
+			'percorso' => '/i' . $n . '/', 'url' => 'https://esempio.it/i' . $n . '/', 'tipo' => 'post',
+			'stato' => 'publish', 'parole' => 700, 'ha_thumbnail' => 0,
+		)
+	);
+}
+
+$quanteMancano = static function () use ( $dbI, $auditI ) {
+	return (int) $dbI->one(
+		"SELECT COUNT(*) n FROM documento WHERE audit_id = ? AND ha_thumbnail = 0 AND tipo = 'post'",
+		array( $auditI )
+	)['n'];
+};
+
+verifica( 'si parte da tre senza immagine', 3 === $quanteMancano(), (string) $quanteMancano() );
+
+// Un sito che dice: due ce l hanno, uno no.
+$sitoFinto = new class() extends \SeoGeo\Bridge\WordPress {
+	/** @var int Quante volte e stata chiesta la rotta breve. */
+	public $chiamate = 0;
+
+	public function __construct() {}
+
+	public function pronto() { return true; }
+
+	public function miniature( array $ids ) {
+		$this->chiamate++;
+
+		return array( 'miniature' => array( '401' => true, '402' => true, '403' => false ) );
+	}
+};
+
+$esitoRic = \SeoGeo\Ai\Immagini::ricontrolla( $dbI, $sitoFinto, $auditI );
+
+verifica( 'si chiede al sito solo per quelli che risultano senza', 3 === $esitoRic['controllati'], (string) $esitoRic['controllati'] );
+verifica( 'e chi ce l ha viene segnato', 2 === $esitoRic['sistemati'], (string) $esitoRic['sistemati'] );
+verifica( 'il conto in pagina scende', 1 === $quanteMancano(), (string) $quanteMancano() );
+verifica( 'e dice quanti ne restano', 1 === $esitoRic['restano'], (string) $esitoRic['restano'] );
+
+// Rifarlo non cambia niente e non richiede di nuovo quelli gia sistemati.
+$sitoFinto->chiamate = 0;
+$diNuovo = \SeoGeo\Ai\Immagini::ricontrolla( $dbI, $sitoFinto, $auditI );
+
+verifica( 'rifarlo chiede solo di quello rimasto', 1 === $diNuovo['controllati'], (string) $diNuovo['controllati'] );
+
+// Plugin vecchio, rotta assente: si ripiega sui contenuti, che riportano
+// _thumbnail_id da sempre.
+$dbV2 = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileImg ) );
+
+$sitoVecchio = new class() extends \SeoGeo\Bridge\WordPress {
+	public function __construct() {}
+
+	public function pronto() { return true; }
+
+	public function miniature( array $ids ) {
+		throw new \RuntimeException( 'rest_no_route' );
+	}
+
+	public function contenuti( $offset = 0, $limite = 40 ) {
+		if ( $offset > 0 ) { return array( 'contenuti' => array() ); }
+
+		return array(
+			'contenuti' => array(
+				array( 'wp_id' => '403', 'meta' => array( '_thumbnail_id' => '9912' ) ),
+			),
+		);
+	}
+};
+
+$conVecchio = \SeoGeo\Ai\Immagini::ricontrolla( $dbV2, $sitoVecchio, $auditI );
+
+verifica( 'col plugin vecchio funziona lo stesso', 1 === $conVecchio['sistemati'], (string) $conVecchio['sistemati'] );
+verifica( 'e il conto arriva a zero', 0 === $quanteMancano(), (string) $quanteMancano() );
+
+@unlink( $fileImg );
+
+// La prova che conta: generare e caricare deve far scendere il conto da
+// solo, senza che nessuno debba premere «ricontrolla».
+$fileGen = sys_get_temp_dir() . '/seo-immagini-gen-' . getmypid() . '.sqlite';
+@unlink( $fileGen );
+$dbG2 = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileGen ) );
+
+$auditG2 = $dbG2->insert(
+	'audit',
+	array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => date( 'Y-m-d H:i:s' ), 'punteggio' => 50 )
+);
+
+$dbG2->insert(
+	'documento',
+	array(
+		'audit_id' => $auditG2, 'wp_id' => '501', 'titolo' => 'Senza immagine', 'slug' => 'senza-immagine',
+		'percorso' => '/senza-immagine/', 'url' => 'https://esempio.it/senza-immagine/', 'tipo' => 'post',
+		'stato' => 'publish', 'parole' => 700, 'ha_thumbnail' => 0,
+	)
+);
+
+$geminiFinto = new class( array( 'chiave' => 'prova' ) ) extends \SeoGeo\Ai\Gemini {
+	public function generaImmagine( $descrizione, array $opzioni = array() ) {
+		$tela = imagecreatetruecolor( 40, 24 );
+		ob_start();
+		imagepng( $tela );
+		$binario = (string) ob_get_clean();
+		imagedestroy( $tela );
+
+		return array( 'image/png', $binario );
+	}
+};
+
+$sitoCarica = new class() extends \SeoGeo\Bridge\WordPress {
+	/** @var int[] Chi ha ricevuto l immagine. */
+	public $ricevuti = array();
+
+	public function __construct() {}
+
+	public function pronto() { return true; }
+
+	public function inviaImmagine( $id, $binario, $mime, $nome, $alt, $inEvidenza = true ) {
+		$this->ricevuti[] = (int) $id;
+
+		return array( 'ok' => true );
+	}
+};
+
+$cartellaImg = sys_get_temp_dir() . '/seo-img-' . getmypid();
+
+$esitoGen = \SeoGeo\Ai\Immagini::esegui(
+	$dbG2,
+	$geminiFinto,
+	$auditG2,
+	$cfgCerca,
+	array( 'cartella' => $cartellaImg, 'invia' => true ),
+	$sitoCarica
+);
+
+verifica( 'l immagine viene generata e caricata', 1 === (int) $esitoGen['inviate'], json_encode( $esitoGen['errori'] ) );
+
+$restaSenza = (int) $dbG2->one(
+	"SELECT COUNT(*) n FROM documento WHERE audit_id = ? AND ha_thumbnail = 0 AND tipo = 'post'",
+	array( $auditG2 )
+)['n'];
+
+verifica( 'e il conto scende da solo, senza ricontrollare niente', 0 === $restaSenza, (string) $restaSenza );
+
+array_map( 'unlink', glob( $cartellaImg . '/*' ) ?: array() );
+@rmdir( $cartellaImg );
+@unlink( $fileGen );
+
+verifica(
+	'il gestionale offre di richiederlo al sito',
+	false !== strpos( $indiceSorgente, "'ricontrolla-immagini' === \$pagina" )
+		&& false !== strpos( file_get_contents( __DIR__ . '/../views/bozze.php' ), 'Chiedilo al sito' )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

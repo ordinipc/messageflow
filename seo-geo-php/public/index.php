@@ -936,6 +936,44 @@ if ( 'api-ripristina' === $pagina ) {
 	exit;
 }
 
+if ( 'ricontrolla-immagini' === $pagina ) {
+	if ( ! hash_equals( token(), $_GET['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Sessione scaduta: ricarica la pagina.' );
+	}
+
+	// Il conteggio delle immagini mancanti legge il database dell analisi:
+	// caricarne una non lo cambia, e in pagina restava «8 mancanti» anche
+	// dopo averle caricate tutte e otto. Qui si chiede al sito com e adesso.
+	$id    = (int) ( $_GET['id'] ?? 0 );
+	$ponte = new WordPress( $cfg['wordpress'] );
+
+	if ( ! $ponte->pronto() ) {
+		header( 'Location: ?p=bozze&id=' . $id . '&errore=' . rawurlencode( 'Il collegamento a WordPress non è configurato.' ) );
+		exit;
+	}
+
+	try {
+		$esito = Immagini::ricontrolla( $db, $ponte, $id );
+
+		$messaggio = $esito['sistemati']
+			? sprintf(
+				'%d %s in evidenza %s già sul sito: il conto adesso dice %d.',
+				$esito['sistemati'],
+				1 === $esito['sistemati'] ? 'immagine' : 'immagini',
+				1 === $esito['sistemati'] ? 'era' : 'erano',
+				$esito['restano']
+			)
+			: 'Nessuna differenza: sul sito quelle immagini mancano davvero.';
+
+		header( 'Location: ?p=bozze&id=' . $id . '&esito=' . rawurlencode( $messaggio ) );
+	} catch ( Throwable $e ) {
+		header( 'Location: ?p=bozze&id=' . $id . '&errore=' . rawurlencode( $e->getMessage() ) );
+	}
+
+	exit;
+}
+
 if ( 'api-senza-dato' === $pagina ) {
 	header( 'Content-Type: application/json; charset=utf-8' );
 

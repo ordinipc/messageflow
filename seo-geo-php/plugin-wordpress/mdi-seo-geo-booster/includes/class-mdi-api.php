@@ -168,6 +168,11 @@ class MDI_Api {
 			'callback' => array( __CLASS__, 'strutture_elementor' ),
 		) );
 
+		register_rest_route( self::NAMESPACE_API, '/miniature', $comune + array(
+			'methods'  => 'POST',
+			'callback' => array( __CLASS__, 'miniature' ),
+		) );
+
 		register_rest_route( self::NAMESPACE_API, '/costruttori', $comune + array(
 			'methods'  => 'POST',
 			'callback' => array( __CLASS__, 'costruttori' ),
@@ -1511,6 +1516,33 @@ class MDI_Api {
 		}
 
 		return self::altroCostruttore( $id );
+	}
+
+	/**
+	 * Quali fra questi contenuti hanno l immagine in evidenza.
+	 *
+	 * Il gestionale conta le immagini mancanti sul database dell analisi, che
+	 * e la fotografia di quel momento: caricarne una non lo cambia, e il
+	 * conteggio resta fermo. Questa risposta lo riallinea con il sito senza
+	 * dover rifare l analisi intera.
+	 *
+	 * @param WP_REST_Request $richiesta Richiesta con 'ids'.
+	 * @return WP_REST_Response
+	 */
+	public static function miniature( $richiesta ) {
+		$esito = array();
+
+		foreach ( (array) $richiesta->get_param( 'ids' ) as $id ) {
+			$id = (int) $id;
+
+			if ( ! $id ) {
+				continue;
+			}
+
+			$esito[ (string) $id ] = (bool) get_post_thumbnail_id( $id );
+		}
+
+		return rest_ensure_response( array( 'ok' => true, 'miniature' => $esito ) );
 	}
 
 	/**

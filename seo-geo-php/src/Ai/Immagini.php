@@ -75,6 +75,116 @@ class Immagini {
 	}
 
 	/**
+	 * Riallinea con il sito il conteggio delle immagini mancanti.
+	 *
+	 * Il conteggio legge il database dell analisi, che e la fotografia di
+	 * quel momento: caricare un immagine non lo cambia. In pagina restava
+	 * «8 mancanti» anche dopo averle caricate tutte e otto, e l unico modo di
+	 * aggiornarlo era rifare l analisi intera.
+	 *
+	 * Qui si chiede al sito, e solo per i contenuti che risultano ancora
+	 * senza: se l immagine c e, il conto scende.
+	 *
+	 * @param Db        $db      Database.
+	 * @param WordPress $ponte   Collegamento al sito.
+	 * @param int       $auditId Audit.
+	 * @return array 'controllati', 'sistemati', 'restano'.
+	 */
+	public static function ricontrolla( Db $db, WordPress $ponte, $auditId ) {
+		$righe = $db->all(
+			"SELECT id, wp_id FROM documento WHERE audit_id = ? AND tipo = 'post' AND ( ha_thumbnail = 0 OR ha_thumbnail IS NULL )",
+			array( (int) $auditId )
+		);
+
+		if ( ! $righe ) {
+			return array( 'controllati' => 0, 'sistemati' => 0, 'restano' => 0 );
+		}
+
+		$per_wp = array();
+
+		foreach ( $righe as $riga ) {
+			$per_wp[ (string) (int) $riga['wp_id'] ] = (int) $riga['id'];
+		}
+
+		$stato = self::miniatureDalSito( $ponte, array_keys( $per_wp ) );
+		$fatti = 0;
+
+		foreach ( $stato as $wp_id => $ce ) {
+			if ( ! $ce || ! isset( $per_wp[ (string) $wp_id ] ) ) {
+				continue;
+			}
+
+			$db->run( 'UPDATE documento SET ha_thumbnail = 1 WHERE id = ?', array( $per_wp[ (string) $wp_id ] ) );
+			$fatti++;
+		}
+
+		return array(
+			'controllati' => count( $righe ),
+			'sistemati'   => $fatti,
+			'restano'     => count( $righe ) - $fatti,
+		);
+	}
+
+	/**
+	 * Chi ha l immagine in evidenza, chiesto al sito.
+	 *
+	 * La strada breve e la rotta /miniature del plugin. Chi ha ancora il
+	 * plugin vecchio non ce l ha: in quel caso si sfogliano i contenuti, che
+	 * riportano _thumbnail_id da sempre. Costa qualche richiesta in piu ma
+	 * funziona senza aspettare l aggiornamento del plugin.
+	 *
+	 * @param WordPress $ponte Collegamento.
+	 * @param string[]  $ids   Identificativi WordPress da controllare.
+	 * @return array<string,bool>
+	 */
+	private static function miniatureDalSito( WordPress $ponte, array $ids ) {
+		try {
+			$risposta = $ponte->miniature( $ids );
+
+			if ( ! empty( $risposta['miniature'] ) ) {
+				return (array) $risposta['miniature'];
+			}
+		} catch ( Throwable $e ) {
+			// Rotta assente: si ripiega sulla strada lunga.
+			unset( $e );
+		}
+
+		$cercati = array_flip( array_map( 'strval', $ids ) );
+		$stato   = array();
+		$offset  = 0;
+
+		for ( $giro = 0; $giro < 40; $giro++ ) {
+			try {
+				$pagina = $ponte->contenuti( $offset, 100 );
+			} catch ( Throwable $e ) {
+				break;
+			}
+
+			$contenuti = (array) ( $pagina['contenuti'] ?? array() );
+
+			if ( ! $contenuti ) {
+				break;
+			}
+
+			foreach ( $contenuti as $contenuto ) {
+				$wp_id = (string) ( $contenuto['wp_id'] ?? '' );
+
+				if ( isset( $cercati[ $wp_id ] ) ) {
+					$stato[ $wp_id ] = ! empty( $contenuto['meta']['_thumbnail_id'] );
+				}
+			}
+
+			$offset += 100;
+
+			if ( count( $contenuti ) < 100 ) {
+				break;
+			}
+		}
+
+		return $stato;
+	}
+
+	/**
 	 * Cartella delle immagini di un audit.
 	 *
 	 * @param int $auditId Audit.
@@ -271,6 +381,13 @@ class Immagini {
 				if ( $invia ) {
 					$ponte->inviaImmagine( (int) $doc['wp_id'], $binario, $mime, $doc['slug'], self::alt( $doc, $cfg ), true );
 					$inviate++;
+
+					// Segnare che adesso l immagine c e. Senza questo il
+					// conteggio in pagina restava fermo su «8 mancanti» anche
+					// dopo averle caricate tutte e otto: il numero legge il
+					// database dell analisi, e nel database non era cambiato
+					// niente.
+					$db->run( 'UPDATE documento SET ha_thumbnail = 1 WHERE id = ?', array( (int) $doc['id'] ) );
 				}
 			} catch ( Throwable $e ) {
 				$errori[] = $doc['titolo'] . ': ' . $e->getMessage();

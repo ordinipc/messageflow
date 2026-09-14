@@ -266,6 +266,17 @@ class WordPress {
 	}
 
 	/**
+	 * Quali fra questi contenuti hanno l immagine in evidenza, adesso, sul
+	 * sito.
+	 *
+	 * @param int[] $ids Identificativi WordPress.
+	 * @return array
+	 */
+	public function miniature( array $ids ) {
+		return $this->chiama( 'POST', '/miniature', array( 'ids' => array_values( $ids ) ) );
+	}
+
+	/**
 	 * Per ognuno degli id, quale costruttore visuale disegna il contenuto.
 	 *
 	 * @param array $ids Contenuti su WordPress.
