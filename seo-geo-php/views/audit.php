@@ -148,6 +148,17 @@ $scaricabili = array(
 
 <section class="scheda">
 	<h2>Problemi rilevati</h2>
+	<p class="guida">
+		Sono i controlli non superati quando il sito è stato letto, il
+		<?php echo e( substr( $audit['creato_il'], 0, 16 ) ); ?>. I numeri non scendono da soli mentre
+		correggi: leggere davvero tutto il sito richiede minuti, non si può fare a ogni ricarica della
+		pagina. Applica le correzioni e poi rileggi: qui sotto trovi il pulsante, e il confronto con
+		questa analisi resta in fondo alla pagina.
+	</p>
+	<form method="post" action="?p=risincronizza">
+		<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+		<button class="bottone chiaro piccolo" type="submit">Rileggi il sito e ricalcola questi numeri</button>
+	</form>
 	<div class="tabellabox">
 		<table>
 			<thead>
