@@ -936,6 +936,83 @@ if ( 'api-ripristina' === $pagina ) {
 	exit;
 }
 
+if ( 'api-senza-dato' === $pagina ) {
+	header( 'Content-Type: application/json; charset=utf-8' );
+
+	if ( ! hash_equals( token(), $_GET['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		echo json_encode( array( 'errore' => 'Sessione scaduta: ricarica la pagina.' ) );
+		exit;
+	}
+
+	// Dopo la ricerca online qualche buco resta sempre: ci sono dati che
+	// nessuna fonte pubblica ha. Senza questo passo quelle bozze restavano
+	// bloccate per sempre, e l unica via d uscita era compilarle a mano.
+	$id     = (int) ( $_GET['id'] ?? 0 );
+	$gemini = new Gemini( $cfg['ai'] );
+
+	if ( ! $gemini->pronto() ) {
+		echo json_encode( array( 'errore' => 'Chiave Gemini mancante: mettila in Impostazioni.', 'finito' => true ) );
+		exit;
+	}
+
+	set_time_limit( 0 );
+
+	$limite_php = (int) ini_get( 'max_execution_time' );
+	$scadenza   = time() + ( $limite_php > 0 ? max( 20, $limite_php - 15 ) : 60 );
+
+	$aperte = Verifiche::bozzeAperte( $db, $id );
+	$prima  = count( $aperte );
+
+	$fatte     = 0;
+	$sistemate = 0;
+	$esempi    = array();
+
+	foreach ( $aperte as $bozza ) {
+		if ( time() > $scadenza ) {
+			break;
+		}
+
+		$frasi = array();
+
+		foreach ( array( 'corpo_html', 'in_breve', 'meta_description' ) as $campo ) {
+			$frasi = array_merge( $frasi, Verifiche::frasiCon( (string) $bozza[ $campo ] ) );
+		}
+
+		$girate = Verifiche::riscriviFrasi( $gemini, $frasi, $cfg );
+		$quante = Verifiche::applicaFrasi( $db, $bozza, $girate );
+
+		$fatte++;
+		$sistemate += $quante;
+
+		if ( $quante && count( $esempi ) < 5 ) {
+			$prima_frase = (string) array_key_first( $girate );
+
+			$esempi[] = array(
+				'titolo' => (string) $bozza['titolo'],
+				'prima'  => mb_substr( $prima_frase, 0, 180 ),
+				'dopo'   => mb_substr( (string) $girate[ $prima_frase ], 0, 180 ) ?: '(frase tolta: senza il dato non diceva niente)',
+			);
+		}
+	}
+
+	$restano = count( Verifiche::bozzeAperte( $db, $id ) );
+
+	echo json_encode(
+		array(
+			'fatte'     => $fatte,
+			'sistemate' => $sistemate,
+			'restanti'  => $restano,
+			'esempi'    => $esempi,
+			// Un giro che non chiude niente non si ripete: costerebbe soldi
+			// per lo stesso risultato.
+			'finito'    => 0 === $restano || ( $restano >= $prima && 0 === $sistemate ),
+		)
+	);
+
+	exit;
+}
+
 if ( 'api-verifiche' === $pagina ) {
 	header( 'Content-Type: application/json; charset=utf-8' );
 
@@ -2588,6 +2665,10 @@ switch ( $pagina ) {
 				// I buchi [DA VERIFICARE] rimasti nelle bozze, raggruppati:
 				// su duecento bozze le etichette distinte sono poche decine.
 				'segnaposto_aperti' => Verifiche::segnaposto( $db, $id ),
+				// Quante bozze restano bloccate: e il numero che si vede in
+				// «Vecchio e nuovo» come «con dati da verificare», e deve
+				// essere lo stesso da tutte e due le parti.
+				'bozze_bloccate'    => count( Verifiche::bozzeAperte( $db, $id ) ),
 				'immagini'  => array(
 					'mancanti' => (int) $db->one( "SELECT COUNT(*) n FROM documento WHERE audit_id = ? AND ha_thumbnail = 0 AND tipo = 'post'", array( $id ) )['n'],
 					// Le analisi precedenti all aggiornamento non registravano

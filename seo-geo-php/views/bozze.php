@@ -388,6 +388,147 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 </section>
 <?php endif; ?>
 
+<?php if ( $pronto && ! empty( $bozze_bloccate ) ) : ?>
+<section class="scheda" id="senza-dato">
+	<h2>Restano <?php echo num( $bozze_bloccate ); ?> bozze con un buco che nessuno riesce a riempire</h2>
+	<p class="guida">
+		Dopo la ricerca su Google qualche dato non salta fuori: ci sono numeri che nessuna fonte
+		pubblica ha. Quelle bozze non si mandano online — in pagina si leggerebbe
+		<code>[DA VERIFICARE: …]</code> — e finora l'unica via d'uscita era compilarle a mano.
+	</p>
+	<p class="guida">
+		Questo pulsante fa l'ultimo passo: <strong>gira le frasi</strong> in modo che funzionino
+		senza quel dato. «Costa [DA VERIFICARE: prezzo medio]» diventa «il costo dipende da quante
+		pagine servono». Non inventa niente e tocca solo le frasi col buco: il resto dell'articolo
+		resta come l'hai letto. Dopo, quelle bozze si sovrascrivono come tutte le altre.
+	</p>
+
+	<div class="azioni" id="senza-azioni">
+		<form method="post" action="?p=bozze" id="gira-frasi">
+			<button class="bottone" type="submit">Gira le frasi senza il dato mancante</button>
+		</form>
+	</div>
+
+	<div id="senza-corso" hidden>
+		<p><span id="senza-spia" class="spia"></span> <strong id="senza-titolo">Sto girando le frasi…</strong></p>
+		<div class="barra" style="height:10px;margin-bottom:12px"><i id="senza-barra" class="ok" style="width:1%;height:10px"></i></div>
+		<p class="nota">
+			<span id="senza-fatte">0</span> bozze sistemate ·
+			<span id="senza-restanti"><?php echo (int) $bozze_bloccate; ?></span> ancora bloccate ·
+			<span id="senza-frasi">0</span> frasi girate
+		</p>
+		<p class="nota" id="senza-battito"></p>
+		<div id="senza-esempi"></div>
+		<button type="button" class="bottone chiaro" id="senza-stop">Ferma</button>
+	</div>
+
+	<script>
+	(function () {
+		var modulo = document.getElementById('gira-frasi');
+		var corso = document.getElementById('senza-corso');
+
+		if (!modulo || !corso || !window.fetch) { return; }
+
+		var token = <?php echo json_encode( token() ); ?>;
+		var idAudit = <?php echo (int) $audit['id']; ?>;
+		var partenza = <?php echo (int) $bozze_bloccate; ?>;
+		var restano = partenza;
+		var fatte = 0;
+		var frasi = 0;
+		var fermato = false;
+		var blocco = 0;
+		var iniziato = 0;
+		var orologio = null;
+
+		function scrivi(id, testo) { document.getElementById(id).textContent = testo; }
+
+		function battito() {
+			var secondi = Math.round((Date.now() - iniziato) / 1000);
+			scrivi('senza-battito', 'Blocco ' + blocco + ' in corso da ' + secondi + ' second' + (1 === secondi ? 'o' : 'i')
+				+ '. Ogni bozza richiede qualche secondo: finché questo numero sale, sta lavorando.');
+		}
+
+		function spegni(classe, testo) {
+			document.getElementById('senza-spia').className = 'spia ' + classe;
+			scrivi('senza-titolo', testo);
+			scrivi('senza-battito', '');
+			clearInterval(orologio);
+			var stop = document.getElementById('senza-stop');
+			stop.textContent = 'Ricarica la pagina';
+			stop.onclick = function () { location.reload(); };
+		}
+
+		function mostraEsempi(elenco) {
+			var dove = document.getElementById('senza-esempi');
+
+			elenco.forEach(function (voce) {
+				var p = document.createElement('p');
+				p.className = 'nota';
+
+				var forte = document.createElement('strong');
+				forte.textContent = voce.titolo + ': ';
+				p.appendChild(forte);
+				p.appendChild(document.createTextNode('«' + voce.prima + '» → «' + voce.dopo + '»'));
+				dove.appendChild(p);
+			});
+		}
+
+		function giro() {
+			if (fermato) { return; }
+
+			blocco++;
+			iniziato = Date.now();
+			scrivi('senza-titolo', 'Sto girando le frasi…');
+			battito();
+			clearInterval(orologio);
+			orologio = setInterval(battito, 1000);
+
+			fetch('?p=api-senza-dato&id=' + idAudit + '&token=' + encodeURIComponent(token))
+				.then(function (r) { return r.json(); })
+				.then(function (d) {
+					if (d.errore) { spegni('guasto', 'Interrotta: ' + d.errore); return; }
+
+					fatte += d.fatte;
+					frasi += d.sistemate;
+					restano = d.restanti;
+
+					scrivi('senza-fatte', fatte);
+					scrivi('senza-frasi', frasi);
+					scrivi('senza-restanti', Math.max(0, restano));
+					document.getElementById('senza-barra').style.width =
+						Math.max(1, partenza ? Math.round(((partenza - restano) / partenza) * 100) : 100) + '%';
+
+					if (d.esempi && d.esempi.length) { mostraEsempi(d.esempi); }
+
+					if (d.finito || fermato) {
+						spegni('fermo', restano > 0
+							? 'Finito: ' + restano + ' bozze non si sono sistemate, vanno guardate a mano'
+							: 'Fatto: nessuna bozza e piu bloccata, si possono sovrascrivere tutte');
+						return;
+					}
+
+					giro();
+				})
+				.catch(function (e) { spegni('guasto', 'Connessione interrotta: ' + e.message); });
+		}
+
+		modulo.addEventListener('submit', function (evento) {
+			evento.preventDefault();
+			document.getElementById('senza-azioni').hidden = true;
+			corso.hidden = false;
+			giro();
+		});
+
+		document.getElementById('senza-stop').addEventListener('click', function () {
+			fermato = true;
+			scrivi('senza-titolo', 'Mi fermo alla fine di questo blocco…');
+			document.getElementById('senza-spia').className = 'spia fermo';
+		});
+	})();
+	</script>
+</section>
+<?php endif; ?>
+
 <?php if ( $bozze ) : ?>
 <section class="scheda">
 	<h2>Vecchio e nuovo, affiancati</h2>

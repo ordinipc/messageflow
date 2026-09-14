@@ -95,6 +95,257 @@ class Verifiche {
 	}
 
 	/**
+	 * Le frasi che contengono un segnaposto, una per volta.
+	 *
+	 * Si isola la frase e non il paragrafo perche quello che si vuole
+	 * cambiare e solo dove manca il dato: il resto del testo e gia stato
+	 * scritto e riletto, e rifarlo vorrebbe dire rimetterci le mani.
+	 *
+	 * @param string $testo Testo o markup.
+	 * @return string[] Frasi distinte, nell ordine in cui compaiono.
+	 */
+	public static function frasiCon( $testo ) {
+		$testo = (string) $testo;
+		$frasi = array();
+
+		if ( ! preg_match_all( self::SCHEMA, $testo, $trovate, PREG_OFFSET_CAPTURE ) ) {
+			return array();
+		}
+
+		foreach ( $trovate[0] as $occorrenza ) {
+			$inizio = self::inizioFrase( $testo, (int) $occorrenza[1] );
+			$fine   = self::fineFrase( $testo, (int) $occorrenza[1] + strlen( $occorrenza[0] ) );
+			$frase  = trim( substr( $testo, $inizio, $fine - $inizio ) );
+
+			if ( '' !== $frase && ! in_array( $frase, $frasi, true ) ) {
+				$frasi[] = $frase;
+			}
+		}
+
+		return $frasi;
+	}
+
+	/**
+	 * Dove comincia la frase che contiene questa posizione.
+	 *
+	 * @param string $testo   Testo.
+	 * @param int    $dove    Posizione dentro la frase.
+	 * @return int
+	 */
+	private static function inizioFrase( $testo, $dove ) {
+		for ( $i = $dove; $i > 0; $i-- ) {
+			$c = $testo[ $i - 1 ];
+
+			// Un tag chiuso e un a capo sono confini certi quanto un punto:
+			// la frase non attraversa un </p> o un <li>.
+			if ( '>' === $c || "\n" === $c ) {
+				return $i;
+			}
+
+			if ( in_array( $c, array( '.', '!', '?' ), true ) ) {
+				return $i;
+			}
+		}
+
+		return 0;
+	}
+
+	/**
+	 * Dove finisce la frase che contiene questa posizione.
+	 *
+	 * @param string $testo Testo.
+	 * @param int    $dove  Posizione da cui cercare la fine.
+	 * @return int
+	 */
+	private static function fineFrase( $testo, $dove ) {
+		$lunghezza = strlen( $testo );
+
+		for ( $i = $dove; $i < $lunghezza; $i++ ) {
+			$c = $testo[ $i ];
+
+			if ( '<' === $c || "\n" === $c ) {
+				return $i;
+			}
+
+			if ( in_array( $c, array( '.', '!', '?' ), true ) ) {
+				return $i + 1;
+			}
+		}
+
+		return $lunghezza;
+	}
+
+	/**
+	 * Riscrive le frasi rimaste col buco, in modo che funzionino senza il
+	 * dato che non si e trovato.
+	 *
+	 * E l ultimo passo, e serve: dopo la ricerca online qualche segnaposto
+	 * resta sempre — ci sono dati che nessuna fonte pubblica ha. Senza questo
+	 * quelle bozze restano bloccate per sempre, e l unica via d uscita e
+	 * compilarle a mano.
+	 *
+	 * Non si inventa niente: la frase viene girata in modo da dire la stessa
+	 * cosa senza la cifra. «Costa [DA VERIFICARE: prezzo]» diventa «Il costo
+	 * dipende da quante pagine servono», non «Costa 1500 euro».
+	 *
+	 * @param Gemini $gemini Client.
+	 * @param array  $frasi  Frasi da girare.
+	 * @param array  $cfg    Configurazione.
+	 * @return array<string,string> Frase originale => frase nuova. Manca la
+	 *                              voce per quelle che non si sono sistemate.
+	 */
+	public static function riscriviFrasi( Gemini $gemini, array $frasi, array $cfg ) {
+		$frasi = array_values( array_filter( array_map( 'trim', $frasi ) ) );
+
+		if ( ! $frasi ) {
+			return array();
+		}
+
+		$settore = (string) ( $cfg['azienda']['settore'] ?? 'agenzia di comunicazione e sviluppo web' );
+
+		$istruzioni = "Sei un editor. Ti arrivano frasi di un articolo in cui manca un dato che nessuna "
+			. "fonte ha saputo dare. Le giri in modo che funzionino senza quel dato.\n"
+			. "Regole tassative:\n"
+			. "- Non inventi MAI il dato mancante: niente numeri, prezzi, tempi, percentuali o date.\n"
+			. "- Non lasci il segnaposto [DA VERIFICARE: ...] nella frase che restituisci.\n"
+			. "- Dici la stessa cosa in modo qualitativo: «il costo dipende da quante pagine servono» "
+			. "al posto di «costa X euro».\n"
+			. "- Tieni i tag HTML che trovi nella frase, identici.\n"
+			. "- Se togliendo il dato la frase non ha piu niente da dire, restituisci una stringa vuota: "
+			. "verra tolta.\n"
+			. "- Non cambi il tono ne la persona.";
+
+		$elenco = '';
+
+		foreach ( $frasi as $i => $frase ) {
+			$elenco .= ( $i + 1 ) . '. ' . $frase . "\n";
+		}
+
+		$richiesta = "Contesto: articolo di un'azienda che si occupa di $settore.\n\n"
+			. "Frasi da girare:\n" . $elenco . "\n"
+			. "Rispondi SOLO con un oggetto JSON:\n"
+			. '{"frasi": [{"numero": 1, "nuova": "la frase girata, o stringa vuota"}]}';
+
+		try {
+			$dati = $gemini->generaJson( $istruzioni, $richiesta, array( 'max_token' => 4000 ) );
+		} catch ( Throwable $e ) {
+			return array();
+		}
+
+		$fuori = array();
+
+		foreach ( (array) ( $dati['frasi'] ?? array() ) as $voce ) {
+			$numero = (int) ( $voce['numero'] ?? 0 );
+
+			if ( $numero < 1 || $numero > count( $frasi ) ) {
+				continue;
+			}
+
+			$nuova = trim( (string) ( $voce['nuova'] ?? '' ) );
+
+			// Se il segnaposto e ancora li, il modello non ha fatto il
+			// lavoro: tenere quella frase e peggio che lasciarla com era.
+			if ( preg_match( self::SCHEMA, $nuova ) ) {
+				continue;
+			}
+
+			$fuori[ $frasi[ $numero - 1 ] ] = $nuova;
+		}
+
+		return $fuori;
+	}
+
+	/**
+	 * Le bozze che hanno ancora un buco, con i campi che servono a chiuderlo.
+	 *
+	 * @param Db  $db      Database.
+	 * @param int $auditId Audit.
+	 * @param int $quante  Massimo da riportare.
+	 * @return array
+	 */
+	public static function bozzeAperte( Db $db, $auditId, $quante = 200 ) {
+		$fuori = array();
+
+		foreach ( $db->all( "SELECT id, titolo, corpo_html, in_breve, meta_description FROM bozza WHERE audit_id = ? AND stato = 'ok' ORDER BY id", array( $auditId ) ) as $bozza ) {
+			if ( ! self::restano( $bozza ) ) {
+				continue;
+			}
+
+			$fuori[] = $bozza;
+
+			if ( count( $fuori ) >= (int) $quante ) {
+				break;
+			}
+		}
+
+		return $fuori;
+	}
+
+	/**
+	 * Mette le frasi girate al posto di quelle col buco, in una bozza.
+	 *
+	 * @param Db    $db             Database.
+	 * @param array $bozza          Riga bozza.
+	 * @param array $sostituzioni   Frase vecchia => frase nuova.
+	 * @return int Quante frasi sono state sistemate.
+	 */
+	public static function applicaFrasi( Db $db, array $bozza, array $sostituzioni ) {
+		if ( ! $sostituzioni ) {
+			return 0;
+		}
+
+		$sistemate = 0;
+		$nuovi     = array();
+
+		foreach ( array( 'corpo_html', 'in_breve', 'meta_description' ) as $campo ) {
+			$testo   = (string) ( $bozza[ $campo ] ?? '' );
+			$partito = $testo;
+
+			foreach ( $sostituzioni as $vecchia => $nuova ) {
+				if ( false === strpos( $testo, $vecchia ) ) {
+					continue;
+				}
+
+				// Frase svuotata: si toglie insieme allo spazio che la
+				// separava da quella prima, se no restano doppi spazi.
+				$testo = str_replace(
+					'' === $nuova ? ' ' . $vecchia : $vecchia,
+					$nuova,
+					$testo
+				);
+
+				if ( '' === $nuova ) {
+					$testo = str_replace( $vecchia, '', $testo );
+				}
+
+				$sistemate++;
+			}
+
+			if ( $testo !== $partito ) {
+				$nuovi[ $campo ] = preg_replace( '/[ \t]{2,}/', ' ', $testo );
+			}
+		}
+
+		if ( ! $nuovi ) {
+			return 0;
+		}
+
+		$pezzi  = array();
+		$valori = array();
+
+		foreach ( $nuovi as $campo => $valore ) {
+			$pezzi[]  = $campo . ' = ?';
+			$valori[] = $valore;
+		}
+
+		$valori[] = (int) $bozza['id'];
+
+		$db->run( 'UPDATE bozza SET ' . implode( ', ', $pezzi ) . ' WHERE id = ?', $valori );
+
+		return $sistemate;
+	}
+
+	/**
 	 * Etichette diverse che chiedono la stessa cosa vanno insieme.
 	 *
 	 * @param string $etichetta Etichetta grezza.

@@ -2021,6 +2021,94 @@ verifica(
 		&& false !== strpos( $vistaConfronto3, 'data-cerca=' )
 );
 
+// --- L ultimo passo: girare le frasi rimaste col buco ----------------------
+//
+// Dopo la ricerca online qualche segnaposto resta sempre: ci sono dati che
+// nessuna fonte pubblica ha. Senza questo passo quelle bozze restavano
+// bloccate per sempre e l unica via d uscita era compilarle a mano — che e
+// esattamente quello che non si voleva fare.
+
+echo "\nFrasi girate quando il dato non si trova\n";
+
+$testoConBuco = '<p>Un sito parte da [DA VERIFICARE: prezzo minimo] euro. Il lavoro dura poco.</p>'
+	. '<p>Seguiamo [DA VERIFICARE: numero clienti] clienti.</p>';
+
+$frasiBuco = \SeoGeo\Ai\Verifiche::frasiCon( $testoConBuco );
+
+verifica( 'si isolano le frasi col buco, non i paragrafi interi', 2 === count( $frasiBuco ), implode( ' || ', $frasiBuco ) );
+verifica(
+	'la frase accanto resta fuori',
+	false === strpos( $frasiBuco[0], 'Il lavoro dura poco' ),
+	$frasiBuco[0]
+);
+verifica( 'e i tag non vengono inghiottiti', false === strpos( $frasiBuco[0], '<p>' ), $frasiBuco[0] );
+
+$girate = \SeoGeo\Ai\Verifiche::riscriviFrasi( $cercatore( 'frasi' ), $frasiBuco, $cfgCerca );
+
+verifica( 'il modello rimanda indietro una frase per ognuna', 2 === count( $girate ), (string) count( $girate ) );
+verifica(
+	'e nessuna ha ancora il segnaposto dentro',
+	0 === count( array_filter( $girate, static fn( $f ) => false !== strpos( $f, 'DA VERIFICARE' ) ) )
+);
+
+// Il modello che non fa il lavoro e rimanda indietro il segnaposto: quella
+// frase non si scrive, o il buco finisce in pagina lo stesso.
+$pigre = \SeoGeo\Ai\Verifiche::riscriviFrasi( $cercatore( 'frasi-pigre' ), array( 'Costa [DA VERIFICARE: prezzo medio].' ), $cfgCerca );
+
+verifica( 'una frase che torna col buco viene scartata', array() === $pigre, json_encode( $pigre ) );
+
+// Applicazione sulla bozza vera.
+$docB = $dbV->insert(
+	'documento',
+	array( 'audit_id' => $auditV, 'wp_id' => '9', 'titolo' => 'Articolo 9', 'slug' => 'a9', 'percorso' => '/a9/', 'url' => 'https://esempio.it/a9/', 'tipo' => 'post', 'stato' => 'publish', 'parole' => 700 )
+);
+
+$bozzaB = $dbV->insert(
+	'bozza',
+	array(
+		'audit_id' => $auditV, 'documento_id' => $docB, 'stato' => 'ok', 'modello' => 'prova',
+		'titolo' => 'Bozza bloccata',
+		'corpo_html' => $testoConBuco,
+		'in_breve' => 'Sintesi senza buchi.',
+		'meta_description' => 'Description senza buchi.',
+		'faq' => '[]', 'da_verificare' => '[]', 'creato_il' => date( 'Y-m-d H:i:s' ),
+	)
+);
+
+$aperteB = \SeoGeo\Ai\Verifiche::bozzeAperte( $dbV, $auditV );
+
+verifica( 'le bozze ancora bloccate si elencano', ! empty( $aperteB ), (string) count( $aperteB ) );
+
+$laMia = array_values( array_filter( $aperteB, static fn( $b ) => (int) $b['id'] === (int) $bozzaB ) );
+
+verifica( 'compresa quella appena inserita', 1 === count( $laMia ) );
+
+$sistemate = \SeoGeo\Ai\Verifiche::applicaFrasi( $dbV, $laMia[0], $girate );
+
+verifica( 'le frasi girate entrano nella bozza', $sistemate >= 1, (string) $sistemate );
+
+$dopoB = $dbV->one( 'SELECT * FROM bozza WHERE id = ?', array( $bozzaB ) );
+
+verifica( 'e nella bozza non resta nessun buco', array() === \SeoGeo\Ai\Verifiche::restano( $dopoB ), $dopoB['corpo_html'] );
+verifica( 'la frase senza buco non e stata toccata', false !== strpos( (string) $dopoB['corpo_html'], 'Il lavoro dura poco' ), $dopoB['corpo_html'] );
+verifica( 'i tag del paragrafo sono ancora al loro posto', false !== strpos( (string) $dopoB['corpo_html'], '</p>' ), $dopoB['corpo_html'] );
+verifica(
+	'e quella bozza non risulta piu bloccata',
+	0 === count( array_filter( \SeoGeo\Ai\Verifiche::bozzeAperte( $dbV, $auditV ), static fn( $b ) => (int) $b['id'] === (int) $bozzaB ) )
+);
+
+verifica(
+	'il gestionale ha il giro che le sistema in blocco',
+	false !== strpos( $indiceSorgente, "'api-senza-dato' === \$pagina" )
+		&& false !== strpos( $indiceSorgente, 'Verifiche::riscriviFrasi(' )
+);
+
+verifica(
+	'e la pagina delle bozze lo offre con il conto davanti',
+	false !== strpos( file_get_contents( __DIR__ . '/../views/bozze.php' ), 'Gira le frasi senza il dato mancante' )
+		&& false !== strpos( $indiceSorgente, "'bozze_bloccate'" )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

@@ -98,6 +98,55 @@ if ( 'a-pezzi' === $modo ) {
 	exit;
 }
 
+// Frasi girate per fare a meno del dato che non si e trovato: si risponde
+// con l elenco numerato, una frase svuotata compresa.
+if ( 'frasi' === $modo ) {
+	$quante = preg_match_all( '/^\s*(\d+)\.\s/m', (string) ( $richiesta['contents'][0]['parts'][0]['text'] ?? '' ), $numeri );
+	$fuori  = array();
+
+	foreach ( $numeri[1] as $i => $numero ) {
+		$fuori[] = array(
+			'numero' => (int) $numero,
+			// L ultima si svuota: senza il dato non diceva piu niente.
+			'nuova'  => $i === $quante - 1 ? '' : '<p>Il costo dipende da quante pagine servono.</p>',
+		);
+	}
+
+	echo json_encode(
+		array(
+			'candidates'    => array(
+				array(
+					'content'      => array( 'parts' => array( array( 'text' => json_encode( array( 'frasi' => $fuori ) ) ) ) ),
+					'finishReason' => 'STOP',
+				),
+			),
+			'usageMetadata' => array( 'promptTokenCount' => 300, 'candidatesTokenCount' => 120 ),
+		)
+	);
+	exit;
+}
+
+// Il modello che non fa il lavoro: rimanda indietro il segnaposto. Quella
+// frase non si deve scrivere, o il buco finisce in pagina lo stesso.
+if ( 'frasi-pigre' === $modo ) {
+	echo json_encode(
+		array(
+			'candidates'    => array(
+				array(
+					'content'      => array(
+						'parts' => array(
+							array( 'text' => json_encode( array( 'frasi' => array( array( 'numero' => 1, 'nuova' => 'Costa [DA VERIFICARE: prezzo medio].' ) ) ) ) ),
+						),
+					),
+					'finishReason' => 'STOP',
+				),
+			),
+			'usageMetadata' => array( 'promptTokenCount' => 300, 'candidatesTokenCount' => 40 ),
+		)
+	);
+	exit;
+}
+
 $completo = json_encode(
 	array(
 		'titolo'           => 'Agenzia di Marketing a Palermo: Crescita su Misura per PMI',

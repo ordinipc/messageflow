@@ -190,9 +190,11 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 		<p class="nota">
 			<?php echo num( count( $da_completare ) ); ?> bozze hanno ancora dei segnaposto
 			<code>[DA VERIFICARE: …]</code> nel testo: pubblicate così si leggerebbero in pagina.
-			Restano fuori da «Sovrascrivi tutte» finché non sono compilate — si fa da
-			<a href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>#verifiche">Riscrittura assistita</a>,
-			dove Gemini cerca online i dati che mancano.
+			Restano fuori da «Sovrascrivi tutte» finché non sono chiuse, e si chiudono in due passi,
+			tutti e due in <a href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>#verifiche">Riscrittura assistita</a>:
+			prima <strong>«Cercali su Google e compila»</strong>, che riempie i buchi con dati veri e
+			citati; poi <strong>«Gira le frasi senza il dato mancante»</strong> per quello che nessuna
+			fonte sa, che rigira la frase invece di lasciarla col buco. Da compilare a mano non resta niente.
 		</p>
 	<?php endif; ?>
 	<?php if ( $bloccate ) : ?>
@@ -358,7 +360,7 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 					<span class="nota"><?php echo e( $cosa_fara( $riga ) ); ?></span>
 				<?php endif; ?>
 			<?php elseif ( $pronto && $buchi ) : ?>
-				<a class="bottone chiaro" href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>#verifiche">Compila i dati mancanti</a>
+				<a class="bottone chiaro" href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>#verifiche">Chiudi i dati mancanti</a>
 			<?php elseif ( $pronto ) : ?>
 				<span class="nota"><strong>Da fare a mano:</strong> <?php echo e( $perche_no( $riga ) ); ?>.</span>
 			<?php endif; ?>
