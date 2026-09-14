@@ -2296,6 +2296,43 @@ verifica(
 		&& false !== strpos( file_get_contents( __DIR__ . '/../views/bozze.php' ), 'Chiedilo al sito' )
 );
 
+// --- Rimettere a posto duecento articoli ----------------------------------
+//
+// «Annulla tutto e ripristina» mandava tutti gli id in una richiesta sola.
+// Con duecento articoli l hosting la chiude a meta e non si sa nemmeno
+// quanti ne sono tornati indietro.
+
+echo "\nRipristino a blocchi\n";
+
+verifica(
+	'il ripristino va a blocchi, non tutto in una richiesta',
+	false !== strpos( $indiceSorgente, "'api-annulla' === \$pagina" )
+);
+
+$vistaCollega = file_get_contents( __DIR__ . '/../views/collega.php' );
+
+verifica(
+	'e la pagina dice a che punto e',
+	false !== strpos( $vistaCollega, 'annulla-barra' )
+		&& false !== strpos( $vistaCollega, 'annulla-battito' )
+		&& false !== strpos( $vistaCollega, 'annulla-stop' )
+);
+
+verifica(
+	'si puo fermare e quello che e fatto resta fatto',
+	false !== strpos( $vistaCollega, 'quello che è già' )
+);
+
+verifica(
+	'le pagine restano fuori: non vengono mai sovrascritte',
+	false !== strpos( $indiceSorgente, "SELECT wp_id FROM documento WHERE audit_id = ? AND tipo = 'post' ORDER BY id" )
+);
+
+verifica(
+	'e la sezione non promette piu solo le meta',
+	false !== strpos( $vistaCollega, "<strong>il testo dell'articolo</strong>" )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

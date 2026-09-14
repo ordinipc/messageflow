@@ -877,6 +877,50 @@ if ( 'api-sovrascrivi' === $pagina ) {
 	exit;
 }
 
+if ( 'api-annulla' === $pagina ) {
+	header( 'Content-Type: application/json; charset=utf-8' );
+
+	if ( ! hash_equals( token(), $_GET['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		echo json_encode( array( 'errore' => 'Sessione scaduta: ricarica la pagina.' ) );
+		exit;
+	}
+
+	// «Annulla tutto» mandava tutti gli id in una richiesta sola: con
+	// duecento articoli l hosting la chiude a meta e non si sa nemmeno
+	// quanti ne sono tornati indietro. Qui si va a blocchi, e la pagina
+	// dice a che punto e.
+	$id    = (int) ( $_GET['id'] ?? 0 );
+	$ponte = new WordPress( $cfg['wordpress'] );
+
+	$ids = array_values(
+		array_filter(
+			array_map( 'intval', explode( ',', (string) ( $_GET['ids'] ?? '' ) ) )
+		)
+	);
+
+	if ( ! $ids ) {
+		echo json_encode( array( 'ripristinati' => 0, 'fatti' => 0 ) );
+		exit;
+	}
+
+	try {
+		$esito = $ponte->annulla( $ids );
+
+		echo json_encode(
+			array(
+				'ripristinati' => (int) ( $esito['ripristinati'] ?? 0 ),
+				'fatti'        => count( $ids ),
+			)
+		);
+	} catch ( Throwable $e ) {
+		http_response_code( 500 );
+		echo json_encode( array( 'errore' => $e->getMessage(), 'fatti' => 0 ) );
+	}
+
+	exit;
+}
+
 if ( 'api-ripristina' === $pagina ) {
 	header( 'Content-Type: application/json; charset=utf-8' );
 
@@ -2611,6 +2655,19 @@ switch ( $pagina ) {
 				'audit'        => $audit,
 				'cfg'          => $cfg,
 				'pronto'       => $ponte->pronto(),
+				// Gli id degli articoli, per ripristinarli a blocchi: tutti
+				// insieme in una richiesta sola l hosting la chiude a meta.
+				// Le pagine restano fuori: non vengono mai sovrascritte.
+				'ids_articoli' => array_map(
+					'intval',
+					array_column(
+						$db->all(
+							"SELECT wp_id FROM documento WHERE audit_id = ? AND tipo = 'post' ORDER BY id",
+							array( $id )
+						),
+						'wp_id'
+					)
+				),
 				'stato'        => $stato,
 				'errore_stato' => $errore_stato,
 				'esito'        => (string) ( $_GET['esito'] ?? '' ),

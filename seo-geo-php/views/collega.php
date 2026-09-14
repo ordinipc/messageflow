@@ -10,6 +10,7 @@
  * @var array  $stato        Risposta del sito.
  * @var string $errore_stato Errore della prova di collegamento.
  * @var array  $conteggi     Quantità per ogni operazione.
+ * @var int[]  $ids_articoli Id WordPress degli articoli, per il ripristino a blocchi.
  */
 
 /**
@@ -370,16 +371,125 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 			struttura, se no il testo tornerebbe in WordPress e sulla pagina non si vedrebbe.
 		</p>
 		<p class="nota">
-			Vale per tutti i contenuti in una volta sola. Per rimettere il testo di
-			<strong>un articolo solo</strong>, il pulsante «Rimetti il testo di prima» è accanto a
-			quell'articolo in <a href="?p=confronto-bozze&amp;id=<?php echo (int) $audit['id']; ?>&amp;filtro=online">Vecchio e nuovo → Già online</a>.
+			Gli articoli si rimettono a posto <strong>a blocchi</strong>, uno dopo l'altro, con la barra
+			che dice a che punto è: tutti in una richiesta sola l'hosting la chiuderebbe a metà e non si
+			saprebbe nemmeno quanti ne sono tornati indietro. Si può fermare quando vuoi, quello che è già
+			fatto resta fatto.
+		</p>
+		<p class="nota">
+			Per rimettere il testo di <strong>un articolo solo</strong>, il pulsante «Rimetti il testo di
+			prima» è accanto a quell'articolo in
+			<a href="?p=confronto-bozze&amp;id=<?php echo (int) $audit['id']; ?>&amp;filtro=online">Vecchio e nuovo → Già online</a>.
 			Il ripristino delle sole pagine serve quando gli articoli vanno bene e a essere state toccate
 			per sbaglio sono le pagine servizio, che di solito sono scritte a mano.
 		</p>
-		<div class="azioni">
+		<div class="azioni" id="annulla-azioni">
+			<button class="bottone" type="button" id="annulla-tutti">Rimetti tutti gli articoli com'erano</button>
 			<?php azione( $audit['id'], 'annulla_pagine', 'Ripristina solo le pagine', 'Riportare le pagine alle meta precedenti?', 'bottone chiaro' ); ?>
-			<?php azione( $audit['id'], 'annulla', 'Annulla tutto e ripristina', 'Ripristinare le meta precedenti su tutti i contenuti?', 'bottone chiaro' ); ?>
 		</div>
+
+	<div id="annulla-corso" hidden>
+		<p><span id="annulla-spia" class="spia"></span> <strong id="annulla-titolo">Sto rimettendo i testi di prima…</strong></p>
+		<div class="barra" style="height:10px;margin-bottom:12px"><i id="annulla-barra" class="ok" style="width:1%;height:10px"></i></div>
+		<p class="nota">
+			<span id="annulla-fatti">0</span> di <span id="annulla-totale">0</span> controllati ·
+			<span id="annulla-ripristinati">0</span> riportati indietro
+		</p>
+		<p class="nota" id="annulla-battito"></p>
+		<button type="button" class="bottone chiaro" id="annulla-stop">Ferma</button>
+	</div>
+
+	<script>
+	(function () {
+		var avvio = document.getElementById('annulla-tutti');
+
+		if (!avvio || !window.fetch) { return; }
+
+		var token = <?php echo json_encode( token() ); ?>;
+		var idAudit = <?php echo (int) $audit['id']; ?>;
+		var coda = <?php echo json_encode( array_values( $ids_articoli ?? array() ) ); ?>;
+		var totale = coda.length;
+		var fatti = 0;
+		var ripristinati = 0;
+		var fermato = false;
+		var iniziato = 0;
+		var orologio = null;
+
+		// A blocchi piccoli: ogni ripristino riscrive il contenuto e la
+		// struttura di Elementor, che non e un lavoro istantaneo.
+		var PER_GIRO = 8;
+
+		function scrivi(id, testo) { document.getElementById(id).textContent = testo; }
+
+		function battito() {
+			var secondi = Math.round((Date.now() - iniziato) / 1000);
+			scrivi('annulla-battito', 'Blocco in corso da ' + secondi + ' second' + (1 === secondi ? 'o' : 'i')
+				+ '. Finche questo numero sale, sta lavorando.');
+		}
+
+		function spegni(classe, testo) {
+			document.getElementById('annulla-spia').className = 'spia ' + classe;
+			scrivi('annulla-titolo', testo);
+			scrivi('annulla-battito', '');
+			clearInterval(orologio);
+			var stop = document.getElementById('annulla-stop');
+			stop.textContent = 'Ricarica la pagina';
+			stop.onclick = function () { location.reload(); };
+		}
+
+		function giro() {
+			if (fermato || !coda.length) {
+				spegni('fermo', fermato
+					? 'Fermato: ' + ripristinati + ' articoli riportati indietro'
+					: 'Fatto: ' + ripristinati + ' articoli riportati indietro');
+				return;
+			}
+
+			var blocco = coda.splice(0, PER_GIRO);
+
+			iniziato = Date.now();
+			battito();
+			clearInterval(orologio);
+			orologio = setInterval(battito, 1000);
+
+			fetch('?p=api-annulla&id=' + idAudit + '&token=' + encodeURIComponent(token) + '&ids=' + blocco.join(','))
+				.then(function (r) { return r.json(); })
+				.then(function (d) {
+					if (d.errore) { spegni('guasto', 'Interrotto: ' + d.errore); return; }
+
+					fatti += d.fatti || blocco.length;
+					ripristinati += d.ripristinati || 0;
+
+					scrivi('annulla-fatti', fatti);
+					scrivi('annulla-ripristinati', ripristinati);
+					document.getElementById('annulla-barra').style.width =
+						Math.max(1, Math.round((fatti / totale) * 100)) + '%';
+
+					giro();
+				})
+				.catch(function (e) { spegni('guasto', 'Connessione interrotta: ' + e.message); });
+		}
+
+		avvio.addEventListener('click', function () {
+			if (!totale) { alert('Non ci sono articoli da rimettere a posto.'); return; }
+
+			if (!confirm('Rimettere ' + totale + ' articoli come erano prima della riscrittura? Torna il testo, il titolo e la struttura di Elementor.')) {
+				return;
+			}
+
+			document.getElementById('annulla-azioni').hidden = true;
+			document.getElementById('annulla-corso').hidden = false;
+			scrivi('annulla-totale', totale);
+			giro();
+		});
+
+		document.getElementById('annulla-stop').addEventListener('click', function () {
+			fermato = true;
+			scrivi('annulla-titolo', 'Mi fermo alla fine di questo blocco…');
+			document.getElementById('annulla-spia').className = 'spia fermo';
+		});
+	})();
+	</script>
 	</section>
 
 	<?php $cambiati = $confronto['cambiati']; ?>
