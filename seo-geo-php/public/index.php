@@ -857,9 +857,17 @@ if ( 'api-sovrascrivi' === $pagina ) {
 			)
 		);
 
-		// Si segna quando e stata inviata: cosi l elenco distingue quelle
-		// gia messe online da quelle ancora da decidere.
-		$db->run( 'UPDATE bozza SET inviata_il = ? WHERE id = ?', array( date( 'Y-m-d H:i:s' ), (int) $riga['id'] ) );
+		// Si segna quando e stata inviata, e si mette in archivio il testo
+		// ripulito: quello che parte deve essere anche quello che resta
+		// scritto qui.
+		//
+		// Senza la seconda parte, l elenco «da ripulire» continuava a
+		// contare gli stessi articoli anche dopo averli rimandati: guarda il
+		// testo in archivio, che era rimasto quello sporco.
+		$db->run(
+			'UPDATE bozza SET inviata_il = ?, corpo_html = ? WHERE id = ?',
+			array( date( 'Y-m-d H:i:s' ), $corpo, (int) $riga['id'] )
+		);
 
 		echo json_encode(
 			array(

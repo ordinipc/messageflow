@@ -2401,6 +2401,28 @@ verifica(
 	false !== strpos( file_get_contents( __DIR__ . '/../views/audit.php' ), 'Confronta due articoli' )
 );
 
+// --- Rimandare un articolo deve anche toglierlo dall elenco ---------------
+//
+// L elenco «da ripulire» guarda il testo in archivio. Il testo si ripuliva
+// solo al momento di inviarlo, e in archivio restava quello sporco: dopo
+// aver rimandato tutti e trenta gli articoli, l elenco ne contava ancora
+// trenta.
+
+echo "\nL elenco «da ripulire» si svuota\n";
+
+verifica(
+	'il testo ripulito viene scritto anche in archivio, non solo inviato',
+	false !== strpos( $indiceSorgente, "UPDATE bozza SET inviata_il = ?, corpo_html = ? WHERE id = ?" )
+);
+
+// La condizione dell elenco: una bozza ci finisce finche il suo testo in
+// archivio contiene i dati strutturati.
+$sporca  = '<p>Testo.</p>{ "@context": "https://schema.org", "@type": "Article" }<p>Altro.</p>';
+$pulita  = \SeoGeo\Html::senzaDatiStrutturati( $sporca );
+
+verifica( 'una bozza sporca risulta da ripulire', $pulita !== $sporca );
+verifica( 'una bozza gia ripulita non ci rientra', $pulita === \SeoGeo\Html::senzaDatiStrutturati( $pulita ) );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );
