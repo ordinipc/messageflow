@@ -8,7 +8,8 @@
  * @var bool   $pronto Collegamento a WordPress configurato.
  * @var array  $costruttori wp_id => costruttore visuale che disegna il contenuto.
  * @var array  $strutture   wp_id => che cosa c e dentro alla struttura di Elementor.
- * @var string $filtro      Vista scelta: '', 'da-inviare', 'online', 'a-mano'.
+ * @var string $filtro      Vista scelta: '', 'da-inviare', 'online', 'a-mano',
+ *                          'da-completare', 'da-ripulire'.
  * @var string $esito  Messaggio.
  * @var string $errore Errore.
  */
@@ -89,13 +90,13 @@ $ripulito = static function ( $riga ) {
 	return $fatti[ $chiave ];
 };
 
-// Un articolo con dentro «[DA VERIFICARE: data di pubblicazione]» pubblicato
-// e peggio dell articolo di prima: il segnaposto lo legge chiunque apra la
-// pagina. Finche i dati non sono compilati, quella bozza non parte.
+// Quali bozze hanno ancora un «[DA VERIFICARE: ...]» dentro. Non ferma
+// niente: si mandano online come le altre, e chi pubblica decide. Serve a
+// dirlo prima, e a offrire i due pulsanti che lo chiudono.
 //
 // Si guarda il testo ripulito: i segnaposto che stavano dentro al JSON-LD
-// sparivano insieme a quello, e contarli lo stesso teneva fuori dall invio
-// bozze che erano gia a posto.
+// sparivano insieme a quello, e contarli lo stesso avrebbe segnalato bozze
+// che erano gia a posto.
 $mancanti = static function ( $riga ) use ( $ripulito ) {
 	return \SeoGeo\Ai\Verifiche::restano( array( 'corpo_html' => $ripulito( $riga ) ) + $riga );
 };
@@ -120,7 +121,7 @@ $da_completare = array_values(
 $da_inviare = array_values(
 	array_filter(
 		$righe,
-		static fn( $r ) => empty( $r['inviata_il'] ) && $scrivibile( $r ) && ! $mancanti( $r )
+		static fn( $r ) => empty( $r['inviata_il'] ) && $scrivibile( $r )
 	)
 );
 
@@ -189,12 +190,12 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 	<?php if ( $da_completare ) : ?>
 		<p class="nota">
 			<?php echo num( count( $da_completare ) ); ?> bozze hanno ancora dei segnaposto
-			<code>[DA VERIFICARE: …]</code> nel testo: pubblicate così si leggerebbero in pagina.
-			Restano fuori da «Sovrascrivi tutte» finché non sono chiuse, e si chiudono in due passi,
-			tutti e due in <a href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>#verifiche">Riscrittura assistita</a>:
-			prima <strong>«Cercali su Google e compila»</strong>, che riempie i buchi con dati veri e
-			citati; poi <strong>«Gira le frasi senza il dato mancante»</strong> per quello che nessuna
-			fonte sa, che rigira la frase invece di lasciarla col buco. Da compilare a mano non resta niente.
+			<code>[DA VERIFICARE: …]</code> nel testo. <strong>Si mandano online lo stesso</strong>: sono
+			dentro a «Sovrascrivi tutte» come le altre, e i segnaposto si leggeranno in pagina.
+			Se preferisci evitarlo, in
+			<a href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>#verifiche">Riscrittura assistita</a>
+			ci sono due pulsanti che li chiudono senza farti scrivere niente: «Cercali su Google e compila»
+			e «Gira le frasi senza il dato mancante».
 		</p>
 	<?php endif; ?>
 	<?php if ( $bloccate ) : ?>
@@ -278,12 +279,7 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 	// Il pulsante in blocco lavora sulla vista che si sta guardando. Prima
 	// mandava sempre e solo le bozze mai inviate: nella vista «da ripulire»,
 	// dove sono tutte gia online, non avrebbe fatto niente.
-	$in_lotto = array_values(
-		array_filter(
-			$elenco,
-			static fn( $r ) => $scrivibile( $r ) && ! $mancanti( $r )
-		)
-	);
+	$in_lotto = array_values( array_filter( $elenco, static fn( $r ) => $scrivibile( $r ) ) );
 
 	$etichetta_lotto = 'da-ripulire' === $filtro
 		? 'Rimanda ' . ( 1 === count( $in_lotto ) ? 'l\'articolo da ripulire' : 'i ' . count( $in_lotto ) . ' articoli da ripulire' )
@@ -346,21 +342,22 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 			<p class="avviso grave">
 				<strong>Dati da verificare, <?php echo num( count( $buchi ) ); ?>:</strong>
 				<?php echo e( implode( ' · ', array_slice( $buchi, 0, 4 ) ) ); ?><?php echo count( $buchi ) > 4 ? ' · e altri ' . num( count( $buchi ) - 4 ) : ''; ?>.
-				Finché ci sono, questo testo non si manda online: i segnaposto si leggerebbero in pagina.
+				Se lo mandi così, in pagina si leggono. «Gira prima le frasi col buco» le riscrive senza il dato.
 			</p>
 		<?php endif; ?>
 
 		<div class="azioni">
 			<a class="bottone chiaro" href="?p=bozza&amp;b=<?php echo (int) $riga['id']; ?>">Apri la bozza intera</a>
-			<?php if ( $pronto && $scrivibile( $riga ) && ! $buchi ) : ?>
+			<?php if ( $pronto && $scrivibile( $riga ) ) : ?>
 				<button class="bottone invia-una" type="button" data-bozza="<?php echo (int) $riga['id']; ?>">
 					<?php echo empty( $riga['inviata_il'] ) ? 'Sovrascrivi questo articolo' : 'Riscrivi di nuovo'; ?>
 				</button>
+				<?php if ( $buchi ) : ?>
+					<a class="bottone chiaro" href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>#senza-dato">Gira prima le frasi col buco</a>
+				<?php endif; ?>
 				<?php if ( '' !== $cosa_fara( $riga ) ) : ?>
 					<span class="nota"><?php echo e( $cosa_fara( $riga ) ); ?></span>
 				<?php endif; ?>
-			<?php elseif ( $pronto && $buchi ) : ?>
-				<a class="bottone chiaro" href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>#verifiche">Chiudi i dati mancanti</a>
 			<?php elseif ( $pronto ) : ?>
 				<span class="nota"><strong>Da fare a mano:</strong> <?php echo e( $perche_no( $riga ) ); ?>.</span>
 			<?php endif; ?>

@@ -838,23 +838,10 @@ if ( 'api-sovrascrivi' === $pagina ) {
 	// ripulisce qui, al momento di inviare, non solo quando si genera.
 	$corpo = Html::senzaDatiStrutturati( (string) $riga['corpo_html'] );
 
-	// Con i segnaposto dentro, l articolo pubblicato e peggio di quello di
-	// prima: chi legge la pagina vede «[DA VERIFICARE: ...]». Si ferma qui e
-	// si dice quale dato manca.
-	$mancano = Verifiche::restano( array( 'corpo_html' => $corpo ) + $riga );
-
-	if ( $mancano ) {
-		http_response_code( 409 );
-		echo json_encode(
-			array(
-				'errore' => 'Mancano ancora dei dati da verificare: ' . implode( '; ', array_slice( $mancano, 0, 3 ) )
-					. ( count( $mancano ) > 3 ? ' e altri ' . ( count( $mancano ) - 3 ) : '' )
-					. '. Compilali da «Riscrittura assistita» prima di mandarlo online.',
-				'bozza'  => (int) $riga['id'],
-			)
-		);
-		exit;
-	}
+	// I segnaposto rimasti non fermano piu l invio: il testo va online com e.
+	// La scelta e di chi pubblica, non del programma — resta segnalato in
+	// pagina quali bozze ne hanno ancora, e «Gira le frasi senza il dato
+	// mancante» resta disponibile per chi lo vuole usare.
 
 	try {
 		$esito = $ponte->sovrascrivi(

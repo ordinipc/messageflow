@@ -1951,18 +1951,29 @@ verifica(
 	array() !== \SeoGeo\Ai\Verifiche::restano( array( 'faq' => '[{"risposta":"[DA VERIFICARE: orari]"}]' ) )
 );
 
+// Chi pubblica decide: i segnaposto rimasti non fermano l invio. Restano
+// segnalati, e i due pulsanti che li chiudono restano dove sono.
 verifica(
-	'il gestionale si rifiuta di mandare online una bozza con i segnaposto',
-	false !== strpos( $indiceSorgente, 'Verifiche::restano(' )
-		&& false !== strpos( $indiceSorgente, 'Mancano ancora dei dati da verificare' )
+	'i segnaposto non bloccano piu l invio',
+	false === strpos( $indiceSorgente, 'Mancano ancora dei dati da verificare' )
 );
 
 $vistaConfronto2 = file_get_contents( __DIR__ . '/../views/confronto-bozze.php' );
 
 verifica(
-	'e quelle bozze restano fuori da «Sovrascrivi tutte»',
+	'e quelle bozze sono dentro a «Sovrascrivi tutte» come le altre',
+	false === strpos( $vistaConfronto2, "&& ! \$mancanti( \$r )" )
+);
+
+verifica(
+	'ma in pagina si vede quali ne hanno ancora',
 	false !== strpos( $vistaConfronto2, '$da_completare' )
-		&& false !== strpos( $vistaConfronto2, "! \$mancanti( \$r )" )
+		&& false !== strpos( $vistaConfronto2, 'Dati da verificare,' )
+);
+
+verifica(
+	'e il pulsante per sovrascrivere c e su tutte',
+	false !== strpos( $vistaConfronto2, 'if ( $pronto && $scrivibile( $riga ) ) : ?>' )
 );
 
 verifica(
