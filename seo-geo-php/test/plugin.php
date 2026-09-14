@@ -1042,6 +1042,18 @@ stub_crea_post( 989, 'Articolo con la struttura rotta', '<p>Residuo.</p>' );
 update_post_meta( 989, '_elementor_data', 'questo non e JSON {{{' );
 update_post_meta( 989, '_elementor_edit_mode', 'builder' );
 
+// La diagnosi del sito: risponde alla domanda «il CSS si e rigenerato o no?».
+// Se gli articoli cambiano aspetto tutti insieme, la causa non e dentro a
+// nessuno di loro.
+$diagnosiSito = MDI_Api::diagnosi_sito();
+$diagnosiSito = is_wp_error( $diagnosiSito ) ? array() : (array) $diagnosiSito;
+
+verifica( 'la diagnosi del sito dice dove stanno i file', '' !== (string) ( $diagnosiSito['cartella']['percorso'] ?? '' ) );
+verifica( 'e se la cartella si lascia scrivere', array_key_exists( 'scrivibile', (array) ( $diagnosiSito['cartella'] ?? array() ) ) );
+verifica( 'e se il file dei colori globali c e', array_key_exists( 'esiste', (array) ( $diagnosiSito['kit'] ?? array() ) ) );
+verifica( 'e come Elementor stampa il CSS', array_key_exists( 'modo_css', (array) ( $diagnosiSito['elementor'] ?? array() ) ) );
+verifica( 'e quale tema c e sotto', array_key_exists( 'nome', (array) ( $diagnosiSito['tema'] ?? array() ) ) );
+
 // La diagnosi: che cosa c e davvero dentro a un contenuto. Nata dopo mezza
 // giornata passata a confrontare screenshot senza capire se una pagina fosse
 // cambiata o no.

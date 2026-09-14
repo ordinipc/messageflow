@@ -2341,6 +2341,33 @@ verifica(
 
 echo "\nConfronto fra due contenuti\n";
 
+// Se gli articoli cambiano aspetto tutti insieme, la causa non e dentro a
+// nessuno di loro: e nel CSS che il sito genera una volta per tutti. Quello
+// si guarda sempre, anche senza indicare nessun articolo.
+verifica(
+	'lo stato del CSS del sito si guarda sempre',
+	false !== strpos( $indiceSorgente, '$ponte->diagnosiSito()' )
+		&& false !== strpos( file_get_contents( __DIR__ . '/../src/Bridge/WordPress.php' ), 'diagnosiSito' )
+);
+
+$vistaConfronta = file_get_contents( __DIR__ . '/../views/confronta-contenuti.php' );
+
+verifica(
+	'e quando manca il file dei colori globali lo dice in chiaro',
+	false !== strpos( $vistaConfronta, "Il file dei colori globali non c'è" )
+		&& false !== strpos( $vistaConfronta, 'La cartella non è scrivibile' )
+);
+
+verifica(
+	'e dice anche dove si sistema',
+	false !== strpos( $vistaConfronta, 'deve essere scrivibile' )
+);
+
+verifica(
+	'quando invece e a posto lo dice, cosi non si cerca li',
+	false !== strpos( $vistaConfronta, 'non è per un file mancante' )
+);
+
 verifica(
 	'il gestionale sa chiedere che cosa c e dentro a un contenuto',
 	false !== strpos( $indiceSorgente, "'confronta-contenuti' === \$pagina" )
@@ -2352,8 +2379,6 @@ verifica(
 	false !== strpos( $indiceSorgente, "ctype_digit( \$cercato )" )
 		&& false !== strpos( $indiceSorgente, 'parse_url( $cercato, PHP_URL_PATH )' )
 );
-
-$vistaConfronta = file_get_contents( __DIR__ . '/../views/confronta-contenuti.php' );
 
 verifica(
 	'e la pagina mette in evidenza solo quello che e diverso',

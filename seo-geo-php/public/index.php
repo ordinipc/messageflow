@@ -898,6 +898,16 @@ if ( 'confronta-contenuti' === $pagina ) {
 
 	$diagnosi = array();
 	$errore   = '';
+	$sito     = array();
+
+	// Se gli articoli sono cambiati tutti insieme, la causa non e dentro a
+	// nessuno di loro: e nel CSS che il sito genera una volta per tutti.
+	// Questo si guarda sempre, anche senza indicare nessun articolo.
+	try {
+		$sito = $ponte->pronto() ? $ponte->diagnosiSito() : array();
+	} catch ( Throwable $e ) {
+		$errore = $e->getMessage();
+	}
 
 	foreach ( $cercati as $posizione => $cercato ) {
 		if ( '' === $cercato ) {
@@ -938,6 +948,7 @@ if ( 'confronta-contenuti' === $pagina ) {
 			'audit'    => $audit,
 			'pronto'   => $ponte->pronto(),
 			'cercati'  => $cercati,
+			'sito'     => $sito,
 			'diagnosi' => $diagnosi,
 			'errore'   => $errore,
 		)

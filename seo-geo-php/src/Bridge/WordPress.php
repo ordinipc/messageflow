@@ -266,6 +266,15 @@ class WordPress {
 	}
 
 	/**
+	 * Lo stato del CSS generato del sito.
+	 *
+	 * @return array
+	 */
+	public function diagnosiSito() {
+		return $this->chiama( 'GET', '/diagnosi-sito' );
+	}
+
+	/**
 	 * Che cosa c e davvero dentro a un contenuto, adesso, sul sito.
 	 *
 	 * @param int $wpId Contenuto su WordPress.

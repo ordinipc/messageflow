@@ -42,6 +42,7 @@ function stub_crea_post( $id, $titolo, $contenuto = '' ) {
 		'post_name'         => 'articolo-' . $id,
 		'post_date'         => '2026-01-01 10:00:00',
 		'post_date_gmt'     => '2026-01-01 09:00:00',
+		'post_modified'     => '2026-02-01 10:00:00',
 		'post_modified_gmt' => '2026-02-01 09:00:00',
 		'post_parent'       => 0,
 		'comment_status'    => 'closed',
@@ -650,6 +651,22 @@ function stub_cartella_caricamenti() {
 	}
 
 	return $cartella;
+}
+
+function trailingslashit( $percorso ) {
+	return rtrim( (string) $percorso, '/\\' ) . '/';
+}
+
+function wp_is_writable( $percorso ) {
+	return is_writable( (string) $percorso );
+}
+
+function wp_get_theme() {
+	return new class() {
+		public function get( $campo ) {
+			return 'Name' === $campo ? 'Tema di prova' : '1.0';
+		}
+	};
 }
 
 function wp_upload_dir() {

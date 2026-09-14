@@ -168,6 +168,11 @@ class MDI_Api {
 			'callback' => array( __CLASS__, 'strutture_elementor' ),
 		) );
 
+		register_rest_route( self::NAMESPACE_API, '/diagnosi-sito', $comune + array(
+			'methods'  => 'GET',
+			'callback' => array( __CLASS__, 'diagnosi_sito' ),
+		) );
+
 		register_rest_route( self::NAMESPACE_API, '/diagnosi-contenuto', $comune + array(
 			'methods'  => 'GET',
 			'callback' => array( __CLASS__, 'diagnosi_contenuto' ),
@@ -1535,6 +1540,76 @@ class MDI_Api {
 		}
 
 		return self::altroCostruttore( $id );
+	}
+
+	/**
+	 * Lo stato del CSS generato del sito.
+	 *
+	 * Serve a rispondere a una domanda sola: il CSS che Elementor genera si
+	 * e rigenerato, oppure no?
+	 *
+	 * Il vecchio codice del plugin, per pubblicare un articolo, buttava via
+	 * il CSS generato di tutto il sito. Se la cartella non e scrivibile,
+	 * quei file non tornano, e il sito resta senza i suoi stili: colori
+	 * diversi su tutte le pagine che dipendono da quel CSS. Da fuori sembra
+	 * che sia cambiato un articolo; in realta manca un file.
+	 *
+	 * Qui si guardano i file veri: ci sono, quanto pesano, di quando sono.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public static function diagnosi_sito() {
+		$upload   = wp_upload_dir();
+		$cartella = trailingslashit( (string) ( $upload['basedir'] ?? '' ) ) . 'elementor/css';
+
+		$file = array();
+
+		if ( is_dir( $cartella ) ) {
+			foreach ( (array) glob( $cartella . '/*.css' ) as $percorso ) {
+				$file[] = array(
+					'nome'    => basename( (string) $percorso ),
+					'byte'    => (int) filesize( (string) $percorso ),
+					'quando'  => date( 'Y-m-d H:i', (int) filemtime( (string) $percorso ) ),
+				);
+			}
+		}
+
+		// Il kit e il file che porta i colori e i caratteri globali: se manca
+		// quello, cambia l aspetto di tutto il sito in una volta.
+		$kit  = (int) get_option( 'elementor_active_kit', 0 );
+		$suo  = $kit ? $cartella . '/post-' . $kit . '.css' : '';
+		$kitc = $suo && is_file( $suo );
+
+		usort( $file, static function ( $a, $b ) { return strcmp( $b['quando'], $a['quando'] ); } );
+
+		return rest_ensure_response(
+			array(
+				'ok'        => true,
+				'cartella'  => array(
+					'percorso'   => $cartella,
+					'esiste'     => is_dir( $cartella ),
+					'scrivibile' => is_dir( $cartella ) && wp_is_writable( $cartella ),
+					'file'       => count( $file ),
+					'ultimi'     => array_slice( $file, 0, 8 ),
+				),
+				'kit'       => array(
+					'id'       => $kit,
+					'file'     => $kitc ? basename( $suo ) : '',
+					'esiste'   => $kitc,
+					'byte'     => $kitc ? (int) filesize( $suo ) : 0,
+					'quando'   => $kitc ? date( 'Y-m-d H:i', (int) filemtime( $suo ) ) : '',
+				),
+				'elementor' => array(
+					'versione'      => defined( 'ELEMENTOR_VERSION' ) ? ELEMENTOR_VERSION : '',
+					'modo_css'      => (string) get_option( 'elementor_css_print_method', 'external' ),
+					'attivo'        => class_exists( '\\Elementor\\Plugin' ),
+				),
+				'tema'      => array(
+					'nome'     => (string) wp_get_theme()->get( 'Name' ),
+					'versione' => (string) wp_get_theme()->get( 'Version' ),
+				),
+			)
+		);
 	}
 
 	/**
