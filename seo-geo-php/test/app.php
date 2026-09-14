@@ -3211,6 +3211,131 @@ verifica(
 
 @unlink( $fileApp );
 
+// ---------------------------------------------------------------------------
+// I numeri si aggiornano da soli chiedendo al sito
+//
+// Rileggere tutto costa minuti e non si puo fare a ogni caricamento. Ma
+// alcune domande costano una richiesta sola e rispondono per tutto il sito:
+// quelle si fanno a ogni apertura della pagina.
+
+echo "\nL analisi si allinea da sola a quello che il sito ha adesso\n";
+
+$fileAll = sys_get_temp_dir() . '/prova-allinea-' . getmypid() . '.sqlite';
+@unlink( $fileAll );
+$dbAll = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileAll ) );
+
+$auditAll = $dbAll->insert(
+	'audit',
+	array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => date( 'Y-m-d H:i:s' ), 'punteggio' => 40 )
+);
+
+$dbAll->insert( 'documento', array( 'audit_id' => $auditAll, 'wp_id' => '30', 'tipo' => 'post', 'stato' => 'publish', 'titolo' => 'Con foto', 'percorso' => '/con-foto/', 'url' => 'https://esempio.it/con-foto/', 'ha_thumbnail' => 0 ) );
+$dbAll->insert( 'documento', array( 'audit_id' => $auditAll, 'wp_id' => '31', 'tipo' => 'post', 'stato' => 'publish', 'titolo' => 'Senza foto', 'percorso' => '/senza-foto/', 'url' => 'https://esempio.it/senza-foto/', 'ha_thumbnail' => 0 ) );
+
+$mettiRilievo = static function ( $regola, array $riferimenti ) use ( $dbAll, $auditAll ) {
+	$rid = $dbAll->insert(
+		'rilievo',
+		array( 'audit_id' => $auditAll, 'regola' => $regola, 'area' => 'x', 'gravita' => 'high', 'titolo' => $regola, 'perche' => '', 'soluzione' => '', 'automatico' => 1, 'occorrenze' => count( $riferimenti ) )
+	);
+
+	foreach ( $riferimenti as $r ) {
+		$dbAll->insert( 'occorrenza', array( 'rilievo_id' => $rid, 'riferimento' => $r, 'dettaglio' => '' ) );
+	}
+};
+
+$mettiRilievo( 'SCH-01', array( '/con-foto/', '/senza-foto/' ) );
+$mettiRilievo( 'ONP-07', array( '/vecchio-indirizzo/', '/mai-spostato/' ) );
+$mettiRilievo( 'IMG-05', array( '/con-foto/', '/senza-foto/' ) );
+$mettiRilievo( 'CNT-01', array( '/con-foto/' ) );
+
+// Un sito che risponde: stampa lo schema, ha un redirect attivo, e uno solo
+// dei due articoli ha l immagine in evidenza.
+$sitoVivo = new class() extends \SeoGeo\Bridge\WordPress {
+	public function __construct() {}
+
+	public function pronto() { return true; }
+
+	public function conteggi() {
+		return array( 'sito' => array( 'stampa' => array( 'jsonld' => true, 'alt' => false ) ) );
+	}
+
+	public function redirectAttivi() {
+		return array( 'percorsi' => array( '/vecchio-indirizzo/' ) );
+	}
+
+	public function miniature( array $ids ) {
+		return array( 'miniature' => array( '30' => true, '31' => false ) );
+	}
+};
+
+$cfgAll = array(
+	'azienda' => array( 'telefono' => '091 1234567', 'partitaIva' => 'DA_COMPILARE', 'indirizzo' => array( 'via' => 'DA_COMPILARE' ) ),
+	'autori'  => array( array( 'nome' => 'DA_COMPILARE', 'ruolo' => 'DA_COMPILARE' ) ),
+);
+
+$mettiRilievo( 'LOC-01', array( '(sito)' ) );
+$mettiRilievo( 'LOC-02', array( '(sito)' ) );
+
+$esitoAll = \SeoGeo\Allinea::esegui( $dbAll, $sitoVivo, $auditAll, $cfgAll );
+
+$aperte = static function ( $regola ) use ( $dbAll, $auditAll ) {
+	return (int) $dbAll->one(
+		'SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id
+		 WHERE r.audit_id = ? AND r.regola = ? AND COALESCE( o.applicato, 0 ) = 0',
+		array( $auditAll, $regola )
+	)['n'];
+};
+
+verifica( 'quello che il plugin stampa si chiude da solo', 0 === $aperte( 'SCH-01' ), (string) $aperte( 'SCH-01' ) );
+verifica( 'ma quello che il plugin non stampa resta aperto', 1 === $aperte( 'CNT-01' ), (string) $aperte( 'CNT-01' ) );
+verifica( 'il redirect attivo si chiude, quello mai fatto no', 1 === $aperte( 'ONP-07' ), (string) $aperte( 'ONP-07' ) );
+verifica( 'si chiude solo l articolo che ha davvero la foto', 1 === $aperte( 'IMG-05' ), (string) $aperte( 'IMG-05' ) );
+verifica( 'e sul sito viene segnato che la foto c e', 1 === (int) $dbAll->one( 'SELECT ha_thumbnail FROM documento WHERE wp_id = ?', array( '30' ) )['ha_thumbnail'] );
+verifica( 'il telefono compilato chiude il rilievo sul telefono', 0 === $aperte( 'LOC-01' ), (string) $aperte( 'LOC-01' ) );
+verifica( 'la partita IVA non compilata lo lascia aperto', 1 === $aperte( 'LOC-02' ), (string) $aperte( 'LOC-02' ) );
+verifica( 'e si dice che cosa e stato chiuso', isset( $esitoAll['SCH-01'], $esitoAll['ONP-07'], $esitoAll['IMG-05'] ), json_encode( $esitoAll ) );
+
+// Un sito che non risponde non deve far sparire niente: meglio un numero
+// alto di un numero inventato.
+@unlink( $fileAll );
+$dbMuto = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileAll ) );
+
+$auditMuto = $dbMuto->insert( 'audit', array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => date( 'Y-m-d H:i:s' ), 'punteggio' => 40 ) );
+$ridMuto   = $dbMuto->insert( 'rilievo', array( 'audit_id' => $auditMuto, 'regola' => 'SCH-01', 'area' => 'x', 'gravita' => 'high', 'titolo' => 'x', 'perche' => '', 'soluzione' => '', 'automatico' => 1, 'occorrenze' => 2 ) );
+$dbMuto->insert( 'occorrenza', array( 'rilievo_id' => $ridMuto, 'riferimento' => '/uno/', 'dettaglio' => '' ) );
+$dbMuto->insert( 'occorrenza', array( 'rilievo_id' => $ridMuto, 'riferimento' => '/due/', 'dettaglio' => '' ) );
+
+$sitoRotto = new class() extends \SeoGeo\Bridge\WordPress {
+	public function __construct() {}
+
+	public function pronto() { return true; }
+
+	public function conteggi() { throw new \RuntimeException( 'sito irraggiungibile' ); }
+
+	public function redirectAttivi() { throw new \RuntimeException( 'sito irraggiungibile' ); }
+
+	public function miniature( array $ids ) { throw new \RuntimeException( 'sito irraggiungibile' ); }
+};
+
+$esitoMuto = \SeoGeo\Allinea::esegui( $dbMuto, $sitoRotto, $auditMuto, array() );
+
+verifica(
+	'se il sito non risponde non si chiude niente',
+	2 === (int) $dbMuto->one(
+		'SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id
+		 WHERE r.audit_id = ? AND COALESCE( o.applicato, 0 ) = 0',
+		array( $auditMuto )
+	)['n'],
+	json_encode( $esitoMuto )
+);
+
+// E non si richiede al sito a ogni ricarica della pagina.
+verifica( 'appena fatto, non si rifa subito', false === \SeoGeo\Allinea::scaduto( $auditMuto ) );
+
+@unlink( \SeoGeo\Allinea::segno( $auditAll ) );
+@unlink( \SeoGeo\Allinea::segno( $auditMuto ) );
+@unlink( $fileAll );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

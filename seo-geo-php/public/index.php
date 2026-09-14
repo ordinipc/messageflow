@@ -12,6 +12,7 @@ use SeoGeo\Ai\Immagini;
 use SeoGeo\Ai\Rewriter as Riscrittura;
 use SeoGeo\Ai\Rewriter;
 use SeoGeo\Ai\Verifiche;
+use SeoGeo\Allinea;
 use SeoGeo\Applicato;
 use SeoGeo\Audit;
 use SeoGeo\Bridge\WordPress;
@@ -1799,13 +1800,21 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				// L elenco delle immagini pesanti si legge dal sito, non
 				// dall archivio: qui conta quello che c e adesso in libreria
 				// media. Se il sito non risponde la sezione lo dice e basta.
-				'immagini'     => ( static function () use ( $ponte, $stato ) {
+				'immagini'     => ( static function () use ( $ponte, $stato, $db, $id ) {
 					if ( ! $ponte->pronto() || ! $stato ) {
 						return array();
 					}
 
 					try {
-						return Compressione::elenco( $ponte );
+						$elenco = Compressione::elenco( $ponte );
+
+						// L elenco appena letto e la verita: si coglie
+						// l occasione per togliere dall analisi i file che
+						// non sono piu sopra soglia, senza chiedere niente
+						// in piu al sito.
+						Compressione::allinea( $db, $id, $elenco );
+
+						return $elenco;
 					} catch ( Throwable $e ) {
 						return array( 'errore' => 'Elenco non leggibile: ' . $e->getMessage() );
 					}
@@ -2451,6 +2460,24 @@ switch ( $pagina ) {
 			array( $id, $audit['sito_url'] )
 		);
 
+		// Prima di contare, si chiede al sito. Non tutto - rileggere 330
+		// contenuti costa minuti - ma quello che si puo sapere con una
+		// richiesta sola: che cosa stampa il plugin, quali redirect sono
+		// attivi, quali articoli hanno l immagine in evidenza. Piu i dati
+		// aziendali, che sono gia qui. Con un tetto di tempo, e non piu
+		// spesso di ogni tre minuti.
+		$allineato = array();
+
+		if ( Allinea::scaduto( $id ) ) {
+			try {
+				$allineato = Allinea::esegui( $db, new WordPress( $cfg['wordpress'] ), $id, $cfg );
+			} catch ( Throwable $e ) {
+				// Un sito che non risponde non deve impedire di aprire la
+				// pagina: si mostrano i numeri dell ultima volta.
+				$allineato = array();
+			}
+		}
+
 		// I conti della tabella non sono piu quelli della fotografia: sono
 		// quelli della fotografia meno il lavoro registrato da allora. Senza
 		// questo passaggio la pagina continua a segnalare problemi che sono
@@ -2475,6 +2502,8 @@ switch ( $pagina ) {
 				'aree'      => $db->all( 'SELECT * FROM area WHERE audit_id = ? ORDER BY punteggio ASC', array( $id ) ),
 				'rilievi'   => $separati['aperti'],
 				'sistemati' => $separati['chiusi'],
+				'allineato' => $allineato,
+				'allinea'   => Allinea::ultimo( $id ),
 				'conteggi'  => $db->all( 'SELECT categoria, COUNT(*) n FROM triage WHERE audit_id = ? GROUP BY categoria', array( $id ) ),
 				'db'        => $db,
 				'cfg'       => $cfg,
@@ -2911,13 +2940,21 @@ switch ( $pagina ) {
 				// L elenco delle immagini pesanti si legge dal sito, non
 				// dall archivio: qui conta quello che c e adesso in libreria
 				// media. Se il sito non risponde la sezione lo dice e basta.
-				'immagini'     => ( static function () use ( $ponte, $stato ) {
+				'immagini'     => ( static function () use ( $ponte, $stato, $db, $id ) {
 					if ( ! $ponte->pronto() || ! $stato ) {
 						return array();
 					}
 
 					try {
-						return Compressione::elenco( $ponte );
+						$elenco = Compressione::elenco( $ponte );
+
+						// L elenco appena letto e la verita: si coglie
+						// l occasione per togliere dall analisi i file che
+						// non sono piu sopra soglia, senza chiedere niente
+						// in piu al sito.
+						Compressione::allinea( $db, $id, $elenco );
+
+						return $elenco;
 					} catch ( Throwable $e ) {
 						return array( 'errore' => 'Elenco non leggibile: ' . $e->getMessage() );
 					}

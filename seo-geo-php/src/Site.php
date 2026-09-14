@@ -219,6 +219,11 @@ class Site {
 			'alt'      => $item['meta']['_wp_attachment_image_alt'] ?? '',
 			'genitore' => $item['genitore'],
 			'peso'     => $peso,
+			// Questi tre li sa solo il sito. Da un export WXR restano vuoti,
+			// e le regole li trattano come "non si sa".
+			'mime'        => (string) ( $item['mime'] ?? '' ),
+			'nel_testo'   => ! empty( $item['nel_testo'] ),
+			'gia_ridotta' => ! empty( $item['gia_ridotta'] ),
 		);
 	}
 

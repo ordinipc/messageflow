@@ -386,17 +386,28 @@ class MDI_Api {
 
 		$allegati = array();
 
+		// Serve a distinguere le immagini che si possono ricomprimere da
+		// quelle che non si toccano: senza questo dato l analisi contava
+		// come «immagine pesante da sistemare» anche un PDF di 3 MB e le
+		// immagini gia ricompresse, e i numeri non tornavano con quelli
+		// dello strumento che le ricomprime davvero.
+		$usati = self::nomi_usati_nei_contenuti();
+
 		foreach ( $ids as $id ) {
 			$file = get_attached_file( $id );
 			$dati = wp_get_attachment_metadata( $id );
+			$nome = $file ? strtolower( (string) pathinfo( (string) $file, PATHINFO_FILENAME ) ) : '';
 
 			$allegati[] = array(
-				'wp_id'    => (string) $id,
-				'url'      => wp_get_attachment_url( $id ),
-				'titolo'   => get_the_title( $id ),
-				'alt'      => get_post_meta( $id, '_wp_attachment_image_alt', true ),
-				'genitore' => (string) wp_get_post_parent_id( $id ),
-				'peso'     => ( $file && file_exists( $file ) ) ? (int) filesize( $file ) : (int) ( $dati['filesize'] ?? 0 ),
+				'wp_id'       => (string) $id,
+				'url'         => wp_get_attachment_url( $id ),
+				'titolo'      => get_the_title( $id ),
+				'alt'         => get_post_meta( $id, '_wp_attachment_image_alt', true ),
+				'genitore'    => (string) wp_get_post_parent_id( $id ),
+				'peso'        => ( $file && file_exists( $file ) ) ? (int) filesize( $file ) : (int) ( $dati['filesize'] ?? 0 ),
+				'mime'        => (string) get_post_mime_type( $id ),
+				'nel_testo'   => '' !== $nome && isset( $usati[ $nome ] ),
+				'gia_ridotta' => '' !== (string) get_post_meta( $id, self::META_IMG_PRIMA, true ),
 			);
 		}
 

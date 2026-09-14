@@ -7,7 +7,9 @@
 
 namespace SeoGeo\Media;
 
+use SeoGeo\Applicato;
 use SeoGeo\Bridge\WordPress;
+use SeoGeo\Db;
 use Throwable;
 
 /**
@@ -93,6 +95,62 @@ class Compressione {
 			'gia_ridotte' => $gia,
 			'peso_sicure' => array_sum( array_map( static fn( $i ) => (int) $i['peso'], $sicure ) ),
 		);
+	}
+
+	/**
+	 * Allinea l analisi a quello che la libreria media ha adesso.
+	 *
+	 * L audit contava 40 immagini oltre i 200 KB e lo strumento che le
+	 * ricomprime ne trovava zero: due numeri diversi per la stessa cosa,
+	 * perche uno guardava la fotografia e l altro il sito. Qui si prende
+	 * l elenco vero - quello appena letto dal sito - e si chiude nell analisi
+	 * ogni file che non e piu sopra soglia.
+	 *
+	 * Si chiama dove l elenco e gia stato letto, per non aggiungere una
+	 * richiesta al sito solo per fare i conti.
+	 *
+	 * @param Db    $db      Database.
+	 * @param int   $auditId Audit.
+	 * @param array $elenco  Uscita di elenco().
+	 * @return int Quanti file l analisi smette di contare.
+	 */
+	public static function allinea( Db $db, $auditId, array $elenco ) {
+		// Se il sito non ha risposto per intero non si chiude niente: meglio
+		// un numero alto di un numero inventato.
+		if ( empty( $elenco['completo'] ) ) {
+			return 0;
+		}
+
+		$ancora = array();
+
+		foreach ( array( 'sicure', 'nel_testo', 'gia_ridotte' ) as $gruppo ) {
+			foreach ( (array) ( $elenco[ $gruppo ] ?? array() ) as $immagine ) {
+				$ancora[ (string) $immagine['file'] ] = true;
+			}
+		}
+
+		$aperte = $db->all(
+			"SELECT o.id, o.riferimento
+			 FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id
+			 WHERE r.audit_id = ? AND r.regola = 'IMG-03' AND COALESCE( o.applicato, 0 ) = 0",
+			array( (int) $auditId )
+		);
+
+		$sistemate = array();
+
+		foreach ( $aperte as $riga ) {
+			if ( ! isset( $ancora[ (string) $riga['riferimento'] ] ) ) {
+				$sistemate[] = (string) $riga['riferimento'];
+			}
+		}
+
+		if ( ! $sistemate ) {
+			return 0;
+		}
+
+		Applicato::chiudi( $db, $auditId, array( 'IMG-03' ), $sistemate );
+
+		return count( $sistemate );
 	}
 
 	/**

@@ -12,6 +12,8 @@
  */
 
 $sistemati = $sistemati ?? array();
+$allineato = $allineato ?? array();
+$allinea   = $allinea ?? array();
 
 // I problemi che restano davvero: le occorrenze della fotografia meno quelle
 // chiuse da quando e stata scattata.
@@ -165,13 +167,29 @@ $scaricabili = array(
 <section class="scheda">
 	<h2>Problemi rilevati</h2>
 	<p class="guida">
-		Il sito è stato letto il <?php echo e( substr( $audit['creato_il'], 0, 16 ) ); ?>. I numeri
-		qui sotto sono quelli di allora <strong>meno il lavoro applicato da allora</strong>: ogni
-		volta che il gestionale scrive qualcosa sul sito, le occorrenze che quel lavoro chiude
-		smettono di essere contate, e i controlli chiusi del tutto finiscono più in basso, in «Già
-		sistemati».
-		Quello che non si vede da qui è ciò che cambi a mano dentro WordPress: per quello serve
-		rileggere il sito.
+		Il sito è stato letto per intero il <?php echo e( substr( $audit['creato_il'], 0, 16 ) ); ?>.
+		I numeri qui sotto non sono fermi a quel momento: a ogni apertura di questa pagina il
+		gestionale richiede al sito quello che si può sapere in fretta — che cosa stampa il plugin
+		su ogni pagina, quali redirect sono attivi, quali articoli hanno l'immagine in evidenza — e
+		toglie dal conto quello che risulta già fatto, insieme a tutto ciò che ha scritto lui stesso
+		sul sito. I controlli chiusi del tutto finiscono più in basso, in «Già sistemati».
+	</p>
+	<?php if ( ! empty( $allineato ) ) : ?>
+		<p class="avviso ok-bg">
+			Appena controllato sul sito:
+			<?php echo num( array_sum( $allineato ) ); ?> segnalazioni erano già risolte e sono state
+			tolte dal conto (<?php echo e( implode( ', ', array_keys( $allineato ) ) ); ?>).
+		</p>
+	<?php elseif ( ! empty( $allinea['quando'] ) ) : ?>
+		<p class="guida">
+			Ultimo controllo sul sito: <?php echo e( substr( (string) $allinea['quando'], 0, 16 ) ); ?> —
+			niente di nuovo da togliere.
+		</p>
+	<?php endif; ?>
+	<p class="guida">
+		Quello che resta è la lettura completa: le cose che costano minuti da verificare — la
+		lunghezza dei testi, le meta di ogni articolo, il peso di ogni file — si aggiornano
+		rileggendo il sito.
 	</p>
 	<form method="post" action="?p=risincronizza">
 		<input type="hidden" name="token" value="<?php echo e( token() ); ?>">

@@ -15,6 +15,35 @@ use SeoGeo\Site;
 class Media {
 
 	/**
+	 * Estensioni di file che sono davvero un immagine servita al browser.
+	 *
+	 * La libreria media contiene anche PDF, documenti, archivi e video. Un
+	 * PDF da 3 MB e un problema, ma non e «un immagine pesante»: contarlo
+	 * qui gonfiava il numero e lo rendeva incomprensibile, perche lo
+	 * strumento che ricomprime le immagini quel file non lo vede nemmeno.
+	 */
+	const IMMAGINI = array( 'jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'bmp', 'tif', 'tiff' );
+
+	/**
+	 * Se questo allegato e un immagine.
+	 *
+	 * Si guarda il mime quando il sito lo dichiara, altrimenti l estensione:
+	 * da un export WXR il mime non c e.
+	 *
+	 * @param array $allegato Allegato.
+	 * @return bool
+	 */
+	public static function eUnImmagine( array $allegato ) {
+		$mime = (string) ( $allegato['mime'] ?? '' );
+
+		if ( '' !== $mime ) {
+			return 0 === strpos( $mime, 'image/' );
+		}
+
+		return in_array( (string) ( $allegato['ext'] ?? '' ), self::IMMAGINI, true );
+	}
+
+	/**
 	 * @return array[]
 	 */
 	public static function rules() {
@@ -71,9 +100,28 @@ class Media {
 				'check' => static function ( Site $s ) {
 					$out = array();
 					foreach ( $s->allegati as $a ) {
-						if ( $a['peso'] > 204800 ) {
-							$out[] = array( 'ref' => $a['file'], 'titolo' => $a['titolo'], 'tipo' => 'allegato', 'dettaglio' => round( $a['peso'] / 1024 ) . ' KB' );
+						if ( $a['peso'] <= 204800 || ! self::eUnImmagine( $a ) ) {
+							continue;
 						}
+
+						// Il dettaglio dice anche perche il pulsante
+						// «Immagini pesanti» non la tocchera: senza, il
+						// gestionale segnava 40 e lo strumento ne trovava
+						// zero, e non c era modo di sapere chi mentiva.
+						$nota = '';
+
+						if ( ! empty( $a['nel_testo'] ) ) {
+							$nota = ' · dentro al testo di un articolo: si sostituisce a mano';
+						} elseif ( ! empty( $a['gia_ridotta'] ) ) {
+							$nota = ' · già ricompressa una volta: più di così non scende';
+						}
+
+						$out[] = array(
+							'ref'       => $a['file'],
+							'titolo'    => $a['titolo'],
+							'tipo'      => 'allegato',
+							'dettaglio' => round( $a['peso'] / 1024 ) . ' KB' . $nota,
+						);
 					}
 					return $out;
 				},
