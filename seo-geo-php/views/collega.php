@@ -196,6 +196,46 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 				<p class="nota grave" id="compressione-errori" hidden></p>
 				<button type="button" class="bottone chiaro" id="compressione-stop">Ferma</button>
 			</div>
+			<?php
+			// Perche quelle che restano sono ancora li. Senza, la pagina
+			// diceva «9 ancora da ricomprimere» e premendo si riottenevano
+			// 9: il motivo compariva per un attimo e spariva.
+			$falliti = \SeoGeo\Media\Compressione::falliti();
+			$resistono = array();
+
+			foreach ( (array) ( $immagini['sicure'] ?? array() ) as $img ) {
+				if ( isset( $falliti[ $img['file'] ] ) ) {
+					$resistono[] = array( 'file' => $img['file'], 'motivo' => $falliti[ $img['file'] ], 'peso' => $img['peso'] );
+				}
+			}
+			?>
+			<?php if ( $resistono ) : ?>
+				<p class="nota grave">
+					<strong><?php echo num( count( $resistono ) ); ?> hanno già resistito a un tentativo.</strong>
+					Premere ancora non le cambia: il motivo è scritto qui sotto, per ognuna.
+				</p>
+				<details>
+					<summary>Quali sono e perché</summary>
+					<div class="tabellabox">
+						<table>
+							<tbody>
+							<?php foreach ( array_slice( $resistono, 0, 30 ) as $r ) : ?>
+								<tr>
+									<td class="mono"><?php echo e( $r['file'] ); ?></td>
+									<td><?php echo num( $r['peso'] / 1024 ); ?> KB</td>
+									<td><?php echo e( $r['motivo'] ); ?></td>
+								</tr>
+							<?php endforeach; ?>
+							</tbody>
+						</table>
+					</div>
+				</details>
+				<p class="nota">
+					Di solito sono immagini enormi di partenza, o formati che GD non sa riscrivere.
+					Per quelle serve un plugin di ottimizzazione immagini, oppure rifarle a mano più piccole.
+				</p>
+			<?php endif; ?>
+
 			<?php if ( ! empty( $immagini['nel_testo'] ) ) : ?>
 				<p class="nota">
 					<strong><?php echo num( count( $immagini['nel_testo'] ) ); ?> non vengono toccate</strong>
@@ -244,6 +284,9 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 				var token = <?php echo json_encode( token() ); ?>;
 				var idAudit = <?php echo (int) $audit['id']; ?>;
 				var daFare = <?php echo (int) count( $immagini['sicure'] ); ?>;
+				// I motivi si accumulano lungo tutti i blocchi: uno per blocco
+				// cancellava quelli di prima.
+				var saltate = [];
 				var partenza = daFare;
 				var fatte = 0;
 				var risparmio = 0;
@@ -314,14 +357,21 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 							}
 
 							if (d.errori && d.errori.length) {
+								// Si accumulano: prima ogni blocco cancellava
+								// i motivi del blocco prima, e alla fine
+								// restava solo l ultimo.
+								d.errori.forEach(function (riga) {
+									if (-1 === saltate.indexOf(riga)) { saltate.push(riga); }
+								});
+
 								var p = document.getElementById('compressione-errori');
 								p.hidden = false;
-								p.textContent = 'Saltate: ' + d.errori.join(' · ');
+								p.textContent = 'Non si sono ridotte: ' + saltate.join(' · ');
 							}
 
 							if (d.finito || fermato) {
 								spegni(daFare > 0 ? 'guasto' : 'fermo', daFare > 0
-									? 'Fermata: ' + daFare + ' non sono state ricompresse'
+									? daFare + ' non si sono ridotte: il motivo di ognuna è qui sotto, e resta scritto anche se ricarichi'
 									: 'Fatto: tutte ricompresse');
 								return;
 							}

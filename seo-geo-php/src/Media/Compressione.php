@@ -103,6 +103,67 @@ class Compressione {
 	 *                           'peso_max', 'secondi_max', 'su_progresso'.
 	 * @return array
 	 */
+	/**
+	 * Dove si tiene traccia delle immagini che non si riescono a ridurre.
+	 *
+	 * @return string
+	 */
+	public static function fileFalliti() {
+		return dirname( __DIR__, 2 ) . '/storage/compressione-falliti.json';
+	}
+
+	/**
+	 * Le immagini che all ultimo tentativo non si sono ridotte, col motivo.
+	 *
+	 * Senza questo la pagina diceva «9 ancora da ricomprimere» e basta, e
+	 * premendo si riottenevano 9: il motivo compariva per un attimo durante
+	 * il giro e spariva al ricaricamento. Nove che non si spiegano sembrano
+	 * un programma rotto; nove che dicono perche sono un elenco di lavoro.
+	 *
+	 * @return array<string,string> file => motivo.
+	 */
+	public static function falliti() {
+		$file = self::fileFalliti();
+
+		if ( ! is_file( $file ) ) {
+			return array();
+		}
+
+		$dati = json_decode( (string) file_get_contents( $file ), true );
+
+		return is_array( $dati ) ? $dati : array();
+	}
+
+	/**
+	 * Segna quali non si sono ridotte in questo giro.
+	 *
+	 * @param array $errori  Messaggi «file: motivo».
+	 * @param array $riuscite File che invece sono andati a buon fine.
+	 * @return void
+	 */
+	public static function segnaFalliti( array $errori, array $riuscite = array() ) {
+		$dati = self::falliti();
+
+		foreach ( $errori as $riga ) {
+			$pezzi = explode( ': ', (string) $riga, 2 );
+			$dati[ trim( $pezzi[0] ) ] = trim( $pezzi[1] ?? 'motivo non riportato' );
+		}
+
+		// Quelle che poi sono riuscite non devono restare nell elenco: un
+		// errore vecchio che resta scritto e peggio di nessun errore.
+		foreach ( $riuscite as $file ) {
+			unset( $dati[ trim( (string) $file ) ] );
+		}
+
+		$cartella = dirname( self::fileFalliti() );
+
+		if ( ! is_dir( $cartella ) ) {
+			mkdir( $cartella, 0775, true );
+		}
+
+		file_put_contents( self::fileFalliti(), json_encode( $dati, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+	}
+
 	public static function esegui( WordPress $ponte, array $opzioni = array() ) {
 		$elenco = self::elenco( $ponte, (int) ( $opzioni['soglia'] ?? 204800 ) );
 		$coda   = $elenco['sicure'];
@@ -120,6 +181,7 @@ class Compressione {
 		$prima     = 0;
 		$dopo      = 0;
 		$errori    = array();
+		$riuscite  = array();
 
 		foreach ( $coda as $immagine ) {
 			if ( $scadenza && time() > $scadenza ) {
@@ -134,10 +196,18 @@ class Compressione {
 
 				if ( ! empty( $esito['cambiata'] ) ) {
 					$fatte++;
+					$riuscite[] = $immagine['file'];
 				} elseif ( 'gia_fatta' === ( $esito['motivo'] ?? '' ) ) {
 					$gia_fatte++;
+					$riuscite[] = $immagine['file'];
 				} else {
 					$invariate++;
+
+					// «Invariata» non e un successo: e un immagine che ha
+					// resistito. Se resta sopra la soglia continuera a
+					// comparire nell elenco, e senza un motivo scritto
+					// sembra che il pulsante non faccia niente.
+					$errori[] = $immagine['file'] . ': ' . (string) ( $esito['motivo'] ?: 'ricompressa ma resta sopra la soglia' );
 				}
 			} catch ( Throwable $e ) {
 				// Una vecchia versione del plugin risponde ancora con un
@@ -155,6 +225,10 @@ class Compressione {
 				$progresso( $immagine, $fatte, count( $errori ), count( $coda ) );
 			}
 		}
+
+		// Il motivo resta scritto: al prossimo caricamento della pagina si
+		// legge perche quelle immagini sono ancora li.
+		self::segnaFalliti( $errori, $riuscite );
 
 		return array(
 			'candidate'   => count( $coda ),

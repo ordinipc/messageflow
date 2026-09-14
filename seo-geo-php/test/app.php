@@ -2725,6 +2725,67 @@ verifica(
 	false !== strpos( $vistaPrest, 'autorizzazione completa' )
 );
 
+// --- Perche quelle immagini sono ancora li --------------------------------
+//
+// La pagina diceva «9 ancora da ricomprimere» e basta. Premendo, si
+// riottenevano 9: il motivo compariva per un attimo durante il giro e
+// spariva al ricaricamento. Nove che non si spiegano sembrano un programma
+// rotto.
+
+echo "\nImmagini che resistono\n";
+
+$fileFalliti = \SeoGeo\Media\Compressione::fileFalliti();
+$backupFalliti = is_file( $fileFalliti ) ? file_get_contents( $fileFalliti ) : null;
+@unlink( $fileFalliti );
+
+\SeoGeo\Media\Compressione::segnaFalliti(
+	array(
+		'gigante.png: ricompressa ma resta sopra la soglia',
+		'strana.gif: formato non gestito da GD',
+	)
+);
+
+$falliti = \SeoGeo\Media\Compressione::falliti();
+
+verifica( 'i motivi restano scritti', 2 === count( $falliti ), json_encode( $falliti ) );
+verifica( 'e si leggono per file', 'formato non gestito da GD' === ( $falliti['strana.gif'] ?? '' ), (string) ( $falliti['strana.gif'] ?? '' ) );
+
+// Quella che poi riesce non deve restare nell elenco: un errore vecchio che
+// resta scritto e peggio di nessun errore.
+\SeoGeo\Media\Compressione::segnaFalliti( array(), array( 'strana.gif' ) );
+$dopoFalliti = \SeoGeo\Media\Compressione::falliti();
+
+verifica( 'chi poi riesce sparisce dall elenco', ! isset( $dopoFalliti['strana.gif'] ), json_encode( $dopoFalliti ) );
+verifica( 'e chi resiste ancora ci resta', isset( $dopoFalliti['gigante.png'] ) );
+
+@unlink( $fileFalliti );
+
+if ( null !== $backupFalliti ) {
+	file_put_contents( $fileFalliti, $backupFalliti );
+}
+
+$sorgenteCompr = file_get_contents( __DIR__ . '/../src/Media/Compressione.php' );
+
+verifica(
+	'«invariata» viene contata come resistenza, non come successo',
+	false !== strpos( $sorgenteCompr, 'resta sopra la soglia' )
+		&& false !== strpos( $sorgenteCompr, 'self::segnaFalliti( $errori, $riuscite )' )
+);
+
+$vistaCollega2 = file_get_contents( __DIR__ . '/../views/collega.php' );
+
+verifica(
+	'la pagina mostra il motivo, e non solo il numero',
+	false !== strpos( $vistaCollega2, 'hanno già resistito a un tentativo' )
+		&& false !== strpos( $vistaCollega2, 'Compressione::falliti()' )
+);
+
+verifica(
+	'i motivi dei blocchi si accumulano invece di sovrascriversi',
+	false !== strpos( $vistaCollega2, 'var saltate = [];' )
+		&& false === strpos( $vistaCollega2, "'Saltate: ' + d.errori.join" )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );
