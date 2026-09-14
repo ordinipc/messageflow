@@ -109,7 +109,9 @@ class Site {
 	 */
 	private function costruisciDocumento( array $item ) {
 		$contenuto = $item['contenuto'];
-		$testo     = Html::stripTags( $contenuto );
+		// Con i blocchi separati: serve a chi legge il confronto, e anche al
+		// modello, che cosi vede la struttura invece di un muro di parole.
+		$testo     = Html::testo( $contenuto );
 		$titoli    = Html::headings( $contenuto );
 		$immagini  = Html::images( $contenuto );
 		$link      = Html::links( $contenuto, $this->host );

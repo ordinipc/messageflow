@@ -163,6 +163,56 @@ class Content {
 					return $out;
 				},
 			),
+			array(
+				'id' => 'CNT-09', 'area' => 'content', 'gravita' => Base::ALTO, 'auto' => true,
+				'titolo' => 'Titolo dell articolo ripetuto dentro ai titoletti',
+				'perche' => 'Ripetere la stessa frase lunga in piu H2 e riempimento di parole chiave: Google lo riconosce da anni e non premia la pagina, mentre per chi legge i titoletti smettono di dire dove si trova.',
+				'soluzione' => 'Riscrivere gli H2 in modo che dicano di che cosa parla la sezione, con parole diverse. La riscrittura assistita lo fa da sola.',
+				'check' => static function ( Site $s ) {
+					$out = array();
+
+					foreach ( $s->pubblicati as $d ) {
+						$titolo = self::confrontabile( $d['titolo'] );
+
+						// Sotto una certa lunghezza non e riempimento: un
+						// titolo di due parole puo ricomparire senza colpa.
+						if ( mb_strlen( $titolo ) < 25 ) {
+							continue;
+						}
+
+						$dentro = 0;
+
+						foreach ( $d['titoli'] as $h ) {
+							if ( 1 === (int) $h['livello'] ) {
+								continue;
+							}
+
+							if ( false !== mb_strpos( self::confrontabile( $h['testo'] ), $titolo ) ) {
+								$dentro++;
+							}
+						}
+
+						if ( $dentro >= 2 ) {
+							$out[] = Base::doc( $d, $dentro . ' titoletti contengono il titolo intero dell articolo' );
+						}
+					}
+
+					return $out;
+				},
+			),
 		);
+	}
+
+	/**
+	 * Forma confrontabile di un testo: senza accenti di formattazione,
+	 * spazi doppi e differenze di maiuscole.
+	 *
+	 * @param string $testo Testo.
+	 * @return string
+	 */
+	private static function confrontabile( $testo ) {
+		$pulito = mb_strtolower( trim( (string) $testo ) );
+
+		return trim( preg_replace( '/\s+/u', ' ', $pulito ) );
 	}
 }

@@ -28,6 +28,37 @@ class Html {
 	}
 
 	/**
+	 * Testo senza markup, ma con i blocchi ancora separati.
+	 *
+	 * stripTags() schiaccia ogni spazio bianco in uno solo: comodo per
+	 * contare le parole, illeggibile per una persona. Il titoletto si
+	 * incolla al paragrafo che segue e il risultato sembra una frase rotta
+	 * anche quando l articolo e scritto bene - e nel confronto vecchio/nuovo
+	 * era proprio quello che si vedeva.
+	 *
+	 * @param string $html Markup.
+	 * @return string
+	 */
+	public static function testo( $html ) {
+		$s = preg_replace( '#<(script|style)\b[\s\S]*?</\1>#i', ' ', (string) $html );
+		$s = preg_replace( '/<!--[\s\S]*?-->/', ' ', (string) $s );
+
+		// Una riga vuota dove finisce un blocco, cosi la struttura si vede.
+		$s = preg_replace( '#</(p|div|h[1-6]|li|tr|blockquote|section|article|figcaption)>#i', "\n\n", (string) $s );
+		$s = preg_replace( '#<br\s*/?>#i', "\n", (string) $s );
+
+		$s = preg_replace( '/<[^>]+>/', ' ', (string) $s );
+		$s = html_entity_decode( (string) $s, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+
+		// Spazi orizzontali normalizzati, a capo conservati.
+		$s = preg_replace( '/[^\S\n]+/u', ' ', (string) $s );
+		$s = preg_replace( '/ *\n */u', "\n", (string) $s );
+		$s = preg_replace( '/\n{3,}/', "\n\n", (string) $s );
+
+		return trim( (string) $s );
+	}
+
+	/**
 	 * Titoli H1-H6 con livello, testo e posizione.
 	 *
 	 * @param string $html Markup.

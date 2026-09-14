@@ -1598,6 +1598,99 @@ verifica(
 		&& false !== strpos( $vistaBozzeStato, 'scritta sul sito' )
 );
 
+echo "\nTesto leggibile e titoletti riempiti di parole chiave\n";
+
+// Nel confronto vecchio/nuovo il testo del sito arrivava tutto su una riga:
+// il titoletto incollato al paragrafo faceva sembrare rotto anche un
+// articolo scritto bene.
+$htmlProva = '<h2>Perche i video contano</h2><p>Primo paragrafo.</p><h2>Come si gira</h2><p>Secondo paragrafo.</p>';
+
+verifica(
+	'i blocchi restano separati',
+	3 === substr_count( \SeoGeo\Html::testo( $htmlProva ), "\n\n" ),
+	str_replace( "\n", '\\n', \SeoGeo\Html::testo( $htmlProva ) )
+);
+
+verifica(
+	'il titoletto non si incolla al paragrafo',
+	false === strpos( \SeoGeo\Html::testo( $htmlProva ), 'contano Primo' )
+);
+
+verifica( 'e il testo c e tutto', false !== strpos( \SeoGeo\Html::testo( $htmlProva ), 'Secondo paragrafo' ) );
+verifica( 'le parole si contano tutte', 11 === \SeoGeo\Text::wordCount( \SeoGeo\Html::testo( $htmlProva ) ), (string) \SeoGeo\Text::wordCount( \SeoGeo\Html::testo( $htmlProva ) ) );
+
+// La regola nuova: il titolo intero ripetuto dentro ai titoletti. Sui dati
+// veri del sito sono 28 articoli su 311, i peggiori con 7 titoletti uguali.
+$regole = array();
+
+foreach ( \SeoGeo\Rules\Content::rules() as $r ) {
+	$regole[ $r['id'] ] = $r;
+}
+
+verifica( 'la regola esiste', isset( $regole['CNT-09'] ) );
+
+// Sito vero, non finto: cosi la prova esercita anche l estrazione dei
+// titoletti dall HTML, che e la parte che potrebbe sbagliare.
+$sitoConTitoletti = static function ( $titolo, $html ) {
+	return new Site(
+		array(
+			'sito'      => array( 'titolo' => 'Prova', 'link' => 'https://esempio.it', 'baseUrl' => 'https://esempio.it', 'autori' => array() ),
+			'categorie' => array(),
+			'tag'       => array(),
+			'items'     => array(
+				array(
+					'wp_id' => '1', 'tipo' => 'post', 'stato' => 'publish', 'titolo' => $titolo,
+					'slug' => 'a', 'link' => 'https://esempio.it/a/', 'data' => '2026-01-01 10:00:00',
+					'modificato' => '2026-02-01 10:00:00', 'autore' => 'Redazione',
+					'contenuto' => $html, 'estratto' => '', 'categorie' => array(), 'tag' => array(),
+					'commenti' => 'closed', 'genitore' => '0', 'meta' => array(),
+				),
+			),
+		)
+	);
+};
+
+$titoloLungo = 'Produzione video Palermo: perche oggi e indispensabile per ogni azienda';
+
+$riempito = $sitoConTitoletti(
+	$titoloLungo,
+	'<h2>Cos e la ' . $titoloLungo . '</h2><p>Uno.</p>'
+	. '<h2>I vantaggi della ' . $titoloLungo . '</h2><p>Due.</p>'
+	. '<h2>Come si gira un video</h2><p>Tre.</p>'
+);
+
+$trovati = call_user_func( $regole['CNT-09']['check'], $riempito );
+
+verifica( 'segnala l articolo con i titoletti riempiti', 1 === count( $trovati ), (string) count( $trovati ) );
+verifica( 'e dice quanti sono', false !== strpos( (string) ( $trovati[0]['dettaglio'] ?? '' ), '2 titoletti' ), (string) ( $trovati[0]['dettaglio'] ?? '' ) );
+
+$unoSolo = $sitoConTitoletti(
+	$titoloLungo,
+	'<h2>Cos e la ' . $titoloLungo . '</h2><p>Uno.</p><h2>Come si gira un video</h2><p>Due.</p>'
+);
+
+verifica( 'un titoletto solo non basta a segnalare', 0 === count( call_user_func( $regole['CNT-09']['check'], $unoSolo ) ) );
+
+// Un titolo corto puo ricomparire senza che sia riempimento.
+$corto = $sitoConTitoletti( 'Video aziendali', '<h2>Video aziendali oggi</h2><p>Uno.</p><h2>Perche i Video aziendali</h2><p>Due.</p>' );
+
+verifica( 'un titolo corto non fa scattare la regola', 0 === count( call_user_func( $regole['CNT-09']['check'], $corto ) ) );
+
+// L H1 e il titolo dell articolo: non deve contare contro se stesso.
+$conH1 = $sitoConTitoletti(
+	$titoloLungo,
+	'<h1>' . $titoloLungo . '</h1><h2>Cos e la ' . $titoloLungo . '</h2><p>Uno.</p>'
+	. '<h2>I vantaggi della ' . $titoloLungo . '</h2><p>Due.</p>'
+);
+
+$conH1Trovati = call_user_func( $regole['CNT-09']['check'], $conH1 );
+
+verifica(
+	'l H1 non viene contato',
+	false !== strpos( (string) ( $conH1Trovati[0]['dettaglio'] ?? '' ), '2 titoletti' ),
+	(string) ( $conH1Trovati[0]['dettaglio'] ?? '' )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );
