@@ -2873,7 +2873,13 @@ switch ( $pagina ) {
 			: '';
 
 		$gemini    = new Gemini( $cfg['ai'] );
-		$candidati = Rewriter::candidati( $db, $id, array() );
+		// La stima e il pulsante devono guardare la stessa cosa: quando si
+		// arriva da un problema preciso contano i suoi contenuti, non quelli
+		// dell archivio intero. Guardando il totale, il pulsante spariva
+		// appena l archivio era a posto - anche con diciannove da fare.
+		$candidati = $regola_scelta
+			? Rewriter::candidati( $db, $id, array( 'regola' => $regola_scelta, 'rigenera' => 1 ) )
+			: Rewriter::candidati( $db, $id, array() );
 
 		vista(
 			'bozze',

@@ -2786,6 +2786,45 @@ verifica(
 		&& false === strpos( $vistaCollega2, "'Saltate: ' + d.errori.join" )
 );
 
+// --- Arrivare da un problema e trovarci un pulsante -----------------------
+//
+// Si arrivava con «Stai correggendo LOC-05: riguarda 19 contenuti» e sotto
+// nessun pulsante: la condizione guardava il conto dell archivio intero, che
+// era a zero perche tutte le bozze erano gia state fatte.
+
+echo "\nDal problema al pulsante\n";
+
+$vistaBozze = file_get_contents( __DIR__ . '/../views/bozze.php' );
+
+verifica(
+	'il pulsante compare in base ai contenuti della regola, non dell archivio',
+	false !== strpos( $vistaBozze, "( ! empty( \$regola ) ? count( \$da_regola ) : \$stima['articoli'] ) > 0" )
+);
+
+verifica(
+	'e anche la stima guarda la stessa cosa',
+	false !== strpos( $indiceSorgente, "Rewriter::candidati( \$db, \$id, array( 'regola' => \$regola_scelta, 'rigenera' => 1 ) )" )
+);
+
+// I problemi che si risolvono fondendo due pagine non vanno mandati alla
+// riscrittura di un articolo per volta: sarebbe lo strumento sbagliato.
+verifica(
+	'i problemi da accorpare portano al posto giusto',
+	false !== strpos( $vistaBozze, "array( 'LOC-05', 'ONP-06', 'CNT-03' )" )
+		&& false !== strpos( $vistaBozze, 'vanno <strong>fuse in una</strong>' )
+);
+
+verifica(
+	'e la sezione dei gruppi e raggiungibile',
+	false !== strpos( $vistaBozze, 'id="gruppi"' )
+		&& false !== strpos( $vistaBozze, 'href="#gruppi"' )
+);
+
+verifica(
+	'con quei problemi non si offre la generazione singola',
+	false !== strpos( $vistaBozze, '$pronto && ! $daFondere &&' )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

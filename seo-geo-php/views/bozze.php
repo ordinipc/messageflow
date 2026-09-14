@@ -71,6 +71,12 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 	</div>
 </div>
 
+<?php
+// Alcuni problemi non si risolvono riscrivendo un articolo per volta: due
+// pagine che si contendono la stessa ricerca vanno fuse in una. Mandare
+// alla riscrittura singola sarebbe mandare allo strumento sbagliato.
+$daFondere = in_array( $regola, array( 'LOC-05', 'ONP-06', 'CNT-03' ), true );
+?>
 <?php if ( ! empty( $regola ) ) : ?>
 <section class="scheda">
 	<h2>Stai correggendo <?php echo e( $regola ); ?><?php echo ! empty( $rilievo['titolo'] ) ? ': ' . e( $rilievo['titolo'] ) : ''; ?></h2>
@@ -80,8 +86,11 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 
 	<?php if ( $da_regola ) : ?>
 		<p class="guida">
-			Riguarda <strong><?php echo num( count( $da_regola ) ); ?> contenuti</strong>. La generazione qui sotto
-			lavora <strong>solo su questi</strong>: non ricomincia da capo su tutto l'archivio.
+			Riguarda <strong><?php echo num( count( $da_regola ) ); ?> contenuti</strong>.
+			<?php if ( ! $daFondere ) : ?>
+				La generazione qui sotto lavora <strong>solo su questi</strong>: non ricomincia da capo
+				su tutto l'archivio.
+			<?php endif; ?>
 		</p>
 		<details>
 			<summary>Quali sono</summary>
@@ -101,11 +110,20 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 		</p>
 	<?php endif; ?>
 
+	<?php if ( $daFondere ) : ?>
+		<p class="avviso">
+			Questo problema <strong>non si risolve riscrivendo un articolo per volta</strong>: due pagine
+			che si contendono la stessa ricerca vanno <strong>fuse in una</strong>. Lo strumento giusto è
+			<a href="#gruppi">Cannibalizzazione: gruppi da fondere</a>, più in basso in questa pagina —
+			<?php echo $gruppi > 0 ? 'ci sono ' . num( $gruppi ) . ' gruppi pronti.' : 'al momento non ci sono gruppi da fondere.'; ?>
+		</p>
+	<?php endif; ?>
+
 	<p class="nota"><a href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>">Lavora invece su tutto l'archivio</a></p>
 </section>
 <?php endif; ?>
 
-<?php if ( $pronto && $stima['articoli'] > 0 && ( empty( $regola ) || $da_regola ) ) : ?>
+<?php if ( $pronto && ! $daFondere && ( ! empty( $regola ) ? count( $da_regola ) : $stima['articoli'] ) > 0 ) : ?>
 <form class="scheda a-lotti" method="post" action="?p=genera" data-tipo="articoli" data-restanti="<?php echo (int) ( ! empty( $regola ) ? count( $da_regola ) : $stima['articoli'] ); ?>" data-nome="bozze">
 	<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
 	<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
@@ -126,7 +144,7 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 <?php endif; ?>
 
 <?php if ( $pronto && $gruppi > 0 ) : ?>
-<form class="scheda a-lotti" method="post" action="?p=genera" data-tipo="accorpa" data-restanti="<?php echo (int) $gruppi; ?>" data-nome="gruppi">
+<form class="scheda a-lotti" id="gruppi" method="post" action="?p=genera" data-tipo="accorpa" data-restanti="<?php echo (int) $gruppi; ?>" data-nome="gruppi">
 	<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
 	<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
 	<input type="hidden" name="tipo" value="accorpa">
