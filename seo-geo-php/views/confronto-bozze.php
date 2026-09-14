@@ -73,12 +73,42 @@ $cosa_fara = static function ( $riga ) use ( $costruttori, $strutture ) {
 	return 'in Elementor ci sono ' . (int) $dentro['blocchi'] . ' blocchi di testo: il testo nuovo va nel più lungo, gli altri lunghi vengono svuotati perché sono il resto dello stesso articolo, quelli corti restano';
 };
 
+// Il testo che parte davvero e questo: ripulito dai dati strutturati che il
+// modello aveva scritto nel corpo. Tutto quello che si decide qui sotto va
+// deciso su questo, non sul testo grezzo in archivio, altrimenti la pagina
+// dice una cosa e il pulsante ne fa un altra.
+$ripulito = static function ( $riga ) {
+	static $fatti = array();
+
+	$chiave = (int) $riga['id'];
+
+	if ( ! isset( $fatti[ $chiave ] ) ) {
+		$fatti[ $chiave ] = \SeoGeo\Html::senzaDatiStrutturati( (string) $riga['corpo_html'] );
+	}
+
+	return $fatti[ $chiave ];
+};
+
 // Un articolo con dentro «[DA VERIFICARE: data di pubblicazione]» pubblicato
 // e peggio dell articolo di prima: il segnaposto lo legge chiunque apra la
 // pagina. Finche i dati non sono compilati, quella bozza non parte.
-$mancanti = static function ( $riga ) {
-	return \SeoGeo\Ai\Verifiche::restano( $riga );
+//
+// Si guarda il testo ripulito: i segnaposto che stavano dentro al JSON-LD
+// sparivano insieme a quello, e contarli lo stesso teneva fuori dall invio
+// bozze che erano gia a posto.
+$mancanti = static function ( $riga ) use ( $ripulito ) {
+	return \SeoGeo\Ai\Verifiche::restano( array( 'corpo_html' => $ripulito( $riga ) ) + $riga );
 };
+
+// Gli articoli gia online il cui testo conteneva i dati strutturati: sul sito
+// ce l hanno ancora, perche sono partiti prima che si ripulisse. Si ritrovano
+// da qui e si rimandano, senza cercarli a mano in mezzo a duecento.
+$da_ripulire = array_values(
+	array_filter(
+		$righe,
+		static fn( $r ) => ! empty( $r['inviata_il'] ) && $ripulito( $r ) !== (string) $r['corpo_html']
+	)
+);
 
 $da_completare = array_values(
 	array_filter(
@@ -112,6 +142,31 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 
 <?php if ( ! $pronto ) : ?>
 	<p class="avviso grave">Il collegamento a WordPress non è configurato: senza, non si può scrivere sul sito.</p>
+<?php endif; ?>
+
+<?php if ( $da_ripulire ) : ?>
+	<section class="scheda">
+		<h2>⚠︎ <?php echo 1 === count( $da_ripulire ) ? 'Un articolo online ha' : num( count( $da_ripulire ) ) . ' articoli online hanno' ?> i dati strutturati stampati nel testo</h2>
+		<p class="guida">
+			Sono partiti prima della correzione: nel corpo hanno il blocco <code>{ "@context": …}</code>
+			che si legge in pagina. Il testo qui in archivio adesso è ripulito, quindi basta
+			<strong>rimandarli</strong>: stesso articolo, stesso indirizzo, senza il blocco.
+			In alternativa «Rimetti il testo di prima» rimette l'articolo com'era prima della riscrittura.
+		</p>
+		<ul class="guida">
+			<?php foreach ( array_slice( $da_ripulire, 0, 5 ) as $riga ) : ?>
+				<li><a href="#bozza-<?php echo (int) $riga['id']; ?>"><?php echo e( $riga['titolo_vecchio'] ); ?></a></li>
+			<?php endforeach; ?>
+			<?php if ( count( $da_ripulire ) > 5 ) : ?>
+				<li>e altri <?php echo num( count( $da_ripulire ) - 5 ); ?></li>
+			<?php endif; ?>
+		</ul>
+		<?php if ( $pronto ) : ?>
+			<div class="azioni">
+				<a class="bottone" href="?p=confronto-bozze&amp;id=<?php echo (int) $audit['id']; ?>&amp;filtro=da-ripulire">Vedili e rimandali</a>
+			</div>
+		<?php endif; ?>
+	</section>
 <?php endif; ?>
 
 <?php if ( ! $righe ) : ?>
@@ -190,6 +245,7 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 		'online'     => array( 'Già online', count( $gia_online ) ),
 		'a-mano'     => array( 'Da fare a mano', count( $bloccate ) ),
 		'da-completare' => array( 'Con dati da verificare', count( $da_completare ) ),
+		'da-ripulire'   => array( 'Da ripulire sul sito', count( $da_ripulire ) ),
 	);
 	?>
 	<p class="filtri">
@@ -202,40 +258,67 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 			<?php endif; ?>
 		<?php endforeach; ?>
 	</p>
-	<?php if ( $pronto && $da_inviare ) : ?>
+	<?php
+	$elenco = $righe;
+
+	if ( 'da-inviare' === $filtro ) {
+		$elenco = $da_inviare;
+	} elseif ( 'online' === $filtro ) {
+		$elenco = $gia_online;
+	} elseif ( 'a-mano' === $filtro ) {
+		$elenco = $bloccate;
+	} elseif ( 'da-completare' === $filtro ) {
+		$elenco = $da_completare;
+	} elseif ( 'da-ripulire' === $filtro ) {
+		$elenco = $da_ripulire;
+	}
+
+	// Il pulsante in blocco lavora sulla vista che si sta guardando. Prima
+	// mandava sempre e solo le bozze mai inviate: nella vista «da ripulire»,
+	// dove sono tutte gia online, non avrebbe fatto niente.
+	$in_lotto = array_values(
+		array_filter(
+			$elenco,
+			static fn( $r ) => $scrivibile( $r ) && ! $mancanti( $r )
+		)
+	);
+
+	$etichetta_lotto = 'da-ripulire' === $filtro
+		? 'Rimanda ' . ( 1 === count( $in_lotto ) ? 'l\'articolo da ripulire' : 'i ' . count( $in_lotto ) . ' articoli da ripulire' )
+		: 'Sovrascrivi ' . ( 1 === count( $in_lotto ) ? 'l\'articolo' : 'tutte le ' . count( $in_lotto ) );
+	?>
+	<?php if ( $pronto && $in_lotto ) : ?>
 		<div class="azioni">
-			<button class="bottone" type="button" id="invia-tutte">Sovrascrivi tutte le <?php echo (int) count( $da_inviare ); ?></button>
+			<button class="bottone" type="button" id="invia-tutte"><?php echo e( $etichetta_lotto ); ?></button>
 		</div>
 		<div id="tutte-corso" hidden>
 			<p><span id="tutte-spia" class="spia"></span> <strong id="tutte-titolo">Sto scrivendo sul sito…</strong></p>
 			<div class="barra" style="height:10px;margin-bottom:12px"><i id="tutte-barra" class="ok" style="width:1%;height:10px"></i></div>
-			<p class="nota"><span id="tutte-fatte">0</span> di <?php echo (int) count( $da_inviare ); ?> · <span id="tutte-errori">0</span> non riuscite</p>
+			<p class="nota"><span id="tutte-fatte">0</span> di <?php echo (int) count( $in_lotto ); ?> · <span id="tutte-errori">0</span> non riuscite</p>
 			<button type="button" class="bottone chiaro" id="tutte-stop">Ferma</button>
 		</div>
 	<?php endif; ?>
 </section>
 
-<?php
-$elenco = $righe;
-
-if ( 'da-inviare' === $filtro ) {
-	$elenco = $da_inviare;
-} elseif ( 'online' === $filtro ) {
-	$elenco = $gia_online;
-} elseif ( 'a-mano' === $filtro ) {
-	$elenco = $bloccate;
-} elseif ( 'da-completare' === $filtro ) {
-	$elenco = $da_completare;
-}
-?>
+<section class="scheda">
+	<label class="etichetta" for="cerca-bozza">Cerca un articolo per titolo o indirizzo</label>
+	<input type="search" id="cerca-bozza" placeholder="es. web agency palermo" autocomplete="off" style="width:100%;max-width:420px">
+	<p class="nota" id="cerca-esito" hidden></p>
+</section>
 
 <?php if ( ! $elenco ) : ?>
 	<section class="scheda"><p class="guida">Nessun contenuto in questa vista.</p></section>
 <?php endif; ?>
 
 <?php foreach ( $elenco as $riga ) : ?>
-	<section class="scheda confronto" data-bozza="<?php echo (int) $riga['id']; ?>">
+	<section class="scheda confronto" id="bozza-<?php echo (int) $riga['id']; ?>" data-bozza="<?php echo (int) $riga['id']; ?>" data-cerca="<?php echo e( mb_strtolower( $riga['titolo_vecchio'] . ' ' . $riga['url'] ) ); ?>">
 		<h2><?php echo e( $riga['titolo_vecchio'] ); ?></h2>
+		<?php if ( ! empty( $riga['inviata_il'] ) && $ripulito( $riga ) !== (string) $riga['corpo_html'] ) : ?>
+			<p class="avviso grave">
+				Sul sito questo articolo ha i dati strutturati stampati nel testo. «Riscrivi di nuovo»
+				manda la versione ripulita allo stesso indirizzo.
+			</p>
+		<?php endif; ?>
 		<p class="nota">
 			<a href="<?php echo e( $riga['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( $riga['url'] ); ?></a>
 			<?php if ( ! empty( $riga['inviata_il'] ) ) : ?>
@@ -347,17 +430,41 @@ if ( 'da-inviare' === $filtro ) {
 		});
 	});
 
+	var cerca = document.getElementById('cerca-bozza');
+
+	if (cerca) {
+		var esitoCerca = document.getElementById('cerca-esito');
+		var schede = document.querySelectorAll('.confronto');
+
+		cerca.addEventListener('input', function () {
+			var q = cerca.value.trim().toLowerCase();
+			var visti = 0;
+
+			Array.prototype.forEach.call(schede, function (s) {
+				var dentro = !q || -1 !== (s.dataset.cerca || '').indexOf(q);
+				s.hidden = !dentro;
+				if (dentro) { visti++; }
+			});
+
+			esitoCerca.hidden = !q;
+			esitoCerca.textContent = visti + (1 === visti ? ' articolo trovato' : ' articoli trovati') + ' su ' + schede.length + '.';
+		});
+	}
+
 	var tutte = document.getElementById('invia-tutte');
 
 	if (!tutte) { return; }
 
 	tutte.addEventListener('click', function () {
+		// Si prende quello che si vede: la vista scelta, meno quello che la
+		// ricerca ha nascosto. Prima si guardava la scritta sul pulsante, e
+		// nella vista «da ripulire» - dove dicono tutti "Riscrivi di nuovo" -
+		// il lotto restava vuoto.
 		var code = Array.prototype.map.call(
-			document.querySelectorAll('.confronto'),
+			document.querySelectorAll('.confronto:not([hidden])'),
 			function (s) { return s.dataset.bozza; }
 		).filter(function (id) {
-			var b = document.querySelector('.invia-una[data-bozza="' + id + '"]');
-			return b && 'Sovrascrivi questo articolo' === b.textContent.trim();
+			return !!document.querySelector('.invia-una[data-bozza="' + id + '"]');
 		});
 
 		if (!code.length || !confirm('Scrivere ' + code.length + ' testi sugli articoli pubblicati? Si può annullare.')) {

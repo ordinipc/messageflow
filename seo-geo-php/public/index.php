@@ -797,7 +797,7 @@ if ( 'confronto-bozze' === $pagina ) {
 			'pronto' => $ponte->pronto(),
 			'costruttori' => $costruttori,
 			'strutture'   => $strutture,
-			'filtro'      => in_array( $_GET['filtro'] ?? '', array( 'da-inviare', 'online', 'a-mano', 'da-completare' ), true ) ? $_GET['filtro'] : '',
+			'filtro'      => in_array( $_GET['filtro'] ?? '', array( 'da-inviare', 'online', 'a-mano', 'da-completare', 'da-ripulire' ), true ) ? $_GET['filtro'] : '',
 			'esito'  => (string) ( $_GET['esito'] ?? '' ),
 			'errore' => (string) ( $_GET['errore'] ?? '' ),
 			'righe'  => $righe_confronto,

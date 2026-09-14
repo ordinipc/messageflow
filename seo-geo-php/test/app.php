@@ -1768,7 +1768,7 @@ verifica(
 
 verifica(
 	'il gestionale accetta solo le viste previste',
-	false !== strpos( $sorgenteIndice, "array( 'da-inviare', 'online', 'a-mano', 'da-completare' ), true )" )
+	false !== strpos( $sorgenteIndice, "array( 'da-inviare', 'online', 'a-mano', 'da-completare', 'da-ripulire' ), true )" )
 );
 
 verifica(
@@ -1969,6 +1969,56 @@ verifica(
 	'si puo rimettere il testo di prima su un articolo solo',
 	false !== strpos( $indiceSorgente, "'api-ripristina' === \$pagina" )
 		&& false !== strpos( $vistaConfronto2, 'ripristina-una' )
+);
+
+// --- I segnaposto dentro allo schema non contano ---------------------------
+//
+// La bozza rotta aveva i suoi [DA VERIFICARE] dentro al JSON-LD. Ripulito il
+// corpo, spariscono insieme a quello: contarli lo stesso teneva fuori
+// dall invio una bozza che era gia a posto, e in pagina il conto scendeva da
+// 17 a 16 senza che si capisse perche.
+
+$bozzaConSchema = array(
+	'corpo_html' => '<p>Testo buono.</p>'
+		. '{ "@context": "https://schema.org", "@type": "Article", "datePublished": "[DA VERIFICARE: data di pubblicazione]" }'
+		. '<p>Altro testo buono.</p>',
+);
+
+verifica(
+	'sul testo grezzo i segnaposto dello schema si vedono ancora',
+	array() !== \SeoGeo\Ai\Verifiche::restano( $bozzaConSchema )
+);
+
+verifica(
+	'ma su quello che parte davvero non ci sono piu',
+	array() === \SeoGeo\Ai\Verifiche::restano(
+		array( 'corpo_html' => \SeoGeo\Html::senzaDatiStrutturati( $bozzaConSchema['corpo_html'] ) )
+	)
+);
+
+$vistaConfronto3 = file_get_contents( __DIR__ . '/../views/confronto-bozze.php' );
+
+verifica(
+	'e la pagina decide sul testo ripulito, non su quello in archivio',
+	false !== strpos( $vistaConfronto3, "Verifiche::restano( array( 'corpo_html' => \$ripulito( \$riga ) )" )
+);
+
+verifica(
+	'gli articoli gia online con lo schema nel testo si ritrovano',
+	false !== strpos( $vistaConfronto3, '$da_ripulire' )
+		&& false !== strpos( $vistaConfronto3, "'da-ripulire'   => array( 'Da ripulire sul sito'" )
+);
+
+verifica(
+	'e il pulsante in blocco li rimanda davvero',
+	false !== strpos( $vistaConfronto3, '.confronto:not([hidden])' )
+		&& false === strpos( $vistaConfronto3, "'Sovrascrivi questo articolo' === b.textContent" )
+);
+
+verifica(
+	'si puo cercare un articolo per titolo o indirizzo',
+	false !== strpos( $vistaConfronto3, 'cerca-bozza' )
+		&& false !== strpos( $vistaConfronto3, 'data-cerca=' )
 );
 
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
