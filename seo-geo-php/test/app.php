@@ -2621,6 +2621,110 @@ verifica(
 	false !== strpos( file_get_contents( __DIR__ . '/../src/Db.php' ), "aggiungiColonna( 'occorrenza', 'applicato', 'INT' )" )
 );
 
+// --- Sitemap: dirlo a Google ----------------------------------------------
+//
+// Dopo aver cambiato duecento contenuti la sitemap sul sito e gia
+// aggiornata, ma Google la ripassa quando gli pare.
+
+echo "\nSitemap\n";
+
+// Finto sito che risponde solo a uno degli indirizzi soliti.
+// La porta si deriva dal processo: due esecuzioni ravvicinate non si
+// contendono la stessa, e il collaudo non dipende da chi e passato prima.
+$portaSm  = 20000 + ( getmypid() % 20000 );
+$radiceSm = sys_get_temp_dir() . '/seo-sitemap-' . getmypid();
+@mkdir( $radiceSm );
+
+file_put_contents(
+	$radiceSm . '/sitemap_index.xml',
+	'<?xml version="1.0"?><sitemapindex><sitemap><loc>https://esempio.it/a.xml</loc></sitemap>'
+	. '<sitemap><loc>https://esempio.it/b.xml</loc></sitemap></sitemapindex>'
+);
+
+// Una pagina 404 che risponde 200 con HTML: non e una sitemap, e mandarla
+// a Google farebbe solo comparire un errore nella sua console.
+file_put_contents( $radiceSm . '/sitemap.xml', '<!doctype html><html><body>Pagina non trovata</body></html>' );
+
+$serverSm = proc_open(
+	sprintf( 'php -S 127.0.0.1:%d -t %s', $portaSm, escapeshellarg( $radiceSm ) ),
+	array( 1 => array( 'file', '/dev/null', 'w' ), 2 => array( 'file', '/dev/null', 'w' ) ),
+	$tubiSm
+);
+
+// Si aspetta che risponda davvero, invece di sperare in una pausa fissa:
+// su una macchina carica mezzo secondo non basta, e il collaudo fallirebbe
+// per un motivo che non c entra niente con quello che sta misurando.
+$prontoSm = false;
+
+for ( $tentativo = 0; $tentativo < 60; $tentativo++ ) {
+	$prova = @fsockopen( '127.0.0.1', $portaSm, $e1, $e2, 0.2 );
+
+	if ( $prova ) {
+		fclose( $prova );
+		$prontoSm = true;
+		break;
+	}
+
+	usleep( 100000 );
+}
+
+verifica( 'il finto sito risponde', $prontoSm );
+
+$trovate = $prontoSm ? \SeoGeo\Search\Sitemap::trova( 'http://127.0.0.1:' . $portaSm ) : array();
+
+verifica( 'si trova la sitemap vera', 1 === count( $trovate ), json_encode( array_column( $trovate, 'url' ) ) );
+verifica( 'ed e quella giusta', false !== strpos( (string) ( $trovate[0]['url'] ?? '' ), 'sitemap_index.xml' ), (string) ( $trovate[0]['url'] ?? '' ) );
+verifica( 'con quante voci contiene', 2 === (int) ( $trovate[0]['url_dentro'] ?? 0 ), (string) ( $trovate[0]['url_dentro'] ?? 0 ) );
+verifica( 'una pagina HTML che risponde 200 non viene scambiata per una sitemap', 1 === count( $trovate ) );
+
+if ( is_resource( $serverSm ) ) {
+	proc_terminate( $serverSm );
+	proc_close( $serverSm );
+}
+
+array_map( 'unlink', glob( $radiceSm . '/*' ) ?: array() );
+@rmdir( $radiceSm );
+
+// Un sito che non risponde non deve far esplodere la pagina.
+verifica( 'un sito irraggiungibile non rompe niente', array() === \SeoGeo\Search\Sitemap::trova( 'http://127.0.0.1:9' ) );
+
+$sorgenteConsole = file_get_contents( __DIR__ . '/../src/Google/SearchConsole.php' );
+
+verifica(
+	'l invio usa PUT, come vuole l API di Google',
+	false !== strpos( $sorgenteConsole, "'PUT'," )
+		&& false !== strpos( $sorgenteConsole, 'CURLOPT_CUSTOMREQUEST' )
+);
+
+verifica(
+	'e chiede l ambito di scrittura, non quello di sola lettura',
+	false !== strpos( $sorgenteConsole, "'https://www.googleapis.com/auth/webmasters'" )
+);
+
+verifica(
+	'il gestionale ha il pulsante e passa dal client gia esistente',
+	false !== strpos( $indiceSorgente, "'invia-sitemap' === \$pagina" )
+		&& false !== strpos( $indiceSorgente, "Prestazioni::client( \$cfg )->inviaSitemap(" )
+);
+
+verifica(
+	'un indirizzo non valido viene rifiutato prima di chiamare Google',
+	false !== strpos( $indiceSorgente, 'FILTER_VALIDATE_URL' )
+);
+
+// Non si promette quello che non si puo fare.
+$vistaPrest = file_get_contents( __DIR__ . '/../views/prestazioni.php' );
+
+verifica(
+	'la pagina dice chiaro che non forza l indicizzazione',
+	false !== strpos( $vistaPrest, 'non</strong> fa: forzare l\'indicizzazione' )
+);
+
+verifica(
+	'e avverte che serve il permesso di scrittura',
+	false !== strpos( $vistaPrest, 'autorizzazione completa' )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

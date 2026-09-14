@@ -226,16 +226,47 @@ class SearchConsole {
 	}
 
 	/**
+	 * Dice a Google di rileggere una sitemap.
+	 *
+	 * Serve dopo aver cambiato parecchi contenuti: la sitemap sul sito e
+	 * gia aggiornata, ma Google la ripassa quando gli pare. Questo glielo
+	 * chiede subito.
+	 *
+	 * Non forza l indicizzazione e non la accelera per forza: dice solo
+	 * «guarda che questo elenco e cambiato». Promettere di piu sarebbe
+	 * falso - l API che indicizza a richiesta Google la riserva alle offerte
+	 * di lavoro e agli eventi in diretta, non alle pagine normali.
+	 *
+	 * @param string $indirizzo Indirizzo completo della sitemap.
+	 * @return array
+	 * @throws RuntimeException Se Google rifiuta.
+	 */
+	public function inviaSitemap( $indirizzo ) {
+		$this->chiama(
+			'PUT',
+			'/webmasters/v3/sites/' . rawurlencode( $this->proprieta )
+				. '/sitemaps/' . rawurlencode( (string) $indirizzo ),
+			array(),
+			// In lettura basta l ambito di sola lettura; per dire a Google
+			// di rileggere qualcosa serve quello pieno.
+			'https://www.googleapis.com/auth/webmasters'
+		);
+
+		return array( 'ok' => true, 'sitemap' => (string) $indirizzo );
+	}
+
+	/**
 	 * Esegue la chiamata e traduce gli errori.
 	 *
-	 * @param string $metodo   GET o POST.
+	 * @param string $metodo   GET, POST o PUT.
 	 * @param string $percorso Percorso dell API.
 	 * @param array  $corpo    Corpo JSON per il POST.
+	 * @param string $ambito   Ambito OAuth, se diverso dalla sola lettura.
 	 * @return array
 	 * @throws RuntimeException Se Google risponde con un errore.
 	 */
-	private function chiama( $metodo, $percorso, array $corpo = array() ) {
-		$token = $this->account->token();
+	private function chiama( $metodo, $percorso, array $corpo = array(), $ambito = '' ) {
+		$token = '' !== $ambito ? $this->account->token( $ambito ) : $this->account->token();
 		$ch    = curl_init( $this->base . $percorso );
 
 		$opzioni = array(
@@ -250,6 +281,10 @@ class SearchConsole {
 		if ( 'POST' === $metodo ) {
 			$opzioni[ CURLOPT_POST ]       = true;
 			$opzioni[ CURLOPT_POSTFIELDS ] = json_encode( $corpo );
+		}
+
+		if ( 'PUT' === $metodo ) {
+			$opzioni[ CURLOPT_CUSTOMREQUEST ] = 'PUT';
 		}
 
 		curl_setopt_array( $ch, $opzioni );

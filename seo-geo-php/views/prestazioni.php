@@ -9,6 +9,8 @@
  * @var bool       $chiave_ok   La chiave c è ed è valida.
  * @var string     $account     Indirizzo dell account di servizio.
  * @var string     $proprieta   Proprietà configurata.
+ * @var array[]    $sitemap_sito   Sitemap trovate sul sito.
+ * @var array[]    $sitemap_google Sitemap che Google gia conosce.
  * @var array|null $ultima      Ultima rilevazione.
  * @var array|null $precedente  Rilevazione prima di quella.
  * @var array[]    $storico     Rilevazioni recenti.
@@ -127,6 +129,78 @@ function delta( $ora, $prima, $meglio = false ) {
 			<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
 			<button class="bottone" type="submit">Aggiorna da Search Console</button>
 		</form>
+	</section>
+
+	<section class="scheda">
+		<h2>Sitemap</h2>
+		<p class="guida">
+			Dopo aver cambiato parecchi contenuti la sitemap sul sito è già aggiornata — la genera
+			WordPress o il plugin SEO — ma Google la ripassa quando gli pare, e possono volerci giorni.
+			Da qui gli si dice che è cambiata.
+		</p>
+		<p class="nota">
+			Una cosa che questo <strong>non</strong> fa: forzare l'indicizzazione. L'API di Google che
+			indicizza a richiesta è riservata alle offerte di lavoro e agli eventi in diretta, e usarla
+			per le pagine normali è fuori dalle sue condizioni. Per una singola pagina urgente, il modo
+			giusto resta «Richiedi indicizzazione» dentro a Search Console.
+		</p>
+
+		<?php if ( ! $sitemap_sito ) : ?>
+			<p class="avviso grave">
+				Sul sito non si trova nessuna sitemap agli indirizzi soliti
+				(<code>/sitemap_index.xml</code>, <code>/sitemap.xml</code>, <code>/wp-sitemap.xml</code>).
+				Controlla che Rank Math abbia le sitemap attive.
+			</p>
+		<?php else : ?>
+			<div class="tabellabox">
+				<table>
+					<thead>
+						<tr><th>Sitemap trovata sul sito</th><th class="num">Voci</th><th>Google la conosce</th><th></th></tr>
+					</thead>
+					<tbody>
+					<?php foreach ( $sitemap_sito as $sm ) : ?>
+						<?php
+						$nota = null;
+
+						foreach ( $sitemap_google as $g ) {
+							if ( rtrim( (string) $g['percorso'], '/' ) === rtrim( $sm['url'], '/' ) ) {
+								$nota = $g;
+								break;
+							}
+						}
+						?>
+						<tr>
+							<td class="mono"><a href="<?php echo e( $sm['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( $sm['url'] ); ?></a></td>
+							<td class="num"><?php echo num( $sm['url_dentro'] ); ?></td>
+							<td>
+								<?php if ( $nota ) : ?>
+									<?php echo $nota['inviata'] ? 'dal ' . e( substr( (string) $nota['inviata'], 0, 10 ) ) : 'sì'; ?>
+									<?php if ( (int) $nota['errori'] > 0 ) : ?>
+										<span class="tag grave"><?php echo num( $nota['errori'] ); ?> errori</span>
+									<?php endif; ?>
+								<?php else : ?>
+									<span class="tag alto">no</span>
+								<?php endif; ?>
+							</td>
+							<td>
+								<form method="post" action="?p=invia-sitemap" style="margin:0">
+									<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+									<input type="hidden" name="sitemap" value="<?php echo e( $sm['url'] ); ?>">
+									<button class="bottone chiaro piccolo" type="submit">Dillo a Google</button>
+								</form>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+					</tbody>
+				</table>
+			</div>
+			<p class="nota">
+				Serve il permesso di scrittura su Search Console: l'account
+				<?php echo $account ? '<code>' . e( $account ) . '</code>' : 'di servizio'; ?>
+				dev'essere <strong>proprietario o utente con autorizzazione completa</strong> della proprietà,
+				non solo in sola lettura. Se Google risponde «permesso negato», è questo.
+			</p>
+		<?php endif; ?>
 	</section>
 
 	<?php if ( ! $ultima ) : ?>

@@ -28,6 +28,7 @@ use SeoGeo\Fix\Meta;
 use SeoGeo\Site;
 use SeoGeo\Search\Azioni;
 use SeoGeo\Search\Prestazioni;
+use SeoGeo\Search\Sitemap;
 use SeoGeo\Search\Segnali;
 use SeoGeo\Sync\Sito as SitoRemoto;
 use SeoGeo\Triage;
@@ -880,6 +881,33 @@ if ( 'api-sovrascrivi' === $pagina ) {
 	} catch ( Throwable $e ) {
 		http_response_code( 500 );
 		echo json_encode( array( 'errore' => $e->getMessage(), 'bozza' => (int) $riga['id'] ) );
+	}
+
+	exit;
+}
+
+if ( 'invia-sitemap' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Sessione scaduta: ricarica la pagina e riprova.' );
+	}
+
+	// Dire a Google che la sitemap e cambiata. Non forza l indicizzazione:
+	// l API che indicizza a richiesta e riservata alle offerte di lavoro e
+	// agli eventi in diretta, e usarla per le pagine normali sarebbe fuori
+	// dalle sue condizioni d uso.
+	$indirizzo = trim( (string) ( $_POST['sitemap'] ?? '' ) );
+
+	try {
+		if ( '' === $indirizzo || ! filter_var( $indirizzo, FILTER_VALIDATE_URL ) ) {
+			throw new RuntimeException( 'Indirizzo della sitemap non valido.' );
+		}
+
+		Prestazioni::client( $cfg )->inviaSitemap( $indirizzo );
+
+		header( 'Location: ?p=prestazioni&messaggio=' . rawurlencode( 'Sitemap segnalata a Google: ' . $indirizzo . '. La rilettura non e immediata, di solito passano ore o giorni.' ) );
+	} catch ( Throwable $e ) {
+		header( 'Location: ?p=prestazioni&errore=' . rawurlencode( $e->getMessage() ) );
 	}
 
 	exit;
@@ -2508,6 +2536,14 @@ switch ( $pagina ) {
 				'chiave_ok'    => '' !== trim( Impostazioni::chiaveGoogle( $cfg ) ),
 				'account'      => google_indirizzo_account( $cfg ),
 				'proprieta'    => (string) ( $cfg['google']['proprieta'] ?? '' ),
+				// Dopo aver riscritto duecento articoli la sitemap sul sito e
+				// gia aggiornata, ma Google la ripassa quando gli pare.
+				'sitemap_sito' => Prestazioni::configurata( $cfg )
+					? Sitemap::trova( (string) ( $cfg['wordpress']['url'] ?? $sito ) )
+					: array(),
+				'sitemap_google' => Prestazioni::configurata( $cfg )
+					? Sitemap::conosciute( Prestazioni::client( $cfg ) )
+					: array(),
 				'ultima'       => $ultima,
 				'precedente'   => count( $storico ) > 1 ? $storico[1] : null,
 				'storico'      => $storico,
