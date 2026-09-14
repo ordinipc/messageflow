@@ -8,6 +8,7 @@
  * @var bool   $pronto Collegamento a WordPress configurato.
  * @var array  $costruttori wp_id => costruttore visuale che disegna il contenuto.
  * @var array  $strutture   wp_id => che cosa c e dentro alla struttura di Elementor.
+ * @var string $filtro      Vista scelta: '', 'da-inviare', 'online', 'a-mano'.
  * @var string $esito  Messaggio.
  * @var string $errore Errore.
  */
@@ -144,6 +145,29 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 			Per quelli: apri la bozza, copia il testo e incollalo nel blocco giusto dentro Elementor.
 		</p>
 	<?php endif; ?>
+
+	<?php
+	// Con duecento contenuti, sapere che diciassette non si possono fare non
+	// serve a niente se poi bisogna cercarli a mano in mezzo agli altri.
+	$gia_online = array_values( array_filter( $righe, static fn( $r ) => ! empty( $r['inviata_il'] ) ) );
+
+	$viste = array(
+		''           => array( 'Tutti', count( $righe ) ),
+		'da-inviare' => array( 'Da inviare', count( $da_inviare ) ),
+		'online'     => array( 'Già online', count( $gia_online ) ),
+		'a-mano'     => array( 'Da fare a mano', count( $bloccate ) ),
+	);
+	?>
+	<p class="filtri">
+		<?php foreach ( $viste as $chiave => $vista ) : ?>
+			<?php if ( ! $vista[1] && '' !== $chiave ) : continue; endif; ?>
+			<?php if ( $chiave === $filtro ) : ?>
+				<strong><?php echo e( $vista[0] ); ?> <?php echo num( $vista[1] ); ?></strong>
+			<?php else : ?>
+				<a href="?p=confronto-bozze&amp;id=<?php echo (int) $audit['id']; ?><?php echo $chiave ? '&amp;filtro=' . e( $chiave ) : ''; ?>"><?php echo e( $vista[0] ); ?> <?php echo num( $vista[1] ); ?></a>
+			<?php endif; ?>
+		<?php endforeach; ?>
+	</p>
 	<?php if ( $pronto && $da_inviare ) : ?>
 		<div class="azioni">
 			<button class="bottone" type="button" id="invia-tutte">Sovrascrivi tutte le <?php echo (int) count( $da_inviare ); ?></button>
@@ -157,7 +181,23 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 	<?php endif; ?>
 </section>
 
-<?php foreach ( $righe as $riga ) : ?>
+<?php
+$elenco = $righe;
+
+if ( 'da-inviare' === $filtro ) {
+	$elenco = $da_inviare;
+} elseif ( 'online' === $filtro ) {
+	$elenco = $gia_online;
+} elseif ( 'a-mano' === $filtro ) {
+	$elenco = $bloccate;
+}
+?>
+
+<?php if ( ! $elenco ) : ?>
+	<section class="scheda"><p class="guida">Nessun contenuto in questa vista.</p></section>
+<?php endif; ?>
+
+<?php foreach ( $elenco as $riga ) : ?>
 	<section class="scheda confronto" data-bozza="<?php echo (int) $riga['id']; ?>">
 		<h2><?php echo e( $riga['titolo_vecchio'] ); ?></h2>
 		<p class="nota">

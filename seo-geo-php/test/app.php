@@ -1697,6 +1697,27 @@ verifica(
 		&& false !== strpos( $vistaConfronto, 'senza nessun blocco di testo in Elementor' )
 );
 
+// Sapere che diciassette non si possono fare non serve se poi vanno
+// cercati a mano in mezzo a duecento.
+verifica(
+	'si possono vedere solo quelli da fare a mano',
+	false !== strpos( $vistaConfronto, "'a-mano'" )
+		&& false !== strpos( $vistaConfronto, "'a-mano' === \$filtro" )
+		&& false !== strpos( $vistaConfronto, 'class="filtri"' )
+);
+
+verifica(
+	'le viste sono quattro e contano quante righe hanno',
+	false !== strpos( $vistaConfronto, "'Da inviare', count( \$da_inviare )" )
+		&& false !== strpos( $vistaConfronto, "'Già online', count( \$gia_online )" )
+		&& false !== strpos( $vistaConfronto, "'Da fare a mano', count( \$bloccate )" )
+);
+
+verifica(
+	'il gestionale accetta solo le viste previste',
+	false !== strpos( $sorgenteIndice, "array( 'da-inviare', 'online', 'a-mano' ), true )" )
+);
+
 verifica(
 	'e distingue anche gli altri costruttori e le strutture illeggibili',
 	false !== strpos( $vistaConfronto, "'costruiti con '" )
