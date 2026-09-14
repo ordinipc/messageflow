@@ -654,6 +654,41 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 		</div>
 	</section>
 
+	<section class="scheda" id="cestina">
+		<h2>Cestina i contenuti assorbiti</h2>
+		<p class="guida">
+			Gli articoli che un accorpamento ha assorbito, e quelli che l'audit ha classificato da
+			eliminare, restano pubblicati finché non li togli: il loro testo è anche dentro all'articolo
+			principale, quindi il contenuto resta doppio. Sono <strong><?php echo num( $conteggi['redirect'] ); ?></strong>.
+		</p>
+		<p class="nota">
+			Vanno nel <strong>cestino di WordPress</strong>, non cancellati: da lì si recuperano.
+			<?php
+			$redirect_attivi = (int) ( $stato['redirect'] ?? 0 );
+			$redirect_serve  = (int) $conteggi['redirect'];
+			?>
+			<?php if ( $redirect_serve > 0 && $redirect_attivi < $redirect_serve ) : ?>
+				<br><strong>Prima però servono i redirect:</strong> sul sito ne risultano attivi
+				<?php echo num( $redirect_attivi ); ?> su <?php echo num( $redirect_serve ); ?>.
+				Premi «Attiva i <?php echo num( $redirect_serve ); ?> obbligatori» qui sopra, poi torna qui.
+				Cestinare adesso darebbe pagina non trovata a chi arriva da Google.
+			<?php else : ?>
+				I <?php echo num( $redirect_attivi ); ?> redirect risultano attivi sul sito: si può procedere.
+			<?php endif; ?>
+		</p>
+		<div class="azioni">
+			<?php
+			azione(
+				$audit['id'],
+				'cestina',
+				'Sposta nel cestino i ' . $conteggi['redirect'] . ' assorbiti',
+				'Spostare ' . $conteggi['redirect'] . ' contenuti nel cestino di WordPress? Si recuperano da lì, e i redirect restano attivi.',
+				$redirect_serve > 0 && $redirect_attivi < $redirect_serve ? 'bottone chiaro' : 'bottone'
+			);
+			?>
+		</div>
+	</section>
+
 	<section class="scheda" id="categorie">
 		<h2>Categorie</h2>
 		<p class="guida">Riassegna le categorie ai <?php echo num( $conteggi['categorie'] ); ?> articoli che l'audit segnala come classificati fuori tema.</p>

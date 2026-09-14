@@ -1868,6 +1868,52 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 					: "$attivi redirect attivi, solo per i contenuti eliminati o accorpati. Gli slug degli articoli che restano online non sono stati toccati.";
 				break;
 
+			case 'cestina':
+				// Gli articoli assorbiti da un accorpamento e quelli che
+				// l audit ha classificato da eliminare. Nel cestino, non
+				// cancellati: da WordPress si recuperano.
+				//
+				// Prima si controlla che i redirect siano attivi sul sito:
+				// cestinare senza, vuol dire dare pagina non trovata a chi
+				// arriva da Google su quegli indirizzi.
+				$previsti = (int) $db->one(
+					"SELECT COUNT(*) n FROM triage WHERE audit_id = ? AND redirect_a <> ''",
+					array( $id )
+				)['n'];
+
+				$stato_sito = $ponte->stato();
+				$attivi_ora = (int) ( $stato_sito['redirect'] ?? 0 );
+
+				if ( $previsti > 0 && $attivi_ora < $previsti ) {
+					throw new RuntimeException(
+						sprintf(
+							'Sul sito ci sono %d redirect attivi su %d previsti. Attiva prima «i %d obbligatori»: '
+							. 'cestinare adesso darebbe pagina non trovata a chi arriva da Google.',
+							$attivi_ora,
+							$previsti,
+							$previsti
+						)
+					);
+				}
+
+				$da_cestinare = $db->all(
+					"SELECT d.wp_id FROM triage t JOIN documento d ON d.id = t.documento_id
+					 WHERE t.audit_id = ? AND t.redirect_a <> '' AND d.wp_id <> ''",
+					array( $id )
+				);
+
+				if ( ! $da_cestinare ) {
+					$messaggio = 'Non c è niente da cestinare.';
+					break;
+				}
+
+				$esito     = $ponte->cestina( array_column( $da_cestinare, 'wp_id' ) );
+				$messaggio = sprintf(
+					'%d contenuti spostati nel cestino di WordPress: si recuperano da lì. I redirect restano attivi.',
+					(int) ( $esito['cestinati'] ?? 0 )
+				);
+				break;
+
 			case 'categorie':
 				// Le proposte arrivano dalla regola TAX-03, già registrata nell audit.
 				$occorrenze = $db->all(

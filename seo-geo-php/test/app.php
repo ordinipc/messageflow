@@ -2912,6 +2912,47 @@ verifica(
 		&& strpos( $sorgenteCoda, "\$aggiungi( 'applica_bozza'," ) < $posCestina
 );
 
+// --- Cestinare gli assorbiti: il pulsante che mancava ---------------------
+//
+// Dopo un accorpamento gli articoli assorbiti restano pubblicati, e il loro
+// testo e anche dentro al principale: contenuto doppio. Il modo di toglierli
+// esisteva solo dentro al pilota automatico, come casella. In «Applica sul
+// sito» - dove si fanno i redirect, cioe il passo prima - non c era niente.
+
+echo "\nCestinare gli assorbiti\n";
+
+$vistaCollega3 = file_get_contents( __DIR__ . '/../views/collega.php' );
+
+verifica(
+	'il pulsante esiste nella pagina dove si fanno i redirect',
+	false !== strpos( $vistaCollega3, 'Cestina i contenuti assorbiti' )
+		&& false !== strpos( $vistaCollega3, "'cestina'," )
+);
+
+verifica(
+	'e dice che vanno nel cestino, non cancellati',
+	false !== strpos( $vistaCollega3, 'da lì si recuperano' ) || false !== strpos( $vistaCollega3, 'si recuperano' )
+);
+
+// La rete che conta: cestinare senza redirect da pagina non trovata a chi
+// arriva da Google.
+verifica(
+	'la pagina confronta i redirect attivi sul sito con quelli previsti',
+	false !== strpos( $vistaCollega3, "\$redirect_attivi = (int) ( \$stato['redirect'] ?? 0 )" )
+		&& false !== strpos( $vistaCollega3, 'Prima però servono i redirect' )
+);
+
+verifica(
+	'e il gestionale si rifiuta comunque, non si fida solo dell avviso',
+	false !== strpos( $indiceSorgente, "case 'cestina':" )
+		&& false !== strpos( $indiceSorgente, 'cestinare adesso darebbe pagina non trovata' )
+);
+
+verifica(
+	'si cestinano gli assorbiti, cioe quelli che hanno un redirect',
+	false !== strpos( $indiceSorgente, "WHERE t.audit_id = ? AND t.redirect_a <> '' AND d.wp_id <> ''" )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );
