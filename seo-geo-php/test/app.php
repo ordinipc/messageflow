@@ -2825,6 +2825,41 @@ verifica(
 	false !== strpos( $vistaBozze, '$pronto && ! $daFondere &&' )
 );
 
+// --- Una bozza che unisce piu articoli non finisce quando parte ------------
+//
+// Gli articoli assorbiti restano pubblicati: finche non si reindirizzano, il
+// contenuto e doppio. Va detto dove si preme, non in un altra pagina.
+
+echo "\nAccorpamenti: il lavoro dopo l invio\n";
+
+$vistaConfronto4 = file_get_contents( __DIR__ . '/../views/confronto-bozze.php' );
+
+verifica(
+	'le bozze che accorpano si riconoscono',
+	false !== strpos( $vistaConfronto4, "0 === strpos( (string) ( \$riga['note'] ?? '' ), 'Accorpa ' )" )
+);
+
+verifica(
+	'e la pagina avvisa che mandarle online non basta',
+	false !== strpos( $vistaConfronto4, 'Mandarla online <strong>non basta</strong>' )
+		&& false !== strpos( $vistaConfronto4, 'cestina gli assorbiti' )
+);
+
+verifica(
+	'dicendo anche in che ordine, che e la parte che rompe le cose',
+	false !== strpos( $vistaConfronto4, "in quest'ordine" )
+);
+
+verifica(
+	'e si contano in cima, non si scoprono a meta strada',
+	false !== strpos( $vistaConfronto4, 'uniscono più articoli' )
+);
+
+verifica(
+	'la nota della bozza arriva fino alla pagina',
+	false !== strpos( $indiceSorgente, 'b.meta_description, b.faq, b.note,' )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

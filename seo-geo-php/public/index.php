@@ -756,7 +756,7 @@ if ( 'confronto-bozze' === $pagina ) {
 	$ponte = new WordPress( $cfg['wordpress'] );
 
 	$righe_confronto = $db->all(
-		"SELECT b.id, b.titolo, b.corpo_html, b.in_breve, b.meta_title, b.meta_description, b.faq,
+		"SELECT b.id, b.titolo, b.corpo_html, b.in_breve, b.meta_title, b.meta_description, b.faq, b.note,
 				b.inviata_il, d.wp_id, d.url, d.titolo AS titolo_vecchio, d.testo AS testo_vecchio,
 				d.parole AS parole_vecchie, d.seo_title, d.seo_description
 		 FROM bozza b JOIN documento d ON d.id = b.documento_id

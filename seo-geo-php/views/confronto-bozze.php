@@ -186,7 +186,22 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 		<?php if ( $da_completare ) : ?>
 			· <strong><?php echo num( count( $da_completare ) ); ?> con dati da verificare</strong>
 		<?php endif; ?>
+		<?php
+		$accorpamenti = array_filter( $righe, static fn( $r ) => 0 === strpos( (string) ( $r['note'] ?? '' ), 'Accorpa ' ) );
+		?>
+		<?php if ( $accorpamenti ) : ?>
+			· <strong><?php echo num( count( $accorpamenti ) ); ?> uniscono più articoli</strong>
+		<?php endif; ?>
 	</p>
+	<?php if ( $accorpamenti ) : ?>
+		<p class="nota">
+			<?php echo num( count( $accorpamenti ) ); ?> di queste bozze nascono da un accorpamento: uniscono
+			due o più articoli che si contendevano la stessa ricerca. Mandarle online non chiude il lavoro —
+			gli articoli assorbiti restano pubblicati. Dopo l'invio servono, <strong>in quest'ordine</strong>:
+            i <a href="?p=collega&amp;id=<?php echo (int) $audit['id']; ?>#redirect">redirect 301</a>, e poi
+			il cestino per gli assorbiti.
+		</p>
+	<?php endif; ?>
 	<?php if ( $da_completare ) : ?>
 		<p class="nota">
 			<?php echo num( count( $da_completare ) ); ?> bozze hanno ancora dei segnaposto
@@ -336,6 +351,25 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 				<div class="testo-bozza"><?php echo \SeoGeo\Html::senzaDatiStrutturati( \SeoGeo\Html::sanifica( (string) $riga['corpo_html'] ) ); ?></div>
 			</div>
 		</div>
+
+		<?php
+		// Una bozza che nasce da un accorpamento non finisce quando la si
+		// manda online: gli articoli assorbiti restano pubblicati, e finche
+		// non si reindirizzano il contenuto e doppio. Va detto qui, dove si
+		// preme, non in un altra pagina.
+		$accorpa = 0 === strpos( (string) ( $riga['note'] ?? '' ), 'Accorpa ' );
+		?>
+		<?php if ( $accorpa ) : ?>
+			<p class="avviso">
+				<strong>Questa unisce più articoli.</strong>
+				<?php echo e( explode( '. ', (string) $riga['note'] )[0] ); ?>.
+				Mandarla online <strong>non basta</strong>: gli articoli assorbiti restano pubblicati e il
+				contenuto resta doppio. Dopo averla inviata, in
+				<a href="?p=collega&amp;id=<?php echo (int) $audit['id']; ?>#redirect">Applica sul sito</a>
+				attiva i redirect 301 e <strong>poi</strong> cestina gli assorbiti — in quest'ordine, se no
+				chi arriva da Google trova pagina non trovata.
+			</p>
+		<?php endif; ?>
 
 		<?php $buchi = $mancanti( $riga ); ?>
 		<?php if ( $buchi ) : ?>
