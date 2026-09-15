@@ -170,9 +170,14 @@ class Applicato {
 		if ( '' !== (string) $testo ) {
 			$pulito = trim( Html::testo( $testo ) );
 
+			// Lo stesso contatore che usa l analisi. Con str_word_count le
+			// parole con l apostrofo - un agenzia, l identita - venivano
+			// contate diversamente da come le conta l audit, e un articolo
+			// vicino alla soglia entrava e usciva dal rilievo a seconda di
+			// chi aveva fatto il conto per ultimo.
 			$db->run(
 				'UPDATE documento SET testo = ?, parole = ? WHERE id = ?',
-				array( $pulito, str_word_count( $pulito ), (int) $documentoId )
+				array( $pulito, Text::wordCount( $pulito ), (int) $documentoId )
 			);
 		}
 

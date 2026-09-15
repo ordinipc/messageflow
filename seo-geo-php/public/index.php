@@ -3072,7 +3072,12 @@ switch ( $pagina ) {
 				// due contenuti, bisogna poter vedere quali sono e perche non
 				// ci sono: «non c e niente» non e una risposta verificabile.
 				'esclusi'   => $regola_scelta
-					? Rewriter::esclusi( $db, $id, $regola_scelta )
+					? Rewriter::esclusi(
+						$db,
+						$id,
+						$regola_scelta,
+						array_column( Rewriter::candidati( $db, $id, array( 'regola' => $regola_scelta ) ), 'doc_id' )
+					)
 					: array(),
 				'segnaposto_aperti' => Verifiche::segnaposto( $db, $id ),
 				// Quante bozze restano bloccate: e il numero che si vede in

@@ -87,11 +87,33 @@ $daFondere = in_array( $regola, array( 'LOC-05', 'ONP-06', 'CNT-03' ), true );
 	<?php endif; ?>
 
 	<?php if ( $da_regola ) : ?>
+		<?php
+		// Quelli che il problema ce l hanno ma non sono in coda, e perche.
+		// Serve a rispondere alla domanda «ma non li avevamo gia riscritti
+		// ieri?»: chi e in questo elenco non e mai passato dalla riscrittura,
+		// e chi c e passato sta fra gli esclusi con scritto quello.
+		$giaFatti = array_values( array_filter( $esclusi, static fn( $x ) => 'bozza' === $x['azione'] ) );
+		$altriNo  = array_values( array_filter( $esclusi, static fn( $x ) => 'bozza' !== $x['azione'] ) );
+		?>
 		<p class="guida">
 			Riguarda <strong><?php echo num( count( $da_regola ) ); ?> contenuti</strong>.
 			<?php if ( ! $daFondere ) : ?>
 				La generazione qui sotto lavora <strong>solo su questi</strong>: non ricomincia da capo
 				su tutto l'archivio.
+			<?php endif; ?>
+		</p>
+		<p class="guida">
+			<strong>Nessuno di questi è ancora passato dalla riscrittura.</strong>
+			<?php if ( $giaFatti ) : ?>
+				Altri <?php echo num( count( $giaFatti ) ); ?> con lo stesso problema una riscrittura ce
+				l'hanno già: sono fuori da questo elenco e li trovi in
+				<a href="?p=confronto-bozze&amp;id=<?php echo (int) $audit['id']; ?>">Vecchio e nuovo</a>.
+			<?php else : ?>
+				Non risultano riscritture fatte per questo problema.
+			<?php endif; ?>
+			<?php if ( $altriNo ) : ?>
+				Altri <?php echo num( count( $altriNo ) ); ?> restano fuori per altri motivi (pagine,
+				contenuti già sistemati): sono elencati in fondo al riquadro.
 			<?php endif; ?>
 		</p>
 		<details>
@@ -105,6 +127,31 @@ $daFondere = in_array( $regola, array( 'LOC-05', 'ONP-06', 'CNT-03' ), true );
 				<?php endif; ?>
 			</ul>
 		</details>
+		<?php if ( $esclusi ) : ?>
+			<details>
+				<summary>Gli altri <?php echo num( count( $esclusi ) ); ?> con lo stesso problema, e perché non sono in coda</summary>
+				<div class="tabellabox">
+					<table>
+						<thead><tr><th>Contenuto</th><th>Rilevato</th><th>Perché non è in coda</th></tr></thead>
+						<tbody>
+						<?php foreach ( array_slice( $esclusi, 0, 60 ) as $x ) : ?>
+							<tr>
+								<td>
+									<?php if ( $x['url'] ) : ?>
+										<a href="<?php echo e( $x['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( $x['titolo'] ); ?></a>
+									<?php else : ?>
+										<?php echo e( $x['titolo'] ); ?>
+									<?php endif; ?>
+								</td>
+								<td><?php echo e( $x['dettaglio'] ); ?></td>
+								<td><?php echo e( $x['motivo'] ); ?></td>
+							</tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+				</div>
+			</details>
+		<?php endif; ?>
 	<?php elseif ( ! empty( $esclusi ) ) : ?>
 		<?php $aMano = array_values( array_filter( $esclusi, static fn( $x ) => 'manuale' === $x['azione'] ) ); ?>
 		<p class="avviso">

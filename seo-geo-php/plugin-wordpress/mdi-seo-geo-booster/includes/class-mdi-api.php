@@ -914,7 +914,7 @@ class MDI_Api {
 				'modificato'  => $post->post_modified,
 				'futuro'      => 'future' === $post->post_status,
 				'categorie'   => $categorie,
-				'parole'      => str_word_count( wp_strip_all_tags( (string) $post->post_content ) ),
+				'parole'      => self::conta_parole( self::contenuto_vero( $post ) ),
 				'robots'      => (string) $robots,
 				'canonica'    => (string) get_post_meta( $id, 'rank_math_canonical_url', true ),
 				'in_mappa'    => (bool) array_filter(
@@ -1958,7 +1958,7 @@ class MDI_Api {
 				'ha_chiave'     => '' !== $chiave,
 				'estratto'      => '' !== trim( (string) $post->post_excerpt ),
 				'thumbnail'     => (bool) get_post_thumbnail_id( $id ),
-				'parole'        => str_word_count( wp_strip_all_tags( $testo_vero ) ),
+				'parole'        => self::conta_parole( $testo_vero ),
 			);
 		}
 
@@ -1999,6 +1999,24 @@ class MDI_Api {
 	 * @return array 'testi' (widget di testo con lunghezza e percorso),
 	 *               'post_content' (vero se un widget rende post_content),
 	 *               'errore'.
+	 */
+	private static function conta_parole( $testo ) {
+		$testo = wp_strip_all_tags( (string) $testo );
+		$testo = preg_replace( '/[^\p{L}\p{N}\'\s-]+/u', ' ', $testo );
+		$testo = trim( (string) $testo );
+
+		if ( '' === $testo ) {
+			return 0;
+		}
+
+		return count( array_filter( (array) preg_split( '/\s+/u', $testo ) ) );
+	}
+
+	/**
+	 * Il testo vero di un contenuto, anche quando lo disegna un costruttore.
+	 *
+	 * @param WP_Post $post Contenuto.
+	 * @return string
 	 */
 	private static function contenuto_vero( $post ) {
 		$grezzo = get_post_meta( (int) $post->ID, '_elementor_data', true );

@@ -101,9 +101,13 @@ class Rewriter {
 	 * @param Db     $db      Database.
 	 * @param int    $auditId Audit.
 	 * @param string $regola  Regola.
+	 * @param array  $inCoda  Identificativi dei documenti gia in coda: quelli
+	 *                        non sono esclusi, e contarli fra gli esclusi
+	 *                        darebbe due volte lo stesso contenuto.
 	 * @return array[] 'riferimento', 'titolo', 'url', 'tipo', 'motivo', 'azione'.
 	 */
-	public static function esclusi( Db $db, $auditId, $regola ) {
+	public static function esclusi( Db $db, $auditId, $regola, array $inCoda = array() ) {
+		$inCoda = array_flip( array_map( 'intval', $inCoda ) );
 		$righe = $db->all(
 			"SELECT o.riferimento, o.applicato, o.dettaglio,
 					d.id AS doc_id, d.titolo, d.url, d.tipo, d.parole,
@@ -124,6 +128,10 @@ class Rewriter {
 		$fuori = array();
 
 		foreach ( $righe as $r ) {
+			if ( null !== $r['doc_id'] && isset( $inCoda[ (int) $r['doc_id'] ] ) ) {
+				continue;
+			}
+
 			$motivo = '';
 			$azione = '';
 

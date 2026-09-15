@@ -3531,6 +3531,23 @@ verifica( 'chi ha gia una bozza non viene ricontato', 2 === count( $dopoBozza ),
 
 // E deve comparire fra gli esclusi, col motivo, invece di sparire e basta.
 $percheGen = \SeoGeo\Ai\Rewriter::esclusi( $dbGen, $auditGen, 'GEO-10' );
+
+// Chi e gia in coda non e escluso: contarlo fra gli esclusi mostrava lo
+// stesso contenuto due volte e gonfiava il numero degli «altri».
+$inCodaOra   = array_column( \SeoGeo\Ai\Rewriter::candidati( $dbGen, $auditGen, array( 'regola' => 'GEO-10' ) ), 'doc_id' );
+$soloEsclusi = \SeoGeo\Ai\Rewriter::esclusi( $dbGen, $auditGen, 'GEO-10', $inCodaOra );
+
+verifica(
+	'chi e in coda non compare fra gli esclusi',
+	count( $soloEsclusi ) === count( $percheGen ) - count( $inCodaOra ),
+	count( $soloEsclusi ) . ' esclusi, ' . count( $percheGen ) . ' occorrenze, ' . count( $inCodaOra ) . ' in coda'
+);
+
+verifica(
+	'e chi resta e proprio quello con la bozza gia pronta',
+	1 === count( $soloEsclusi ) && false !== strpos( $soloEsclusi[0]['motivo'], 'riscrittura pronta' ),
+	json_encode( $soloEsclusi )
+);
 $conBozza  = array_values( array_filter( $percheGen, static fn( $r ) => false !== strpos( $r['motivo'], 'riscrittura pronta' ) ) );
 
 verifica( 'e di lui si dice che la bozza ce l ha gia', 1 === count( $conBozza ), json_encode( $percheGen ) );
