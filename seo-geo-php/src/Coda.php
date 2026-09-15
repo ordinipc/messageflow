@@ -42,6 +42,7 @@ class Coda {
 		'accorpa'       => 'Accorpamento',
 		'bozza'         => 'Riscrittura',
 		'immagine'      => 'Immagine in evidenza',
+		'comprimi'      => 'Ricompressione delle immagini pesanti',
 		'applica_bozza' => 'Pubblicazione della riscrittura',
 		'cestina'       => 'Contenuti nel cestino',
 	);
@@ -61,6 +62,7 @@ class Coda {
 		'accorpa'   => array( 'titolo' => 'Accorpamento degli articoli che si cannibalizzano', 'costo' => true ),
 		'bozza'     => array( 'titolo' => 'Riscrittura degli articoli', 'costo' => true ),
 		'immagine'  => array( 'titolo' => 'Immagini in evidenza mancanti', 'costo' => true ),
+		'comprimi'  => array( 'titolo' => 'Ricompressione delle immagini pesanti', 'costo' => false ),
 	);
 
 	/**
@@ -130,7 +132,7 @@ class Coda {
 	 * @param array $cfg     Configurazione.
 	 * @return array Per gruppo: 'quanti', 'token_in', 'token_out', 'costo'.
 	 */
-	public static function stima( Db $db, $auditId, array $cfg ) {
+	public static function stima( Db $db, $auditId, array $cfg, array $opzioni = array() ) {
 		$prezzi = $cfg['ai']['prezzo_per_milione'] ?? array( 'input' => 0, 'output' => 0 );
 
 		// Le parole dei contenuti da lavorare: è da lì che dipende tutto.
@@ -149,6 +151,16 @@ class Coda {
 
 		list( $quanti_bozze, $parole_bozze ) = $parole( array( 'riscrivere' ) );
 		list( $quanti_fusioni )              = $parole( array( 'accorpare' ) );
+
+		// «Correggi tutto» lavora su chi ha un problema aperto, non sulla
+		// categoria del triage: il costo mostrato deve essere quello di
+		// quel lavoro li, altrimenti il pulsante promette una cifra e ne
+		// spende un altra.
+		if ( ! empty( $opzioni['tutto_larchivio'] ) ) {
+			$tutti        = Rewriter::daCorreggere( $db, $auditId );
+			$quanti_bozze = count( $tutti );
+			$parole_bozze = array_sum( array_map( static fn( $r ) => (int) $r['parole'], $tutti ) );
+		}
 
 		$immagini = (int) $db->one(
 			"SELECT COUNT(*) n FROM documento WHERE audit_id = ? AND tipo = 'post' AND ha_thumbnail = 0",
@@ -281,7 +293,18 @@ class Coda {
 			// Se Search Console è collegata, l ordine lo decidono i dati veri:
 			// prima gli articoli che Google mostra già e su cui c è più da
 			// guadagnare, poi tutti gli altri nell ordine editoriale.
-			$candidati = $vuole( 'bozza' ) ? Rewriter::candidati( $db, $auditId, array() ) : array();
+			// «Tutto» vuol dire tutto: chi ha un problema che la riscrittura
+			// sa chiudere, non solo chi il triage ha messo fra quelli da
+			// rifare. Su un archivio curato la differenza e enorme - qui 104
+			// contro 295 - e il pulsante prometteva di sistemare e lasciava
+			// indietro i due terzi.
+			$candidati = array();
+
+			if ( $vuole( 'bozza' ) ) {
+				$candidati = empty( $opzioni['tutto_larchivio'] )
+					? Rewriter::candidati( $db, $auditId, array() )
+					: Rewriter::daCorreggere( $db, $auditId );
+			}
 			$priorita  = Prestazioni::prioritaPerUrl( $db, Prestazioni::chiaveSito( $cfg ) );
 
 			if ( $priorita ) {
@@ -303,6 +326,14 @@ class Coda {
 				foreach ( Immagini::candidati( $db, $auditId, array() ) as $documento ) {
 					$aggiungi( 'immagine', $documento['id'], 'Immagine per "' . Text::truncate( $documento['titolo'], 60 ) . '"' );
 				}
+			}
+		}
+
+		// 3-bis. Le immagini pesanti: non costa token, e si ferma da sola al
+		// limite di tempo, quindi si mettono alcuni giri in fila.
+		if ( $vuole( 'comprimi' ) ) {
+			for ( $giro = 0; $giro < 12; $giro++ ) {
+				$aggiungi( 'comprimi', $giro, 'Ricompressione delle immagini pesanti, giro ' . ( $giro + 1 ) );
 			}
 		}
 
@@ -499,7 +530,7 @@ class Coda {
 	 * @throws SaltaCompito Se l operazione non è applicabile.
 	 */
 	private static function eseguiCompito( Db $db, $auditId, array $cfg, array $compito, Gemini $gemini, WordPress $ponte ) {
-		$serve_sito = in_array( $compito['tipo'], array( 'config', 'meta', 'meta_pagine', 'meta_mirata', 'redirect', 'categorie', 'applica_bozza', 'cestina' ), true );
+		$serve_sito = in_array( $compito['tipo'], array( 'config', 'meta', 'meta_pagine', 'meta_mirata', 'redirect', 'categorie', 'applica_bozza', 'cestina', 'comprimi' ), true );
 
 		if ( $serve_sito && ! $ponte->pronto() ) {
 			throw new SaltaCompito( 'Collegamento a WordPress non configurato: indirizzo e token nelle Impostazioni.' );
@@ -780,6 +811,29 @@ class Coda {
 				);
 
 				return 'riscrittura scritta sull articolo originale';
+
+			case 'comprimi':
+				$esito = \SeoGeo\Media\Compressione::esegui(
+					$ponte,
+					array(
+						'lato'        => (int) ( $cfg['ai']['immagine_lato_max'] ?? 1200 ),
+						'qualita'     => (int) ( $cfg['ai']['immagine_qualita'] ?? 82 ),
+						'peso_max'    => (int) ( $cfg['ai']['immagine_peso_max'] ?? 190000 ),
+						'secondi_max' => 40,
+					)
+				);
+
+				Applicato::immagini( $db, $auditId, (array) ( $esito['riuscite'] ?? array() ) );
+
+				if ( empty( $esito['compresse'] ) && empty( $esito['gia_fatte'] ) ) {
+					throw new SaltaCompito( 'nessuna immagine da ricomprimere' );
+				}
+
+				return sprintf(
+					'%d immagini ricompresse, ne restano %d',
+					(int) $esito['compresse'],
+					(int) $esito['restanti']
+				);
 
 			case 'cestina':
 				$ids = array_filter( explode( ',', (string) $compito['riferimento'] ) );

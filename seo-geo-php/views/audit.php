@@ -241,6 +241,77 @@ $scaricabili = array(
 	</div>
 </section>
 
+<?php $cambiato = $cambiato ?? array(); ?>
+<?php if ( $cambiato && ! empty( $precedente ) ) : ?>
+<section class="scheda">
+	<h2>Che cosa è cambiato dall'analisi del <?php echo e( substr( (string) $precedente['creato_il'], 0, 10 ) ); ?></h2>
+	<p class="guida">
+		Il totale dei problemi può salire senza che il sito sia peggiorato: succede quando l'analisi
+		impara a leggere qualcosa che prima non vedeva — il testo dentro a Elementor, per dire — e
+		quei contenuti cominciano a essere valutati su regole che prima li saltavano.
+		Qui sotto c'è riga per riga da dove viene la differenza.
+	</p>
+	<div class="tabellabox">
+		<table>
+			<thead><tr><th>Regola</th><th>Problema</th><th class="num">Prima</th><th class="num">Adesso</th><th class="num">Differenza</th></tr></thead>
+			<tbody>
+			<?php foreach ( array_slice( $cambiato, 0, 25 ) as $c ) : ?>
+				<tr>
+					<td class="mono"><?php echo e( $c['regola'] ); ?></td>
+					<td><?php echo e( $c['titolo'] ); ?></td>
+					<td class="num"><?php echo num( $c['prima'] ); ?></td>
+					<td class="num"><?php echo num( $c['adesso'] ); ?></td>
+					<td class="num">
+						<strong style="color:<?php echo $c['differenza'] > 0 ? 'var(--grave)' : 'var(--ok)'; ?>">
+							<?php echo $c['differenza'] > 0 ? '+' . num( $c['differenza'] ) : num( $c['differenza'] ); ?>
+						</strong>
+					</td>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
+		</table>
+	</div>
+</section>
+<?php endif; ?>
+
+<?php
+// Quanto lavoro c e davvero da fare, per dire prima di premere che cosa
+// succede: un pulsante che dice «tutto» senza dire quanto costa non e un
+// pulsante, e una scommessa.
+$daRiscrivere = count( \SeoGeo\Ai\Rewriter::daCorreggere( $db, (int) $audit['id'] ) );
+$costoStima   = \SeoGeo\Coda::stima( $db, (int) $audit['id'], $cfg, array( 'tutto_larchivio' => true ) );
+?>
+<form class="scheda" method="post" action="?p=pilota-avvia">
+	<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+	<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
+	<?php foreach ( array_keys( \SeoGeo\Coda::GRUPPI ) as $gruppo ) : ?>
+		<input type="hidden" name="includi[]" value="<?php echo e( $gruppo ); ?>">
+	<?php endforeach; ?>
+	<input type="hidden" name="tutto_larchivio" value="1">
+	<input type="hidden" name="pubblica" value="1">
+
+	<h2>Correggi tutto</h2>
+	<p class="guida">
+		Un solo pulsante per tutto quello che il gestionale sa fare da solo: dati aziendali al sito,
+		title e description, redirect 301, categorie, accorpamenti, ricompressione delle immagini
+		pesanti, immagini in evidenza mancanti, e la riscrittura di
+		<strong><?php echo num( $daRiscrivere ); ?> articoli</strong> — tutti quelli che hanno almeno
+		un problema che la riscrittura chiude, non solo quelli che il triage segna come da rifare.
+		Le riscritture vengono anche <strong>pubblicate</strong> sugli articoli originali.
+	</p>
+	<p class="guida">
+		<strong>Costo stimato: <?php echo number_format( (float) ( $costoStima['costo_stimato'] ?? 0 ), 2, ',', '.' ); ?> €</strong>
+		di token Gemini. Si lavora a lotti e si può fermare in qualsiasi momento: quello che è già
+		stato fatto resta. Le pagine non vengono toccate.
+	</p>
+	<p class="guida">
+		Quello che <strong>non</strong> fa: i controlli segnati «a mano» nella tabella qui sopra —
+		i due plugin SEO attivi insieme, i dati numerici da inserire con la fonte, le recensioni, il
+		portfolio. Quelli richiedono una decisione tua.
+	</p>
+	<button class="bottone" type="submit" onclick="return confirm('Parte la correzione completa: <?php echo num( $daRiscrivere ); ?> riscritture più tutto il resto, e le riscritture vengono pubblicate sugli articoli. Procedere?')">Correggi tutto e pubblica</button>
+</form>
+
 <?php if ( $sistemati ) : ?>
 <section class="scheda">
 	<h2>Già sistemati</h2>

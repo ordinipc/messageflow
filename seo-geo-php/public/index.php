@@ -726,6 +726,9 @@ if ( 'pilota-avvia' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 			'pubblica' => ! empty( $_POST['pubblica'] ),
 			'cestina'  => ! empty( $_POST['cestina'] ),
 			'pagine'   => ! empty( $_POST['pagine'] ),
+			// «Correggi tutto» riscrive chi ha un problema aperto, non solo
+			// chi il triage ha messo fra quelli da rifare.
+			'tutto_larchivio' => ! empty( $_POST['tutto_larchivio'] ),
 		)
 	);
 
@@ -2476,7 +2479,7 @@ switch ( $pagina ) {
 		}
 
 		$precedente = $db->one(
-			'SELECT punteggio, creato_il, problemi_totali FROM audit WHERE id < ? AND sito_url = ? ORDER BY id DESC LIMIT 1',
+			'SELECT id, punteggio, creato_il, problemi_totali FROM audit WHERE id < ? AND sito_url = ? ORDER BY id DESC LIMIT 1',
 			array( $id, $audit['sito_url'] )
 		);
 
@@ -2524,6 +2527,12 @@ switch ( $pagina ) {
 				'sistemati' => $separati['chiusi'],
 				'allineato' => $allineato,
 				'allinea'   => Allinea::ultimo( $id ),
+				// Che cosa e cambiato dall analisi precedente, regola per
+				// regola: e l unico modo di distinguere «il sito e
+				// peggiorato» da «e cambiato il modo di contare».
+				'cambiato'  => ! empty( $precedente['id'] )
+					? Applicato::confronto( $db, $id, (int) $precedente['id'] )
+					: array(),
 				'conteggi'  => $db->all( 'SELECT categoria, COUNT(*) n FROM triage WHERE audit_id = ? GROUP BY categoria', array( $id ) ),
 				'db'        => $db,
 				'cfg'       => $cfg,

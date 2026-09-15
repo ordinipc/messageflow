@@ -91,6 +91,71 @@ class Rewriter {
 	}
 
 	/**
+	 * Le regole che la riscrittura assistita sa davvero chiudere.
+	 *
+	 * @return string[]
+	 */
+	public static function regoleRiscrivibili() {
+		$fuori = array();
+
+		foreach ( Rimedi::mappa( 0 ) as $regola => $rimedio ) {
+			if ( 'azione' === ( $rimedio['come'] ?? '' ) && false !== strpos( (string) $rimedio['etichetta'], 'Riscrittura' ) ) {
+				$fuori[] = (string) $regola;
+			}
+		}
+
+		return $fuori;
+	}
+
+	/**
+	 * Tutti i contenuti che hanno almeno un problema che la riscrittura chiude.
+	 *
+	 * Il pilota automatico prendeva solo gli articoli che il triage segna come
+	 * «da riscrivere» o «da accorpare». Su un archivio curato quelli sono
+	 * pochi: qui erano 104 su 295, e i restanti 191 - classificati «da
+	 * mantenere», perche sono articoli buoni - restavano fuori anche quando
+	 * avevano tre o quattro rilievi aperti ciascuno. Il pulsante «fai tutto»
+	 * ne lasciava indietro la maggior parte, e i numeri non scendevano.
+	 *
+	 * Qui il criterio e un altro e piu semplice: si riscrive chi ha qualcosa
+	 * da correggere.
+	 *
+	 * @param Db    $db      Database.
+	 * @param int   $auditId Audit.
+	 * @param array $opzioni 'limite'.
+	 * @return array[]
+	 */
+	public static function daCorreggere( Db $db, $auditId, array $opzioni = array() ) {
+		$regole = self::regoleRiscrivibili();
+
+		if ( ! $regole ) {
+			return array();
+		}
+
+		$segnaposto = implode( ',', array_fill( 0, count( $regole ), '?' ) );
+
+		$sql = "SELECT d.id AS doc_id, d.wp_id, d.titolo, d.url, d.slug, d.parole, d.testo,
+					d.focus_keyword AS focus, d.percorso,
+					COUNT(*) AS quanti
+				FROM occorrenza o
+				JOIN rilievo r ON r.id = o.rilievo_id
+				JOIN documento d ON d.audit_id = r.audit_id AND d.percorso = o.riferimento
+				WHERE r.audit_id = ?
+				  AND r.regola IN ( $segnaposto )
+				  AND COALESCE( o.applicato, 0 ) = 0
+				  AND d.tipo = 'post'
+				  AND d.id NOT IN ( SELECT documento_id FROM bozza WHERE audit_id = ? AND stato = 'ok' )
+				GROUP BY d.id, d.wp_id, d.titolo, d.url, d.slug, d.parole, d.testo, d.focus_keyword, d.percorso
+				ORDER BY COUNT(*) DESC, d.parole ASC";
+
+		if ( ! empty( $opzioni['limite'] ) ) {
+			$sql .= ' LIMIT ' . (int) $opzioni['limite'];
+		}
+
+		return $db->all( $sql, array_merge( array( (int) $auditId ), $regole, array( (int) $auditId ) ) );
+	}
+
+	/**
 	 * Perche i contenuti con questo problema non sono in lista.
 	 *
 	 * «Nessun contenuto ha piu questo problema» e una risposta che non si

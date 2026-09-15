@@ -278,6 +278,60 @@ class Applicato {
 	}
 
 	/**
+	 * Che cosa e cambiato rispetto all analisi precedente, regola per regola.
+	 *
+	 * «Prima avevo 1.290 problemi, adesso 1.910»: senza questo confronto non
+	 * c e modo di sapere se il sito e peggiorato o se e cambiato il modo di
+	 * contare. Sono due cose molto diverse e vanno distinte.
+	 *
+	 * @param Db  $db     Database.
+	 * @param int $adesso Audit corrente.
+	 * @param int $prima  Audit precedente.
+	 * @return array[] Regola, titolo, prima, adesso, differenza; ordinati per
+	 *                 quanto pesa il cambiamento.
+	 */
+	public static function confronto( Db $db, $adesso, $prima ) {
+		$conta = static function ( $auditId ) use ( $db ) {
+			$fuori = array();
+
+			foreach ( $db->all( 'SELECT regola, titolo, occorrenze FROM rilievo WHERE audit_id = ?', array( (int) $auditId ) ) as $r ) {
+				$fuori[ (string) $r['regola'] ] = array(
+					'titolo'     => (string) $r['titolo'],
+					'occorrenze' => (int) $r['occorrenze'],
+				);
+			}
+
+			return $fuori;
+		};
+
+		$vecchi = $conta( $prima );
+		$nuovi  = $conta( $adesso );
+
+		$righe = array();
+
+		foreach ( array_keys( $vecchi + $nuovi ) as $regola ) {
+			$a = (int) ( $nuovi[ $regola ]['occorrenze'] ?? 0 );
+			$b = (int) ( $vecchi[ $regola ]['occorrenze'] ?? 0 );
+
+			if ( $a === $b ) {
+				continue;
+			}
+
+			$righe[] = array(
+				'regola'     => $regola,
+				'titolo'     => (string) ( $nuovi[ $regola ]['titolo'] ?? $vecchi[ $regola ]['titolo'] ?? $regola ),
+				'prima'      => $b,
+				'adesso'     => $a,
+				'differenza' => $a - $b,
+			);
+		}
+
+		usort( $righe, static fn( $x, $y ) => abs( $y['differenza'] ) <=> abs( $x['differenza'] ) );
+
+		return $righe;
+	}
+
+	/**
 	 * Quante occorrenze restano aperte, regola per regola.
 	 *
 	 * Solo le regole che hanno occorrenze salvate: quelle di sito (una riga

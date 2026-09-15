@@ -3731,6 +3731,124 @@ foreach ( $cercanoNelMarkup as $regola => $cosa ) {
 	);
 }
 
+// ---------------------------------------------------------------------------
+// «Correggi tutto» deve voler dire tutto
+//
+// Il pilota prendeva solo gli articoli che il triage segna «da riscrivere» o
+// «da accorpare». Su un archivio curato quelli sono pochi - sul sito vero 104
+// su 295 - e i restanti, classificati «da mantenere» perche sono articoli
+// buoni, restavano fuori anche con tre o quattro rilievi aperti ciascuno.
+
+echo "\nCorreggi tutto prende chi ha un problema, non chi e in una categoria\n";
+
+$fileTutto = sys_get_temp_dir() . '/prova-tutto-' . getmypid() . '.sqlite';
+@unlink( $fileTutto );
+$dbTutto = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileTutto ) );
+
+$auditTutto = $dbTutto->insert(
+	'audit',
+	array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => date( 'Y-m-d H:i:s' ), 'punteggio' => 50 )
+);
+
+$ridTutto = $dbTutto->insert(
+	'rilievo',
+	array( 'audit_id' => $auditTutto, 'regola' => 'GEO-04', 'area' => 'generative', 'gravita' => 'high', 'titolo' => 'Nessuna FAQ', 'perche' => '', 'soluzione' => '', 'automatico' => 1, 'occorrenze' => 3 )
+);
+
+// Tre articoli: uno solo e segnato dal triage come da riscrivere, gli altri
+// due sono «da mantenere» ma hanno lo stesso problema aperto.
+foreach ( array(
+	array( '/uno/', 'riscrivere' ),
+	array( '/due/', 'mantenere' ),
+	array( '/tre/', 'mantenere' ),
+) as $i => $coppia ) {
+	list( $percorso, $categoria ) = $coppia;
+
+	$doc = $dbTutto->insert(
+		'documento',
+		array( 'audit_id' => $auditTutto, 'wp_id' => (string) ( 70 + $i ), 'tipo' => 'post', 'stato' => 'publish', 'titolo' => 'Articolo ' . $i, 'percorso' => $percorso, 'url' => 'https://esempio.it' . $percorso, 'parole' => 700, 'testo' => 'testo' )
+	);
+
+	$dbTutto->insert( 'triage', array( 'audit_id' => $auditTutto, 'documento_id' => $doc, 'categoria' => $categoria, 'qualita' => 70, 'intento' => 'informazionale', 'motivo' => '', 'azione' => '', 'redirect_a' => '' ) );
+	$dbTutto->insert( 'occorrenza', array( 'rilievo_id' => $ridTutto, 'riferimento' => $percorso, 'dettaglio' => '' ) );
+}
+
+$soloTriage = \SeoGeo\Ai\Rewriter::candidati( $dbTutto, $auditTutto, array() );
+$conProblemi = \SeoGeo\Ai\Rewriter::daCorreggere( $dbTutto, $auditTutto );
+
+verifica( 'il criterio vecchio ne prende uno solo', 1 === count( $soloTriage ), (string) count( $soloTriage ) );
+verifica( 'quello nuovo prende tutti e tre', 3 === count( $conProblemi ), (string) count( $conProblemi ) );
+
+// Chi ha piu problemi aperti viene prima: e li che il giro rende di piu.
+$ridSecondo = $dbTutto->insert(
+	'rilievo',
+	array( 'audit_id' => $auditTutto, 'regola' => 'GEO-10', 'area' => 'generative', 'gravita' => 'medium', 'titolo' => 'Nessuna tabella', 'perche' => '', 'soluzione' => '', 'automatico' => 1, 'occorrenze' => 1 )
+);
+$dbTutto->insert( 'occorrenza', array( 'rilievo_id' => $ridSecondo, 'riferimento' => '/tre/', 'dettaglio' => '' ) );
+
+$ordinati = \SeoGeo\Ai\Rewriter::daCorreggere( $dbTutto, $auditTutto );
+
+verifica( 'e mette per primo quello messo peggio', '/tre/' === $ordinati[0]['percorso'], json_encode( array_column( $ordinati, 'percorso' ) ) );
+
+// Chi ha gia una bozza pronta non si rifa.
+$dbTutto->insert(
+	'bozza',
+	array( 'audit_id' => $auditTutto, 'documento_id' => $ordinati[0]['doc_id'], 'wp_id' => '72', 'stato' => 'ok', 'modello' => 'x', 'titolo' => 'x', 'corpo_html' => 'x', 'creato_il' => date( 'Y-m-d H:i:s' ) )
+);
+
+verifica( 'chi ha gia la bozza non torna in coda', 2 === count( \SeoGeo\Ai\Rewriter::daCorreggere( $dbTutto, $auditTutto ) ) );
+
+// Le occorrenze gia chiuse non rimettono in coda nessuno.
+\SeoGeo\Applicato::chiudi( $dbTutto, $auditTutto, array( 'GEO-04' ), array( '/due/' ) );
+
+verifica( 'e chi e gia stato sistemato nemmeno', 1 === count( \SeoGeo\Ai\Rewriter::daCorreggere( $dbTutto, $auditTutto ) ) );
+
+// Le pagine restano fuori: e una scelta, non una dimenticanza.
+$docPagina = $dbTutto->insert(
+	'documento',
+	array( 'audit_id' => $auditTutto, 'wp_id' => '99', 'tipo' => 'page', 'stato' => 'publish', 'titolo' => 'Servizi', 'percorso' => '/servizi/', 'url' => 'https://esempio.it/servizi/', 'parole' => 700, 'testo' => 'testo' )
+);
+$dbTutto->insert( 'triage', array( 'audit_id' => $auditTutto, 'documento_id' => $docPagina, 'categoria' => 'mantenere', 'qualita' => 70, 'intento' => '', 'motivo' => '', 'azione' => '', 'redirect_a' => '' ) );
+$dbTutto->insert( 'occorrenza', array( 'rilievo_id' => $ridTutto, 'riferimento' => '/servizi/', 'dettaglio' => '' ) );
+
+verifica(
+	'le pagine restano fuori anche da «tutto»',
+	0 === count( array_filter( \SeoGeo\Ai\Rewriter::daCorreggere( $dbTutto, $auditTutto ), static fn( $r ) => '/servizi/' === $r['percorso'] ) )
+);
+
+// Il pulsante deve esistere e passare l opzione al pilota.
+$vistaAudit = file_get_contents( __DIR__ . '/../views/audit.php' );
+
+// Il confronto con l analisi precedente: senza, «prima 1.290 adesso 1.910»
+// resta senza risposta e sembra che il sito sia peggiorato.
+$auditPrima = $dbTutto->insert( 'audit', array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => '2026-09-01 10:00:00', 'punteggio' => 60 ) );
+$dbTutto->insert( 'rilievo', array( 'audit_id' => $auditPrima, 'regola' => 'GEO-04', 'area' => 'x', 'gravita' => 'high', 'titolo' => 'Nessuna FAQ', 'perche' => '', 'soluzione' => '', 'automatico' => 1, 'occorrenze' => 3 ) );
+$dbTutto->insert( 'rilievo', array( 'audit_id' => $auditPrima, 'regola' => 'ONP-01', 'area' => 'x', 'gravita' => 'high', 'titolo' => 'Title lungo', 'perche' => '', 'soluzione' => '', 'automatico' => 1, 'occorrenze' => 50 ) );
+
+$differenze = \SeoGeo\Applicato::confronto( $dbTutto, $auditTutto, $auditPrima );
+
+$rigaDi = static function ( $regola ) use ( $differenze ) {
+	foreach ( $differenze as $riga ) {
+		if ( $regola === $riga['regola'] ) {
+			return $riga;
+		}
+	}
+
+	return null;
+};
+
+verifica( 'il confronto mostra le regole comparse adesso', null !== $rigaDi( 'GEO-10' ) && 1 === $rigaDi( 'GEO-10' )['adesso'] && 0 === $rigaDi( 'GEO-10' )['prima'], json_encode( $differenze ) );
+verifica( 'e quelle sparite', null !== $rigaDi( 'ONP-01' ) && 0 === $rigaDi( 'ONP-01' )['adesso'] && -50 === $rigaDi( 'ONP-01' )['differenza'], json_encode( $rigaDi( 'ONP-01' ) ) );
+verifica( 'chi non e cambiato non compare', null === $rigaDi( 'GEO-04' ), json_encode( $rigaDi( 'GEO-04' ) ) );
+verifica( 'e il cambiamento piu grosso viene per primo', 'ONP-01' === $differenze[0]['regola'], json_encode( array_column( $differenze, 'regola' ) ) );
+
+verifica( 'il pulsante unico c e', false !== strpos( $vistaAudit, 'Correggi tutto e pubblica' ) );
+verifica( 'e chiede al pilota di lavorare su tutto l archivio', false !== strpos( $vistaAudit, "name=\"tutto_larchivio\"" ) );
+verifica( 'e il pilota legge quell opzione', false !== strpos( $indiceSorgente, "'tutto_larchivio' => ! empty( \$_POST['tutto_larchivio'] )" ) );
+verifica( 'e il costo mostrato e quello di quel lavoro', false !== strpos( $vistaAudit, "array( 'tutto_larchivio' => true )" ) );
+
+@unlink( $fileTutto );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );
