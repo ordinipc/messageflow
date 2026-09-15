@@ -177,14 +177,30 @@ class OnPage {
 					foreach ( $s->pubblicati as $d ) {
 						$quanti = count( $d['h1'] ) + $dalTema;
 
-						if ( $quanti > 1 ) {
-							$out[] = Base::doc(
-								$d,
-								$dalTema
-									? count( $d['h1'] ) . ' H1 nel testo, più quello del titolo'
-									: $quanti . ' tag H1'
-							);
+						if ( $quanti <= 1 ) {
+							continue;
 						}
+
+						// Dire «4 tag H1» e chiedere di crederci. Chi apre l
+						// articolo ne vede uno e conclude che il gestionale
+						// sbaglia, e non ha modo di verificare. Scritti quali
+						// sono, bastano dieci secondi: o si riconoscono, o il
+						// rilievo e sbagliato e si vede subito.
+						$quali = array();
+
+						foreach ( $d['h1'] as $h ) {
+							$testo = trim( preg_replace( '/\s+/', ' ', (string) $h['testo'] ) );
+							$quali[] = '«' . ( mb_strlen( $testo ) > 60 ? mb_substr( $testo, 0, 60 ) . '…' : $testo ) . '»';
+						}
+
+						if ( $dalTema ) {
+							array_unshift( $quali, '«' . $d['titolo'] . '» (stampato dal tema)' );
+						}
+
+						$out[] = Base::doc(
+							$d,
+							$quanti . ' H1 in pagina: ' . implode( ', ', $quali )
+						);
 					}
 					return $out;
 				},

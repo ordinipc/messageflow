@@ -1883,6 +1883,10 @@ class MDI_Api {
 	public static function misure( $richiesta ) {
 		$esito = array();
 
+		// Vale per tutto il tema e sta gia in cache: si chiede una volta,
+		// non una per contenuto.
+		$h1_dal_tema = self::il_tema_stampa_h1();
+
 		foreach ( (array) $richiesta->get_param( 'ids' ) as $id ) {
 			$id   = (int) $id;
 			$post = $id ? get_post( $id ) : null;
@@ -1916,7 +1920,13 @@ class MDI_Api {
 			$titolo      = trim( (string) preg_replace( '/%[a-z_]+%/i', '', $titolo ) );
 			$descrizione = trim( $descrizione );
 
+			// Gli H1 scritti dentro al testo. Con quello del tema si sa
+			// quanti ne finiscono davvero in pagina.
+			$quanti_h1 = preg_match_all( '#<h1(\s[^>]*)?>([\s\S]*?)</h1>#i', (string) $post->post_content );
+
 			$esito[ (string) $id ] = array(
+				'h1_testo'      => (int) $quanti_h1,
+				'h1_tema'       => (bool) $h1_dal_tema,
 				'titolo_lungh'  => function_exists( 'mb_strlen' ) ? mb_strlen( $titolo ) : strlen( $titolo ),
 				'descr_lungh'   => function_exists( 'mb_strlen' ) ? mb_strlen( $descrizione ) : strlen( $descrizione ),
 				'chiave_titolo' => '' !== $chiave && false !== stripos( $titolo, $chiave ),

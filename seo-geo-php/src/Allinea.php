@@ -288,7 +288,33 @@ class Allinea {
 			// Testo troppo corto.
 			'CNT-01' => static fn( array $m ) => (int) $m['parole'] >= 300,
 			'CNT-02' => static fn( array $m ) => (int) $m['parole'] >= 600,
+
+			// Gli H1 che finiscono davvero in pagina: quelli scritti nel
+			// testo piu quello che il tema stampa col titolo. Uno solo va
+			// bene; nessuno e un problema diverso, ed e ONP-08.
+			// Attenzione al segno: h1InPagina() risponde -1 quando il dato non
+			// c e. Scritto senza pensarci, «<= 1» avrebbe chiuso ONP-09 su
+			// ogni sito con un plugin vecchio, cioe esattamente nel caso in
+			// cui non si sa niente.
+			'ONP-08' => static fn( array $m ) => self::h1InPagina( $m ) >= 1,
+			'ONP-09' => static fn( array $m ) => 0 <= self::h1InPagina( $m ) && self::h1InPagina( $m ) <= 1,
 		);
+	}
+
+	/**
+	 * Quanti H1 vede chi apre la pagina.
+	 *
+	 * @param array $m Misure di un contenuto.
+	 * @return int
+	 */
+	private static function h1InPagina( array $m ) {
+		if ( ! isset( $m['h1_testo'] ) ) {
+			// Un plugin vecchio non manda questo dato: senza, non si sa, e
+			// non sapere non chiude niente.
+			return -1;
+		}
+
+		return (int) $m['h1_testo'] + ( empty( $m['h1_tema'] ) ? 0 : 1 );
 	}
 
 	/**

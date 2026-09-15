@@ -3306,6 +3306,7 @@ $mettiRilievo( 'IMG-05', array( '/con-foto/', '/senza-foto/' ) );
 $mettiRilievo( 'CNT-01', array( '/con-foto/', '/senza-foto/' ) );
 $mettiRilievo( 'ONP-01', array( '/con-foto/', '/senza-foto/' ) );
 $mettiRilievo( 'ONP-03', array( '/con-foto/', '/senza-foto/' ) );
+$mettiRilievo( 'ONP-09', array( '/con-foto/', '/senza-foto/' ) );
 
 // Un sito che risponde: stampa lo schema, ha un redirect attivo, e uno solo
 // dei due articoli ha l immagine in evidenza.
@@ -3331,9 +3332,10 @@ $sitoVivo = new class() extends \SeoGeo\Bridge\WordPress {
 			'misure' => array(
 				// Titolo rientrato nei 60, description ancora fuori misura,
 				// immagine in evidenza caricata.
-				'30' => array( 'titolo_lungh' => 55, 'descr_lungh' => 200, 'chiave_titolo' => true, 'ha_chiave' => true, 'estratto' => true, 'thumbnail' => true, 'parole' => 900 ),
+				'30' => array( 'titolo_lungh' => 55, 'descr_lungh' => 200, 'chiave_titolo' => true, 'ha_chiave' => true, 'estratto' => true, 'thumbnail' => true, 'parole' => 900, 'h1_testo' => 0, 'h1_tema' => true ),
 				// Titolo ancora troppo lungo, e l articolo resta corto.
-				'31' => array( 'titolo_lungh' => 88, 'descr_lungh' => 140, 'chiave_titolo' => false, 'ha_chiave' => true, 'estratto' => false, 'thumbnail' => false, 'parole' => 120 ),
+				// Un H1 scritto nel testo piu quello del tema: due in pagina.
+				'31' => array( 'titolo_lungh' => 88, 'descr_lungh' => 140, 'chiave_titolo' => false, 'ha_chiave' => true, 'estratto' => false, 'thumbnail' => false, 'parole' => 120, 'h1_testo' => 1, 'h1_tema' => true ),
 			),
 		);
 	}
@@ -3361,6 +3363,50 @@ verifica( 'quello che il plugin stampa si chiude da solo', 0 === $aperte( 'SCH-0
 verifica( 'il title rientrato nei 60 si chiude, quello ancora lungo no', 1 === $aperte( 'ONP-01' ), (string) $aperte( 'ONP-01' ) );
 verifica( 'la description fuori misura resta aperta, quella a posto si chiude', 1 === $aperte( 'ONP-03' ), (string) $aperte( 'ONP-03' ) );
 verifica( 'l articolo arrivato a 900 parole si chiude, quello a 120 no', 1 === $aperte( 'CNT-01' ), (string) $aperte( 'CNT-01' ) );
+verifica( 'un solo H1 in pagina chiude il doppione, due lo lasciano', 1 === $aperte( 'ONP-09' ), (string) $aperte( 'ONP-09' ) );
+
+// Un plugin non aggiornato non manda il conto degli H1. Li non si sa niente,
+// e non sapere non e una risoluzione: scritta senza pensarci, la condizione
+// «al massimo uno» avrebbe chiuso il rilievo proprio in quel caso.
+$fileVecchio = sys_get_temp_dir() . '/prova-vecchio-' . getmypid() . '.sqlite';
+@unlink( $fileVecchio );
+$dbVecchio = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileVecchio ) );
+
+$auditVecchio = $dbVecchio->insert( 'audit', array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => date( 'Y-m-d H:i:s' ), 'punteggio' => 40 ) );
+$dbVecchio->insert( 'documento', array( 'audit_id' => $auditVecchio, 'wp_id' => '60', 'tipo' => 'post', 'stato' => 'publish', 'titolo' => 'Uno', 'percorso' => '/uno/', 'url' => 'https://esempio.it/uno/' ) );
+$ridVecchio = $dbVecchio->insert( 'rilievo', array( 'audit_id' => $auditVecchio, 'regola' => 'ONP-09', 'area' => 'onpage', 'gravita' => 'high', 'titolo' => 'x', 'perche' => '', 'soluzione' => '', 'automatico' => 0, 'occorrenze' => 1 ) );
+$dbVecchio->insert( 'occorrenza', array( 'rilievo_id' => $ridVecchio, 'riferimento' => '/uno/', 'dettaglio' => '4 tag H1' ) );
+
+$pluginVecchio = new class() extends \SeoGeo\Bridge\WordPress {
+	public function __construct() {}
+
+	public function pronto() { return true; }
+
+	public function conteggi() { return array( 'sito' => array( 'stampa' => array() ) ); }
+
+	public function redirectAttivi() { return array( 'percorsi' => array() ); }
+
+	public function miniature( array $ids ) { return array( 'miniature' => array() ); }
+
+	public function misure( array $ids ) {
+		// Le misure di prima dell aggiornamento: niente conto degli H1.
+		return array( 'misure' => array( '60' => array( 'titolo_lungh' => 40, 'descr_lungh' => 140, 'chiave_titolo' => true, 'ha_chiave' => true, 'estratto' => true, 'thumbnail' => true, 'parole' => 900 ) ) );
+	}
+};
+
+\SeoGeo\Allinea::esegui( $dbVecchio, $pluginVecchio, $auditVecchio, array() );
+
+verifica(
+	'con un plugin vecchio il doppione non si chiude per sbaglio',
+	1 === (int) $dbVecchio->one(
+		"SELECT COUNT(*) n FROM occorrenza o JOIN rilievo r ON r.id = o.rilievo_id
+		 WHERE r.audit_id = ? AND r.regola = 'ONP-09' AND COALESCE( o.applicato, 0 ) = 0",
+		array( $auditVecchio )
+	)['n']
+);
+
+@unlink( \SeoGeo\Allinea::segno( $auditVecchio ) );
+@unlink( $fileVecchio );
 verifica( 'il redirect attivo si chiude, quello mai fatto no', 1 === $aperte( 'ONP-07' ), (string) $aperte( 'ONP-07' ) );
 verifica( 'si chiude solo l articolo che ha davvero la foto', 1 === $aperte( 'IMG-05' ), (string) $aperte( 'IMG-05' ) );
 verifica( 'e sul sito viene segnato che la foto c e', 1 === (int) $dbAll->one( 'SELECT ha_thumbnail FROM documento WHERE wp_id = ?', array( '30' ) )['ha_thumbnail'] );
