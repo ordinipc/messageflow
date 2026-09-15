@@ -361,6 +361,38 @@ verifica(
 	true === $chiediH1( array( 'response' => array( 'code' => 200 ), 'body' => '<html><body><h1 class="titolo">Articolo</h1><p>x</p></body></html>' ) )
 );
 
+// Il difetto vero, trovato sul sito: l articolo piu recente aveva un H1
+// scritto dentro al suo testo. Contare gli H1 della pagina e chiamarli «del
+// tema» dava «si» anche con un tema che non ne stampa nessuno, e da li ogni
+// articolo con un H1 nel testo ne risultava due: il rilievo sui doppioni e
+// passato da cinque a trentadue in una rilettura.
+// Quale articolo venga scelto come campione lo decide il plugin: si mette lo
+// stesso testo su tutti quelli pubblicati, cosi la prova vale comunque.
+$contenutiPrima = array();
+
+foreach ( (array) $GLOBALS['wp']['post'] as $unId => $unPost ) {
+	if ( 'post' === $unPost->post_type && 'publish' === $unPost->post_status ) {
+		$contenutiPrima[ $unId ] = $unPost->post_content;
+		$GLOBALS['wp']['post'][ $unId ]->post_content = '<h1>Titolo scritto nel testo</h1><p>corpo</p>';
+	}
+}
+
+verifica(
+	'un H1 che era gia nel testo non si conta come messo dal tema',
+	false === $chiediH1( array( 'response' => array( 'code' => 200 ), 'body' => '<html><body><h1>Titolo scritto nel testo</h1><p>corpo</p></body></html>' ) ),
+	'il tema non stampa niente, ma il controllo dice di si'
+);
+
+verifica(
+	'mentre se la pagina ne ha uno in piu, quello e del tema',
+	true === $chiediH1( array( 'response' => array( 'code' => 200 ), 'body' => '<html><body><h1>Titolo del tema</h1><h1>Titolo scritto nel testo</h1><p>corpo</p></body></html>' ) ),
+	'il doppione vero non viene visto'
+);
+
+foreach ( $contenutiPrima as $unId => $testoPrima ) {
+	$GLOBALS['wp']['post'][ $unId ]->post_content = $testoPrima;
+}
+
 verifica(
 	'una pagina senza H1 lo lascia aperto',
 	false === $chiediH1( array( 'response' => array( 'code' => 200 ), 'body' => '<html><body><h2>Articolo</h2><p>x</p></body></html>' ) )

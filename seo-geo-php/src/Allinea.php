@@ -314,7 +314,10 @@ class Allinea {
 			return -1;
 		}
 
-		return (int) $m['h1_testo'] + ( empty( $m['h1_tema'] ) ? 0 : 1 );
+		// h1_tema e quanti ne aggiunge il tema: un numero, non un si o un no.
+		// Un plugin appena precedente lo mandava come booleano, e (int) true
+		// fa 1, che e la risposta giusta anche li.
+		return (int) $m['h1_testo'] + max( 0, (int) $m['h1_tema'] );
 	}
 
 	/**

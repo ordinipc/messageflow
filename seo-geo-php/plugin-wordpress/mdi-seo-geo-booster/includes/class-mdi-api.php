@@ -1613,12 +1613,12 @@ class MDI_Api {
 			// c e mai stato: cercarlo li dava «H1 non rilevabile» su 279
 			// articoli su 295, un rilievo che nessuna riscrittura poteva
 			// chiudere. Qui si guarda la pagina vera.
-			'h1'         => self::il_tema_stampa_h1(),
+			'h1'         => self::quanti_h1_mette_il_tema() > 0,
 		);
 	}
 
 	/**
-	 * Il tema stampa un H1 nelle pagine dei contenuti?
+	 * Quanti H1 aggiunge il tema, oltre a quelli scritti nel contenuto?
 	 *
 	 * Si guarda una pagina vera, servita dal sito, non il testo salvato: e
 	 * l unico posto dove la risposta esiste. Il risultato si tiene da parte
@@ -1628,13 +1628,13 @@ class MDI_Api {
 	 * richieste del sito verso se stesso - si risponde «no» e il rilievo
 	 * resta aperto: meglio un avviso in piu di una rassicurazione inventata.
 	 *
-	 * @return bool
+	 * @return int
 	 */
-	private static function il_tema_stampa_h1() {
+	private static function quanti_h1_mette_il_tema() {
 		$in_cache = get_transient( 'mdi_h1_dal_tema' );
 
-		if ( '' !== (string) $in_cache && false !== $in_cache ) {
-			return 'si' === $in_cache;
+		if ( false !== $in_cache && '' !== (string) $in_cache ) {
+			return max( 0, (int) $in_cache );
 		}
 
 		$ids = get_posts(
@@ -1649,11 +1649,13 @@ class MDI_Api {
 		);
 
 		if ( ! $ids ) {
-			return false;
+			return 0;
 		}
 
+		$campione = (int) $ids[0];
+
 		$risposta = wp_remote_get(
-			get_permalink( (int) $ids[0] ),
+			get_permalink( $campione ),
 			array(
 				'timeout'   => 10,
 				'sslverify' => false,
@@ -1665,17 +1667,30 @@ class MDI_Api {
 
 		if ( is_wp_error( $risposta ) || 200 !== (int) wp_remote_retrieve_response_code( $risposta ) ) {
 			// Non si e capito: si riprova fra un ora, non fra mezza giornata.
-			set_transient( 'mdi_h1_dal_tema', 'no', HOUR_IN_SECONDS );
+			set_transient( 'mdi_h1_dal_tema', '0', HOUR_IN_SECONDS );
 
-			return false;
+			return 0;
 		}
 
 		$html = (string) wp_remote_retrieve_body( $risposta );
-		$ce   = (bool) preg_match( '/<h1[\s>]/i', $html );
 
-		set_transient( 'mdi_h1_dal_tema', $ce ? 'si' : 'no', 12 * HOUR_IN_SECONDS );
+		// Contare gli H1 della pagina e chiamarli «del tema» era sbagliato:
+		// se l articolo di prova ha un H1 scritto nel suo testo - e questo
+		// sito ce l ha - la risposta era «si, il tema ne stampa uno» anche
+		// quando il tema non ne stampa nessuno. Poi ogni articolo con un H1
+		// nel testo risultava averne due, e il rilievo sui doppioni saliva
+		// da cinque a trentadue.
+		//
+		// Quello che mette il tema e la differenza: gli H1 che ci sono in
+		// pagina meno quelli che erano gia scritti nel contenuto.
+		$in_pagina    = (int) preg_match_all( '#<h1(\s[^>]*)?>#i', $html );
+		$nel_contenuto = (int) preg_match_all( '#<h1(\s[^>]*)?>#i', (string) get_post_field( 'post_content', $campione ) );
 
-		return $ce;
+		$dal_tema = max( 0, $in_pagina - $nel_contenuto );
+
+		set_transient( 'mdi_h1_dal_tema', (string) $dal_tema, 12 * HOUR_IN_SECONDS );
+
+		return $dal_tema;
 	}
 
 	/**
@@ -1885,7 +1900,7 @@ class MDI_Api {
 
 		// Vale per tutto il tema e sta gia in cache: si chiede una volta,
 		// non una per contenuto.
-		$h1_dal_tema = self::il_tema_stampa_h1();
+		$h1_dal_tema = self::quanti_h1_mette_il_tema();
 
 		foreach ( (array) $richiesta->get_param( 'ids' ) as $id ) {
 			$id   = (int) $id;
@@ -1926,7 +1941,7 @@ class MDI_Api {
 
 			$esito[ (string) $id ] = array(
 				'h1_testo'      => (int) $quanti_h1,
-				'h1_tema'       => (bool) $h1_dal_tema,
+				'h1_tema'       => (int) $h1_dal_tema,
 				'titolo_lungh'  => function_exists( 'mb_strlen' ) ? mb_strlen( $titolo ) : strlen( $titolo ),
 				'descr_lungh'   => function_exists( 'mb_strlen' ) ? mb_strlen( $descrizione ) : strlen( $descrizione ),
 				'chiave_titolo' => '' !== $chiave && false !== stripos( $titolo, $chiave ),

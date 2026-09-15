@@ -3631,13 +3631,13 @@ verifica(
 
 verifica(
 	'e il plugin guarda la pagina vera per rispondere',
-	false !== strpos( file_get_contents( __DIR__ . '/../plugin-wordpress/mdi-seo-geo-booster/includes/class-mdi-api.php' ), 'private static function il_tema_stampa_h1()' ),
+	false !== strpos( file_get_contents( __DIR__ . '/../plugin-wordpress/mdi-seo-geo-booster/includes/class-mdi-api.php' ), 'private static function quanti_h1_mette_il_tema()' ),
 	'il controllo non c e'
 );
 
 verifica(
 	'se non riesce a leggerla non dice di si',
-	false !== strpos( file_get_contents( __DIR__ . '/../plugin-wordpress/mdi-seo-geo-booster/includes/class-mdi-api.php' ), "set_transient( 'mdi_h1_dal_tema', 'no', HOUR_IN_SECONDS )" ),
+	false !== strpos( file_get_contents( __DIR__ . '/../plugin-wordpress/mdi-seo-geo-booster/includes/class-mdi-api.php' ), "set_transient( 'mdi_h1_dal_tema', '0', HOUR_IN_SECONDS )" ),
 	'un sito illeggibile chiuderebbe il rilievo per sbaglio'
 );
 
