@@ -142,6 +142,17 @@ class OnPage {
 				'perche' => 'Se il tema non stampa un H1 unico il documento perde il principale segnale di argomento: va verificato sul front-end.',
 				'soluzione' => 'Nelle pagine Elementor impostare il titolo principale come H1, uno solo per pagina.',
 				'check' => static function ( Site $s ) {
+					// Nei temi WordPress l H1 e il titolo dell articolo, e lo
+					// stampa il tema al momento di servire la pagina: nel
+					// testo salvato non c e, e non ci deve essere. Cercarlo li
+					// segnalava quasi ogni articolo del sito con un problema
+					// che non esisteva e che nessuna correzione poteva
+					// chiudere. Il sito dice se lo stampa: se lo stampa, qui
+					// non c e niente da segnalare.
+					if ( Base::loFaIlSito( $s, 'h1' ) ) {
+						return array();
+					}
+
 					$out = array();
 					foreach ( $s->pubblicati as $d ) {
 						if ( 0 === count( $d['h1'] ) && $d['parole'] > 100 ) {
@@ -157,10 +168,22 @@ class OnPage {
 				'perche' => 'Più H1 confondono la gerarchia semantica e diluiscono il tema principale.',
 				'soluzione' => 'Lasciare un solo H1 e declassare gli altri a H2.',
 				'check' => static function ( Site $s ) {
+					// Quando il tema stampa gia il titolo come H1, basta un
+					// solo H1 dentro al testo per averne due in pagina: il
+					// doppione c e davvero, ed e quello scritto nel contenuto.
+					$dalTema = Base::loFaIlSito( $s, 'h1' ) ? 1 : 0;
+
 					$out = array();
 					foreach ( $s->pubblicati as $d ) {
-						if ( count( $d['h1'] ) > 1 ) {
-							$out[] = Base::doc( $d, count( $d['h1'] ) . ' tag H1' );
+						$quanti = count( $d['h1'] ) + $dalTema;
+
+						if ( $quanti > 1 ) {
+							$out[] = Base::doc(
+								$d,
+								$dalTema
+									? count( $d['h1'] ) . ' H1 nel testo, più quello del titolo'
+									: $quanti . ' tag H1'
+							);
 						}
 					}
 					return $out;

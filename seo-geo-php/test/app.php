@@ -3491,6 +3491,110 @@ verifica( 'e di lui si dice che la bozza ce l ha gia', 1 === count( $conBozza ),
 
 @unlink( $fileGen );
 
+// ---------------------------------------------------------------------------
+// L H1 lo stampa il tema, non il testo salvato
+//
+// «H1 non rilevabile nel contenuto: 279 articoli» su un sito di 295. Nei temi
+// WordPress l H1 e il titolo dell articolo e lo stampa il tema al momento di
+// servire la pagina: nel testo salvato non c e, e non ci deve essere. Il
+// rilievo colpiva quasi tutto l archivio e non si poteva chiudere in nessun
+// modo, perche non c era niente di rotto.
+
+echo "\nL H1 si chiede al sito, non al testo salvato\n";
+
+$testoLungo = '<h2>Sezione</h2><p>' . str_repeat( 'parola ', 150 ) . '</p>';
+
+$sitoH1 = static function ( $stampa, $contenuto = '' ) use ( $testoLungo ) {
+	$contenuto = '' !== $contenuto ? $contenuto : $testoLungo;
+
+	return new Site(
+		array(
+			'sito'      => array(
+				'titolo'  => 'Prova',
+				'link'    => 'https://esempio.it',
+				'baseUrl' => 'https://esempio.it',
+				'autori'  => array(),
+				'stampa'  => $stampa,
+			),
+			'categorie' => array(),
+			'tag'       => array(),
+			'items'     => array(
+				array(
+					'wp_id' => '1', 'tipo' => 'post', 'stato' => 'publish',
+					'titolo' => 'Articolo', 'slug' => 'articolo',
+					'link' => 'https://esempio.it/articolo/',
+					'data' => '2026-01-01 10:00:00', 'modificato' => '2026-02-01 10:00:00',
+					'autore' => 'Redazione', 'contenuto' => $contenuto, 'estratto' => '',
+					'categorie' => array(), 'tag' => array(), 'commenti' => 'closed',
+					'genitore' => '0', 'meta' => array(),
+				),
+			),
+		)
+	);
+};
+
+$regolaH1 = static function ( $id ) {
+	foreach ( \SeoGeo\Rules\OnPage::rules() as $regola ) {
+		if ( $id === $regola['id'] ) {
+			return $regola;
+		}
+	}
+
+	return null;
+};
+
+$onp08 = $regolaH1( 'ONP-08' );
+$onp09 = $regolaH1( 'ONP-09' );
+
+// Sito che non dice niente: si guarda il testo, come prima.
+$muto = $sitoH1( array() );
+
+verifica(
+	'se il sito non dice niente il rilievo resta',
+	1 === count( $onp08['check']( $muto ) ),
+	json_encode( $onp08['check']( $muto ) )
+);
+
+// Sito che dichiara di stampare l H1: non c e niente da segnalare.
+$conH1 = $sitoH1( array( 'h1' => true ) );
+
+verifica(
+	'se il tema stampa l H1 il rilievo sparisce',
+	0 === count( $onp08['check']( $conH1 ) ),
+	json_encode( $onp08['check']( $conH1 ) )
+);
+
+// E un H1 scritto dentro al testo, col titolo gia stampato dal tema, fa due
+// H1 in pagina: quello si segnala.
+$doppio = $sitoH1( array( 'h1' => true ), '<h1>Titolo ripetuto</h1><p>' . str_repeat( 'parola ', 150 ) . '</p>' );
+
+verifica(
+	'ma un H1 nel testo, col titolo del tema, fa un doppione vero',
+	1 === count( $onp09['check']( $doppio ) ),
+	json_encode( $onp09['check']( $doppio ) )
+);
+
+// Senza titolo stampato dal tema, un H1 solo nel testo e corretto.
+$unoSolo = $sitoH1( array(), '<h1>Titolo</h1><p>' . str_repeat( 'parola ', 150 ) . '</p>' );
+
+verifica(
+	'mentre senza tema un H1 solo va benissimo',
+	0 === count( $onp09['check']( $unoSolo ) ),
+	json_encode( $onp09['check']( $unoSolo ) )
+);
+
+verifica(
+	'e il plugin guarda la pagina vera per rispondere',
+	false !== strpos( file_get_contents( __DIR__ . '/../plugin-wordpress/mdi-seo-geo-booster/includes/class-mdi-api.php' ), 'private static function il_tema_stampa_h1()' ),
+	'il controllo non c e'
+);
+
+verifica(
+	'se non riesce a leggerla non dice di si',
+	false !== strpos( file_get_contents( __DIR__ . '/../plugin-wordpress/mdi-seo-geo-booster/includes/class-mdi-api.php' ), "set_transient( 'mdi_h1_dal_tema', 'no', HOUR_IN_SECONDS )" ),
+	'un sito illeggibile chiuderebbe il rilievo per sbaglio'
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

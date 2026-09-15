@@ -1607,7 +1607,75 @@ class MDI_Api {
 			// File serviti dal plugin.
 			'llms'       => class_exists( 'MDI_AI' ),
 			'robots_txt' => class_exists( 'MDI_AI' ),
+
+			// L H1 non lo stampa il plugin: lo stampa il tema, col titolo
+			// dell articolo. Nel testo salvato su WordPress non c e, e non
+			// c e mai stato: cercarlo li dava «H1 non rilevabile» su 279
+			// articoli su 295, un rilievo che nessuna riscrittura poteva
+			// chiudere. Qui si guarda la pagina vera.
+			'h1'         => self::il_tema_stampa_h1(),
 		);
+	}
+
+	/**
+	 * Il tema stampa un H1 nelle pagine dei contenuti?
+	 *
+	 * Si guarda una pagina vera, servita dal sito, non il testo salvato: e
+	 * l unico posto dove la risposta esiste. Il risultato si tiene da parte
+	 * mezza giornata, perche cambia solo cambiando tema.
+	 *
+	 * Se la pagina non si riesce a leggere - molti hosting bloccano le
+	 * richieste del sito verso se stesso - si risponde «no» e il rilievo
+	 * resta aperto: meglio un avviso in piu di una rassicurazione inventata.
+	 *
+	 * @return bool
+	 */
+	private static function il_tema_stampa_h1() {
+		$in_cache = get_transient( 'mdi_h1_dal_tema' );
+
+		if ( '' !== (string) $in_cache && false !== $in_cache ) {
+			return 'si' === $in_cache;
+		}
+
+		$ids = get_posts(
+			array(
+				'post_type'      => 'post',
+				'post_status'    => 'publish',
+				'posts_per_page' => 1,
+				'orderby'        => 'ID',
+				'order'          => 'DESC',
+				'fields'         => 'ids',
+			)
+		);
+
+		if ( ! $ids ) {
+			return false;
+		}
+
+		$risposta = wp_remote_get(
+			get_permalink( (int) $ids[0] ),
+			array(
+				'timeout'   => 10,
+				'sslverify' => false,
+				// Senza questo alcuni hosting rispondono con la pagina di
+				// cortesia invece che con l articolo.
+				'headers'   => array( 'User-Agent' => 'MDI-SEO-GEO/' . MDI_SEO_GEO_VERSION ),
+			)
+		);
+
+		if ( is_wp_error( $risposta ) || 200 !== (int) wp_remote_retrieve_response_code( $risposta ) ) {
+			// Non si e capito: si riprova fra un ora, non fra mezza giornata.
+			set_transient( 'mdi_h1_dal_tema', 'no', HOUR_IN_SECONDS );
+
+			return false;
+		}
+
+		$html = (string) wp_remote_retrieve_body( $risposta );
+		$ce   = (bool) preg_match( '/<h1[\s>]/i', $html );
+
+		set_transient( 'mdi_h1_dal_tema', $ce ? 'si' : 'no', 12 * HOUR_IN_SECONDS );
+
+		return $ce;
 	}
 
 	/**

@@ -56,6 +56,9 @@ class Allinea {
 		'IMG-01' => 'alt',
 		'IMG-02' => 'alt',
 		'IMG-06' => 'dimensioni',
+		// L H1 lo stampa il tema col titolo dell articolo: se il sito dice
+		// che c e, non c e piu niente da segnalare su nessun contenuto.
+		'ONP-08' => 'h1',
 	);
 
 	/**

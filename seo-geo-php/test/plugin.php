@@ -344,6 +344,54 @@ $conteggi = MDI_Api::conteggi();
 verifica( 'i conteggi distinguono articoli e pagine', isset( $conteggi['articoli'], $conteggi['pagine'] ) );
 verifica( 'i conteggi riportano gli autori', ! empty( $conteggi['autori'] ) );
 
+// --- L H1 lo stampa il tema ------------------------------------------------
+// Il gestionale segnava «H1 non rilevabile nel contenuto» su 279 articoli di
+// 295. Nei temi WordPress l H1 e il titolo dell articolo e lo stampa il tema:
+// nel testo salvato non c e, e non ci deve essere. L unico posto dove la
+// risposta esiste e la pagina servita, quindi il plugin la va a leggere.
+$chiediH1 = static function ( $risposta ) {
+	unset( $GLOBALS['wp']['transient']['mdi_h1_dal_tema'] );
+	$GLOBALS['wp']['http']['*'] = $risposta;
+
+	return ! empty( MDI_Api::conteggi()['sito']['stampa']['h1'] );
+};
+
+verifica(
+	'una pagina con H1 chiude il rilievo',
+	true === $chiediH1( array( 'response' => array( 'code' => 200 ), 'body' => '<html><body><h1 class="titolo">Articolo</h1><p>x</p></body></html>' ) )
+);
+
+verifica(
+	'una pagina senza H1 lo lascia aperto',
+	false === $chiediH1( array( 'response' => array( 'code' => 200 ), 'body' => '<html><body><h2>Articolo</h2><p>x</p></body></html>' ) )
+);
+
+// Molti hosting bloccano le richieste del sito verso se stesso: li non si sa,
+// e non sapere non e una risoluzione.
+verifica(
+	'un sito che non risponde non chiude niente',
+	false === $chiediH1( new WP_Error( 'http_request_failed', 'loopback bloccato' ) )
+);
+
+verifica(
+	'nemmeno una pagina che risponde con un errore',
+	false === $chiediH1( array( 'response' => array( 'code' => 503 ), 'body' => '<h1>Manutenzione</h1>' ) )
+);
+
+// La risposta si tiene da parte: cambia solo cambiando tema, e non deve
+// costare una richiesta a ogni lettura del sito.
+unset( $GLOBALS['wp']['transient']['mdi_h1_dal_tema'] );
+$GLOBALS['wp']['http']['*'] = array( 'response' => array( 'code' => 200 ), 'body' => '<h1>Articolo</h1>' );
+MDI_Api::conteggi();
+$GLOBALS['wp']['http']['*'] = new WP_Error( 'http_request_failed', 'non deve nemmeno provarci' );
+
+verifica(
+	'e non si richiede a ogni lettura',
+	! empty( MDI_Api::conteggi()['sito']['stampa']['h1'] )
+);
+
+unset( $GLOBALS['wp']['transient']['mdi_h1_dal_tema'], $GLOBALS['wp']['http'] );
+
 $blocco = MDI_Api::contenuti( new WP_REST_Request( array( 'offset' => 0, 'limite' => 5 ) ) );
 verifica( 'i contenuti arrivano a blocchi', ! empty( $blocco['contenuti'] ) );
 $primo = $blocco['contenuti'][0];

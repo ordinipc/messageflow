@@ -355,6 +355,35 @@ function admin_url( $percorso = '' ) {
 define( 'MINUTE_IN_SECONDS', 60 );
 define( 'HOUR_IN_SECONDS', 3600 );
 
+/**
+ * Richieste HTTP del sito verso se stesso.
+ *
+ * Il collaudo decide che cosa risponde la pagina: serve a verificare che il
+ * plugin capisca se il tema stampa un H1, e soprattutto che davanti a una
+ * pagina illeggibile risponda «no» invece di chiudere il rilievo per sbaglio.
+ */
+function wp_remote_get( $url, $argomenti = array() ) {
+	$finta = $GLOBALS['wp']['http'][ $url ] ?? ( $GLOBALS['wp']['http']['*'] ?? null );
+
+	if ( null === $finta ) {
+		return new WP_Error( 'http_request_failed', 'Nessuna risposta preparata per ' . $url );
+	}
+
+	if ( $finta instanceof WP_Error ) {
+		return $finta;
+	}
+
+	return $finta;
+}
+
+function wp_remote_retrieve_response_code( $risposta ) {
+	return is_array( $risposta ) ? (int) ( $risposta['response']['code'] ?? 0 ) : 0;
+}
+
+function wp_remote_retrieve_body( $risposta ) {
+	return is_array( $risposta ) ? (string) ( $risposta['body'] ?? '' ) : '';
+}
+
 function set_transient( $chiave, $valore, $durata = 0 ) {
 	$GLOBALS['wp']['transient'][ $chiave ] = array( 'valore' => $valore, 'scade' => $durata ? time() + $durata : 0 );
 
