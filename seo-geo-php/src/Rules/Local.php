@@ -78,6 +78,13 @@ class Local {
 				'perche' => 'Il collegamento fra sito e scheda Google Business rafforza la corrispondenza dell entità e alimenta le recensioni mostrate in SERP.',
 				'soluzione' => 'Aggiungere il link alla scheda e il sameAs nello schema, poi raccogliere recensioni.',
 				'check' => static function ( Site $s ) {
+					// Quando i dati aziendali sono compilati il plugin mette
+					// la scheda Google fra i sameAs dello schema: sta nella
+					// testata, non nel testo degli articoli.
+					if ( Base::loFaIlSito( $s, 'local' ) ) {
+						return array();
+					}
+
 					foreach ( $s->pubblicati as $d ) {
 						if ( preg_match( '#g\.page|google\.com/maps|maps\.app\.goo\.gl|business\.google#i', $d['contenuto'] ) ) {
 							return array();

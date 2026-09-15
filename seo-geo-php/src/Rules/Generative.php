@@ -148,6 +148,14 @@ class Generative {
 				'perche' => 'Perché un modello citi l azienda deve trovare la stessa descrizione ripetuta in modo coerente su sito, schema e profili esterni collegati con sameAs.',
 				'soluzione' => 'Definire una descrizione canonica dell entità e replicarla identica ovunque.',
 				'check' => static function ( Site $s ) {
+					// Organization e sameAs stanno nel JSON-LD della testata,
+					// non nel testo degli articoli. Finche il plugin li
+					// stampa, qui non c e niente da segnalare: cercarli nel
+					// contenuto dava due rilievi permanenti.
+					if ( Base::loFaIlSito( $s, 'jsonld' ) ) {
+						return array();
+					}
+
 					$org  = false;
 					$same = false;
 					foreach ( $s->pubblicati as $d ) {

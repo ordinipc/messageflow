@@ -25,6 +25,14 @@ class Eeat {
 				'perche' => 'Per i servizi professionali Google valuta chi scrive: senza author box e schema Person manca il segnale di competenza.',
 				'soluzione' => 'Author box e schema Person con ruolo, esperienza e profili verificabili.',
 				'check' => static function ( Site $s ) {
+					// Lo schema Person sta nella testata della pagina, lo
+					// stampa il plugin: nel testo salvato degli articoli non
+					// c e e non ci sara mai. Cercarlo li teneva aperto un
+					// rilievo che nessuno poteva chiudere.
+					if ( Base::loFaIlSito( $s, 'autore' ) ) {
+						return array();
+					}
+
 					foreach ( $s->pubblicati as $d ) {
 						if ( preg_match( '/"@type"\s*:\s*"Person"/i', $d['contenuto'] ) ) {
 							return array();

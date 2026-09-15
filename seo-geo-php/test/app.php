@@ -3641,6 +3641,79 @@ verifica(
 	'un sito illeggibile chiuderebbe il rilievo per sbaglio'
 );
 
+// ---------------------------------------------------------------------------
+// Revisione di tutte le regole: nel testo salvato o stampato dal sito?
+//
+// Tre volte in due giorni e saltato fuori lo stesso difetto: una regola che
+// cerca dentro al testo salvato su WordPress una cosa che il sito produce al
+// momento di servire la pagina. Non si trova mai, il rilievo non si chiude
+// mai, e chi guarda smette di credere ai numeri.
+//
+// Qui si passa in rassegna ogni regola che cerca markup nel contenuto e si
+// verifica che sia protetta: se il sito dichiara di stamparla, non si segnala.
+
+echo "\nNessuna regola cerca nel testo salvato quello che stampa il sito\n";
+
+$sorgentiRegole = array();
+
+foreach ( glob( __DIR__ . '/../src/Rules/*.php' ) as $fileRegola ) {
+	$sorgentiRegole[ basename( $fileRegola ) ] = file_get_contents( $fileRegola );
+}
+
+// Ogni regola che fruga in $d['contenuto'] cerca markup: quel markup o sta
+// davvero nel testo (uno <style> incollato dentro) oppure lo stampa il sito.
+// Nel secondo caso ci vuole la guardia.
+$cercanoNelMarkup = array(
+	'EAT-01' => 'autore',
+	'GEO-07' => 'jsonld',
+	'GEO-08' => 'jsonld',
+	'LOC-03' => 'local',
+	'LOC-04' => 'local',
+	'SCH-01' => 'jsonld',
+	'SCH-02' => 'jsonld',
+	'SCH-03' => 'jsonld',
+	'SCH-04' => 'jsonld',
+	'SCH-05' => 'opengraph',
+	'TEC-02' => 'robots',
+	'TEC-03' => 'robots',
+	'TEC-04' => 'canonical',
+	'ONP-08' => 'h1',
+);
+
+$tutteLeRegole = implode( "\n", $sorgentiRegole );
+
+foreach ( $cercanoNelMarkup as $regola => $cosa ) {
+	// Si isola il pezzo di sorgente della regola: dal suo identificativo
+	// fino a quello successivo.
+	$da = strpos( $tutteLeRegole, "'id' => '" . $regola . "'" );
+
+	if ( false === $da ) {
+		verifica( "la regola $regola esiste ancora", false, 'non trovata nel sorgente' );
+		continue;
+	}
+
+	$prossimo = strpos( $tutteLeRegole, "'id' => '", $da + 20 );
+	$pezzo    = substr( $tutteLeRegole, $da, false === $prossimo ? null : $prossimo - $da );
+
+	verifica(
+		"$regola non segnala quello che il sito stampa ($cosa)",
+		false !== strpos( $pezzo, "loFaIlSito( \$s, '" . $cosa . "' )" ),
+		"manca la guardia su '$cosa'"
+	);
+}
+
+// E ogni regola protetta deve anche chiudersi da sola sulle analisi gia
+// fatte: senza, resta segnata finche non si rilegge tutto il sito.
+$mappaAllinea = \SeoGeo\Allinea::DAL_PLUGIN;
+
+foreach ( $cercanoNelMarkup as $regola => $cosa ) {
+	verifica(
+		"$regola si chiude da sola anche sulle analisi vecchie",
+		isset( $mappaAllinea[ $regola ] ) && $cosa === $mappaAllinea[ $regola ],
+		isset( $mappaAllinea[ $regola ] ) ? 'e collegata a ' . $mappaAllinea[ $regola ] : 'non e in elenco'
+	);
+}
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

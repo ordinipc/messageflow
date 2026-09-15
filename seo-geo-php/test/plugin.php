@@ -424,6 +424,93 @@ verifica(
 
 unset( $GLOBALS['wp']['transient']['mdi_h1_dal_tema'], $GLOBALS['wp']['http'] );
 
+// --- Il testo di una pagina costruita con Elementor -------------------------
+// Su una pagina Elementor il testo sta dentro alla struttura del costruttore,
+// non in post_content: li c e un residuo o il vuoto. L analisi leggeva quello
+// e concludeva «contenuto molto scarno», «nessun H2», «nessuna tabella» su
+// pagine piene di roba.
+$idElem = null;
+
+foreach ( (array) $GLOBALS['wp']['post'] as $unId => $unPost ) {
+	if ( 'page' === $unPost->post_type ) {
+		$idElem = (int) $unId;
+		break;
+	}
+}
+
+if ( null === $idElem ) {
+	$idElem = array_key_first( (array) $GLOBALS['wp']['post'] );
+}
+
+$contenutoOriginale = $GLOBALS['wp']['post'][ $idElem ]->post_content;
+$GLOBALS['wp']['post'][ $idElem ]->post_content = '';
+$GLOBALS['wp']['meta'][ $idElem ]['_elementor_data'] = array(
+	wp_json_encode(
+		array(
+			array(
+				'elements' => array(
+					array( 'widgetType' => 'heading', 'settings' => array( 'title' => 'Servizi di video making', 'header_size' => 'h2' ) ),
+					array( 'widgetType' => 'text-editor', 'settings' => array( 'editor' => '<p>Realizziamo video per aziende a Palermo con troupe interna.</p>' ) ),
+					array( 'widgetType' => 'image', 'settings' => array( 'image' => array( 'url' => 'https://esempio.it/foto.jpg', 'alt' => 'Troupe al lavoro' ) ) ),
+				),
+			),
+		)
+	),
+);
+
+$lettoElem = null;
+
+foreach ( MDI_Api::contenuti( new WP_REST_Request( array( 'offset' => 0, 'limite' => 50 ) ) )['contenuti'] as $unContenuto ) {
+	if ( (string) $idElem === (string) $unContenuto['wp_id'] ) {
+		$lettoElem = $unContenuto;
+	}
+}
+
+verifica( 'il testo scritto dentro a Elementor arriva all analisi', false !== strpos( (string) ( $lettoElem['contenuto'] ?? '' ), 'troupe interna' ), (string) ( $lettoElem['contenuto'] ?? '(niente)' ) );
+verifica( 'e i titoletti diventano veri H2', false !== strpos( (string) ( $lettoElem['contenuto'] ?? '' ), '<h2>Servizi di video making</h2>' ), (string) ( $lettoElem['contenuto'] ?? '(niente)' ) );
+verifica( 'e le immagini si contano', false !== strpos( (string) ( $lettoElem['contenuto'] ?? '' ), 'foto.jpg' ), (string) ( $lettoElem['contenuto'] ?? '(niente)' ) );
+
+// Quando dentro a Elementor c e il widget che rende il contenuto dell
+// articolo, il testo vero e post_content: non si ricostruisce niente.
+$GLOBALS['wp']['post'][ $idElem ]->post_content = '<p>Questo e il testo vero dell articolo.</p>';
+$GLOBALS['wp']['meta'][ $idElem ]['_elementor_data'] = array(
+	wp_json_encode( array( array( 'elements' => array( array( 'widgetType' => 'theme-post-content', 'settings' => array() ) ) ) ) ),
+);
+
+$lettoRende = null;
+
+foreach ( MDI_Api::contenuti( new WP_REST_Request( array( 'offset' => 0, 'limite' => 50 ) ) )['contenuti'] as $unContenuto ) {
+	if ( (string) $idElem === (string) $unContenuto['wp_id'] ) {
+		$lettoRende = $unContenuto;
+	}
+}
+
+verifica(
+	'ma se Elementor rende il contenuto dell articolo si tiene quello',
+	false !== strpos( (string) ( $lettoRende['contenuto'] ?? '' ), 'testo vero dell articolo' ),
+	(string) ( $lettoRende['contenuto'] ?? '(niente)' )
+);
+
+// Una struttura illeggibile non deve far sparire il contenuto.
+$GLOBALS['wp']['meta'][ $idElem ]['_elementor_data'] = array( 'non e json' );
+
+$lettoRotto = null;
+
+foreach ( MDI_Api::contenuti( new WP_REST_Request( array( 'offset' => 0, 'limite' => 50 ) ) )['contenuti'] as $unContenuto ) {
+	if ( (string) $idElem === (string) $unContenuto['wp_id'] ) {
+		$lettoRotto = $unContenuto;
+	}
+}
+
+verifica(
+	'e una struttura illeggibile non cancella il testo',
+	false !== strpos( (string) ( $lettoRotto['contenuto'] ?? '' ), 'testo vero dell articolo' ),
+	(string) ( $lettoRotto['contenuto'] ?? '(niente)' )
+);
+
+unset( $GLOBALS['wp']['meta'][ $idElem ]['_elementor_data'] );
+$GLOBALS['wp']['post'][ $idElem ]->post_content = $contenutoOriginale;
+
 $blocco = MDI_Api::contenuti( new WP_REST_Request( array( 'offset' => 0, 'limite' => 5 ) ) );
 verifica( 'i contenuti arrivano a blocchi', ! empty( $blocco['contenuti'] ) );
 $primo = $blocco['contenuti'][0];

@@ -59,6 +59,11 @@ class Allinea {
 		// L H1 lo stampa il tema col titolo dell articolo: se il sito dice
 		// che c e, non c e piu niente da segnalare su nessun contenuto.
 		'ONP-08' => 'h1',
+		// Anche questi stanno nella testata: lo schema Person dell autore,
+		// l Organization col sameAs, il collegamento alla scheda Google.
+		'EAT-01' => 'autore',
+		'GEO-08' => 'jsonld',
+		'LOC-04' => 'local',
 	);
 
 	/**

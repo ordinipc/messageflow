@@ -354,7 +354,12 @@ class MDI_Api {
 				'data'       => $post->post_date_gmt,
 				'modificato' => $post->post_modified_gmt,
 				'autore'     => get_the_author_meta( 'display_name', $post->post_author ),
-				'contenuto'  => $post->post_content,
+				// Una pagina costruita con Elementor ha il testo dentro alla
+				// sua struttura, non in post_content: li dentro spesso c e un
+				// residuo o il vuoto. L analisi leggeva quello e concludeva
+				// «contenuto molto scarno», «nessun H2», «nessuna tabella» su
+				// pagine piene di roba.
+				'contenuto'  => self::contenuto_vero( $post ),
 				'estratto'   => $post->post_excerpt,
 				'genitore'   => (string) $post->post_parent,
 				'commenti'   => $post->comment_status,
@@ -1684,7 +1689,8 @@ class MDI_Api {
 		// Quello che mette il tema e la differenza: gli H1 che ci sono in
 		// pagina meno quelli che erano gia scritti nel contenuto.
 		$in_pagina    = (int) preg_match_all( '#<h1(\s[^>]*)?>#i', $html );
-		$nel_contenuto = (int) preg_match_all( '#<h1(\s[^>]*)?>#i', (string) get_post_field( 'post_content', $campione ) );
+		$post_campione = get_post( $campione );
+		$nel_contenuto = (int) preg_match_all( '#<h1(\s[^>]*)?>#i', $post_campione ? self::contenuto_vero( $post_campione ) : '' );
 
 		$dal_tema = max( 0, $in_pagina - $nel_contenuto );
 
@@ -1937,7 +1943,11 @@ class MDI_Api {
 
 			// Gli H1 scritti dentro al testo. Con quello del tema si sa
 			// quanti ne finiscono davvero in pagina.
-			$quanti_h1 = preg_match_all( '#<h1(\s[^>]*)?>([\s\S]*?)</h1>#i', (string) $post->post_content );
+			// Anche qui il testo vero: su una pagina Elementor post_content
+			// non dice niente, e il conto delle parole risultava di venti.
+			$testo_vero = self::contenuto_vero( $post );
+
+			$quanti_h1 = preg_match_all( '#<h1(\s[^>]*)?>([\s\S]*?)</h1>#i', $testo_vero );
 
 			$esito[ (string) $id ] = array(
 				'h1_testo'      => (int) $quanti_h1,
@@ -1948,7 +1958,7 @@ class MDI_Api {
 				'ha_chiave'     => '' !== $chiave,
 				'estratto'      => '' !== trim( (string) $post->post_excerpt ),
 				'thumbnail'     => (bool) get_post_thumbnail_id( $id ),
-				'parole'        => str_word_count( wp_strip_all_tags( (string) $post->post_content ) ),
+				'parole'        => str_word_count( wp_strip_all_tags( $testo_vero ) ),
 			);
 		}
 
@@ -1989,6 +1999,90 @@ class MDI_Api {
 	 * @return array 'testi' (widget di testo con lunghezza e percorso),
 	 *               'post_content' (vero se un widget rende post_content),
 	 *               'errore'.
+	 */
+	private static function contenuto_vero( $post ) {
+		$grezzo = get_post_meta( (int) $post->ID, '_elementor_data', true );
+
+		if ( is_array( $grezzo ) ) {
+			$grezzo = reset( $grezzo );
+		}
+
+		if ( '' === (string) $grezzo ) {
+			return (string) $post->post_content;
+		}
+
+		$albero = json_decode( (string) $grezzo, true );
+
+		if ( ! is_array( $albero ) ) {
+			return (string) $post->post_content;
+		}
+
+		$pezzi        = array();
+		$post_content = false;
+
+		$scendi = static function ( $nodi ) use ( &$scendi, &$pezzi, &$post_content ) {
+			foreach ( (array) $nodi as $nodo ) {
+				if ( ! is_array( $nodo ) ) {
+					continue;
+				}
+
+				$tipo         = (string) ( $nodo['widgetType'] ?? '' );
+				$impostazioni = (array) ( $nodo['settings'] ?? array() );
+
+				// Se dentro alla struttura c e il widget che rende il
+				// contenuto dell articolo, il testo vero e quello: non si
+				// ricostruisce niente.
+				if ( in_array( $tipo, array( 'theme-post-content', 'post-content' ), true ) ) {
+					$post_content = true;
+				}
+
+				if ( 'heading' === $tipo && isset( $impostazioni['title'] ) ) {
+					$livello = strtolower( (string) ( $impostazioni['header_size'] ?? 'h2' ) );
+
+					if ( ! preg_match( '/^h[1-6]$/', $livello ) ) {
+						$livello = 'h2';
+					}
+
+					$pezzi[] = '<' . $livello . '>' . wp_kses_post( (string) $impostazioni['title'] ) . '</' . $livello . '>';
+				}
+
+				if ( 'text-editor' === $tipo && isset( $impostazioni['editor'] ) ) {
+					$pezzi[] = wp_kses_post( (string) $impostazioni['editor'] );
+				}
+
+				if ( 'image' === $tipo && ! empty( $impostazioni['image']['url'] ) ) {
+					$pezzi[] = '<img src="' . esc_url( (string) $impostazioni['image']['url'] ) . '" alt="'
+						. esc_attr( (string) ( $impostazioni['image']['alt'] ?? '' ) ) . '" />';
+				}
+
+				if ( ! empty( $nodo['elements'] ) ) {
+					$scendi( $nodo['elements'] );
+				}
+			}
+		};
+
+		$scendi( $albero );
+
+		if ( $post_content ) {
+			return (string) $post->post_content;
+		}
+
+		$ricostruito = trim( implode( "\n", $pezzi ) );
+
+		// Se non si e ricavato niente di leggibile si tiene quello che c e:
+		// meglio il contenuto salvato che il vuoto.
+		if ( '' === trim( wp_strip_all_tags( $ricostruito ) ) ) {
+			return (string) $post->post_content;
+		}
+
+		return $ricostruito;
+	}
+
+	/**
+	 * Che cosa c e dentro alla struttura di Elementor di un contenuto.
+	 *
+	 * @param int $id Contenuto.
+	 * @return array
 	 */
 	public static function struttura_elementor( $id ) {
 		$grezzo = get_post_meta( (int) $id, '_elementor_data', true );
