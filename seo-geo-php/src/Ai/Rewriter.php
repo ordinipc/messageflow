@@ -80,7 +80,19 @@ class Rewriter {
 		}
 
 		if ( empty( $opzioni['rigenera'] ) ) {
-			$sql .= " AND d.id NOT IN (SELECT documento_id FROM bozza WHERE audit_id = ? AND stato = 'ok')";
+			// Una riscrittura fatta prima che il problema esistesse non lo
+			// chiude. Sei articoli con l anno vecchio nel titolo erano fuori
+			// dalla coda con scritto «ha gia una riscrittura pronta»: quella
+			// riscrittura l anno vecchio ce l aveva ancora, e cosi il
+			// rilievo non si poteva chiudere in nessun modo. Chi ha una
+			// bozza che non chiude questa regola rientra.
+			$riaperti = self::bozzeCheNonChiudono( $db, $auditId, $regola );
+			$senzaBozza = "d.id NOT IN (SELECT documento_id FROM bozza WHERE audit_id = ? AND stato = 'ok')";
+
+			$sql .= $riaperti
+				? ' AND ( ' . $senzaBozza . ' OR d.id IN (' . implode( ',', array_map( 'intval', $riaperti ) ) . ') )'
+				: ' AND ' . $senzaBozza;
+
 			$parametri[] = $auditId;
 		}
 
@@ -163,6 +175,58 @@ class Rewriter {
 	}
 
 	/**
+	 * I contenuti la cui riscrittura gia pronta non chiude questa regola.
+	 *
+	 * Le bozze nascono da una fotografia del sito: una regola aggiunta dopo
+	 * - l anno superato nel titolo, per dirne una - non era fra i problemi
+	 * quando quel testo e stato scritto, e quindi il testo non la risolve.
+	 * Tenerli fuori con scritto «ha gia una riscrittura pronta» vuol dire
+	 * che quel rilievo non si chiude piu, comunque si prema.
+	 *
+	 * Si guardano solo le regole che si sanno misurare: sulle altre non c e
+	 * modo di dire se la bozza le chiuda, e nel dubbio non si rigenera
+	 * niente - rigenerare costa token.
+	 *
+	 * @param Db     $db      Database.
+	 * @param int    $auditId Audit.
+	 * @param string $regola  Regola su cui si sta lavorando.
+	 * @return int[] Identificativi dei documenti.
+	 */
+	public static function bozzeCheNonChiudono( Db $db, $auditId, $regola ) {
+		$regola = trim( (string) $regola );
+
+		if ( '' === $regola || ! Chiusura::verificabili( array( $regola ) ) ) {
+			return array();
+		}
+
+		$righe = $db->all(
+			"SELECT b.documento_id, b.titolo, b.meta_title, b.corpo_html, b.in_breve, b.faq,
+					d.url, d.slug, d.wp_id, d.focus_keyword AS focus
+			 FROM bozza b JOIN documento d ON d.id = b.documento_id
+			 WHERE b.audit_id = ? AND b.stato = 'ok' AND d.tipo = 'post'",
+			array( (int) $auditId )
+		);
+
+		$fuori = array();
+
+		foreach ( $righe as $r ) {
+			$dati = array(
+				'titolo'     => (string) $r['titolo'],
+				'meta_title' => (string) $r['meta_title'],
+				'in_breve'   => (string) $r['in_breve'],
+				'corpo_html' => (string) $r['corpo_html'],
+				'faq'        => json_decode( (string) $r['faq'], true ) ?: array(),
+			);
+
+			if ( Chiusura::controlla( $dati, $r, array( $regola ) ) ) {
+				$fuori[] = (int) $r['documento_id'];
+			}
+		}
+
+		return $fuori;
+	}
+
+	/**
 	 * Perche i contenuti con questo problema non sono in lista.
 	 *
 	 * «Nessun contenuto ha piu questo problema» e una risposta che non si
@@ -179,7 +243,8 @@ class Rewriter {
 	 * @return array[] 'riferimento', 'titolo', 'url', 'tipo', 'motivo', 'azione'.
 	 */
 	public static function esclusi( Db $db, $auditId, $regola, array $inCoda = array() ) {
-		$inCoda = array_flip( array_map( 'intval', $inCoda ) );
+		$inCoda      = array_flip( array_map( 'intval', $inCoda ) );
+		$nonChiudono = self::bozzeCheNonChiudono( $db, $auditId, $regola );
 		$righe = $db->all(
 			"SELECT o.riferimento, o.applicato, o.dettaglio,
 					d.id AS doc_id, d.titolo, d.url, d.tipo, d.parole,
@@ -219,6 +284,13 @@ class Rewriter {
 			} elseif ( (int) $r['bozze'] > 0 ) {
 				$motivo = 'ha già una riscrittura pronta';
 				$azione = 'bozza';
+
+				if ( in_array( (int) $r['doc_id'], $nonChiudono, true ) ) {
+					// Dire solo «ha gia una riscrittura pronta» mandava a
+					// guardare una bozza che il problema non lo risolve.
+					$motivo = 'ha una riscrittura pronta, ma quella riscrittura non chiude questo problema: va rigenerata';
+					$azione = 'rigenera';
+				}
 			} elseif ( null === $r['categoria'] ) {
 				$motivo = 'non è stato classificato dal triage';
 			} else {

@@ -4689,6 +4689,149 @@ list( $titoloPulito, $cambiatoPulito ) = \SeoGeo\Fix\Meta::title( $docPulito, $c
 
 verifica( 'un title senza anni resta identico', 'Strategie video per le piccole e medie imprese' === $titoloPulito && ! $cambiatoPulito, $titoloPulito );
 
+// ---------------------------------------------------------------------------
+// Una risposta tagliata a meta non e «non in formato JSON»
+//
+// Nell elenco delle riscritture non riuscite compariva: «Risposta non in
+// formato JSON: { "titolo": "Quanto Costa un Sito Web a Palermo nel 2026?",
+// ...» e poi si interrompeva. Quel JSON era perfettamente valido: era solo
+// finito prima. Chi legge quel messaggio non ha modo di capire che deve
+// alzare il budget, e il gestionale nemmeno riprovava.
+
+echo "\nRisposte tagliate a meta\n";
+
+$gem = '\SeoGeo\Ai\Gemini';
+
+$tagliata = '{ "titolo": "Quanto Costa un Sito Web a Palermo nel 2026?", "meta_title": "Costo Sito Web Palermo 2026", "meta_description": "Scopri il costo di un sito web a Paler';
+
+verifica( 'un JSON che si ferma dentro a una stringa risulta tagliato', $gem::pareTroncato( $tagliata ) );
+verifica( 'uno completo no', ! $gem::pareTroncato( '{"titolo":"x","faq":[{"domanda":"a","risposta":"b"}]}' ) );
+verifica( 'una risposta che non e JSON non e «tagliata»', ! $gem::pareTroncato( 'Mi dispiace, non posso aiutarti con questa richiesta.' ) );
+verifica( 'un blocco di codice chiuso e arrivato intero', ! $gem::pareTroncato( "```json\n{\"a\":1}\n```" ) );
+verifica( 'uno aperto e mai chiuso no', $gem::pareTroncato( "```json\n{\"a\": \"testo" ) );
+verifica( 'le parentesi che restano aperte contano', $gem::pareTroncato( '{"faq":[{"domanda":"a"' ) );
+verifica( 'e le virgolette dentro a una stringa non ingannano', ! $gem::pareTroncato( '{"a":"lui ha detto \\"si\\" e basta"}' ) );
+
+// Il giro completo: il modello risponde tagliato, il gestionale raddoppia il
+// budget e ritenta invece di archiviare l articolo come non riuscito.
+$geminiTagliato = new class( array( 'chiave' => 'prova', 'max_token' => 1000 ) ) extends \SeoGeo\Ai\Gemini {
+	/** @var int[] I budget richiesti, in ordine. */
+	public $budget = array();
+
+	/** @var string[] Le risposte da dare. */
+	public $risposte = array();
+
+	public function genera( $istruzioni, $richiesta, array $opzioni = array() ) {
+		$this->budget[] = (int) $opzioni['max_token'];
+
+		return array_shift( $this->risposte ) ?: '';
+	}
+};
+
+$geminiTagliato->risposte = array(
+	'{ "titolo": "Un titolo", "corpo_html": "<p>manca la chiu',
+	'{"titolo":"Un titolo","corpo_html":"<p>completo</p>"}',
+);
+
+$esitoTagliato = array();
+$erroreTagliato = '';
+
+try {
+	$esitoTagliato = $geminiTagliato->generaJson( 'istruzioni', 'richiesta' );
+} catch ( Throwable $e ) {
+	// Senza il riconoscimento del taglio qui si finisce: «Risposta non in
+	// formato JSON», e l articolo va fra i non riusciti.
+	$erroreTagliato = $e->getMessage();
+}
+
+verifica( 'al secondo giro la risposta arriva intera', 'Un titolo' === ( $esitoTagliato['titolo'] ?? '' ), $erroreTagliato ?: json_encode( $esitoTagliato ) );
+verifica( 'e il secondo giro ha piu spazio del primo', 2 === count( $geminiTagliato->budget ) && $geminiTagliato->budget[1] > $geminiTagliato->budget[0], json_encode( $geminiTagliato->budget ) );
+
+// Se invece la risposta non e proprio JSON, riprovare identici non serve: si
+// dice subito com e, senza spendere un secondo giro.
+$geminiNonJson = new class( array( 'chiave' => 'prova' ) ) extends \SeoGeo\Ai\Gemini {
+	public $chiamate = 0;
+
+	public function genera( $istruzioni, $richiesta, array $opzioni = array() ) {
+		$this->chiamate++;
+
+		return 'Mi dispiace, non posso.';
+	}
+};
+
+$messaggioNonJson = errore_di( static fn() => $geminiNonJson->generaJson( 'istruzioni', 'richiesta' ) );
+
+verifica( 'una risposta che non e JSON lo dice', false !== strpos( $messaggioNonJson, 'non in formato JSON' ), $messaggioNonJson );
+verifica( 'e non si spende un secondo giro', 1 === $geminiNonJson->chiamate, (string) $geminiNonJson->chiamate );
+
+// ---------------------------------------------------------------------------
+// Una bozza fatta prima che il problema esistesse non lo chiude
+
+echo "\nLe bozze vecchie non bloccano i problemi nuovi\n";
+
+$fileVecchia = sys_get_temp_dir() . '/prova-bozza-vecchia-' . getmypid() . '.sqlite';
+@unlink( $fileVecchia );
+$dbVecchia = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileVecchia ) );
+
+$auditVec = $dbVecchia->insert( 'audit', array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => '2026-09-16 10:00:00', 'punteggio' => 50 ) );
+$docVec   = $dbVecchia->insert(
+	'documento',
+	array(
+		'audit_id' => $auditVec, 'wp_id' => '90', 'tipo' => 'post', 'stato' => 'publish',
+		'titolo' => 'Come creare video virali nel ' . ( $annoOra - 1 ), 'slug' => 'video-virali',
+		'percorso' => '/video-virali/', 'url' => 'https://esempio.it/video-virali/', 'parole' => 900,
+	)
+);
+
+$dbVecchia->insert( 'triage', array( 'audit_id' => $auditVec, 'documento_id' => $docVec, 'categoria' => 'mantenere', 'intento' => 'informativo', 'qualita' => 70 ) );
+
+$rilVec = $dbVecchia->insert( 'rilievo', array( 'audit_id' => $auditVec, 'regola' => 'CNT-10', 'titolo' => 'Anno superato nel titolo', 'gravita' => 'alto', 'area' => 'content', 'occorrenze' => 1 ) );
+$dbVecchia->insert( 'occorrenza', array( 'rilievo_id' => $rilVec, 'riferimento' => '/video-virali/', 'dettaglio' => 'il titolo dice ' . ( $annoOra - 1 ) ) );
+
+// La bozza c e, ed e stata scritta prima che CNT-10 esistesse: l anno vecchio
+// ce l ha ancora.
+$bozzaVec = $dbVecchia->insert(
+	'bozza',
+	array(
+		'audit_id' => $auditVec, 'documento_id' => $docVec, 'wp_id' => '90', 'stato' => 'ok',
+		'modello' => 'gemini', 'titolo' => 'Come creare video virali nel ' . ( $annoOra - 1 ),
+		'meta_title' => 'Video virali ' . ( $annoOra - 1 ), 'corpo_html' => '<p>Testo.</p>',
+		'faq' => '[]', 'parole' => 900, 'creato_il' => '2026-09-15 10:00:00',
+	)
+);
+
+verifica(
+	'una bozza che lascia il problema aperto si riconosce',
+	array( $docVec ) === \SeoGeo\Ai\Rewriter::bozzeCheNonChiudono( $dbVecchia, $auditVec, 'CNT-10' )
+);
+
+verifica(
+	'e il contenuto torna fra quelli da riscrivere',
+	array( $docVec ) === array_map( 'intval', array_column( \SeoGeo\Ai\Rewriter::candidati( $dbVecchia, $auditVec, array( 'regola' => 'CNT-10' ) ), 'doc_id' ) ),
+	'restava fuori con scritto «ha gia una riscrittura pronta», e il rilievo non si chiudeva piu'
+);
+
+$perche = \SeoGeo\Ai\Rewriter::esclusi( $dbVecchia, $auditVec, 'CNT-10' );
+
+verifica(
+	'e se resta fuori si dice che la bozza va rigenerata',
+	array() === $perche || false !== strpos( (string) ( $perche[0]['motivo'] ?? '' ), 'non chiude questo problema' ),
+	json_encode( $perche )
+);
+
+// Con l anno aggiornato la bozza va bene e non si rigenera niente: rigenerare
+// costa token.
+$dbVecchia->run( 'UPDATE bozza SET titolo = ?, meta_title = ? WHERE id = ?', array( 'Come creare video virali nel ' . $annoOra, 'Video virali ' . $annoOra, $bozzaVec ) );
+
+verifica( 'una bozza che il problema lo chiude resta dov e', array() === \SeoGeo\Ai\Rewriter::bozzeCheNonChiudono( $dbVecchia, $auditVec, 'CNT-10' ) );
+verifica( 'e il contenuto non torna in coda', array() === \SeoGeo\Ai\Rewriter::candidati( $dbVecchia, $auditVec, array( 'regola' => 'CNT-10' ) ) );
+
+// Sulle regole che non si sanno misurare non si rigenera niente: nel dubbio,
+// non si spendono token.
+verifica( 'su una regola che non si sa misurare non si tocca niente', array() === \SeoGeo\Ai\Rewriter::bozzeCheNonChiudono( $dbVecchia, $auditVec, 'GEO-05' ) );
+
+@unlink( $fileVecchia );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

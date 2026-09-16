@@ -341,7 +341,14 @@ class Gemini {
 				return $dati;
 			}
 
-			if ( ! $this->troncata ) {
+			// Che la risposta sia tagliata a meta non lo dice solo il
+			// finishReason: e arrivata una risposta che cominciava
+			// regolarmente con { e si fermava dentro a una stringa, e il
+			// gestionale l ha archiviata come «Risposta non in formato
+			// JSON», mostrando duecento caratteri di JSON perfettamente
+			// valido. Chi legge quel messaggio non ha modo di capire che
+			// deve solo alzare il budget. Qui lo si guarda anche dal testo.
+			if ( ! $this->troncata && ! self::pareTroncato( $testo ) ) {
 				throw new RuntimeException(
 					'Risposta non in formato JSON: ' . mb_substr( $testo, 0, 200 )
 				);
@@ -354,7 +361,7 @@ class Gemini {
 
 		throw new RuntimeException(
 			sprintf(
-				'Il modello ha esaurito lo spazio per rispondere: la risposta si è fermata a metà anche con %s token. '
+				'La risposta si è fermata a metà anche con %s token: il modello ha esaurito lo spazio per scrivere. '
 				. '%sAlza "max_token" nelle impostazioni, oppure usa un modello con risposta più lunga.',
 				number_format( $tetto, 0, ',', '.' ),
 				$this->pensiero
@@ -362,6 +369,65 @@ class Gemini {
 					: ''
 			)
 		);
+	}
+
+	/**
+	 * La risposta e un JSON che si ferma a meta?
+	 *
+	 * Non «malformato»: incompleto. Si scorre il testo tenendo conto delle
+	 * virgolette e delle barre di escape; se alla fine si e ancora dentro a
+	 * una stringa, o restano parentesi aperte, quel JSON non e sbagliato, e
+	 * solo finito prima. La differenza cambia che cosa si fa dopo: un
+	 * formato sbagliato non si aggiusta riprovando, una risposta tagliata
+	 * si, dando piu spazio.
+	 *
+	 * @param string $testo Risposta del modello.
+	 * @return bool
+	 */
+	public static function pareTroncato( $testo ) {
+		$testo = trim( (string) $testo );
+
+		// Una risposta dentro a un blocco di codice chiuso e arrivata
+		// intera: se non si decodifica, e un problema di formato.
+		if ( preg_match( '/```(?:json)?\s*([\s\S]*?)```/', $testo, $m ) ) {
+			$testo = trim( $m[1] );
+		} else {
+			$testo = trim( preg_replace( '/^```(?:json)?\s*/', '', $testo ) );
+		}
+
+		if ( '' === $testo || ( '{' !== $testo[0] && '[' !== $testo[0] ) ) {
+			return false;
+		}
+
+		$profondita = 0;
+		$stringa    = false;
+		$fuga       = false;
+
+		for ( $i = 0, $n = strlen( $testo ); $i < $n; $i++ ) {
+			$c = $testo[ $i ];
+
+			if ( $stringa ) {
+				if ( $fuga ) {
+					$fuga = false;
+				} elseif ( '\\' === $c ) {
+					$fuga = true;
+				} elseif ( '"' === $c ) {
+					$stringa = false;
+				}
+
+				continue;
+			}
+
+			if ( '"' === $c ) {
+				$stringa = true;
+			} elseif ( '{' === $c || '[' === $c ) {
+				$profondita++;
+			} elseif ( '}' === $c || ']' === $c ) {
+				$profondita--;
+			}
+		}
+
+		return $stringa || $profondita > 0;
 	}
 
 	/**
