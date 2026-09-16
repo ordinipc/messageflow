@@ -704,6 +704,10 @@ class MDI_Api {
 		// poi ogni tentativo rispondeva 409 senza piu rimediare.
 		update_post_meta( $id, self::META_IMG_PRIMA, $relativo );
 
+		// L immagine e citata da pagine che non si sanno: si svuota tutto.
+		// Costa una volta sola anche quando se ne comprimono quaranta.
+		MDI_Cache::svuota();
+
 		return rest_ensure_response(
 			array(
 				'ok'       => true,
@@ -767,6 +771,10 @@ class MDI_Api {
 			delete_post_meta( $id, self::META_IMG_PRIMA );
 
 			$rimesse++;
+		}
+
+		if ( $rimesse ) {
+			MDI_Cache::svuota();
 		}
 
 		return rest_ensure_response(
@@ -835,11 +843,17 @@ class MDI_Api {
 			}
 		}
 
+		// La configurazione decide che cosa il plugin stampa in ogni pagina:
+		// dati strutturati, canonical, link interni. Cambiarla senza
+		// svuotare vuol dire lasciare fuori il sito di ieri.
+		$svuotata = MDI_Cache::svuota();
+
 		return rest_ensure_response(
 			array(
 				'ok'        => true,
 				'compilati' => $compilati,
 				'mancanti'  => $mancanti,
+				'cache'     => $svuotata,
 			)
 		);
 	}
@@ -1037,6 +1051,11 @@ class MDI_Api {
 				wp_update_post( array( 'ID' => $id, 'post_excerpt' => $dopo['post_excerpt'] ) );
 			}
 
+			// Title e description finiscono nella testata, che la cache di
+			// pagina tiene congelata: senza questo la correzione c e nel
+			// database e non si vede fuori.
+			MDI_Cache::svuota( $id );
+
 			$fatti++;
 		}
 
@@ -1136,6 +1155,8 @@ class MDI_Api {
 				wp_update_post( array( 'ID' => $id, 'post_excerpt' => $prima['post_excerpt'] ?? '' ) );
 				delete_post_meta( $id, self::META_BACKUP );
 			}
+
+			MDI_Cache::svuota( $id );
 
 			$ripristinati++;
 		}
@@ -1289,6 +1310,8 @@ class MDI_Api {
 		}
 
 		wp_delete_post( $id_bozza, true );
+
+		MDI_Cache::svuota( $originale );
 
 		return rest_ensure_response(
 			array(
@@ -1488,6 +1511,8 @@ class MDI_Api {
 		foreach ( $da_scrivere as $chiave => $valore ) {
 			update_post_meta( $id, $chiave, sanitize_text_field( $valore ) );
 		}
+
+		MDI_Cache::svuota( $id );
 
 		return rest_ensure_response(
 			array(
@@ -1704,13 +1729,16 @@ class MDI_Api {
 		$campione = (int) $ids[0];
 
 		$risposta = wp_remote_get(
-			get_permalink( $campione ),
+			// Non la copia in cache: quella racconta com era il sito prima
+			// delle correzioni, e misurandola i rilievi appena chiusi si
+			// riaprivano da soli.
+			MDI_Cache::senza_cache( get_permalink( $campione ) ),
 			array(
 				'timeout'   => 10,
 				'sslverify' => false,
 				// Senza questo alcuni hosting rispondono con la pagina di
 				// cortesia invece che con l articolo.
-				'headers'   => array( 'User-Agent' => 'MDI-SEO-GEO/' . MDI_SEO_GEO_VERSION ),
+				'headers'   => MDI_Cache::intestazioni() + array( 'User-Agent' => 'MDI-SEO-GEO/' . MDI_SEO_GEO_VERSION ),
 			)
 		);
 
@@ -1831,6 +1859,11 @@ class MDI_Api {
 					'nome'     => (string) wp_get_theme()->get( 'Name' ),
 					'versione' => (string) wp_get_theme()->get( 'Version' ),
 				),
+				// Chi ha una cache di pagina davanti vede il sito di prima
+				// anche quando la correzione e gia stata scritta. Il plugin
+				// la svuota da se a ogni scrittura: qui si dice quale ha
+				// trovato, cosi chi guarda sa perche il pubblico e indietro.
+				'cache'     => MDI_Cache::nomi(),
 			)
 		);
 	}
@@ -2540,6 +2573,9 @@ class MDI_Api {
 			}
 
 			wp_set_post_categories( $id, array( $id_termine ) );
+
+			MDI_Cache::svuota( $id );
+
 			$fatte++;
 		}
 
@@ -2568,6 +2604,10 @@ class MDI_Api {
 		}
 
 		update_option( self::OPZIONE_REDIRECT, $tabella, false );
+
+		// Un indirizzo con la copia in cache risponde ancora 200 con la
+		// pagina vecchia, e il redirect non parte mai.
+		MDI_Cache::svuota();
 
 		return rest_ensure_response( array( 'ok' => true, 'redirect' => count( $tabella ) ) );
 	}

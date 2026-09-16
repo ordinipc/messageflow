@@ -20,6 +20,8 @@ $GLOBALS['wp'] = array(
 	'termini'  => array(),
 	'allegati' => array(),
 	'azioni'   => array(),
+	'svuotamenti' => array(),
+	'richieste'   => array(),
 );
 
 /**
@@ -363,6 +365,8 @@ define( 'HOUR_IN_SECONDS', 3600 );
  * pagina illeggibile risponda «no» invece di chiudere il rilievo per sbaglio.
  */
 function wp_remote_get( $url, $argomenti = array() ) {
+	$GLOBALS['wp']['richieste'][] = array( 'url' => $url, 'argomenti' => $argomenti );
+
 	$finta = $GLOBALS['wp']['http'][ $url ] ?? ( $GLOBALS['wp']['http']['*'] ?? null );
 
 	if ( null === $finta ) {
@@ -767,6 +771,14 @@ function update_attached_file( $id, $file ) {
 
 function apply_filters( $hook, $valore ) {
 	return $valore;
+}
+
+function do_action( $hook ) {
+	$GLOBALS['wp']['svuotamenti'][] = array( 'azione' => $hook, 'argomenti' => array_slice( func_get_args(), 1 ) );
+}
+
+function clean_post_cache( $id ) {
+	$GLOBALS['wp']['svuotamenti'][] = array( 'azione' => 'clean_post_cache', 'argomenti' => array( (int) $id ) );
 }
 
 function wp_slash( $valore ) {

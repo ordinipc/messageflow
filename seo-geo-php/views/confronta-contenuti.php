@@ -136,6 +136,18 @@ $ovvie = array( 'id', 'titolo', 'modificato', 'revisioni' );
 					<tr><td>Come stampa il CSS</td><td><?php echo e( (string) ( $sito['elementor']['modo_css'] ?? '' ) ); ?></td></tr>
 					<tr><td>Elementor</td><td><?php echo e( (string) ( $sito['elementor']['versione'] ?? '' ) ); ?></td></tr>
 					<tr><td>Tema</td><td><?php echo e( (string) ( $sito['tema']['nome'] ?? '' ) ); ?> <?php echo e( (string) ( $sito['tema']['versione'] ?? '' ) ); ?></td></tr>
+					<tr>
+						<td>Cache di pagina</td>
+						<td>
+							<?php $cache = array_filter( (array) ( $sito['cache'] ?? array() ) ); ?>
+							<?php if ( $cache ) : ?>
+								<?php echo e( implode( ', ', array_map( 'strval', $cache ) ) ); ?>
+								<span class="nota">— il plugin la svuota da sé a ogni correzione.</span>
+							<?php else : ?>
+								nessuna
+							<?php endif; ?>
+						</td>
+					</tr>
 				</tbody>
 			</table>
 		</div>

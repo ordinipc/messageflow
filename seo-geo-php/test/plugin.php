@@ -1349,6 +1349,119 @@ $testoElementor  = $dentroElementor[0]['elements'][0]['elements'][0]['settings']
 verifica( 'anche dentro a Elementor ci finiscono le domande frequenti', false !== strpos( (string) $testoElementor, 'Quanto costa?' ), (string) $testoElementor );
 verifica( 'e la sintesi iniziale', false !== strpos( (string) $testoElementor, 'Sintesi.' ) );
 
+// --- La cache di pagina ----------------------------------------------------
+// Nella home si vedeva un link interno che nell editor di Elementor non c era.
+// Il link non era mai stato scritto da nessuna parte: lo metteva un filtro
+// mentre la pagina veniva servita, e quel filtro non tocca piu le pagine da
+// versioni. Quello che si guardava era una copia in cache fatta prima.
+//
+// Il guaio non e il link: e che ogni correzione applicata dal gestionale resta
+// invisibile al pubblico finche la copia non scade, e che il plugin misura il
+// sito leggendo le proprie pagine - se risponde la cache, misura com era
+// prima e il rilievo appena chiuso torna in elenco.
+echo "\nLa cache di pagina\n";
+
+MDI_Cache::ricomincia();
+$GLOBALS['wp']['svuotamenti'] = array();
+
+verifica( 'senza plugin di cache non si trova niente da svuotare', array() === MDI_Cache::nomi() );
+
+$svuotamenti = static function ( $azione ) {
+	return array_values(
+		array_filter(
+			(array) $GLOBALS['wp']['svuotamenti'],
+			static function ( $voce ) use ( $azione ) {
+				return $azione === $voce['azione'];
+			}
+		)
+	);
+};
+
+// Da qui in poi il sito ha LiteSpeed davanti, come quello vero.
+define( 'LSCWP_V', '7.9.1' );
+
+verifica( 'LiteSpeed viene riconosciuto', array( 'LiteSpeed Cache' ) === MDI_Cache::nomi() );
+
+MDI_Cache::ricomincia();
+$GLOBALS['wp']['svuotamenti'] = array();
+
+verifica( 'e gli si chiede di svuotare la singola pagina', array( 'LiteSpeed Cache' ) === MDI_Cache::svuota( 321 ) );
+
+$unaPagina = $svuotamenti( 'litespeed_purge_post' );
+
+verifica( 'indicando quale', 1 === count( $unaPagina ) && array( 321 ) === $unaPagina[0]['argomenti'], wp_json_encode( $unaPagina ) );
+verifica( 'insieme alla cache interna di WordPress', 1 === count( $svuotamenti( 'clean_post_cache' ) ) );
+
+// Quaranta immagini compresse in un colpo solo non devono diventare quaranta
+// svuotamenti totali: il sito si rigenererebbe da capo quaranta volte.
+MDI_Cache::ricomincia();
+$GLOBALS['wp']['svuotamenti'] = array();
+MDI_Cache::svuota();
+MDI_Cache::svuota();
+MDI_Cache::svuota();
+
+verifica( 'lo svuotamento totale si chiede una volta sola per richiesta', 1 === count( $svuotamenti( 'litespeed_purge_all' ) ), (string) count( $svuotamenti( 'litespeed_purge_all' ) ) );
+
+// Il punto di tutto: la correzione deve arrivare in pagina, non fermarsi nel
+// database.
+stub_crea_post( 880, 'Articolo da correggere', '<p>Testo.</p>' );
+MDI_Cache::ricomincia();
+$GLOBALS['wp']['svuotamenti'] = array();
+
+MDI_Api::aggiorna_meta(
+	new WP_REST_Request(
+		array(
+			'contenuti' => array(
+				array(
+					'id'          => 880,
+					'title'       => 'Un titolo lungo abbastanza da essere accettato',
+					'description' => str_repeat( 'Una descrizione con abbastanza sostanza. ', 4 ),
+				),
+			),
+			'anteprima' => false,
+		)
+	)
+);
+
+$dopoMeta = $svuotamenti( 'litespeed_purge_post' );
+
+verifica(
+	'dopo aver scritto title e description si svuota la pagina di quell articolo',
+	1 === count( $dopoMeta ) && array( 880 ) === $dopoMeta[0]['argomenti'],
+	'la correzione resta nel database e fuori si continua a vedere il sito di ieri'
+);
+
+// Cambiare la configurazione cambia quello che il plugin stampa in ogni
+// pagina: li non basta svuotarne una.
+MDI_Cache::ricomincia();
+$GLOBALS['wp']['svuotamenti'] = array();
+MDI_Api::salva_config( new WP_REST_Request( array( 'config' => $configurazione ) ) );
+
+verifica( 'cambiando la configurazione si svuota tutto il sito', 1 === count( $svuotamenti( 'litespeed_purge_all' ) ) );
+
+// E quando il plugin misura il sito non deve leggere la copia in cache: e com
+// era prima delle correzioni, e i rilievi appena chiusi si riaprirebbero.
+unset( $GLOBALS['wp']['transient']['mdi_h1_dal_tema'] );
+$GLOBALS['wp']['richieste'] = array();
+$GLOBALS['wp']['http']['*'] = array( 'response' => array( 'code' => 200 ), 'body' => '<html><body><h1>Articolo</h1></body></html>' );
+MDI_Api::conteggi();
+
+$letture = (array) $GLOBALS['wp']['richieste'];
+
+verifica( 'per misurare il sito il plugin legge una pagina', 1 === count( $letture ), (string) count( $letture ) );
+verifica(
+	'ma chiedendo di saltare la cache',
+	$letture && false !== strpos( (string) $letture[0]['url'], 'mdi-misura=' )
+		&& 'no-cache, max-age=0' === ( $letture[0]['argomenti']['headers']['Cache-Control'] ?? '' ),
+	wp_json_encode( $letture[0] ?? array() )
+);
+verifica(
+	'senza perdere il resto delle intestazioni',
+	$letture && 0 === strpos( (string) ( $letture[0]['argomenti']['headers']['User-Agent'] ?? '' ), 'MDI-SEO-GEO/' )
+);
+
+unset( $GLOBALS['wp']['transient']['mdi_h1_dal_tema'], $GLOBALS['wp']['http'] );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

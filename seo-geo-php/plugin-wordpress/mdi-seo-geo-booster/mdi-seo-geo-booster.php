@@ -3,7 +3,7 @@
  * Plugin Name:       MDI SEO & GEO Booster
  * Plugin URI:        https://maxdigitalinnovation.it/
  * Description:       Correzione automatica dei problemi SEO e GEO rilevati dall'audit: dati strutturati, meta ottimizzate, link interni, immagini, llms.txt e direttive per i crawler AI.
- * Version:           2.19.1
+ * Version:           2.20.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            seo-geo-toolkit
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'MDI_SEO_GEO_VERSION', '2.19.1' );
+define( 'MDI_SEO_GEO_VERSION', '2.20.0' );
 define( 'MDI_SEO_GEO_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MDI_SEO_GEO_URL', plugin_dir_url( __FILE__ ) );
 
@@ -80,6 +80,7 @@ function mdi_seo_geo_cfg( $path, $default = '' ) {
 
 require_once MDI_SEO_GEO_DIR . 'includes/class-mdi-meta.php';
 require_once MDI_SEO_GEO_DIR . 'includes/class-mdi-schema.php';
+require_once MDI_SEO_GEO_DIR . 'includes/class-mdi-cache.php';
 require_once MDI_SEO_GEO_DIR . 'includes/class-mdi-links.php';
 require_once MDI_SEO_GEO_DIR . 'includes/class-mdi-media.php';
 require_once MDI_SEO_GEO_DIR . 'includes/class-mdi-ai.php';
@@ -96,6 +97,15 @@ add_action(
 		MDI_AI::init();
 		MDI_Api::init();
 		MDI_Admin::init();
+
+		// Una versione nuova stampa cose diverse dentro alla pagina. Finche
+		// la cache serve la copia di prima, fuori si continua a vedere il
+		// comportamento vecchio: e successo con i link interni nelle pagine,
+		// tolti da tre mesi e ancora visibili nella home.
+		if ( (string) get_option( 'mdi_seo_geo_versione', '' ) !== MDI_SEO_GEO_VERSION ) {
+			update_option( 'mdi_seo_geo_versione', MDI_SEO_GEO_VERSION, true );
+			MDI_Cache::svuota();
+		}
 	}
 );
 
@@ -108,6 +118,7 @@ register_activation_hook(
 	function () {
 		MDI_AI::add_rewrite_rules();
 		flush_rewrite_rules();
+		MDI_Cache::svuota();
 	}
 );
 
