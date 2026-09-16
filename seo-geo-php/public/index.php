@@ -2515,6 +2515,17 @@ if ( 'genera' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		$opzioni['regola'] = $_POST['regola'];
 	}
 
+	// Un contenuto cercato a mano: si riscrive quello, anche se ha gia una
+	// bozza e anche se il triage non lo aveva segnalato. La scelta l ha fatta
+	// una persona, e non deve essere il programma a rimetterla in discussione.
+	$uno_solo = (int) ( $_POST['documento'] ?? 0 );
+
+	if ( $uno_solo ) {
+		$opzioni['solo_documento'] = $uno_solo;
+		$opzioni['rigenera']       = 1;
+		$opzioni['limite']         = 1;
+	}
+
 	try {
 		if ( 'accorpa' === $tipo ) {
 			$esito = Rewriter::consolida( $db, $gemini, $id, $cfg, $opzioni );
@@ -2535,6 +2546,10 @@ if ( 'genera' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		. '&fatte=' . (int) $esito['generate']
 		. '&errori=' . (int) ( $esito['fallite'] ?? 0 )
 		. '&tipo=' . $tipo
+		// Si torna sulla ricerca da cui si e partiti, se no la riscrittura
+		// appena chiesta si perde in fondo a un elenco di duecento.
+		. ( $uno_solo ? '&cerca=' . rawurlencode( (string) ( $_POST['cerca'] ?? '' ) ) : '' )
+		. ( $uno_solo && ! empty( $esito['errori'] ) ? '&errore=' . rawurlencode( (string) $esito['errori'][0] ) : '' )
 	);
 	exit;
 }
@@ -3221,6 +3236,11 @@ switch ( $pagina ) {
 				'tipo'      => (string) ( $_GET['tipo'] ?? '' ),
 				'fatte'     => (int) ( $_GET['fatte'] ?? 0 ),
 				'errori'    => (int) ( $_GET['errori'] ?? 0 ),
+				'cerca'     => trim( (string) ( $_GET['cerca'] ?? '' ) ),
+				// Cercare un contenuto e riscriverlo subito, anche se non
+				// aveva un problema segnalato e anche se una bozza ce l ha
+				// gia: la scelta l ha fatta una persona.
+				'trovati'   => \SeoGeo\Ai\Rewriter::cerca( $db, $id, (string) ( $_GET['cerca'] ?? '' ) ),
 				'gruppi'    => count( Rewriter::gruppi( $db, $id ) ),
 				// Fondere non e l unico rimedio alla cannibalizzazione, e sui
 				// gruppi di questo sito non e nemmeno quello giusto: una

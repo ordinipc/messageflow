@@ -53,13 +53,27 @@ class Rewriter {
 
 		$segnaposto = implode( ',', array_fill( 0, count( $categorie ), '?' ) );
 
-		$sql = "SELECT t.*, d.id AS doc_id, d.wp_id, d.titolo, d.url, d.slug, d.parole, d.testo,
-					d.focus_keyword AS focus, d.percorso
+		// Quando la scelta l ha gia fatta una persona - ha cercato quel
+		// contenuto e ha premuto «riscrivi questo» - il triage non deve
+		// poterlo escludere. E si parte dal documento, non dal triage: un
+		// contenuto senza riga di triage non risultava esistere, e il
+		// pulsante rispondeva «nessun articolo da riscrivere» su un articolo
+		// che si stava guardando.
+		$uno = ! empty( $opzioni['solo_documento'] );
+
+		$sql = $uno
+			? "SELECT t.*, d.id AS doc_id, d.wp_id, d.titolo, d.url, d.slug, d.parole, d.testo,
+					d.focus_keyword AS focus, d.percorso, d.tipo
+				FROM documento d
+				LEFT JOIN triage t ON t.documento_id = d.id AND t.audit_id = d.audit_id
+				WHERE d.audit_id = ?"
+			: "SELECT t.*, d.id AS doc_id, d.wp_id, d.titolo, d.url, d.slug, d.parole, d.testo,
+					d.focus_keyword AS focus, d.percorso, d.tipo
 				FROM triage t
 				JOIN documento d ON d.id = t.documento_id
 				WHERE t.audit_id = ? AND t.categoria IN ($segnaposto)";
 
-		$parametri = array_merge( array( $auditId ), array_values( $categorie ) );
+		$parametri = $uno ? array( $auditId ) : array_merge( array( $auditId ), array_values( $categorie ) );
 
 		if ( '' !== $regola ) {
 			$sql .= " AND EXISTS (
@@ -96,9 +110,9 @@ class Rewriter {
 			$parametri[] = $auditId;
 		}
 
-		// Prima gli articoli con l intento più commerciale e più corti: sono
-		// quelli dove la riscrittura rende di più.
-		$sql .= " ORDER BY CASE t.intento
+		// L intento manca quando il triage non ha classificato il contenuto:
+		// senza questo un articolo appena trovato non si ordinerebbe.
+		$sql .= " ORDER BY CASE COALESCE( t.intento, '' )
 					WHEN 'transazionale' THEN 0 WHEN 'commerciale' THEN 1 ELSE 2 END,
 					d.parole ASC";
 
@@ -224,6 +238,52 @@ class Rewriter {
 		}
 
 		return $fuori;
+	}
+
+	/**
+	 * Cerca un contenuto per titolo, indirizzo, slug o numero.
+	 *
+	 * Serve a riscrivere una cosa precisa senza passare dagli elenchi: chi
+	 * conosce il proprio sito sa quale articolo vuole rifare, e finora
+	 * l unica strada era che lo segnalasse una regola.
+	 *
+	 * Si cerca dentro all analisi, non sul sito: e li che stanno il testo e
+	 * i problemi da cui parte la riscrittura.
+	 *
+	 * @param Db     $db      Database.
+	 * @param int    $auditId Audit.
+	 * @param string $cosa    Titolo, indirizzo, slug o numero WordPress.
+	 * @param int    $quanti  Quanti risultati al massimo.
+	 * @return array[]
+	 */
+	public static function cerca( Db $db, $auditId, $cosa, $quanti = 20 ) {
+		$cosa = trim( (string) $cosa );
+
+		if ( mb_strlen( $cosa ) < 2 ) {
+			return array();
+		}
+
+		// Chi incolla l indirizzo completo cerca il percorso, non una frase
+		// che contiene «https».
+		$percorso = (string) parse_url( $cosa, PHP_URL_PATH );
+		$ago      = '%' . ( '' !== $percorso && '/' !== $percorso ? trim( $percorso, '/' ) : $cosa ) . '%';
+
+		return $db->all(
+			"SELECT d.id AS doc_id, d.wp_id, d.titolo, d.url, d.slug, d.percorso, d.tipo, d.parole,
+					d.focus_keyword AS focus,
+					( SELECT COUNT(*) FROM bozza b WHERE b.documento_id = d.id AND b.stato = 'ok' ) AS bozze,
+					( SELECT COUNT(*) FROM occorrenza o
+						JOIN rilievo r ON r.id = o.rilievo_id
+						WHERE r.audit_id = d.audit_id
+						  AND COALESCE( o.applicato, 0 ) = 0
+						  AND ( o.riferimento = d.percorso OR o.riferimento = d.url ) ) AS problemi
+			 FROM documento d
+			 WHERE d.audit_id = ? AND d.stato = 'publish'
+			   AND ( d.titolo LIKE ? OR d.slug LIKE ? OR d.percorso LIKE ? OR d.wp_id = ? )
+			 ORDER BY d.tipo ASC, d.titolo ASC
+			 LIMIT " . max( 1, (int) $quanti ),
+			array( (int) $auditId, $ago, $ago, $ago, $cosa )
+		);
 	}
 
 	/**

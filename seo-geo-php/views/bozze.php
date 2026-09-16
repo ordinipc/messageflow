@@ -8,6 +8,8 @@
  * @var array  $da_regola Contenuti che hanno quel problema.
  * @var array  $esclusi   Occorrenze della regola che non finiscono in coda, col perche.
  * @var array  $contese   Ricerche contese: chi vince e chi cede.
+ * @var string $cerca     Testo cercato, se c e.
+ * @var array  $trovati   Contenuti che corrispondono alla ricerca.
  * @var array $audit  Riga audit.
  * @var array $cfg    Configurazione.
  * @var bool  $pronto Chiave API presente.
@@ -22,6 +24,8 @@ $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
 // calcolano le ricerche contese la pagina uscirebbe con un avviso di PHP
 // dentro.
 $contese  = $contese ?? array();
+$cerca    = $cerca ?? '';
+$trovati  = $trovati ?? array();
 
 ?>
 <section class="intestazione">
@@ -213,6 +217,86 @@ $daFondere = in_array( $regola, array( 'LOC-05', 'ONP-06', 'CNT-03' ), true );
 			<?php endif; ?>
 		</p>
 	<?php endif; ?>
+
+	<section class="scheda" id="cerca">
+		<h3>Riscrivi un contenuto preciso</h3>
+		<p class="guida">
+			Gli elenchi qui sopra partono dai problemi trovati. Se invece sai già quale contenuto
+			vuoi rifare, cercalo: si riscrive anche se non aveva nessun problema segnalato e anche
+			se una riscrittura ce l'ha già — in quel caso viene rifatta da capo.
+		</p>
+
+		<form method="get" action="">
+			<input type="hidden" name="p" value="bozze">
+			<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
+			<?php if ( '' !== $regola ) : ?>
+				<input type="hidden" name="regola" value="<?php echo e( $regola ); ?>">
+			<?php endif; ?>
+			<label for="cerca-cosa">Titolo, indirizzo o numero dell'articolo</label>
+			<input id="cerca-cosa" type="search" name="cerca" value="<?php echo e( $cerca ); ?>"
+				placeholder="video virali · /produzione-video-palermo/ · 4252"
+				style="width:min(480px,100%);padding:8px;border:1px solid var(--linea);border-radius:4px">
+			<button class="bottone secondario" type="submit">Cerca</button>
+		</form>
+
+		<?php if ( '' !== $cerca && ! $trovati ) : ?>
+			<p class="nota">
+				Nessun contenuto pubblicato corrisponde a «<?php echo e( $cerca ); ?>» in questa analisi.
+				Se l'articolo è stato pubblicato dopo l'ultima lettura del sito, rileggi il sito dalla
+				pagina dell'audit.
+			</p>
+		<?php elseif ( $trovati ) : ?>
+			<div class="tabellabox">
+				<table>
+					<thead>
+						<tr><th>Contenuto</th><th class="num">Parole</th><th class="num">Problemi</th><th class="stretta"></th></tr>
+					</thead>
+					<tbody>
+					<?php foreach ( $trovati as $t ) : ?>
+						<tr>
+							<td>
+								<a href="<?php echo e( $t['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( $t['titolo'] ); ?></a>
+								<div class="sotto">
+									<span class="mono"><?php echo e( $t['percorso'] ); ?></span>
+									<?php if ( 'page' === $t['tipo'] ) : ?>
+										· <strong>pagina servizio</strong>
+									<?php endif; ?>
+									<?php if ( (int) $t['bozze'] > 0 ) : ?>
+										· ha già una riscrittura: premendo si rifà da capo
+									<?php endif; ?>
+								</div>
+							</td>
+							<td class="num"><?php echo num( $t['parole'] ); ?></td>
+							<td class="num"><?php echo num( $t['problemi'] ); ?></td>
+							<td class="stretta">
+								<?php if ( $pronto ) : ?>
+									<form method="post" action="?p=genera" style="margin:0">
+										<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+										<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
+										<input type="hidden" name="documento" value="<?php echo (int) $t['doc_id']; ?>">
+										<input type="hidden" name="cerca" value="<?php echo e( $cerca ); ?>">
+										<button class="bottone" type="submit"
+											<?php if ( 'page' === $t['tipo'] ) : ?>
+												onclick="return confirm('Questa è una pagina servizio, non un articolo. La riscrittura resta in bozza e non viene pubblicata: la applichi tu da «Vecchio e nuovo» solo se ti convince. Procedere?')"
+											<?php endif; ?>
+										>Riscrivi</button>
+									</form>
+								<?php else : ?>
+									<small>serve la chiave</small>
+								<?php endif; ?>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+					</tbody>
+				</table>
+			</div>
+			<p class="nota">
+				La riscrittura finisce in <strong>«Vecchio e nuovo»</strong>: niente viene pubblicato finché
+				non lo dici tu. Anche sulle pagine servizio vale lo stesso — la bozza si guarda e si applica
+				a mano.
+			</p>
+		<?php endif; ?>
+	</section>
 
 	<?php if ( ! empty( $contese ) ) : ?>
 		<?php $pianoContese = \SeoGeo\Fix\Cannibalizzazione::piano( $contese ); ?>

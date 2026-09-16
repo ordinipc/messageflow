@@ -4961,6 +4961,79 @@ verifica(
 
 @unlink( $fileCan );
 
+// ---------------------------------------------------------------------------
+// Cercare un contenuto e riscriverlo, senza passare dagli elenchi
+//
+// Gli elenchi partono dai problemi trovati. Chi conosce il proprio sito sa
+// gia quale articolo vuole rifare, e finora l unica strada era che lo
+// segnalasse una regola.
+
+echo "\nCercare un contenuto e riscriverlo\n";
+
+$fileCerca = sys_get_temp_dir() . '/prova-cerca-' . getmypid() . '.sqlite';
+@unlink( $fileCerca );
+$dbCerca   = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileCerca ) );
+$auditCerca = $dbCerca->insert( 'audit', array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => '2026-09-16 10:00:00', 'punteggio' => 50 ) );
+
+$docVirali = $dbCerca->insert(
+	'documento',
+	array(
+		'audit_id' => $auditCerca, 'wp_id' => '4252', 'tipo' => 'post', 'stato' => 'publish',
+		'titolo' => 'Come creare video virali per la tua PMI', 'slug' => 'video-virali-pmi',
+		'percorso' => '/video-virali-pmi/', 'url' => 'https://esempio.it/video-virali-pmi/',
+		'parole' => 900, 'testo' => 'Testo.', 'focus_keyword' => 'video virali',
+	)
+);
+
+$dbCerca->insert(
+	'documento',
+	array(
+		'audit_id' => $auditCerca, 'wp_id' => '9', 'tipo' => 'post', 'stato' => 'publish',
+		'titolo' => 'Tutt altro argomento', 'slug' => 'altro', 'percorso' => '/altro/',
+		'url' => 'https://esempio.it/altro/', 'parole' => 800, 'testo' => 'Testo.',
+	)
+);
+
+verifica( 'si cerca per parola del titolo', array( $docVirali ) === array_map( 'intval', array_column( \SeoGeo\Ai\Rewriter::cerca( $dbCerca, $auditCerca, 'virali' ), 'doc_id' ) ) );
+verifica( 'per numero di WordPress', array( $docVirali ) === array_map( 'intval', array_column( \SeoGeo\Ai\Rewriter::cerca( $dbCerca, $auditCerca, '4252' ), 'doc_id' ) ) );
+verifica( 'e incollando l indirizzo intero', array( $docVirali ) === array_map( 'intval', array_column( \SeoGeo\Ai\Rewriter::cerca( $dbCerca, $auditCerca, 'https://esempio.it/video-virali-pmi/' ), 'doc_id' ) ) );
+verifica( 'una ricerca di una lettera sola non restituisce mezzo sito', array() === \SeoGeo\Ai\Rewriter::cerca( $dbCerca, $auditCerca, 'v' ) );
+verifica( 'e si dice se ha gia una riscrittura', 0 === (int) ( \SeoGeo\Ai\Rewriter::cerca( $dbCerca, $auditCerca, 'virali' )[0]['bozze'] ?? -1 ) );
+
+// Il punto della richiesta: deve funzionare anche senza triage e anche con
+// una bozza gia pronta. Prima il triage poteva escluderlo e il pulsante
+// rispondeva «nessun articolo da riscrivere» su un articolo che si stava
+// guardando.
+$soloQuello = \SeoGeo\Ai\Rewriter::candidati( $dbCerca, $auditCerca, array( 'solo_documento' => $docVirali, 'rigenera' => 1 ) );
+
+verifica( 'un contenuto senza riga di triage si riscrive lo stesso', 1 === count( $soloQuello ) && $docVirali === (int) $soloQuello[0]['doc_id'], (string) count( $soloQuello ) );
+
+$dbCerca->insert(
+	'bozza',
+	array(
+		'audit_id' => $auditCerca, 'documento_id' => $docVirali, 'wp_id' => '4252', 'stato' => 'ok',
+		'modello' => 'gemini', 'titolo' => 'Gia riscritto', 'corpo_html' => '<p>x</p>', 'faq' => '[]',
+		'parole' => 900, 'creato_il' => '2026-09-16 09:00:00',
+	)
+);
+
+verifica(
+	'e con una bozza gia pronta si rifa da capo se lo si chiede',
+	1 === count( \SeoGeo\Ai\Rewriter::candidati( $dbCerca, $auditCerca, array( 'solo_documento' => $docVirali, 'rigenera' => 1 ) ) )
+);
+
+verifica( 'si dice che la bozza c e', 1 === (int) ( \SeoGeo\Ai\Rewriter::cerca( $dbCerca, $auditCerca, 'virali' )[0]['bozze'] ?? 0 ) );
+
+// La strada dal pulsante: il numero del contenuto deve arrivare fino alla
+// generazione, se no si cerca, si preme, e riparte l elenco di sempre.
+$indice = file_get_contents( __DIR__ . '/../public/index.php' );
+
+verifica( 'il numero del contenuto arriva alla generazione', false !== strpos( $indice, "\$opzioni['solo_documento'] = \$uno_solo;" ) );
+verifica( 'e chiede di rifarla anche se c e gia', false !== strpos( $indice, "\$opzioni['rigenera']       = 1;" ) );
+verifica( 'la ricerca c e nella pagina', false !== strpos( file_get_contents( __DIR__ . '/../views/bozze.php' ), 'Riscrivi un contenuto preciso' ) );
+
+@unlink( $fileCerca );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );
