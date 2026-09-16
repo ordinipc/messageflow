@@ -365,6 +365,11 @@ $daFondere = in_array( $regola, array( 'LOC-05', 'ONP-06', 'CNT-03' ), true );
 								<?php if ( '' !== trim( (string) $b['note'] ) ) : ?>
 									· <?php echo e( $b['note'] ); ?>
 								<?php endif; ?>
+								<?php if ( '' !== trim( (string) ( $b['rimaste'] ?? '' ) ) ) : ?>
+									<br><span class="tag alto">non chiuso</span>
+									<?php echo e( (string) $b['rimaste'] ); ?>
+									— il modello ha provato due volte e non c'è riuscito: questo pezzo resta da fare a mano.
+								<?php endif; ?>
 							<?php else : ?>
 								<?php echo e( $b['errore'] ); ?>
 							<?php endif; ?>

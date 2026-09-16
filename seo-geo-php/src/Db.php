@@ -282,6 +282,11 @@ class Db {
 		// serve a distinguere nell elenco quelle gia online da quelle ancora
 		// da decidere.
 		$this->aggiungiColonna( 'bozza', 'inviata_il', $vc );
+		// Che cosa la riscrittura non ha chiuso, e quanti tentativi sono
+		// serviti. Prima la bozza si salvava comunque e il rilievo rispuntava
+		// alla rilettura successiva senza che nessuno sapesse perche.
+		$this->aggiungiColonna( 'bozza', 'rimaste', $txt );
+		$this->aggiungiColonna( 'bozza', 'tentativi', 'INT' );
 		$this->aggiungiColonna( 'gsc_rilevazione', 'sitemap', $txt );
 		$this->aggiungiColonna( 'coda', 'dettaglio', $txt );
 		$this->aggiungiColonna( 'coda', 'origine', $vc );

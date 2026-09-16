@@ -114,6 +114,14 @@ class Links {
 				'perche' => 'target="_blank" senza rel="noopener" espone al reverse tabnabbing ed è segnalato dagli audit di sicurezza.',
 				'soluzione' => 'Aggiunta automatica di rel="noopener noreferrer" dal plugin.',
 				'check' => static function ( Site $s ) {
+					// Il rel lo aggiunge il plugin mentre serve la pagina:
+					// nel testo salvato non c e e non ci sara mai, e
+					// cercarlo li lasciava aperto un rilievo che il sito
+					// aveva gia risolto.
+					if ( Base::loFaIlSito( $s, 'nofollow' ) ) {
+						return array();
+					}
+
 					$out = array();
 					foreach ( $s->pubblicati as $d ) {
 						$n = 0;

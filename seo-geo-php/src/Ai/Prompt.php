@@ -204,7 +204,7 @@ TXT;
 	 * @param array $cfg      Configurazione.
 	 * @return string
 	 */
-	public static function miglioramento( array $articolo, array $doc, array $link, array $problemi, array $cfg ) {
+	public static function miglioramento( array $articolo, array $doc, array $link, array $problemi, array $cfg, $ancoraAperti = '' ) {
 		$citta    = $cfg['seo']['cittaPrincipale'];
 		$keyword  = $articolo['focus'] ?: $articolo['titolo'];
 		$scaletta = self::scaletta( $articolo['intento'], $keyword, $citta );
@@ -241,8 +241,13 @@ TXT;
 		// al modello verrebbe perso nel rimando.
 		$testoOriginale = Text::truncate( $doc['testo'], (int) ( $cfg['ai']['testo_max_caratteri'] ?? 14000 ) );
 
+		// Al secondo tentativo si dice, misurato sul testo appena prodotto,
+		// che cosa non ha chiuso. Va in cima: in fondo, dopo il testo
+		// originale, si perde.
+		$ancora = '' !== trim( (string) $ancoraAperti ) ? trim( (string) $ancoraAperti ) . "\n\n" : '';
+
 		return <<<TXT
-Migliora questo articolo del blog. NON riscriverlo da capo.
+{$ancora}Migliora questo articolo del blog. NON riscriverlo da capo.
 
 Il testo è già pubblicato e funziona: il tuo compito è correggere i problemi
 elencati, non produrre un articolo nuovo. Conserva la voce dell autore, gli

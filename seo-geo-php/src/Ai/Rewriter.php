@@ -405,6 +405,9 @@ class Rewriter {
 			? ! empty( $opzioni['migliora'] )
 			: ! empty( $cfg['ai']['migliora_invece_di_riscrivere'] );
 
+		// Che cosa stampa il sito da se: serve al controllo su ONP-09.
+		$stampa = (array) ( $opzioni['stampa'] ?? array() );
+
 		if ( ! is_dir( $cartella ) ) {
 			mkdir( $cartella, 0775, true );
 		}
@@ -439,25 +442,61 @@ class Rewriter {
 			}
 
 			try {
-				$link = self::linkSuggeriti( $db, $auditId, $a['percorso'] );
+				$link     = self::linkSuggeriti( $db, $auditId, $a['percorso'] );
+				$problemi = self::problemi( $db, $auditId, $a );
 
-				// Migliorare invece di rifare da capo: il testo pubblicato
-				// resta quello dell autore e si interviene solo dove l audit
-				// ha trovato un problema. Riscrivere tutto butta via anche
-				// quello che funzionava.
-				$dati = $migliora
-					? $gemini->generaJson( $istruzioni, Prompt::miglioramento( $a, $a, $link, self::problemi( $db, $auditId, $a ), $cfg ) )
-					: $gemini->generaJson( $istruzioni, Prompt::articolo( $a, $a, $link, $cfg ) );
+				// Si misura tutto quello che si sa misurare, non solo i
+				// rilievi da cui si e partiti. Controllando le sole regole
+				// richieste, una riscrittura che chiudeva «meno di 600
+				// parole» scendendo a 250 risultava riuscita, e intanto
+				// apriva «meno di 300 parole», che e critico. E cosi che il
+				// totale saliva - da 1.290 a 1.910 - proprio mentre si
+				// correggeva.
+				$daChiudere = Chiusura::VERIFICABILI;
 
-				// Il modello, davanti a un audit che dice «manca lo schema
-				// Article», a volte lo scrive nel corpo dell articolo. Il
-				// tag <script> lo toglie WordPress, il JSON dentro no: resta
-				// in pagina come testo. Lo schema lo stampa il plugin, qui
-				// non ci deve arrivare.
-				$corpo = Html::senzaDatiStrutturati( (string) ( $dati['corpo_html'] ?? '' ) );
+				$ancora    = '';
+				$aperte    = array();
+				$dati      = array();
+				$corpo     = '';
+				$tentativi = 0;
 
-				if ( '' === trim( $corpo ) ) {
-					throw new \RuntimeException( 'il modello non ha restituito il corpo dell articolo' );
+				// Due tentativi al massimo, e il secondo non e una
+				// ripetizione: riparte con l elenco di quello che il primo
+				// non ha chiuso, misurato sul testo che ha prodotto.
+				for ( $t = 0; $t < 2; $t++ ) {
+					$tentativi = $t + 1;
+
+					// Migliorare invece di rifare da capo: il testo pubblicato
+					// resta quello dell autore e si interviene solo dove l audit
+					// ha trovato un problema. Riscrivere tutto butta via anche
+					// quello che funzionava.
+					$dati = $migliora
+						? $gemini->generaJson( $istruzioni, Prompt::miglioramento( $a, $a, $link, $problemi, $cfg, $ancora ) )
+						: $gemini->generaJson( $istruzioni, Prompt::articolo( $a, $a, $link, $cfg ) );
+
+					// Il modello, davanti a un audit che dice «manca lo schema
+					// Article», a volte lo scrive nel corpo dell articolo. Il
+					// tag <script> lo toglie WordPress, il JSON dentro no: resta
+					// in pagina come testo. Lo schema lo stampa il plugin, qui
+					// non ci deve arrivare.
+					$corpo = Html::senzaDatiStrutturati( (string) ( $dati['corpo_html'] ?? '' ) );
+
+					if ( '' === trim( $corpo ) ) {
+						throw new \RuntimeException( 'il modello non ha restituito il corpo dell articolo' );
+					}
+
+					$dati['corpo_html'] = $corpo;
+					$aperte             = Chiusura::controlla( $dati, $a, $daChiudere, $stampa );
+
+					// Niente da ridire, oppure niente che si sappia misurare:
+					// un secondo giro costerebbe token senza dire altro.
+					// E la riscrittura da zero non riceve l elenco dei
+					// problemi, quindi nemmeno un secondo giro utile.
+					if ( ! $aperte || ! $migliora ) {
+						break;
+					}
+
+					$ancora = Chiusura::istruzioni( $aperte );
 				}
 
 				$parole = Text::wordCount( Html::stripTags( $corpo ) );
@@ -496,6 +535,10 @@ class Rewriter {
 						'token_out'        => 0,
 						'errore'           => '',
 						'file'             => $nome_file,
+						// Che cosa la riscrittura non e riuscita a chiudere: scritto
+						// adesso, invece di farlo scoprire dalla rilettura di domani.
+						'rimaste'          => Chiusura::riassunto( $aperte ),
+						'tentativi'        => $tentativi,
 						'creato_il'        => date( 'Y-m-d H:i:s' ),
 					)
 				);

@@ -115,16 +115,24 @@ class MDI_Links {
 		return preg_replace_callback(
 			'/<a\b([^>]*)href=("|\')(https?:\/\/[^"\']+)\2([^>]*)>/i',
 			function ( $m ) use ( $domini, $casa ) {
-				$host = wp_parse_url( $m[3], PHP_URL_HOST );
+				$host   = wp_parse_url( $m[3], PHP_URL_HOST );
+				$attr   = $m[1] . $m[4];
+				$dicasa = ! $host || false !== strpos( $host, $casa );
 
-				if ( ! $host || false !== strpos( $host, $casa ) ) {
+				// Un link che apre una nuova scheda va messo in sicurezza
+				// anche quando punta a una pagina di casa: il reverse
+				// tabnabbing non guarda il dominio, e l audit contava anche
+				// quelli. Restavano segnati per sempre, perche il plugin
+				// saltava tutto quello che non era esterno.
+				$apre = (bool) preg_match( '/target=("|\')_blank\1/i', $attr );
+
+				if ( $dicasa && ! $apre ) {
 					return $m[0];
 				}
 
-				$attr = $m[1] . $m[4];
-				$rel  = array( 'noopener', 'noreferrer' );
+				$rel = array( 'noopener', 'noreferrer' );
 
-				foreach ( $domini as $dominio ) {
+				foreach ( $dicasa ? array() : $domini as $dominio ) {
 					if ( false !== stripos( $host, $dominio ) ) {
 						$rel[] = 'nofollow';
 						$rel[] = 'sponsored';

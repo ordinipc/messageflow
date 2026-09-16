@@ -64,6 +64,7 @@ class Rimedi {
 			'IMG-06' => 'width e height presi dalla libreria media',
 			'LNK-01' => 'link interni verso le pagine senza collegamenti in entrata',
 			'LNK-02' => 'link interni inseriti nel contenuto',
+			'LNK-05' => 'rel="noopener noreferrer" su ogni link che apre una nuova scheda',
 			'LNK-04' => 'rel="nofollow sponsored" sui link esterni configurati',
 			'IMG-01' => 'alt generato dal titolo su ogni immagine del contenuto',
 			'IMG-02' => 'alt generato anche per gli allegati della libreria media',
@@ -105,6 +106,15 @@ class Rimedi {
 			'CNT-07' => array( $perRegola( 'CNT-07' ), 'Riscrittura assistita', 'La riscrittura rifà il testo senza gli stili incollati dentro.' ),
 			'CNT-01' => array( $perRegola( 'CNT-01' ), 'Riscrittura assistita', 'Gli articoli troppo corti si riscrivono alla lunghezza giusta.' ),
 			'CNT-02' => array( $perRegola( 'CNT-02' ), 'Riscrittura assistita', 'Gli articoli sotto soglia si riscrivono più completi.' ),
+			// Questi quattro erano segnati «a mano» e insieme facevano 201
+			// segnalazioni che il pulsante «correggi tutto» non toccava mai:
+			// restavano in elenco a ogni rilettura. Sono tutti e quattro
+			// lavoro di riscrittura, e dopo la riscrittura si controlla che
+			// siano davvero chiusi.
+			'CNT-06' => array( $perRegola( 'CNT-06' ), 'Riscrittura assistita', 'La riscrittura spezza le frasi lunghe e riporta la leggibilità sopra la soglia.' ),
+			'CNT-08' => array( $perRegola( 'CNT-08' ), 'Riscrittura assistita', 'La riscrittura aggiunge un elenco o una tabella dove c è solo testo continuo.' ),
+			'ONP-09' => array( $perRegola( 'ONP-09' ), 'Riscrittura assistita', 'La riscrittura lascia un solo H1: quello del titolo, stampato dal tema.' ),
+			'ONP-11' => array( $perRegola( 'ONP-11' ), 'Riscrittura assistita', 'La riscrittura rimette i livelli dei titoli in sequenza.' ),
 			'LOC-02' => array( $impostazioni, 'Impostazioni', 'Compila indirizzo e partita IVA: vengono inviati al sito e finiscono nello schema.' ),
 			'LOC-01' => array( $impostazioni, 'Impostazioni', 'Compila il telefono: finisce nello schema LocalBusiness, e lo shortcode [mdi_nap] lo stampa nel footer.' ),
 			'LOC-07' => array( $perRegola( 'LOC-07' ), 'Riscrittura assistita', 'La riscrittura aggiunge i riferimenti geografici alle landing locali.' ),
@@ -154,6 +164,68 @@ class Rimedi {
 		}
 
 		return $conti;
+	}
+
+	/**
+	 * Le stesse tre categorie, ma contando le segnalazioni invece dei
+	 * controlli.
+	 *
+	 * «38 controlli non superati, 18 a mano» non dice quanto lavoro resta:
+	 * un controllo a mano puo valere 283 segnalazioni e un altro una sola.
+	 * Chi guarda il numero grosso - 1.698 - e preme «correggi tutto» si
+	 * aspetta di vederlo andare a zero, e quando non succede conclude che il
+	 * gestionale non salva niente. Qui si dice prima quanto ne puo chiudere.
+	 *
+	 * @param array $rilievi Rilievi dell audit (servono 'regola' e 'occorrenze').
+	 * @param int   $auditId Audit.
+	 * @return array 'plugin', 'azione', 'manuale', 'totale' => quante segnalazioni.
+	 */
+	public static function occorrenze( array $rilievi, $auditId ) {
+		$mappa = self::mappa( $auditId );
+		$conti = array( 'plugin' => 0, 'azione' => 0, 'manuale' => 0, 'totale' => 0 );
+
+		foreach ( $rilievi as $r ) {
+			$come    = $mappa[ (string) $r['regola'] ]['come'] ?? 'manuale';
+			$quante  = (int) ( $r['occorrenze'] ?? 0 );
+
+			$conti[ $come ] += $quante;
+			$conti['totale'] += $quante;
+		}
+
+		return $conti;
+	}
+
+	/**
+	 * I controlli che restano a una persona, dal piu pesante.
+	 *
+	 * @param array $rilievi Rilievi dell audit.
+	 * @param int   $auditId Audit.
+	 * @return array[] 'regola', 'titolo', 'occorrenze'.
+	 */
+	public static function aMano( array $rilievi, $auditId ) {
+		$mappa = self::mappa( $auditId );
+		$fuori = array();
+
+		foreach ( $rilievi as $r ) {
+			if ( isset( $mappa[ (string) $r['regola'] ] ) ) {
+				continue;
+			}
+
+			$fuori[] = array(
+				'regola'     => (string) $r['regola'],
+				'titolo'     => (string) ( $r['titolo'] ?? '' ),
+				'occorrenze' => (int) ( $r['occorrenze'] ?? 0 ),
+			);
+		}
+
+		usort(
+			$fuori,
+			static function ( $a, $b ) {
+				return $b['occorrenze'] <=> $a['occorrenze'];
+			}
+		);
+
+		return $fuori;
 	}
 
 	/**

@@ -53,6 +53,7 @@ class Allinea {
 		'LNK-01' => 'link_interni',
 		'LNK-02' => 'link_interni',
 		'LNK-04' => 'nofollow',
+		'LNK-05' => 'nofollow',
 		'IMG-01' => 'alt',
 		'IMG-02' => 'alt',
 		'IMG-06' => 'dimensioni',

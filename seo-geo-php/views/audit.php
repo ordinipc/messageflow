@@ -288,6 +288,12 @@ $costoStima           = \SeoGeo\Ai\Rewriter::stima( $articoliDaCorreggere, $cfg[
 // del pilota. Ogni riscrittura ne vale due, perche va anche pubblicata; il
 // resto sono i lavori fissi.
 $operazioniStimate = $daRiscrivere * 2 + 20;
+
+// Quante delle segnalazioni in tabella questo pulsante puo davvero chiudere.
+// Senza questo numero il pulsante promette «tutto», si vede scendere il
+// totale di un terzo e si conclude che non ha salvato niente.
+$quante   = \SeoGeo\Rimedi::occorrenze( $rilievi, (int) $audit['id'] );
+$restano  = \SeoGeo\Rimedi::aMano( $rilievi, (int) $audit['id'] );
 ?>
 <form class="scheda" method="post" action="?p=pilota-avvia">
 	<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
@@ -320,10 +326,30 @@ $operazioniStimate = $daRiscrivere * 2 + 20;
 		una per pubblicarla sull'articolo — più i lavori fissi (dati aziendali, meta a blocchi,
 		redirect, categorie, immagini).
 	</p>
+	<div class="tabellabox">
+		<table>
+			<thead><tr><th>Delle <?php echo num( $quante['totale'] ); ?> segnalazioni in tabella</th><th class="num">Quante</th></tr></thead>
+			<tbody>
+				<tr><td>Le chiude questo pulsante</td><td class="num"><strong><?php echo num( $quante['azione'] ); ?></strong></td></tr>
+				<tr><td>Le chiude il plugin da solo, appena rilegge il sito</td><td class="num"><?php echo num( $quante['plugin'] ); ?></td></tr>
+				<tr><td>Richiedono una decisione tua</td><td class="num"><?php echo num( $quante['manuale'] ); ?></td></tr>
+			</tbody>
+		</table>
+	</div>
 	<p class="guida">
-		Quello che <strong>non</strong> fa: i controlli segnati «a mano» nella tabella qui sopra —
-		i due plugin SEO attivi insieme, i dati numerici da inserire con la fonte, le recensioni, il
-		portfolio. Quelli richiedono una decisione tua.
+		Il totale non andrà a zero, e non è un difetto: <?php echo num( $quante['manuale'] ); ?> segnalazioni
+		non si possono chiudere scrivendo codice. Sono queste, dalla più pesante:
+	</p>
+	<ul class="guida">
+		<?php foreach ( array_slice( $restano, 0, 6 ) as $m ) : ?>
+			<li><strong><?php echo num( $m['occorrenze'] ); ?></strong> — <?php echo e( $m['titolo'] ); ?> <span class="mono"><?php echo e( $m['regola'] ); ?></span></li>
+		<?php endforeach; ?>
+	</ul>
+	<p class="nota">
+		Sul resto il gestionale non si limita più a generare: dopo ogni riscrittura ricontrolla il
+		testo prodotto con le stesse regole che hanno aperto la segnalazione, e se non l'ha chiusa
+		rifà il lavoro dicendo al modello che cosa manca, misurato. Quello che resta aperto anche
+		dopo il secondo tentativo è scritto sulla riscrittura, in «Vecchio e nuovo».
 	</p>
 	<button class="bottone" type="submit" onclick="return confirm('Parte la correzione completa: <?php echo num( $daRiscrivere ); ?> riscritture più tutto il resto, e le riscritture vengono pubblicate sugli articoli. Procedere?')">Correggi tutto e pubblica</button>
 </form>

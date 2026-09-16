@@ -4240,6 +4240,242 @@ verifica(
 
 @unlink( $fileCont );
 
+// ---------------------------------------------------------------------------
+// La riscrittura deve chiudere i problemi per cui e nata
+//
+// «Li correggo e riappaiono sempre». La bozza veniva salvata qualunque cosa
+// contenesse: a un articolo segnalato «sotto le 600 parole» il modello poteva
+// rispondere con 300, e il rilievo era ancora li alla rilettura dopo. Ogni
+// giro costava token e non chiudeva niente.
+
+echo "\nLa riscrittura si controlla da sola\n";
+
+use SeoGeo\Ai\Chiusura;
+
+$articoloProva = array(
+	'wp_id'    => '77',
+	'titolo'   => 'Come scegliere un fornitore',
+	'slug'     => 'come-scegliere-un-fornitore',
+	'url'      => 'https://esempio.it/come-scegliere-un-fornitore/',
+	'percorso' => '/come-scegliere-un-fornitore/',
+	'focus'    => 'scegliere un fornitore',
+);
+
+// Quello che una riscrittura non puo chiudere da sola non deve nemmeno
+// entrare nel controllo: si ritenterebbe all infinito qualcosa che qui non si
+// risolve.
+verifica(
+	'le regole che la riscrittura non puo chiudere restano fuori',
+	array( 'CNT-02', 'ONP-10' ) === Chiusura::verificabili( array( 'CNT-02', 'IMG-05', 'CNT-03', 'GEO-11', 'ONP-10' ) ),
+	json_encode( Chiusura::verificabili( array( 'CNT-02', 'IMG-05', 'CNT-03', 'GEO-11', 'ONP-10' ) ) )
+);
+
+$bozzaScarsa = array(
+	'titolo'     => 'Come scegliere un fornitore',
+	'in_breve'   => '',
+	'corpo_html' => '<p>' . str_repeat( 'Una frase breve di prova. ', 60 ) . '</p>',
+	'faq'        => array(),
+);
+
+$aperteScarsa = Chiusura::controlla( $bozzaScarsa, $articoloProva, array( 'CNT-02', 'ONP-10', 'GEO-03', 'GEO-04', 'GEO-10' ) );
+$regoleAperte = array_column( $aperteScarsa, 'regola' );
+
+verifica( 'una bozza corta lascia aperto il rilievo sulla lunghezza', in_array( 'CNT-02', $regoleAperte, true ), json_encode( $regoleAperte ) );
+verifica( 'senza H2 resta aperto anche quello sulla struttura', in_array( 'ONP-10', $regoleAperte, true ), json_encode( $regoleAperte ) );
+verifica( 'e senza sintesi iniziale quello sulla risposta diretta', in_array( 'GEO-03', $regoleAperte, true ), json_encode( $regoleAperte ) );
+
+// Il dettaglio serve al secondo tentativo: «l articolo e corto» non si puo
+// verificare, «ha 300 parole» si.
+verifica(
+	'di ogni punto aperto si dice la misura, non un giudizio',
+	'' !== (string) $aperteScarsa[0]['dettaglio'],
+	json_encode( $aperteScarsa[0] )
+);
+
+verifica(
+	'e l istruzione per il secondo tentativo la riporta',
+	false !== strpos( Chiusura::istruzioni( $aperteScarsa ), '600' ),
+	Chiusura::istruzioni( $aperteScarsa )
+);
+
+// Le domande frequenti non stanno nel corpo: stanno in un campo a parte e
+// diventano H2 e H3 solo quando il plugin scrive l articolo. Misurando il
+// solo corpo_html, GEO-04 risultava aperto su ogni bozza che le domande le
+// aveva davvero.
+$bozzaBuona = array(
+	'titolo'     => 'Come scegliere un fornitore',
+	'in_breve'   => 'In breve: guarda referenze, tempi e assistenza prima del prezzo, e chiedi sempre due preventivi confrontabili sullo stesso perimetro di lavoro.',
+	'corpo_html' => '<h2>Le referenze</h2><p>' . str_repeat( 'Chiedi i lavori gia fatti. ', 90 )
+		. '</p><h2>I tempi</h2><ul><li>Consegna</li><li>Assistenza</li></ul><p>' . str_repeat( 'Metti per iscritto le scadenze. ', 90 )
+		. '</p><table><tr><td>Voce</td><td>Tempo</td></tr></table>',
+	'faq'        => array( array( 'domanda' => 'Quanto tempo serve?', 'risposta' => 'Dipende dal perimetro.' ) ),
+);
+
+$aperteBuona = Chiusura::controlla( $bozzaBuona, $articoloProva, array( 'CNT-02', 'ONP-10', 'GEO-03', 'GEO-04', 'GEO-10' ) );
+
+verifica( 'una bozza completa non lascia aperto niente', array() === $aperteBuona, json_encode( $aperteBuona ) );
+
+// Le domande stanno nel campo faq: cercarle nel solo corpo le perderebbe.
+verifica(
+	'le domande frequenti contano anche se stanno nel campo a parte',
+	false !== strpos( Chiusura::testoCompleto( $bozzaBuona ), 'Quanto tempo serve?' )
+);
+
+// L H1 lo stampa gia il tema col titolo: scriverne uno nel corpo ne fa due in
+// pagina. Quando non si sa che cosa stampa il sito si prende la lettura piu
+// severa, perche una bozza senza H1 va bene in tutti e due i casi.
+$bozzaConH1 = $bozzaBuona;
+$bozzaConH1['corpo_html'] = '<h1>Come scegliere un fornitore</h1>' . $bozzaBuona['corpo_html'];
+
+verifica(
+	'un H1 scritto nel corpo non passa',
+	array( 'ONP-09' ) === array_column( Chiusura::controlla( $bozzaConH1, $articoloProva, array( 'ONP-09' ) ), 'regola' )
+);
+
+verifica(
+	'mentre senza H1 nel corpo va bene',
+	array() === Chiusura::controlla( $bozzaBuona, $articoloProva, array( 'ONP-09' ) )
+);
+
+// E il giro intero: il modello risponde male, glielo si dice, risponde bene.
+$fileChi = sys_get_temp_dir() . '/prova-chiusura-' . getmypid() . '.sqlite';
+@unlink( $fileChi );
+$dbChi = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileChi ) );
+
+$auditChi = $dbChi->insert( 'audit', array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => '2026-09-16 10:00:00', 'punteggio' => 50 ) );
+$docChi   = $dbChi->insert(
+	'documento',
+	array(
+		'audit_id' => $auditChi, 'wp_id' => '77', 'tipo' => 'post', 'stato' => 'publish',
+		'titolo' => $articoloProva['titolo'], 'slug' => $articoloProva['slug'],
+		'percorso' => $articoloProva['percorso'], 'url' => $articoloProva['url'],
+		'parole' => 300, 'testo' => 'Testo di partenza.', 'focus_keyword' => $articoloProva['focus'],
+	)
+);
+
+$rilChi = $dbChi->insert( 'rilievo', array( 'audit_id' => $auditChi, 'regola' => 'CNT-02', 'titolo' => 'Contenuto sotto la soglia competitiva', 'gravita' => 'alto', 'area' => 'content', 'occorrenze' => 1 ) );
+$dbChi->insert( 'occorrenza', array( 'rilievo_id' => $rilChi, 'riferimento' => $articoloProva['percorso'], 'dettaglio' => '300 parole' ) );
+$dbChi->insert( 'triage', array( 'audit_id' => $auditChi, 'documento_id' => $docChi, 'categoria' => 'mantenere', 'intento' => 'informativo', 'qualita' => 70 ) );
+
+// Quattrocento parole: chiude «meno di 300» ma non «meno di 600».
+$corpoCorto = '<p>' . str_repeat( 'Una frase breve di prova. ', 80 ) . '</p>';
+$corpoLungo = '<h2>Referenze</h2><p>' . str_repeat( 'Chiedi i lavori gia fatti prima di firmare. ', 120 )
+	. '</p><ul><li>Referenze</li><li>Tempi</li></ul><table><tr><td>Voce</td><td>Tempo</td></tr></table>';
+$sintesi    = 'In breve: guarda referenze, tempi e assistenza prima del prezzo, e chiedi due preventivi confrontabili sullo stesso perimetro di lavoro prima di firmare.';
+$domande    = array( array( 'domanda' => 'Quanto tempo serve?', 'risposta' => 'Dipende dal perimetro.' ) );
+
+$geminiTestardo = new class( array( 'chiave' => 'prova' ) ) extends \SeoGeo\Ai\Gemini {
+	/** @var string[] Le richieste ricevute, per guardare che cosa e stato detto. */
+	public $richieste = array();
+
+	/** @var string[] Le risposte da dare, in ordine. */
+	public $risposte = array();
+
+	public function generaJson( $istruzioni, $richiesta, array $opzioni = array() ) {
+		$this->richieste[] = (string) $richiesta;
+
+		return array_shift( $this->risposte ) ?: array( 'corpo_html' => '<p>vuoto</p>' );
+	}
+};
+
+$geminiTestardo->risposte = array(
+	array( 'titolo' => 'Come scegliere un fornitore', 'corpo_html' => $corpoCorto, 'in_breve' => '', 'faq' => array() ),
+	array( 'titolo' => 'Come scegliere un fornitore', 'corpo_html' => $corpoLungo, 'in_breve' => $sintesi, 'faq' => $domande ),
+);
+
+$cfgChi = require __DIR__ . '/../config.php';
+
+$esitoChi = \SeoGeo\Ai\Rewriter::esegui(
+	$dbChi,
+	$geminiTestardo,
+	$auditChi,
+	$cfgChi,
+	array( 'migliora' => true, 'solo_documento' => $docChi, 'cartella' => sys_get_temp_dir() . '/bozze-chi-' . getmypid() )
+);
+
+$bozzaChi = $dbChi->one( "SELECT * FROM bozza WHERE audit_id = ? AND stato = 'ok'", array( $auditChi ) );
+
+verifica( 'la bozza viene generata', 1 === (int) $esitoChi['generate'], json_encode( $esitoChi['errori'] ) );
+verifica( 'il primo tentativo corto non viene salvato', $bozzaChi && false !== strpos( (string) $bozzaChi['corpo_html'], 'prima di firmare' ), substr( (string) ( $bozzaChi['corpo_html'] ?? '' ), 0, 80 ) );
+verifica( 'sono serviti due tentativi', 2 === (int) ( $bozzaChi['tentativi'] ?? 0 ), (string) ( $bozzaChi['tentativi'] ?? '' ) );
+verifica( 'e non resta niente di aperto', '' === trim( (string) ( $bozzaChi['rimaste'] ?? '' ) ), (string) ( $bozzaChi['rimaste'] ?? '' ) );
+verifica( 'al secondo giro il modello ha ricevuto la misura che gli mancava', 2 === count( $geminiTestardo->richieste ) && false !== strpos( $geminiTestardo->richieste[1], 'NON HA CHIUSO' ), (string) count( $geminiTestardo->richieste ) );
+
+// Se nemmeno il secondo tentativo basta, la bozza si tiene - qualcosa di
+// meglio e meglio di niente - ma si scrive che cosa non ha chiuso, invece di
+// lasciarlo scoprire dalla rilettura di domani.
+$dbChi->run( 'DELETE FROM bozza WHERE audit_id = ?', array( $auditChi ) );
+$geminiTestardo->richieste = array();
+$geminiTestardo->risposte  = array(
+	array( 'titolo' => 'x', 'corpo_html' => $corpoCorto, 'in_breve' => '', 'faq' => array() ),
+	array( 'titolo' => 'x', 'corpo_html' => $corpoCorto, 'in_breve' => '', 'faq' => array() ),
+);
+
+// Una riscrittura che scendesse sotto le 300 parole chiuderebbe «meno di 600»
+// e aprirebbe un problema critico al suo posto: e cosi che il totale saliva
+// mentre si correggeva. Il controllo guarda il testo prodotto per intero, non
+// i soli rilievi da cui si era partiti.
+verifica(
+	'una riscrittura non puo chiudere un problema aprendone uno piu grave',
+	in_array( 'CNT-01', array_column( Chiusura::controlla( array( 'corpo_html' => '<p>' . str_repeat( 'Poche parole. ', 30 ) . '</p>' ), $articoloProva, Chiusura::VERIFICABILI ), 'regola' ), true )
+);
+
+\SeoGeo\Ai\Rewriter::esegui(
+	$dbChi,
+	$geminiTestardo,
+	$auditChi,
+	$cfgChi,
+	array( 'migliora' => true, 'solo_documento' => $docChi, 'cartella' => sys_get_temp_dir() . '/bozze-chi-' . getmypid() )
+);
+
+$bozzaTestarda = $dbChi->one( "SELECT * FROM bozza WHERE audit_id = ? AND stato = 'ok'", array( $auditChi ) );
+
+verifica( 'quando non ce la fa la bozza si tiene lo stesso', ! empty( $bozzaTestarda ) );
+verifica( 'ma resta scritto che cosa non ha chiuso', false !== strpos( (string) ( $bozzaTestarda['rimaste'] ?? '' ), 'CNT-02' ), (string) ( $bozzaTestarda['rimaste'] ?? '' ) );
+verifica( 'e non si ritenta una terza volta a spese di chi paga i token', 2 === count( $geminiTestardo->richieste ), (string) count( $geminiTestardo->richieste ) );
+
+@unlink( $fileChi );
+
+// I controlli che una riscrittura sa fare non devono restare segnati «a mano»:
+// insieme facevano 201 segnalazioni che il pulsante non toccava mai.
+$mappaRim = \SeoGeo\Rimedi::mappa( 1 );
+
+foreach ( array( 'CNT-06', 'CNT-08', 'ONP-09', 'ONP-11' ) as $regolaRim ) {
+	verifica(
+		"$regolaRim si corregge da un pulsante, non a mano",
+		'azione' === ( $mappaRim[ $regolaRim ]['come'] ?? 'manuale' )
+	);
+}
+
+verifica(
+	'e il rel di sicurezza lo mette il plugin, non una persona',
+	'plugin' === ( $mappaRim['LNK-05']['come'] ?? '' )
+);
+
+// Il pulsante «correggi tutto» deve dire quante segnalazioni chiude davvero:
+// prometterle tutte e chiuderne un terzo e come non averle chiuse.
+$rilieviFinti = array(
+	array( 'regola' => 'CNT-02', 'titolo' => 'Corti', 'occorrenze' => 84 ),
+	array( 'regola' => 'GEO-05', 'titolo' => 'Senza dati citabili', 'occorrenze' => 283 ),
+	array( 'regola' => 'SCH-01', 'titolo' => 'Schema', 'occorrenze' => 10 ),
+);
+
+$conteggioRim = \SeoGeo\Rimedi::occorrenze( $rilieviFinti, 1 );
+
+verifica( 'si contano le segnalazioni, non i controlli', 377 === $conteggioRim['totale'], json_encode( $conteggioRim ) );
+verifica( 'quelle che chiude il pulsante', 84 === $conteggioRim['azione'], json_encode( $conteggioRim ) );
+verifica( 'quelle che chiude il plugin', 10 === $conteggioRim['plugin'], json_encode( $conteggioRim ) );
+verifica( 'e quelle che restano a una persona', 283 === $conteggioRim['manuale'], json_encode( $conteggioRim ) );
+verifica(
+	'elencate dalla piu pesante',
+	'GEO-05' === ( \SeoGeo\Rimedi::aMano( $rilieviFinti, 1 )[0]['regola'] ?? '' )
+);
+
+verifica(
+	'e la pagina dell audit lo dice prima di premere',
+	false !== strpos( file_get_contents( __DIR__ . '/../views/audit.php' ), 'Le chiude questo pulsante' )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

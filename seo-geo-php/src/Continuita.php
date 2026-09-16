@@ -121,6 +121,12 @@ class Continuita {
 					// questo dato farebbe riproporre come «da applicare» un
 					// testo che e gia online.
 					'inviata_il'       => (string) ( $b['inviata_il'] ?? '' ),
+					// Anche quello che la riscrittura non era riuscita a
+					// chiudere: e la ragione per cui quel rilievo si
+					// ripresenta, e perderla vuol dire ricominciare a
+					// chiederselo a ogni rilettura.
+					'rimaste'          => (string) ( $b['rimaste'] ?? '' ),
+					'tentativi'        => (int) ( $b['tentativi'] ?? 0 ),
 				)
 			);
 
