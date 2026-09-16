@@ -176,20 +176,47 @@ class Rimedi {
 	 * aspetta di vederlo andare a zero, e quando non succede conclude che il
 	 * gestionale non salva niente. Qui si dice prima quanto ne puo chiudere.
 	 *
-	 * @param array $rilievi Rilievi dell audit (servono 'regola' e 'occorrenze').
-	 * @param int   $auditId Audit.
-	 * @return array 'plugin', 'azione', 'manuale', 'totale' => quante segnalazioni.
+	 * E si contano leggendo le occorrenze una per una, non i totali per
+	 * regola: senza sapere a quale contenuto si riferisce ogni segnalazione
+	 * non si puo dire se il pulsante la tocca. Le pagine servizio restano
+	 * fuori da tutto quello che il gestionale fa da solo - e un vincolo
+	 * voluto, ripetuto da chi usa il programma - e contarle fra quelle che
+	 * il pulsante chiude era una promessa che il pulsante non mantiene.
+	 *
+	 * @param Db  $db      Database.
+	 * @param int $auditId Audit.
+	 * @return array 'plugin', 'azione', 'manuale', 'pagine', 'totale'.
 	 */
-	public static function occorrenze( array $rilievi, $auditId ) {
+	public static function occorrenze( Db $db, $auditId ) {
 		$mappa = self::mappa( $auditId );
-		$conti = array( 'plugin' => 0, 'azione' => 0, 'manuale' => 0, 'totale' => 0 );
+		$conti = array( 'plugin' => 0, 'azione' => 0, 'manuale' => 0, 'pagine' => 0, 'totale' => 0 );
 
-		foreach ( $rilievi as $r ) {
-			$come    = $mappa[ (string) $r['regola'] ]['come'] ?? 'manuale';
-			$quante  = (int) ( $r['occorrenze'] ?? 0 );
+		$righe = $db->all(
+			"SELECT r.regola, d.tipo, COUNT(*) AS quante
+			 FROM occorrenza o
+			 JOIN rilievo r ON r.id = o.rilievo_id
+			 LEFT JOIN documento d
+					ON d.audit_id = r.audit_id
+				   AND ( d.percorso = o.riferimento OR d.url = o.riferimento )
+			 WHERE r.audit_id = ? AND COALESCE( o.applicato, 0 ) = 0
+			 GROUP BY r.regola, d.tipo",
+			array( (int) $auditId )
+		);
+
+		foreach ( $righe as $riga ) {
+			$quante = (int) $riga['quante'];
+			$come   = $mappa[ (string) $riga['regola'] ]['come'] ?? 'manuale';
+
+			$conti['totale'] += $quante;
+
+			// Una correzione automatica su una pagina non si fa: quella
+			// segnalazione resta li qualunque cosa si prema.
+			if ( 'page' === (string) $riga['tipo'] && 'plugin' !== $come ) {
+				$conti['pagine'] += $quante;
+				continue;
+			}
 
 			$conti[ $come ] += $quante;
-			$conti['totale'] += $quante;
 		}
 
 		return $conti;

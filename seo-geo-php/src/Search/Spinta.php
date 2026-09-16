@@ -73,6 +73,26 @@ class Spinta {
 			array( (int) $rilevazioneId )
 		);
 
+		// Quali indirizzi sono pagine e quali articoli: senza questo si
+		// conterebbero fra quelle che passano forza anche le pagine, che il
+		// plugin non tocca.
+		if ( ! isset( $opzioni['tipi'] ) ) {
+			$audit = $db->one( 'SELECT id FROM audit ORDER BY id DESC LIMIT 1' );
+			$tipi  = array();
+
+			if ( $audit ) {
+				foreach ( $db->all( 'SELECT percorso, url, tipo FROM documento WHERE audit_id = ?', array( (int) $audit['id'] ) ) as $d ) {
+					foreach ( array( $d['percorso'], $d['url'] ) as $dove ) {
+						if ( '' !== (string) $dove ) {
+							$tipi[ (string) $dove ] = (string) $d['tipo'];
+						}
+					}
+				}
+			}
+
+			$opzioni['tipi'] = $tipi;
+		}
+
 		return self::calcola( $righe, $opzioni );
 	}
 
@@ -81,11 +101,24 @@ class Spinta {
 	 *
 	 * @param array $righe   Righe query/url di Search Console.
 	 * @param array $opzioni 'max_ancore', 'escludi' => percorsi da non usare
-	 *                       come destinazione.
+	 *                       come destinazione, 'tipi' => percorso => 'post'
+	 *                       oppure 'page'.
 	 * @return array 'gruppi', 'mappa', 'conteggi'.
 	 */
 	public static function calcola( array $righe, array $opzioni = array() ) {
 		$escludi = array_flip( array_map( array( __CLASS__, 'confrontabile' ), (array) ( $opzioni['escludi'] ?? array() ) ) );
+
+		// Le pagine servizio non ricevono link automatici: e un vincolo
+		// voluto, e il plugin le salta. Contarle fra quelle che passano
+		// forza sarebbe una promessa che nessuno mantiene. Come
+		// destinazione invece vanno benissimo: ricevere un link non e
+		// essere toccata.
+		$tipi = array();
+
+		foreach ( (array) ( $opzioni['tipi'] ?? array() ) as $percorso => $tipo ) {
+			$tipi[ self::confrontabile( $percorso ) ] = (string) $tipo;
+		}
+
 		$perQuery = array();
 
 		foreach ( $righe as $r ) {
@@ -175,6 +208,7 @@ class Spinta {
 		$mappa    = array();
 		$contese  = 0;
 		$perdenti = array();
+		$intoccabili = array();
 
 		foreach ( $gruppi as $g ) {
 			$mappa[ $g['query'] ] = $g['vincitore'];
@@ -183,7 +217,14 @@ class Spinta {
 				$contese++;
 
 				foreach ( $g['perdenti'] as $p ) {
-					$perdenti[ self::confrontabile( $p ) ] = true;
+					$chiave = self::confrontabile( $p );
+
+					if ( 'page' === ( $tipi[ $chiave ] ?? '' ) ) {
+						$intoccabili[ $chiave ] = true;
+						continue;
+					}
+
+					$perdenti[ $chiave ] = true;
 				}
 			}
 		}
@@ -195,6 +236,7 @@ class Spinta {
 				'ricerche'          => count( $gruppi ),
 				'contese'           => $contese,
 				'pagine_che_cedono' => count( $perdenti ),
+				'pagine_intoccate'  => count( $intoccabili ),
 			),
 		);
 	}

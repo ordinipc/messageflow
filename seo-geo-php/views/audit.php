@@ -292,7 +292,7 @@ $operazioniStimate = $daRiscrivere * 2 + 20;
 // Quante delle segnalazioni in tabella questo pulsante puo davvero chiudere.
 // Senza questo numero il pulsante promette «tutto», si vede scendere il
 // totale di un terzo e si conclude che non ha salvato niente.
-$quante   = \SeoGeo\Rimedi::occorrenze( $rilievi, (int) $audit['id'] );
+$quante   = \SeoGeo\Rimedi::occorrenze( $db, (int) $audit['id'] );
 $restano  = \SeoGeo\Rimedi::aMano( $rilievi, (int) $audit['id'] );
 ?>
 <form class="scheda" method="post" action="?p=pilota-avvia">
@@ -333,12 +333,21 @@ $restano  = \SeoGeo\Rimedi::aMano( $rilievi, (int) $audit['id'] );
 				<tr><td>Le chiude questo pulsante</td><td class="num"><strong><?php echo num( $quante['azione'] ); ?></strong></td></tr>
 				<tr><td>Le chiude il plugin da solo, appena rilegge il sito</td><td class="num"><?php echo num( $quante['plugin'] ); ?></td></tr>
 				<tr><td>Richiedono una decisione tua</td><td class="num"><?php echo num( $quante['manuale'] ); ?></td></tr>
+				<tr>
+					<td>Stanno su <strong>pagine</strong>, che il gestionale non tocca</td>
+					<td class="num"><?php echo num( $quante['pagine'] ); ?></td>
+				</tr>
 			</tbody>
 		</table>
 	</div>
 	<p class="guida">
-		Il totale non andrà a zero, e non è un difetto: <?php echo num( $quante['manuale'] ); ?> segnalazioni
-		non si possono chiudere scrivendo codice. Sono queste, dalla più pesante:
+		Il totale non andrà a zero, e non è un difetto.
+		<?php if ( $quante['pagine'] ) : ?>
+			<?php echo num( $quante['pagine'] ); ?> segnalazioni stanno sulle <strong>pagine servizio</strong>,
+			che sono scritte a mano e che il gestionale non tocca mai da solo: restano lì per scelta.
+		<?php endif; ?>
+		Altre <?php echo num( $quante['manuale'] ); ?> non si possono chiudere scrivendo codice.
+		Sono queste, dalla più pesante:
 	</p>
 	<ul class="guida">
 		<?php foreach ( array_slice( $restano, 0, 6 ) as $m ) : ?>

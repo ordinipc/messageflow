@@ -4453,19 +4453,49 @@ verifica(
 );
 
 // Il pulsante «correggi tutto» deve dire quante segnalazioni chiude davvero:
-// prometterle tutte e chiuderne un terzo e come non averle chiuse.
+// prometterle tutte e chiuderne un terzo e come non averle chiuse. E le
+// pagine servizio, che il gestionale non tocca mai da solo, non si contano
+// fra quelle che chiude.
+$fileRim = sys_get_temp_dir() . '/prova-rimedi-' . getmypid() . '.sqlite';
+@unlink( $fileRim );
+$dbRim   = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileRim ) );
+$auditRim = $dbRim->insert( 'audit', array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => '2026-09-16 10:00:00', 'punteggio' => 50 ) );
+
+$mettiRilievo = static function ( $regola, $titolo, array $riferimenti ) use ( $dbRim, $auditRim ) {
+	$id = $dbRim->insert( 'rilievo', array( 'audit_id' => $auditRim, 'regola' => $regola, 'titolo' => $titolo, 'gravita' => 'alto', 'area' => 'content', 'occorrenze' => count( $riferimenti ) ) );
+
+	foreach ( $riferimenti as $rif ) {
+		$dbRim->insert( 'occorrenza', array( 'rilievo_id' => $id, 'riferimento' => $rif, 'dettaglio' => '' ) );
+	}
+};
+
+$dbRim->insert( 'documento', array( 'audit_id' => $auditRim, 'wp_id' => '1', 'tipo' => 'post', 'stato' => 'publish', 'titolo' => 'Un articolo', 'percorso' => '/a/', 'url' => 'https://esempio.it/a/' ) );
+$dbRim->insert( 'documento', array( 'audit_id' => $auditRim, 'wp_id' => '2', 'tipo' => 'post', 'stato' => 'publish', 'titolo' => 'Un altro', 'percorso' => '/b/', 'url' => 'https://esempio.it/b/' ) );
+$dbRim->insert( 'documento', array( 'audit_id' => $auditRim, 'wp_id' => '10', 'tipo' => 'page', 'stato' => 'publish', 'titolo' => 'Servizi', 'percorso' => '/servizi/', 'url' => 'https://esempio.it/servizi/' ) );
+
+$mettiRilievo( 'CNT-02', 'Corti', array( '/a/', '/b/', '/servizi/' ) );
+$mettiRilievo( 'GEO-05', 'Senza dati citabili', array( '/a/', '/b/' ) );
+$mettiRilievo( 'SCH-01', 'Schema', array( '/a/', '/servizi/' ) );
+
+$conteggioRim = \SeoGeo\Rimedi::occorrenze( $dbRim, $auditRim );
+
+verifica( 'si contano le segnalazioni, non i controlli', 7 === $conteggioRim['totale'], json_encode( $conteggioRim ) );
+verifica( 'quelle che chiude il pulsante', 2 === $conteggioRim['azione'], json_encode( $conteggioRim ) );
+verifica( 'quelle che chiude il plugin, anche sulle pagine', 2 === $conteggioRim['plugin'], json_encode( $conteggioRim ) );
+verifica( 'quelle che restano a una persona', 2 === $conteggioRim['manuale'], json_encode( $conteggioRim ) );
+verifica(
+	'e quella che sta su una pagina non si promette',
+	1 === $conteggioRim['pagine'],
+	'una correzione automatica sulle pagine non si fa: contarla fra quelle che il pulsante chiude e una promessa che non mantiene'
+);
+
+@unlink( $fileRim );
+
 $rilieviFinti = array(
 	array( 'regola' => 'CNT-02', 'titolo' => 'Corti', 'occorrenze' => 84 ),
 	array( 'regola' => 'GEO-05', 'titolo' => 'Senza dati citabili', 'occorrenze' => 283 ),
-	array( 'regola' => 'SCH-01', 'titolo' => 'Schema', 'occorrenze' => 10 ),
 );
 
-$conteggioRim = \SeoGeo\Rimedi::occorrenze( $rilieviFinti, 1 );
-
-verifica( 'si contano le segnalazioni, non i controlli', 377 === $conteggioRim['totale'], json_encode( $conteggioRim ) );
-verifica( 'quelle che chiude il pulsante', 84 === $conteggioRim['azione'], json_encode( $conteggioRim ) );
-verifica( 'quelle che chiude il plugin', 10 === $conteggioRim['plugin'], json_encode( $conteggioRim ) );
-verifica( 'e quelle che restano a una persona', 283 === $conteggioRim['manuale'], json_encode( $conteggioRim ) );
 verifica(
 	'elencate dalla piu pesante',
 	'GEO-05' === ( \SeoGeo\Rimedi::aMano( $rilieviFinti, 1 )[0]['regola'] ?? '' )
@@ -4509,6 +4539,15 @@ $ricerche    = array_column( $pianoSpinta['gruppi'], 'query' );
 verifica( 'la ricerca contesa entra nel piano', in_array( 'max digital innovation', $ricerche, true ), json_encode( $ricerche ) );
 verifica( 'vince la pagina con piu clic', 'https://esempio.it/' === ( $pianoSpinta['mappa']['max digital innovation'] ?? '' ), json_encode( $pianoSpinta['mappa'] ) );
 verifica( 'e le altre due risultano quelle che cedono', 2 === $pianoSpinta['conteggi']['pagine_che_cedono'], json_encode( $pianoSpinta['conteggi'] ) );
+
+// Le pagine servizio non ricevono link automatici: il plugin le salta, e
+// contarle fra quelle che passano forza sarebbe una promessa che nessuno
+// mantiene. Come destinazione invece vanno benissimo.
+$conPagine = Spinta::calcola( $righeGsc, array( 'tipi' => array( '/servizi/' => 'page', '/chi-siamo/' => 'post' ) ) );
+
+verifica( 'una pagina che compete non si conta fra quelle che cedono', 1 === $conPagine['conteggi']['pagine_che_cedono'], json_encode( $conPagine['conteggi'] ) );
+verifica( 'ma si dice che c e', 1 === $conPagine['conteggi']['pagine_intoccate'], json_encode( $conPagine['conteggi'] ) );
+verifica( 'e come destinazione una pagina va benissimo', 'https://esempio.it/' === ( $conPagine['mappa']['max digital innovation'] ?? '' ) );
 verifica( 'anche una pagina sola a un passo dalla prima pagina si spinge', in_array( 'agenzia comunicazione strategica', $ricerche, true ), json_encode( $ricerche ) );
 verifica( 'chi e gia primo e non ha concorrenti si lascia stare', ! in_array( 'nome proprio esatto srl', $ricerche, true ), json_encode( $ricerche ) );
 verifica( 'le ricerche con due impression non dicono niente', ! in_array( 'una ricerca rarissima', $ricerche, true ), json_encode( $ricerche ) );

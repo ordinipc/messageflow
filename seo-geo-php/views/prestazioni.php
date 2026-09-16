@@ -361,7 +361,13 @@ function delta( $ora, $prima, $meglio = false ) {
 					<tbody>
 						<tr><td>Ricerche su cui si interviene</td><td class="num"><strong><?php echo num( $spinta['conteggi']['ricerche'] ); ?></strong></td></tr>
 						<tr><td>Di queste, contese fra più pagine tue</td><td class="num"><?php echo num( $spinta['conteggi']['contese'] ); ?></td></tr>
-						<tr><td>Pagine che smettono di farsi concorrenza e passano forza</td><td class="num"><?php echo num( $spinta['conteggi']['pagine_che_cedono'] ); ?></td></tr>
+						<tr><td>Articoli che smettono di farsi concorrenza e passano forza</td><td class="num"><?php echo num( $spinta['conteggi']['pagine_che_cedono'] ); ?></td></tr>
+						<?php if ( ! empty( $spinta['conteggi']['pagine_intoccate'] ) ) : ?>
+							<tr>
+								<td>Pagine servizio che competono, e che restano come sono</td>
+								<td class="num"><?php echo num( $spinta['conteggi']['pagine_intoccate'] ); ?></td>
+							</tr>
+						<?php endif; ?>
 					</tbody>
 				</table>
 			</div>
@@ -403,7 +409,9 @@ function delta( $ora, $prima, $meglio = false ) {
 
 			<p class="nota">
 				I link li mette il plugin <strong>mentre serve la pagina</strong>: nei tuoi contenuti non
-				viene scritto niente, nessun 301, nessun testo toccato, e le pagine servizio restano fuori.
+				viene scritto niente, nessun 301, nessun testo toccato. Dentro alle
+				<strong>pagine</strong> non viene inserito niente — il plugin le salta, come sempre;
+				una pagina può solo <em>ricevere</em> un link da un articolo, e ricevere non è essere toccata.
 				Si spegne rimettendo a zero «link interni per articolo» nelle impostazioni.
 				Google ci mette da qualche giorno a qualche settimana a rileggere e a spostare le posizioni.
 			</p>
