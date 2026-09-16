@@ -428,6 +428,10 @@ function sanitize_text_field( $valore ) {
 	return trim( strip_tags( (string) $valore ) );
 }
 
+function sanitize_key( $chiave ) {
+	return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $chiave ) );
+}
+
 function sanitize_file_name( $nome ) {
 	return preg_replace( '/[^A-Za-z0-9._-]/', '-', (string) $nome );
 }

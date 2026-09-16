@@ -158,6 +158,11 @@ class MDI_Api {
 			'callback' => array( __CLASS__, 'salva_config' ),
 		) );
 
+		register_rest_route( self::NAMESPACE_API, '/dati', $comune + array(
+			'methods'  => 'POST',
+			'callback' => array( __CLASS__, 'salva_dati' ),
+		) );
+
 		register_rest_route( self::NAMESPACE_API, '/applica-bozza', $comune + array(
 			'methods'  => 'POST',
 			'callback' => array( __CLASS__, 'applica_bozza' ),
@@ -1318,6 +1323,54 @@ class MDI_Api {
 				'ok'        => true,
 				'articolo'  => $originale,
 				'modifica'  => admin_url( 'post.php?post=' . $originale . '&action=edit' ),
+			)
+		);
+	}
+
+	/**
+	 * Riceve dal gestionale uno dei piani che il plugin applica in pagina.
+	 *
+	 * Sono i file della cartella data/: la mappa dei link interni, quella
+	 * delle meta, gli articoli correlati. Finora arrivavano solo dentro allo
+	 * zip, e cambiarli voleva dire rigenerare il plugin e ricaricarlo a mano.
+	 * Un piano che si aggiorna ogni settimana non puo passare da li.
+	 *
+	 * Si accettano solo i nomi previsti: un nome libero vorrebbe dire lasciar
+	 * scrivere una opzione qualsiasi del sito da fuori.
+	 *
+	 * @param WP_REST_Request $richiesta Richiesta con 'nome' e 'dati'.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function salva_dati( $richiesta ) {
+		$ammessi = array( 'internal-links', 'related', 'meta-map' );
+		$nome    = (string) $richiesta->get_param( 'nome' );
+
+		if ( ! in_array( $nome, $ammessi, true ) ) {
+			return new WP_Error(
+				'mdi_dati_sconosciuti',
+				'Nome non previsto: ' . $nome . '. Ammessi: ' . implode( ', ', $ammessi ) . '.',
+				array( 'status' => 400 )
+			);
+		}
+
+		$dati = $richiesta->get_param( 'dati' );
+
+		if ( ! is_array( $dati ) ) {
+			return new WP_Error( 'mdi_dati_invalidi', 'I dati devono essere un oggetto o una lista.', array( 'status' => 400 ) );
+		}
+
+		update_option( 'mdi_seo_geo_dati_' . sanitize_key( $nome ), $dati, false );
+
+		// Cambia quello che ogni pagina stampa: la copia in cache racconta
+		// ancora il piano di prima.
+		$svuotata = MDI_Cache::svuota();
+
+		return rest_ensure_response(
+			array(
+				'ok'    => true,
+				'nome'  => $nome,
+				'voci'  => count( $dati ),
+				'cache' => $svuotata,
 			)
 		);
 	}

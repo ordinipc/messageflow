@@ -4476,6 +4476,70 @@ verifica(
 	false !== strpos( file_get_contents( __DIR__ . '/../views/audit.php' ), 'Le chiude questo pulsante' )
 );
 
+// ---------------------------------------------------------------------------
+// La spinta: i link interni costruiti sui dati di Google
+//
+// Su «max digital innovation» Google alternava trentatre pagine dello stesso
+// sito: la home era in posizione 1,2 con 928 impression e 51 clic, cioe un
+// decimo di quello che una prima posizione di marca dovrebbe rendere.
+// Trentatre pagine sulla stessa ricerca non fanno trentatre volte la forza.
+
+echo "\nLa spinta con i link interni\n";
+
+use SeoGeo\Search\Spinta;
+
+$righeGsc = array(
+	// Una ricerca contesa: la home vince, le altre due le passano forza.
+	array( 'query' => 'max digital innovation', 'url' => 'https://esempio.it/', 'clic' => 51, 'impression' => 928, 'posizione' => 1.2 ),
+	array( 'query' => 'max digital innovation', 'url' => 'https://esempio.it/chi-siamo/', 'clic' => 0, 'impression' => 88, 'posizione' => 8.4 ),
+	array( 'query' => 'max digital innovation', 'url' => 'https://esempio.it/servizi/', 'clic' => 0, 'impression' => 60, 'posizione' => 11.0 ),
+	// Una sola pagina, ma a un passo dalla prima pagina: si puo spingere.
+	array( 'query' => 'agenzia comunicazione strategica', 'url' => 'https://esempio.it/agenzia/', 'clic' => 0, 'impression' => 28, 'posizione' => 10.1 ),
+	// Una sola pagina gia prima: non c e niente da guadagnare.
+	array( 'query' => 'nome proprio esatto srl', 'url' => 'https://esempio.it/', 'clic' => 20, 'impression' => 40, 'posizione' => 1.1 ),
+	// Troppo poche impression per dire qualcosa.
+	array( 'query' => 'una ricerca rarissima', 'url' => 'https://esempio.it/x/', 'clic' => 0, 'impression' => 2, 'posizione' => 14.0 ),
+	// Una parola sola: metterla come testo di un link la sparge ovunque.
+	array( 'query' => 'marketing', 'url' => 'https://esempio.it/y/', 'clic' => 0, 'impression' => 500, 'posizione' => 12.0 ),
+);
+
+$pianoSpinta = Spinta::calcola( $righeGsc );
+$ricerche    = array_column( $pianoSpinta['gruppi'], 'query' );
+
+verifica( 'la ricerca contesa entra nel piano', in_array( 'max digital innovation', $ricerche, true ), json_encode( $ricerche ) );
+verifica( 'vince la pagina con piu clic', 'https://esempio.it/' === ( $pianoSpinta['mappa']['max digital innovation'] ?? '' ), json_encode( $pianoSpinta['mappa'] ) );
+verifica( 'e le altre due risultano quelle che cedono', 2 === $pianoSpinta['conteggi']['pagine_che_cedono'], json_encode( $pianoSpinta['conteggi'] ) );
+verifica( 'anche una pagina sola a un passo dalla prima pagina si spinge', in_array( 'agenzia comunicazione strategica', $ricerche, true ), json_encode( $ricerche ) );
+verifica( 'chi e gia primo e non ha concorrenti si lascia stare', ! in_array( 'nome proprio esatto srl', $ricerche, true ), json_encode( $ricerche ) );
+verifica( 'le ricerche con due impression non dicono niente', ! in_array( 'una ricerca rarissima', $ricerche, true ), json_encode( $ricerche ) );
+verifica( 'e una parola sola non diventa il testo di un link', ! in_array( 'marketing', $ricerche, true ), json_encode( $ricerche ) );
+
+verifica( 'una ricerca di una parola sola non e un ancora valida', ! Spinta::ancoraValida( 'marketing' ) );
+verifica( 'nemmeno una troppo corta', ! Spinta::ancoraValida( 'seo srl' ) );
+verifica( 'nemmeno un indirizzo', ! Spinta::ancoraValida( 'https://esempio.it/pagina' ) );
+verifica( 'mentre una frase vera si', Spinta::ancoraValida( 'agenzia di comunicazione a palermo' ) );
+
+// Prima le contese: se si deve tagliare, si taglia da quelle che contano meno.
+verifica( 'in cima ci sono le ricerche contese', ! empty( $pianoSpinta['gruppi'][0]['contesa'] ), json_encode( $pianoSpinta['gruppi'][0] ?? array() ) );
+
+$strettoSpinta = Spinta::calcola( $righeGsc, array( 'max_ancore' => 1 ) );
+verifica( 'e il tetto sulle ancore si rispetta', 1 === count( $strettoSpinta['mappa'] ), json_encode( $strettoSpinta['mappa'] ) );
+
+// Mandare la spinta al sito non deve cancellare le impostazioni: salva()
+// riscrive il file intero, e li dentro c e anche la chiave di Gemini.
+verifica(
+	'attivando la spinta le impostazioni non si perdono',
+	false !== strpos( file_get_contents( __DIR__ . '/../public/index.php' ), '$salvate = Impostazioni::salvate();' ),
+	'salva() riscrive tutto il file: senza rileggerlo si perde la chiave API'
+);
+
+verifica(
+	'e il piano arriva al sito prima del numero che lo accende',
+	strpos( file_get_contents( __DIR__ . '/../public/index.php' ), "inviaDati( 'internal-links'" )
+		< strpos( file_get_contents( __DIR__ . '/../public/index.php' ), 'inviaConfigurazione( $conSpinta )' ),
+	'per qualche secondo il sito avrebbe i link accesi sulla mappa vecchia'
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

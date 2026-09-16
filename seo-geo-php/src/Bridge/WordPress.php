@@ -142,6 +142,33 @@ class WordPress {
 	}
 
 	/**
+	 * Invia al sito uno dei piani che il plugin applica mentre serve le
+	 * pagine: la mappa dei link interni, quella delle meta, i correlati.
+	 *
+	 * Prima passavano solo dentro allo zip del plugin, e aggiornarli voleva
+	 * dire rigenerarlo e ricaricarlo a mano. Un piano che cambia a ogni
+	 * lettura di Search Console non puo passare da li.
+	 *
+	 * @param string $nome Uno fra internal-links, related, meta-map.
+	 * @param array  $dati Il piano.
+	 * @return array
+	 */
+	public function inviaDati( $nome, array $dati ) {
+		try {
+			return $this->chiama( 'POST', '/dati', array( 'nome' => (string) $nome, 'dati' => $dati ) );
+		} catch ( RuntimeException $e ) {
+			if ( false !== stripos( $e->getMessage(), 'Rotta non trovata' ) ) {
+				throw new RuntimeException(
+					'Il plugin installato sul sito non sa ancora ricevere i piani aggiornati. '
+					. 'Aggiorna MDI SEO & GEO Booster alla 2.22.0 (Plugin → Aggiungi nuovo → Carica plugin) e riprova.'
+				);
+			}
+
+			throw $e;
+		}
+	}
+
+	/**
 	 * Invia le meta ottimizzate.
 	 *
 	 * @param array $righe     Elenco di array con id, title, description, excerpt, focus.

@@ -3,7 +3,7 @@
  * Plugin Name:       MDI SEO & GEO Booster
  * Plugin URI:        https://maxdigitalinnovation.it/
  * Description:       Correzione automatica dei problemi SEO e GEO rilevati dall'audit: dati strutturati, meta ottimizzate, link interni, immagini, llms.txt e direttive per i crawler AI.
- * Version:           2.21.0
+ * Version:           2.22.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            seo-geo-toolkit
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'MDI_SEO_GEO_VERSION', '2.21.0' );
+define( 'MDI_SEO_GEO_VERSION', '2.22.0' );
 define( 'MDI_SEO_GEO_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MDI_SEO_GEO_URL', plugin_dir_url( __FILE__ ) );
 
@@ -27,6 +27,22 @@ define( 'MDI_SEO_GEO_URL', plugin_dir_url( __FILE__ ) );
  */
 function mdi_seo_geo_data( $name ) {
 	static $cache = array();
+
+	// Quello che il gestionale ha mandato dopo, come per la configurazione:
+	// i file dentro allo zip sono l istantanea del momento in cui il plugin e
+	// stato generato, e invecchiano al primo aggiornamento del piano. Senza
+	// questo, cambiare la mappa dei link interni voleva dire rigenerare lo
+	// zip e ricaricarlo a mano ogni volta.
+	//
+	// Qui niente cache statica, per la stessa ragione di mdi_seo_geo_cfg():
+	// WordPress tiene gia le opzioni in memoria, e cosi un piano appena
+	// ricevuto vale subito invece che dalla richiesta dopo. La cache resta
+	// per il file, che si legge dal disco.
+	$dal_gestionale = get_option( 'mdi_seo_geo_dati_' . sanitize_key( $name ), null );
+
+	if ( is_array( $dal_gestionale ) ) {
+		return $dal_gestionale;
+	}
 
 	if ( isset( $cache[ $name ] ) ) {
 		return $cache[ $name ];

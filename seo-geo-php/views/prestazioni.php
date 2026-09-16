@@ -13,6 +13,7 @@
  * @var array[]    $sitemap_google Sitemap che Google gia conosce.
  * @var array|null $ultima      Ultima rilevazione.
  * @var array|null $precedente  Rilevazione prima di quella.
+ * @var array      $spinta      Piano di spinta dai dati di Search Console.
  * @var array[]    $storico     Rilevazioni recenti.
  * @var array[]    $segnali     Cose da fare.
  * @var array[]    $piano       Cose che si possono fare da sole.
@@ -312,6 +313,71 @@ function delta( $ora, $prima, $meglio = false ) {
 				</p>
 			<?php endif; ?>
 		</section>
+
+		<?php if ( ! empty( $spinta['gruppi'] ) ) : ?>
+		<section class="scheda">
+			<h2>Spingi le pagine con i link interni</h2>
+			<p class="guida">
+				Questa non riscrive niente e non costa token. Google stesso dice, ricerca per ricerca,
+				quali tue pagine si alternano e quale delle tue sta messa meglio: si prende quella e
+				tutte le altre le passano forza, con un link che ha la ricerca per testo.
+				<strong>Trentatré pagine che si contendono lo stesso nome non fanno trentatré volte la
+				forza: ne fanno un trentatreesimo.</strong>
+			</p>
+
+			<div class="tabellabox">
+				<table>
+					<tbody>
+						<tr><td>Ricerche su cui si interviene</td><td class="num"><strong><?php echo num( $spinta['conteggi']['ricerche'] ); ?></strong></td></tr>
+						<tr><td>Di queste, contese fra più pagine tue</td><td class="num"><?php echo num( $spinta['conteggi']['contese'] ); ?></td></tr>
+						<tr><td>Pagine che smettono di farsi concorrenza e passano forza</td><td class="num"><?php echo num( $spinta['conteggi']['pagine_che_cedono'] ); ?></td></tr>
+					</tbody>
+				</table>
+			</div>
+
+			<details>
+				<summary>Le prime dieci, e chi vince</summary>
+				<div class="tabellabox">
+					<table>
+						<thead><tr><th>Ricerca</th><th>Va a</th><th class="num">Pos.</th><th class="num">Impr.</th><th>Perché</th></tr></thead>
+						<tbody>
+						<?php foreach ( array_slice( $spinta['gruppi'], 0, 10 ) as $g ) : ?>
+							<tr>
+								<td><strong><?php echo e( $g['query'] ); ?></strong></td>
+								<td class="mono"><?php echo e( \SeoGeo\Search\Spinta::confrontabile( $g['vincitore'] ) ); ?></td>
+								<td class="num"><?php echo number_format( (float) $g['posizione'], 1, ',', '' ); ?></td>
+								<td class="num"><?php echo num( $g['impression'] ); ?></td>
+								<td><small><?php echo e( $g['motivo'] ); ?></small></td>
+							</tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+				</div>
+			</details>
+
+			<form method="post" action="?p=applica-spinta">
+				<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+				<label class="scelta">
+					<span>
+						<strong>Quanti link per articolo</strong>
+						<small>
+							Tre è il valore che si usa di norma: abbastanza per contare, non tanti da
+							trasformare il testo in una rete di collegamenti.
+						</small>
+					</span>
+					<input type="number" name="per_articolo" value="3" min="1" max="8" style="width:5rem">
+				</label>
+				<button class="bottone" type="submit">Attiva la spinta sul sito</button>
+			</form>
+
+			<p class="nota">
+				I link li mette il plugin <strong>mentre serve la pagina</strong>: nei tuoi contenuti non
+				viene scritto niente, nessun 301, nessun testo toccato, e le pagine servizio restano fuori.
+				Si spegne rimettendo a zero «link interni per articolo» nelle impostazioni.
+				Google ci mette da qualche giorno a qualche settimana a rileggere e a spostare le posizioni.
+			</p>
+		</section>
+		<?php endif; ?>
 
 		<div class="tabellabox">
 			<table>

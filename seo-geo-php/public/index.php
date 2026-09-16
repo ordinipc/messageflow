@@ -560,6 +560,69 @@ if ( 'applica-segnali' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	exit;
 }
 
+// ------------------ Spinta: link interni costruiti sui dati di Google
+if ( 'applica-spinta' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Token di sessione non valido: ricarica la pagina e riprova.' );
+	}
+
+	$ultima = Prestazioni::ultima( $db, Prestazioni::chiaveSito( $cfg ) );
+
+	if ( ! $ultima ) {
+		header( 'Location: ?p=prestazioni&errore=' . rawurlencode( 'Serve prima una lettura di Search Console.' ) );
+		exit;
+	}
+
+	$spinta = \SeoGeo\Search\Spinta::daRilevazione( $db, (int) $ultima['id'] );
+
+	if ( ! $spinta['mappa'] ) {
+		header( 'Location: ?p=prestazioni&errore=' . rawurlencode( 'Nessuna ricerca ha abbastanza dati per costruire la spinta: servono ricerche con almeno cinque impression.' ) );
+		exit;
+	}
+
+	$perArticolo = max( 1, min( 8, (int) ( $_POST['per_articolo'] ?? 3 ) ) );
+
+	try {
+		$ponte = new WordPress( $cfg['wordpress'] );
+
+		// Prima la mappa, poi il numero che la accende: al contrario, per
+		// qualche secondo il sito avrebbe i link accesi sulla mappa vecchia.
+		$ponte->inviaDati( 'internal-links', $spinta['mappa'] );
+
+		$conSpinta = $cfg;
+		$conSpinta['seo']['linkInterniPerArticolo'] = $perArticolo;
+
+		$ponte->inviaConfigurazione( $conSpinta );
+
+		// E si tiene anche da questa parte, se no alla prossima apertura
+		// delle impostazioni il numero tornerebbe quello di prima.
+		// salva() riscrive il file intero: si parte da quello che c e, se no
+		// qui dentro si perderebbero chiave di Gemini e dati aziendali.
+		$salvate = Impostazioni::salvate();
+		$salvate['seo']['linkInterniPerArticolo'] = $perArticolo;
+
+		Impostazioni::salva( $salvate );
+	} catch ( Throwable $e ) {
+		header( 'Location: ?p=prestazioni&errore=' . rawurlencode( $e->getMessage() ) );
+		exit;
+	}
+
+	header(
+		'Location: ?p=prestazioni&messaggio=' . rawurlencode(
+			sprintf(
+				'Spinta attiva: %d ricerche, %d contese fra piu pagine tue, %d pagine che adesso passano forza a quella giusta. '
+				. 'Il sito mette fino a %d link per articolo mentre serve le pagine: niente e stato scritto nei contenuti, e si spegne rimettendo a zero il numero nelle impostazioni.',
+				$spinta['conteggi']['ricerche'],
+				$spinta['conteggi']['contese'],
+				$spinta['conteggi']['pagine_che_cedono'],
+				$perArticolo
+			)
+		)
+	);
+	exit;
+}
+
 // ----------------------- Rilevamento delle proprietà viste dall account
 if ( 'rileva-proprieta' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
@@ -2690,6 +2753,12 @@ switch ( $pagina ) {
 			: array_map( static fn( $x ) => $x + array( 'documento_id' => 0, 'wp_id' => '', 'titolo_sito' => '', 'tipo_sito' => '' ), $segnali_abbinati );
 		$storico  = $db->all( 'SELECT * FROM gsc_rilevazione WHERE sito_url = ? ORDER BY id DESC LIMIT 12', array( $sito ) );
 
+		// La spinta non passa dal pilota e non costa token: si calcola dalle
+		// stesse righe di Search Console che hanno prodotto i segnali.
+		$spinta = $ultima
+			? \SeoGeo\Search\Spinta::daRilevazione( $db, (int) $ultima['id'] )
+			: array( 'gruppi' => array(), 'mappa' => array(), 'conteggi' => array( 'ricerche' => 0, 'contese' => 0, 'pagine_che_cedono' => 0 ) );
+
 		vista(
 			'prestazioni',
 			array(
@@ -2705,6 +2774,7 @@ switch ( $pagina ) {
 				'sitemap_sito' => Prestazioni::configurata( $cfg )
 					? Sitemap::trova( (string) ( $cfg['wordpress']['url'] ?? $sito ) )
 					: array(),
+				'spinta'       => $spinta,
 				'sitemap_google' => Prestazioni::configurata( $cfg )
 					? Sitemap::conosciute( Prestazioni::client( $cfg ) )
 					: array(),

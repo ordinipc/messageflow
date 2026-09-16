@@ -1462,6 +1462,39 @@ verifica(
 
 unset( $GLOBALS['wp']['transient']['mdi_h1_dal_tema'], $GLOBALS['wp']['http'] );
 
+// --- I piani che il gestionale manda dopo ----------------------------------
+// I file della cartella data/ sono l istantanea del momento in cui il plugin
+// e stato generato. La mappa dei link interni cambia a ogni lettura di Search
+// Console, e aggiornarla voleva dire rigenerare lo zip e ricaricarlo a mano.
+echo "\nI piani aggiornati dal gestionale\n";
+
+$esitoDati = MDI_Api::salva_dati(
+	new WP_REST_Request(
+		array(
+			'nome' => 'internal-links',
+			'dati' => array( 'agenzia di comunicazione a palermo' => 'https://esempio.it/' ),
+		)
+	)
+);
+
+verifica( 'il piano dei link interni si puo mandare al sito', ! empty( $esitoDati['ok'] ) && 1 === (int) $esitoDati['voci'], wp_json_encode( $esitoDati ) );
+verifica( 'e da quel momento e quello che il plugin usa', array( 'agenzia di comunicazione a palermo' => 'https://esempio.it/' ) === mdi_seo_geo_data( 'internal-links' ), wp_json_encode( mdi_seo_geo_data( 'internal-links' ) ) );
+
+// Un nome libero vorrebbe dire lasciar scrivere una opzione qualsiasi del
+// sito da fuori.
+$rifiutato = MDI_Api::salva_dati( new WP_REST_Request( array( 'nome' => 'active_plugins', 'dati' => array( 'x' ) ) ) );
+
+verifica( 'un nome non previsto viene rifiutato', $rifiutato instanceof WP_Error, is_object( $rifiutato ) ? get_class( $rifiutato ) : gettype( $rifiutato ) );
+verifica( 'senza scrivere niente', ! isset( $GLOBALS['wp']['opzioni']['mdi_seo_geo_dati_active_plugins'] ) );
+
+// E mandare un piano nuovo svuota la cache: se no il sito continua a servire
+// le pagine costruite sul piano di prima.
+$GLOBALS['wp']['svuotamenti'] = array();
+MDI_Cache::ricomincia();
+MDI_Api::salva_dati( new WP_REST_Request( array( 'nome' => 'related', 'dati' => array() ) ) );
+
+verifica( 'e il sito smette di servire le pagine costruite sul piano di prima', 1 === count( $svuotamenti( 'litespeed_purge_all' ) ) );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );
