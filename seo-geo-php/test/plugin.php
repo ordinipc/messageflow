@@ -1518,6 +1518,69 @@ $GLOBALS['wp']['opzioni']['mdi_seo_geo_config']['seo']['linkInterniPerArticolo']
 
 verifica( 'e quando qualcuno la spegne da WordPress si vede subito', 0 === (int) ( MDI_Api::stato()['spinta']['per_articolo'] ?? -1 ) );
 
+// --- Un piano di un altro sito non deve finire in pagina -------------------
+// La mappa delle meta si cerca per numero, e i numeri si ripetono da un sito
+// all altro. Un piano di prova finito dentro allo zip ha fatto stampare alla
+// home di un sito vero il title «Articolo di prova numero 10 sulla
+// realizzazione siti web»: la home era la pagina numero 10, e la riga numero
+// 10 del piano era di un altra installazione.
+echo "\nUn piano di un altro sito\n";
+
+$GLOBALS['wp']['opzioni']['mdi_seo_geo_dati_meta-map'] = array(
+	array( 'id' => 700, 'slug' => 'articolo-di-prova-10', 'title' => 'Articolo di prova numero 10', 'description' => 'Testo di prova.', 'excerpt' => 'Prova.' ),
+	array( 'id' => 701, 'slug' => 'la-home-vera', 'title' => 'Il title giusto', 'description' => 'La descrizione giusta.', 'excerpt' => 'Sintesi vera.' ),
+);
+
+stub_crea_post( 700, 'La home vera', '<p>Contenuto.</p>' );
+$GLOBALS['wp']['post'][700]->post_name = 'la-home-vera';
+stub_crea_post( 701, 'La home vera', '<p>Contenuto.</p>' );
+$GLOBALS['wp']['post'][701]->post_name = 'la-home-vera';
+
+$GLOBALS['wp']['singolo']      = 700;
+$GLOBALS['wp']['tipo_singolo'] = 'page';
+
+verifica(
+	'una riga con lo slug di un altro contenuto non stampa niente',
+	'Titolo del tema' === MDI_Meta::filter_title( 'Titolo del tema' ),
+	MDI_Meta::filter_title( 'Titolo del tema' )
+);
+
+$GLOBALS['wp']['singolo'] = 701;
+
+verifica(
+	'mentre quella giusta si',
+	'Il title giusto' === MDI_Meta::filter_title( 'Titolo del tema' ),
+	MDI_Meta::filter_title( 'Titolo del tema' )
+);
+
+verifica( 'e nemmeno l estratto di un altro contenuto passa', '' === MDI_Meta::filter_excerpt( '', $GLOBALS['wp']['post'][700] ) );
+
+$GLOBALS['wp']['singolo'] = 0;
+unset( $GLOBALS['wp']['opzioni']['mdi_seo_geo_dati_meta-map'] );
+
+// Stessa cosa per gli articoli correlati: un piano di un altro sito manderebbe
+// i lettori fuori, sotto il titolo «Approfondimenti correlati».
+// Il sito di prova e esempio.it: l altro dominio qui e quello del piano
+// sbagliato, come lo era esempio.it sul sito vero.
+$GLOBALS['wp']['opzioni']['mdi_seo_geo_dati_related'] = array(
+	'702' => array(
+		array( 'titolo' => 'Di un altro sito', 'url' => 'https://un-altro-sito.it/articolo-1/' ),
+		array( 'titolo' => 'Di questo sito', 'url' => 'https://esempio.it/x/' ),
+	),
+);
+
+stub_crea_post( 702, 'Un articolo', '<p>Corpo.</p>' );
+$GLOBALS['wp']['singolo']      = 702;
+$GLOBALS['wp']['tipo_singolo'] = 'post';
+
+$correlati = MDI_Links::append_related( '<p>Corpo.</p>' );
+
+verifica( 'i correlati di un altro dominio non finiscono in pagina', false === strpos( $correlati, 'un-altro-sito.it' ), $correlati );
+verifica( 'quelli di casa si', false !== strpos( $correlati, 'esempio.it/x/' ), $correlati );
+
+$GLOBALS['wp']['singolo'] = 0;
+unset( $GLOBALS['wp']['opzioni']['mdi_seo_geo_dati_related'] );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

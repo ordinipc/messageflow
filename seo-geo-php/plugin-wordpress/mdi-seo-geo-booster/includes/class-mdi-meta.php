@@ -73,9 +73,10 @@ class MDI_Meta {
 			return array();
 		}
 
-		$id = get_queried_object_id();
+		$id  = get_queried_object_id();
+		$row = self::$map[ $id ] ?? array();
 
-		return isset( self::$map[ $id ] ) ? self::$map[ $id ] : array();
+		return self::eDiQuestoContenuto( $id, $row ) ? $row : array();
 	}
 
 	/**
@@ -160,12 +161,51 @@ class MDI_Meta {
 		}
 
 		foreach ( mdi_seo_geo_data( 'meta-map' ) as $row ) {
-			if ( isset( $row['id'] ) && (int) $row['id'] === $post->ID && ! empty( $row['excerpt'] ) ) {
+			if ( isset( $row['id'] ) && (int) $row['id'] === $post->ID && ! empty( $row['excerpt'] )
+				&& self::eDiQuestoContenuto( $post->ID, $row ) ) {
 				return $row['excerpt'];
 			}
 		}
 
 		return $excerpt;
+	}
+
+	/**
+	 * Questa riga parla davvero di questo contenuto?
+	 *
+	 * La mappa si cerca per numero, e i numeri si ripetono da un sito
+	 * all altro: la riga numero 10 di un altra installazione finisce sulla
+	 * pagina numero 10 di questa. E successo davvero, con un piano di prova
+	 * finito dentro allo zip: la home di un sito vero ha stampato per ore
+	 * il title «Articolo di prova numero 10 sulla realizzazione siti web».
+	 *
+	 * Lo slug e la controprova: ce l ha ogni riga e ce l ha ogni contenuto,
+	 * e due contenuti diversi non hanno lo stesso. Quando non combaciano, la
+	 * riga non e di questa pagina e si lascia stare: meglio il title del tema
+	 * che quello di un altro sito.
+	 *
+	 * Se lo slug viene cambiato in WordPress dopo l esportazione, le meta
+	 * smettono di applicarsi finche il piano non viene rifatto. E la
+	 * direzione giusta in cui sbagliare.
+	 *
+	 * @param int   $id  Identificativo del contenuto.
+	 * @param array $row Riga della mappa.
+	 * @return bool
+	 */
+	private static function eDiQuestoContenuto( $id, array $row ) {
+		if ( ! $row ) {
+			return false;
+		}
+
+		$atteso = trim( (string) ( $row['slug'] ?? '' ) );
+
+		if ( '' === $atteso ) {
+			return true;
+		}
+
+		$vero = (string) get_post_field( 'post_name', (int) $id );
+
+		return '' === $vero || $vero === $atteso;
 	}
 
 	/**

@@ -175,10 +175,24 @@ class MDI_Links {
 
 		$items = '';
 
+		$casa = wp_parse_url( home_url(), PHP_URL_HOST );
+
 		foreach ( array_slice( (array) $piano[ $id ], 0, 5 ) as $rel ) {
 			if ( empty( $rel['url'] ) || empty( $rel['titolo'] ) ) {
 				continue;
 			}
+
+			// I correlati si cercano per numero, e i numeri si ripetono da un
+			// sito all altro: un piano di un altra installazione finito qui
+			// manderebbe i lettori fuori, sotto il titolo «Approfondimenti
+			// correlati». E successo, con un piano di prova pieno di
+			// indirizzi esempio.it dentro allo zip del plugin.
+			$dove = wp_parse_url( $rel['url'], PHP_URL_HOST );
+
+			if ( $dove && $casa && false === strpos( $dove, $casa ) ) {
+				continue;
+			}
+
 			$items .= '<li><a href="' . esc_url( $rel['url'] ) . '">' . esc_html( $rel['titolo'] ) . '</a></li>';
 		}
 

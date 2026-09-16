@@ -121,6 +121,10 @@ function get_post( $id ) {
 	return $GLOBALS['wp']['post'][ (int) $id ] ?? null;
 }
 
+function get_the_ID() {
+	return (int) ( $GLOBALS['wp']['singolo'] ?? 0 );
+}
+
 function get_the_title( $id ) {
 	$post = get_post( $id );
 
