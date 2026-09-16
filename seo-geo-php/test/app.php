@@ -3988,6 +3988,82 @@ verifica(
 	false !== strpos( file_get_contents( __DIR__ . '/../plugin-wordpress/mdi-seo-geo-booster/includes/class-mdi-api.php' ), 'public static function plugin_seo_attivi()' )
 );
 
+// ---------------------------------------------------------------------------
+// Il gestionale non deve scrivere meta che le sue stesse regole bocciano
+//
+// Il pilota ha scritto le meta di tutto l archivio e al giro dopo le
+// description fuori misura erano passate da 47 a 103. Non era il sito a
+// peggiorare: era il generatore che, sugli articoli con poco testo, produceva
+// description di un centinaio di caratteri - sotto la soglia della regola
+// ONP-03, che quindi segnalava come sbagliato il lavoro appena fatto.
+
+echo "\nLe meta scritte dal gestionale superano le regole del gestionale\n";
+
+$cfgMeta = require __DIR__ . '/../config.php';
+
+// Casi difficili di proposito: titoli cortissimi, testo quasi assente,
+// titoli lunghissimi, caratteri accentati.
+$casiMeta = array(
+	array( 'SEO e SEM', '<p>x</p>' ),
+	array( 'Blog', '' ),
+	array( 'Siti web', '<p></p>' ),
+	array( 'Contatti', '<p>Scrivici.</p>' ),
+	array( 'Perché la comunicazione è così importante per un’agenzia?', '<p>Poco testo.</p>' ),
+	array( 'Marketing per Podologi Palermo: La Tua Strategia Digitale', '<p>Poco testo qui dentro.</p>' ),
+	array( 'Digitale e Tradizione: Come Promuovere un’Attività Storica con Nuove Strategie Digitali Molto Efficaci', '<p>' . str_repeat( 'Frase di prova sul marketing digitale a Palermo. ', 30 ) . '</p>' ),
+	array( 'Quanto costa farsi gestire un profilo Instagram?', '<p>' . str_repeat( 'Una frase. ', 3 ) . '</p>' ),
+);
+
+$fuoriMisura = array();
+
+foreach ( $casiMeta as $n => $caso ) {
+	$sitoMeta = new Site(
+		array(
+			'sito'      => array( 'titolo' => 'Prova', 'link' => 'https://esempio.it', 'baseUrl' => 'https://esempio.it', 'autori' => array() ),
+			'categorie' => array(),
+			'tag'       => array(),
+			'items'     => array(
+				array(
+					'wp_id' => (string) ( $n + 1 ), 'tipo' => 'post', 'stato' => 'publish',
+					'titolo' => $caso[0], 'slug' => 'articolo-' . $n,
+					'link' => 'https://esempio.it/articolo-' . $n . '/',
+					'data' => '2026-01-01 10:00:00', 'modificato' => '2026-02-01 10:00:00',
+					'autore' => 'Redazione', 'contenuto' => $caso[1], 'estratto' => '',
+					'categorie' => array(), 'tag' => array(), 'commenti' => 'closed',
+					'genitore' => '0', 'meta' => array(),
+				),
+			),
+		)
+	);
+
+	$pianoMeta = \SeoGeo\Fix\Meta::piano( $sitoMeta, $cfgMeta );
+	$riga      = $pianoMeta[0];
+
+	$lt = mb_strlen( (string) $riga['title_nuovo'] );
+	$ld = mb_strlen( (string) $riga['description_nuova'] );
+
+	// Le stesse soglie delle regole ONP-01, ONP-02, ONP-03 e ONP-04.
+	if ( $lt > 60 ) {
+		$fuoriMisura[] = $caso[0] . ': title di ' . $lt . ' caratteri (ONP-01)';
+	}
+
+	if ( $lt > 0 && $lt < 30 ) {
+		$fuoriMisura[] = $caso[0] . ': title di ' . $lt . ' caratteri (ONP-02)';
+	}
+
+	if ( 0 === $ld ) {
+		$fuoriMisura[] = $caso[0] . ': nessuna description (ONP-04)';
+	} elseif ( $ld > 158 || $ld < 120 ) {
+		$fuoriMisura[] = $caso[0] . ': description di ' . $ld . ' caratteri (ONP-03)';
+	}
+}
+
+verifica(
+	'nessuna delle meta generate viola una regola dell audit',
+	0 === count( $fuoriMisura ),
+	implode( ' | ', $fuoriMisura )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

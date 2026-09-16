@@ -186,6 +186,22 @@ class Meta {
 			$scelto .= ' | ' . $brand;
 		}
 
+		// Un titolo di una parola sola - «Blog», «Contatti» - col marchio
+		// accanto arrivava a ventinove caratteri: uno sotto la soglia della
+		// regola ONP-02, che quindi bocciava il title appena scritto dal
+		// gestionale. Si completa con la citta, che e vera e serve anche a
+		// posizionarsi.
+		$citta = trim( (string) ( $cfg['seo']['cittaPrincipale'] ?? '' ) );
+
+		if ( mb_strlen( $scelto ) < 30 && '' !== $citta && false === mb_stripos( $scelto, $citta ) ) {
+			foreach ( array( ' a ' . $citta, ' | ' . $citta, ' ' . $citta ) as $coda ) {
+				if ( mb_strlen( $scelto . $coda ) <= $max && mb_strlen( $scelto . $coda ) >= 30 ) {
+					$scelto .= $coda;
+					break;
+				}
+			}
+		}
+
 		// Rete finale: da qualunque ramo arrivi, un title non esce mai monco.
 		// Su un titolo ben formato questa riga non cambia niente, perché non
 		// finisce con una preposizione o un possessivo.
@@ -259,27 +275,57 @@ class Meta {
 		// lunghezza minima. Tre di fila uno dopo l altro non sono una
 		// description: sono riempitivo, e in Google si vedono per quello che sono.
 		if ( mb_strlen( $corpo ) < $min ) {
+			// L ordine conta. Prima quello che dice qualcosa - che cosa fa l
+			// azienda, come si chiama, dove sta - e un solo invito all azione
+			// alla fine, se ancora serve. Tre inviti uno dopo l altro non
+			// sono una description: sono riempitivo, e in Google si vedono
+			// per quello che sono.
 			$cta = array_values(
 				array_filter(
 					array(
-						'' !== $citta ? ' Scopri come lavoriamo a ' . $citta . '.' : '',
-						' Richiedi una consulenza gratuita.',
+						self::fraseAzienda( $cfg ),
 						'' !== $citta ? ' ' . $cfg['azienda']['nome'] . ', a ' . $citta . '.' : ' ' . $cfg['azienda']['nome'] . '.',
+						'' !== $citta ? ' Scopri come lavoriamo a ' . $citta . '.' : ' Richiedi una consulenza gratuita.',
 					)
 				)
 			);
 
-			// Fra quelli che ci stanno si prende il più lungo: avvicina di più
-			// alla lunghezza utile senza doverne accodare un secondo.
-			$migliore = '';
-
+			// Prima se ne accodava uno solo, il piu lungo fra quelli che ci
+			// stavano, e non si ricontrollava il risultato. Su un articolo
+			// con poco testo si arrivava a un centinaio di caratteri: sotto
+			// la soglia della regola ONP-03, che quindi segnalava come
+			// sbagliata una description scritta dal gestionale stesso. Da qui
+			// le description fuori misura passate da 47 a 103 dopo un giro
+			// del pilota.
+			//
+			// Adesso se ne accodano finche servono, senza ripetere lo stesso
+			// due volte, e si smette appena la lunghezza e quella giusta.
 			foreach ( $cta as $c ) {
-				if ( mb_strlen( $corpo . $c ) <= $max && mb_strlen( $c ) > mb_strlen( $migliore ) ) {
-					$migliore = $c;
+				if ( mb_strlen( $corpo ) >= $min ) {
+					break;
+				}
+
+				if ( mb_strlen( $corpo . $c ) <= $max && false === mb_strpos( $corpo, trim( $c ) ) ) {
+					$corpo .= $c;
 				}
 			}
 
-			$corpo .= $migliore;
+			// Se ancora non basta - succede coi titoli di due o tre parole -
+			// si completa con quello che l azienda fa davvero, tagliato su
+			// misura dello spazio che resta. Meglio una frase vera accorciata
+			// che una description che la regola boccera.
+			if ( mb_strlen( $corpo ) < $min ) {
+				$spazio = $max - mb_strlen( $corpo ) - 2;
+				$coda   = trim( self::fraseAzienda( $cfg ) );
+
+				if ( $spazio > 20 && '' !== $coda && false === mb_strpos( $corpo, $coda ) ) {
+					$pezzo = Text::polishClause( Text::truncate( $coda, $spazio ) );
+
+					if ( mb_strlen( $pezzo ) > 15 ) {
+						$corpo .= ' ' . $pezzo . '.';
+					}
+				}
+			}
 		}
 
 		$finale = trim( Text::truncate( $corpo, $max ) );
@@ -288,6 +334,35 @@ class Meta {
 		}
 
 		return array( $finale, $finale !== $attuale );
+	}
+
+	/**
+	 * Una frase vera sull azienda, da usare quando la description e corta.
+	 *
+	 * @param array $cfg Configurazione.
+	 * @return string
+	 */
+	private static function fraseAzienda( array $cfg ) {
+		$breve = trim( (string) ( $cfg['azienda']['descrizioneBreve'] ?? '' ) );
+
+		if ( '' === $breve || 0 === stripos( $breve, 'DA_COMPILARE' ) ) {
+			return '';
+		}
+
+		// Si prende la prima frase: la descrizione aziendale intera sarebbe
+		// piu lunga di tutta la description.
+		$prima = preg_split( '/(?<=[.!?])\s+/u', $breve )[0];
+		$prima = trim( (string) $prima );
+
+		if ( '' === $prima ) {
+			return '';
+		}
+
+		if ( ! preg_match( '/[.!?]$/u', $prima ) ) {
+			$prima .= '.';
+		}
+
+		return ' ' . $prima;
 	}
 
 	/**
