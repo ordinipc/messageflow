@@ -296,13 +296,34 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 	// dove sono tutte gia online, non avrebbe fatto niente.
 	$in_lotto = array_values( array_filter( $elenco, static fn( $r ) => $scrivibile( $r ) ) );
 
+	// Quante di quelle in lotto non sono mai state mandate: se sono zero, il
+	// pulsante non sta per «applicare il lavoro», sta per rifare da capo una
+	// cosa gia fatta. Diceva «Sovrascrivi tutte le 100» accanto a «0 da
+	// inviare · 100 gia online», e chi legge preme.
+	$nuove_in_lotto = count( array_filter( $in_lotto, static fn( $r ) => empty( $r['inviata_il'] ) ) );
+
 	$etichetta_lotto = 'da-ripulire' === $filtro
 		? 'Rimanda ' . ( 1 === count( $in_lotto ) ? 'l\'articolo da ripulire' : 'i ' . count( $in_lotto ) . ' articoli da ripulire' )
-		: 'Sovrascrivi ' . ( 1 === count( $in_lotto ) ? 'l\'articolo' : 'tutte le ' . count( $in_lotto ) );
+		: ( 0 === $nuove_in_lotto
+			? 'Riscrivi di nuovo ' . ( 1 === count( $in_lotto ) ? 'l\'articolo già online' : 'le ' . count( $in_lotto ) . ' già online' )
+			: 'Sovrascrivi ' . ( 1 === count( $in_lotto ) ? 'l\'articolo' : 'tutte le ' . count( $in_lotto ) ) );
 	?>
 	<?php if ( $pronto && $in_lotto ) : ?>
+		<?php if ( 0 === $nuove_in_lotto && 'da-ripulire' !== $filtro ) : ?>
+			<p class="avviso">
+				Qui non c'è niente di nuovo da mandare: queste riscritture <strong>sono già sul sito</strong>.
+				Premere il pulsante le riscrive identiche sopra sé stesse — non fa danni, ma non cambia
+				niente e aggiorna la data di modifica di
+				<?php echo num( count( $in_lotto ) ); ?> articoli.
+				Quello che serve adesso è
+				<a href="?p=audit&amp;id=<?php echo (int) $audit['id']; ?>">rileggere il sito</a>
+				per vedere l'effetto di quello che hai già applicato.
+			</p>
+		<?php endif; ?>
 		<div class="azioni">
-			<button class="bottone" type="button" id="invia-tutte"><?php echo e( $etichetta_lotto ); ?></button>
+			<button class="bottone<?php echo 0 === $nuove_in_lotto && 'da-ripulire' !== $filtro ? ' chiaro' : ''; ?>" type="button" id="invia-tutte"
+				data-gia-online="<?php echo 0 === $nuove_in_lotto && 'da-ripulire' !== $filtro ? '1' : ''; ?>"
+				data-quante="<?php echo (int) count( $in_lotto ); ?>"><?php echo e( $etichetta_lotto ); ?></button>
 		</div>
 		<div id="tutte-corso" hidden>
 			<p><span id="tutte-spia" class="spia"></span> <strong id="tutte-titolo">Sto scrivendo sul sito…</strong></p>
@@ -489,6 +510,12 @@ $bloccate = array_values( array_filter( $righe, static fn( $r ) => ! $scrivibile
 	if (!tutte) { return; }
 
 	tutte.addEventListener('click', function () {
+		// Rifare una cosa gia fatta non deve partire per sbaglio.
+		if (tutte.dataset.giaOnline
+			&& !confirm('Queste ' + tutte.dataset.quante + ' riscritture sono già sul sito. Riscriverle identiche non cambia niente e aggiorna la data di modifica di tutti questi articoli. Procedere lo stesso?')) {
+			return;
+		}
+
 		// Si prende quello che si vede: la vista scelta, meno quello che la
 		// ricerca ha nascosto. Prima si guardava la scritta sul pulsante, e
 		// nella vista «da ripulire» - dove dicono tutti "Riscrivi di nuovo" -

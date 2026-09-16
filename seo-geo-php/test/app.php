@@ -4064,6 +4064,55 @@ verifica(
 	implode( ' | ', $fuoriMisura )
 );
 
+// ---------------------------------------------------------------------------
+// Un pulsante non deve invitare a rifare una cosa gia fatta
+//
+// «0 da inviare · 100 gia online», e sotto un pulsante verde che dice
+// «Sovrascrivi tutte le 100». Chi legge preme, e riscrive cento articoli
+// identici a se stessi aggiornando cento date di modifica per niente.
+
+echo "\nIl pulsante in blocco dice se c e davvero qualcosa da mandare\n";
+
+$vistaConfronto = file_get_contents( __DIR__ . '/../views/confronto-bozze.php' );
+
+verifica(
+	'si conta quante bozze del lotto non sono mai state mandate',
+	false !== strpos( $vistaConfronto, '$nuove_in_lotto = count( array_filter( $in_lotto' ),
+	'il conteggio non c e'
+);
+
+verifica(
+	'e quando sono zero il pulsante cambia parole',
+	false !== strpos( $vistaConfronto, "'Riscrivi di nuovo '" ),
+	'il pulsante dice ancora «Sovrascrivi»'
+);
+
+verifica(
+	'il pulsante smette di essere quello principale',
+	false !== strpos( $vistaConfronto, "0 === \$nuove_in_lotto && 'da-ripulire' !== \$filtro ? ' chiaro' : ''" ),
+	'resta verde come se fosse la cosa da fare'
+);
+
+verifica(
+	'e si dice che cosa succede davvero premendolo',
+	false !== strpos( $vistaConfronto, 'aggiorna la data di modifica di' ),
+	'non si spiega la conseguenza'
+);
+
+verifica(
+	'chiedendo conferma prima di rifare il lavoro',
+	false !== strpos( $vistaConfronto, 'tutte.dataset.giaOnline' ),
+	'parte senza chiedere niente'
+);
+
+// La vista «da ripulire» e il caso opposto: li sono tutte gia online per
+// costruzione, e rimandarle e proprio il lavoro da fare.
+verifica(
+	'ma nella vista «da ripulire» rimandarle resta la cosa giusta',
+	false !== strpos( $vistaConfronto, "'da-ripulire' === \$filtro" ),
+	'la vista da ripulire non e distinta'
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );
