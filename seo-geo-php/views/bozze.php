@@ -218,159 +218,7 @@ $daFondere = in_array( $regola, array( 'LOC-05', 'ONP-06', 'CNT-03' ), true );
 		</p>
 	<?php endif; ?>
 
-	<section class="scheda" id="cerca">
-		<h3>Riscrivi un contenuto preciso</h3>
-		<p class="guida">
-			Gli elenchi qui sopra partono dai problemi trovati. Se invece sai già quale contenuto
-			vuoi rifare, cercalo: si riscrive anche se non aveva nessun problema segnalato e anche
-			se una riscrittura ce l'ha già — in quel caso viene rifatta da capo.
-		</p>
 
-		<form method="get" action="">
-			<input type="hidden" name="p" value="bozze">
-			<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
-			<?php if ( '' !== $regola ) : ?>
-				<input type="hidden" name="regola" value="<?php echo e( $regola ); ?>">
-			<?php endif; ?>
-			<label for="cerca-cosa">Titolo, indirizzo o numero dell'articolo</label>
-			<input id="cerca-cosa" type="search" name="cerca" value="<?php echo e( $cerca ); ?>"
-				placeholder="video virali · /produzione-video-palermo/ · 4252"
-				style="width:min(480px,100%);padding:8px;border:1px solid var(--linea);border-radius:4px">
-			<button class="bottone secondario" type="submit">Cerca</button>
-		</form>
-
-		<?php if ( '' !== $cerca && ! $trovati ) : ?>
-			<p class="nota">
-				Nessun contenuto pubblicato corrisponde a «<?php echo e( $cerca ); ?>» in questa analisi.
-				Se l'articolo è stato pubblicato dopo l'ultima lettura del sito, rileggi il sito dalla
-				pagina dell'audit.
-			</p>
-		<?php elseif ( $trovati ) : ?>
-			<div class="tabellabox">
-				<table>
-					<thead>
-						<tr><th>Contenuto</th><th class="num">Parole</th><th class="num">Problemi</th><th class="stretta"></th></tr>
-					</thead>
-					<tbody>
-					<?php foreach ( $trovati as $t ) : ?>
-						<tr>
-							<td>
-								<a href="<?php echo e( $t['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( $t['titolo'] ); ?></a>
-								<div class="sotto">
-									<span class="mono"><?php echo e( $t['percorso'] ); ?></span>
-									<?php if ( 'page' === $t['tipo'] ) : ?>
-										· <strong>pagina servizio</strong>
-									<?php endif; ?>
-									<?php if ( (int) $t['bozze'] > 0 ) : ?>
-										· ha già una riscrittura: premendo si rifà da capo
-									<?php endif; ?>
-								</div>
-							</td>
-							<td class="num"><?php echo num( $t['parole'] ); ?></td>
-							<td class="num"><?php echo num( $t['problemi'] ); ?></td>
-							<td class="stretta">
-								<?php if ( $pronto ) : ?>
-									<form method="post" action="?p=genera" style="margin:0">
-										<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
-										<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
-										<input type="hidden" name="documento" value="<?php echo (int) $t['doc_id']; ?>">
-										<input type="hidden" name="cerca" value="<?php echo e( $cerca ); ?>">
-										<button class="bottone" type="submit"
-											<?php if ( 'page' === $t['tipo'] ) : ?>
-												onclick="return confirm('Questa è una pagina servizio, non un articolo. La riscrittura resta in bozza e non viene pubblicata: la applichi tu da «Vecchio e nuovo» solo se ti convince. Procedere?')"
-											<?php endif; ?>
-										>Riscrivi</button>
-									</form>
-								<?php else : ?>
-									<small>serve la chiave</small>
-								<?php endif; ?>
-							</td>
-						</tr>
-					<?php endforeach; ?>
-					</tbody>
-				</table>
-			</div>
-			<p class="nota">
-				La riscrittura finisce in <strong>«Vecchio e nuovo»</strong>: niente viene pubblicato finché
-				non lo dici tu. Anche sulle pagine servizio vale lo stesso — la bozza si guarda e si applica
-				a mano.
-			</p>
-		<?php endif; ?>
-	</section>
-
-	<?php if ( ! empty( $contese ) ) : ?>
-		<?php $pianoContese = \SeoGeo\Fix\Cannibalizzazione::piano( $contese ); ?>
-		<section class="scheda" id="contese">
-			<h3>Chi vince la ricerca, e che cosa fanno gli altri</h3>
-			<p class="guida">
-				Fondere non è l'unico rimedio, e spesso non è quello giusto: una <strong>pagina servizio</strong>
-				e un <strong>articolo del blog</strong> non sono due doppioni, sono due lavori diversi che per
-				sbaglio dichiarano la stessa parola chiave. La pagina deve vincere la ricerca commerciale;
-				l'articolo prende la variante lunga che già racconta e manda forza alla pagina con un link.
-			</p>
-
-			<?php foreach ( $contese as $g ) : ?>
-				<div class="tabellabox">
-					<table>
-						<thead>
-							<tr>
-								<th>Ricerca contesa: <span class="mono"><?php echo e( $g['ancora'] ); ?></span></th>
-								<th>Che cosa succede</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr>
-								<td>
-									<span class="tag ok">vince</span>
-									<a href="<?php echo e( $g['vincitore']['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( $g['vincitore']['titolo'] ); ?></a>
-									<div class="sotto"><?php echo 'page' === $g['vincitore']['tipo'] ? 'pagina servizio' : 'articolo'; ?> · <?php echo num( $g['vincitore']['parole'] ); ?> parole</div>
-								</td>
-								<td><small><?php echo e( $g['spiega'] ); ?></small></td>
-							</tr>
-							<?php foreach ( $g['perdenti'] as $p ) : ?>
-								<tr>
-									<td>
-										<span class="tag <?php echo ! empty( $p['automatico'] ) ? 'alto' : 'grave'; ?>"><?php echo ! empty( $p['automatico'] ) ? 'cede' : 'a mano'; ?></span>
-										<a href="<?php echo e( $p['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( $p['titolo'] ); ?></a>
-										<div class="sotto"><?php echo 'page' === $p['tipo'] ? 'pagina servizio' : 'articolo'; ?> · ora dichiara «<?php echo e( $p['focus'] ); ?>»</div>
-									</td>
-									<td>
-										<?php if ( ! empty( $p['variante'] ) ) : ?>
-											passa a «<strong><?php echo e( $p['variante'] ); ?></strong>»<br>
-										<?php endif; ?>
-										<small><?php echo e( $p['motivo'] ); ?></small>
-									</td>
-								</tr>
-							<?php endforeach; ?>
-						</tbody>
-					</table>
-				</div>
-			<?php endforeach; ?>
-
-			<?php if ( $pianoContese['meta'] || $pianoContese['link'] ) : ?>
-				<form method="post" action="?p=applica-contese">
-					<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
-					<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
-					<button class="bottone" type="submit">Applica: <?php echo num( count( $pianoContese['meta'] ) ); ?> articoli cedono la ricerca</button>
-				</form>
-				<p class="nota">
-					Cambia la <strong>parola chiave dichiarata</strong> degli articoli che cedono e aggiunge il link
-					verso chi vince. Non riscrive nessun testo, non crea redirect, non tocca le pagine servizio, e
-					si annulla rimettendo la parola chiave di prima da WordPress. Il title segue alla prossima
-					passata di «Meta degli articoli», che ora lo costruisce sulla parola chiave nuova.
-					<?php if ( $pianoContese['a_mano'] ) : ?>
-						<?php echo num( count( $pianoContese['a_mano'] ) ); ?> restano a te: sono pagine servizio, e
-						si sistemano aprendo la pagina in WordPress e cambiando lì la parola chiave.
-					<?php endif; ?>
-				</p>
-			<?php else : ?>
-				<p class="nota">
-					Qui non c'è niente da applicare da solo: i contenuti in gara sono pagine servizio, e quelle
-					si sistemano a mano — è una scelta voluta.
-				</p>
-			<?php endif; ?>
-		</section>
-	<?php endif; ?>
 
 	<?php if ( $pronto && ! $daFondere && count( $da_regola ) > 0 ) : ?>
 		<form class="a-lotti avvio-regola" method="post" action="?p=genera" data-tipo="articoli" data-restanti="<?php echo (int) count( $da_regola ); ?>" data-nome="bozze">
@@ -402,6 +250,163 @@ $daFondere = in_array( $regola, array( 'LOC-05', 'ONP-06', 'CNT-03' ), true );
 
 	<p class="nota"><a href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>">Lavora invece su tutto l'archivio</a></p>
 </section>
+<?php endif; ?>
+
+<?php // La ricerca e le ricerche contese valgono sempre, non solo quando
+// si arriva da un problema: erano dentro al blocco «stai correggendo», e
+// aprendo la pagina dalla riscrittura non comparivano. ?>
+<section class="scheda" id="cerca">
+	<h3>Riscrivi un contenuto preciso</h3>
+	<p class="guida">
+		Gli elenchi qui sopra partono dai problemi trovati. Se invece sai già quale contenuto
+		vuoi rifare, cercalo: si riscrive anche se non aveva nessun problema segnalato e anche
+		se una riscrittura ce l'ha già — in quel caso viene rifatta da capo.
+	</p>
+
+	<form method="get" action="">
+		<input type="hidden" name="p" value="bozze">
+		<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
+		<?php if ( '' !== $regola ) : ?>
+			<input type="hidden" name="regola" value="<?php echo e( $regola ); ?>">
+		<?php endif; ?>
+		<label for="cerca-cosa">Titolo, indirizzo o numero dell'articolo</label>
+		<input id="cerca-cosa" type="search" name="cerca" value="<?php echo e( $cerca ); ?>"
+			placeholder="video virali · /produzione-video-palermo/ · 4252"
+			style="width:min(480px,100%);padding:8px;border:1px solid var(--linea);border-radius:4px">
+		<button class="bottone secondario" type="submit">Cerca</button>
+	</form>
+
+	<?php if ( '' !== $cerca && ! $trovati ) : ?>
+		<p class="nota">
+			Nessun contenuto pubblicato corrisponde a «<?php echo e( $cerca ); ?>» in questa analisi.
+			Se l'articolo è stato pubblicato dopo l'ultima lettura del sito, rileggi il sito dalla
+			pagina dell'audit.
+		</p>
+	<?php elseif ( $trovati ) : ?>
+		<div class="tabellabox">
+			<table>
+				<thead>
+					<tr><th>Contenuto</th><th class="num">Parole</th><th class="num">Problemi</th><th class="stretta"></th></tr>
+				</thead>
+				<tbody>
+				<?php foreach ( $trovati as $t ) : ?>
+					<tr>
+						<td>
+							<a href="<?php echo e( $t['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( $t['titolo'] ); ?></a>
+							<div class="sotto">
+								<span class="mono"><?php echo e( $t['percorso'] ); ?></span>
+								<?php if ( 'page' === $t['tipo'] ) : ?>
+									· <strong>pagina servizio</strong>
+								<?php endif; ?>
+								<?php if ( (int) $t['bozze'] > 0 ) : ?>
+									· ha già una riscrittura: premendo si rifà da capo
+								<?php endif; ?>
+							</div>
+						</td>
+						<td class="num"><?php echo num( $t['parole'] ); ?></td>
+						<td class="num"><?php echo num( $t['problemi'] ); ?></td>
+						<td class="stretta">
+							<?php if ( $pronto ) : ?>
+								<form method="post" action="?p=genera" style="margin:0">
+									<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+									<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
+									<input type="hidden" name="documento" value="<?php echo (int) $t['doc_id']; ?>">
+									<input type="hidden" name="cerca" value="<?php echo e( $cerca ); ?>">
+									<button class="bottone" type="submit"
+										<?php if ( 'page' === $t['tipo'] ) : ?>
+											onclick="return confirm('Questa è una pagina servizio, non un articolo. La riscrittura resta in bozza e non viene pubblicata: la applichi tu da «Vecchio e nuovo» solo se ti convince. Procedere?')"
+										<?php endif; ?>
+									>Riscrivi</button>
+								</form>
+							<?php else : ?>
+								<small>serve la chiave</small>
+							<?php endif; ?>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+		</div>
+		<p class="nota">
+			La riscrittura finisce in <strong>«Vecchio e nuovo»</strong>: niente viene pubblicato finché
+			non lo dici tu. Anche sulle pagine servizio vale lo stesso — la bozza si guarda e si applica
+			a mano.
+		</p>
+	<?php endif; ?>
+</section>
+
+<?php if ( ! empty( $contese ) ) : ?>
+	<?php $pianoContese = \SeoGeo\Fix\Cannibalizzazione::piano( $contese ); ?>
+	<section class="scheda" id="contese">
+		<h3>Chi vince la ricerca, e che cosa fanno gli altri</h3>
+		<p class="guida">
+			Fondere non è l'unico rimedio, e spesso non è quello giusto: una <strong>pagina servizio</strong>
+			e un <strong>articolo del blog</strong> non sono due doppioni, sono due lavori diversi che per
+			sbaglio dichiarano la stessa parola chiave. La pagina deve vincere la ricerca commerciale;
+			l'articolo prende la variante lunga che già racconta e manda forza alla pagina con un link.
+		</p>
+
+		<?php foreach ( $contese as $g ) : ?>
+			<div class="tabellabox">
+				<table>
+					<thead>
+						<tr>
+							<th>Ricerca contesa: <span class="mono"><?php echo e( $g['ancora'] ); ?></span></th>
+							<th>Che cosa succede</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>
+								<span class="tag ok">vince</span>
+								<a href="<?php echo e( $g['vincitore']['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( $g['vincitore']['titolo'] ); ?></a>
+								<div class="sotto"><?php echo 'page' === $g['vincitore']['tipo'] ? 'pagina servizio' : 'articolo'; ?> · <?php echo num( $g['vincitore']['parole'] ); ?> parole</div>
+							</td>
+							<td><small><?php echo e( $g['spiega'] ); ?></small></td>
+						</tr>
+						<?php foreach ( $g['perdenti'] as $p ) : ?>
+							<tr>
+								<td>
+									<span class="tag <?php echo ! empty( $p['automatico'] ) ? 'alto' : 'grave'; ?>"><?php echo ! empty( $p['automatico'] ) ? 'cede' : 'a mano'; ?></span>
+									<a href="<?php echo e( $p['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( $p['titolo'] ); ?></a>
+									<div class="sotto"><?php echo 'page' === $p['tipo'] ? 'pagina servizio' : 'articolo'; ?> · ora dichiara «<?php echo e( $p['focus'] ); ?>»</div>
+								</td>
+								<td>
+									<?php if ( ! empty( $p['variante'] ) ) : ?>
+										passa a «<strong><?php echo e( $p['variante'] ); ?></strong>»<br>
+									<?php endif; ?>
+									<small><?php echo e( $p['motivo'] ); ?></small>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+			</div>
+		<?php endforeach; ?>
+
+		<?php if ( $pianoContese['meta'] || $pianoContese['link'] ) : ?>
+			<form method="post" action="?p=applica-contese">
+				<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+				<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
+				<button class="bottone" type="submit">Applica: <?php echo num( count( $pianoContese['meta'] ) ); ?> articoli cedono la ricerca</button>
+			</form>
+			<p class="nota">
+				Cambia la <strong>parola chiave dichiarata</strong> degli articoli che cedono e aggiunge il link
+				verso chi vince. Non riscrive nessun testo, non crea redirect, non tocca le pagine servizio, e
+				si annulla rimettendo la parola chiave di prima da WordPress. Il title segue alla prossima
+				passata di «Meta degli articoli», che ora lo costruisce sulla parola chiave nuova.
+				<?php if ( $pianoContese['a_mano'] ) : ?>
+					<?php echo num( count( $pianoContese['a_mano'] ) ); ?> restano a te: sono pagine servizio, e
+					si sistemano aprendo la pagina in WordPress e cambiando lì la parola chiave.
+				<?php endif; ?>
+			</p>
+		<?php else : ?>
+			<p class="nota">
+				Qui non c'è niente da applicare da solo: i contenuti in gara sono pagine servizio, e quelle
+				si sistemano a mano — è una scelta voluta.
+			</p>
+		<?php endif; ?>
+	</section>
 <?php endif; ?>
 
 <?php if ( $pronto && empty( $regola ) && $stima['articoli'] > 0 ) : ?>

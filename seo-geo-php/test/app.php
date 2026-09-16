@@ -5030,7 +5030,23 @@ $indice = file_get_contents( __DIR__ . '/../public/index.php' );
 
 verifica( 'il numero del contenuto arriva alla generazione', false !== strpos( $indice, "\$opzioni['solo_documento'] = \$uno_solo;" ) );
 verifica( 'e chiede di rifarla anche se c e gia', false !== strpos( $indice, "\$opzioni['rigenera']       = 1;" ) );
-verifica( 'la ricerca c e nella pagina', false !== strpos( file_get_contents( __DIR__ . '/../views/bozze.php' ), 'Riscrivi un contenuto preciso' ) );
+$vistaCerca = file_get_contents( __DIR__ . '/../views/bozze.php' );
+
+verifica( 'la ricerca c e nella pagina', false !== strpos( $vistaCerca, 'Riscrivi un contenuto preciso' ) );
+
+// E deve esserci sempre. La prima volta l avevo messa dentro al riquadro
+// «stai correggendo», che compare solo arrivando da un problema: aprendo la
+// riscrittura dal menu non si vedeva, ed e proprio il caso per cui serve.
+verifica(
+	'e si vede anche senza arrivare da un problema',
+	strpos( $vistaCerca, 'id="cerca"' ) > strpos( $vistaCerca, 'Lavora invece su tutto' ),
+	'la ricerca sta dentro al riquadro che compare solo quando si arriva da una regola'
+);
+
+verifica(
+	'come le ricerche contese',
+	strpos( $vistaCerca, 'id="contese"' ) > strpos( $vistaCerca, 'Lavora invece su tutto' )
+);
 
 @unlink( $fileCerca );
 
