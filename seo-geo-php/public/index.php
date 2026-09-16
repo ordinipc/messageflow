@@ -2759,6 +2759,23 @@ switch ( $pagina ) {
 			? \SeoGeo\Search\Spinta::daRilevazione( $db, (int) $ultima['id'] )
 			: array( 'gruppi' => array(), 'mappa' => array(), 'conteggi' => array( 'ricerche' => 0, 'contese' => 0, 'pagine_che_cedono' => 0 ) );
 
+		// Se la spinta sia accesa lo sa il sito, non questa pagina: tenersene
+		// un segno per conto proprio vuol dire dire «attiva» anche dopo che
+		// qualcuno ha rimesso il numero a zero da WordPress.
+		$spinta_sul_sito = array();
+
+		try {
+			$ponte_spinta = new WordPress( $cfg['wordpress'] );
+
+			if ( $ponte_spinta->pronto() ) {
+				$spinta_sul_sito = (array) ( $ponte_spinta->stato()['spinta'] ?? array() );
+			}
+		} catch ( Throwable $e ) {
+			// Il sito non risponde: non si dice ne che e accesa ne che e
+			// spenta. Si vede il piano e basta.
+			unset( $e );
+		}
+
 		vista(
 			'prestazioni',
 			array(
@@ -2775,6 +2792,7 @@ switch ( $pagina ) {
 					? Sitemap::trova( (string) ( $cfg['wordpress']['url'] ?? $sito ) )
 					: array(),
 				'spinta'       => $spinta,
+				'spinta_sul_sito' => $spinta_sul_sito,
 				'sitemap_google' => Prestazioni::configurata( $cfg )
 					? Sitemap::conosciute( Prestazioni::client( $cfg ) )
 					: array(),

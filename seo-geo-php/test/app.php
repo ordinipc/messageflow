@@ -4540,6 +4540,22 @@ verifica(
 	'per qualche secondo il sito avrebbe i link accesi sulla mappa vecchia'
 );
 
+// Dopo aver premuto, la scheda deve dire che cosa e successo: lasciarla
+// identica lascia chi guarda a chiedersi se il pulsante abbia fatto qualcosa.
+$vistaPrestazioni = file_get_contents( __DIR__ . '/../views/prestazioni.php' );
+
+verifica( 'a spinta attiva la scheda lo dice', false !== strpos( $vistaPrestazioni, 'La spinta è attiva sul sito' ) );
+verifica( 'e il pulsante cambia parole', false !== strpos( $vistaPrestazioni, 'Aggiorna la spinta sul sito' ) );
+verifica(
+	'ma lo stato lo chiede al sito, non se lo tiene per conto suo',
+	false !== strpos( file_get_contents( __DIR__ . '/../public/index.php' ), "\$ponte_spinta->stato()['spinta']" ),
+	'un segno tenuto a parte dice «attiva» anche dopo che qualcuno ha spento da WordPress'
+);
+verifica(
+	'e se il sito non risponde non si inventa ne acceso ne spento',
+	false !== strpos( file_get_contents( __DIR__ . '/../public/index.php' ), '$spinta_sul_sito = array();' )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

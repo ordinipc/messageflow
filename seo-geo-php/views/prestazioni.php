@@ -14,6 +14,7 @@
  * @var array|null $ultima      Ultima rilevazione.
  * @var array|null $precedente  Rilevazione prima di quella.
  * @var array      $spinta      Piano di spinta dai dati di Search Console.
+ * @var array      $spinta_sul_sito Come sta la spinta adesso, chiesto al sito.
  * @var array[]    $storico     Rilevazioni recenti.
  * @var array[]    $segnali     Cose da fare.
  * @var array[]    $piano       Cose che si possono fare da sole.
@@ -314,9 +315,39 @@ function delta( $ora, $prima, $meglio = false ) {
 			<?php endif; ?>
 		</section>
 
+		<?php
+		$spinta_attiva = (int) ( $spinta_sul_sito['per_articolo'] ?? 0 ) > 0
+			&& (int) ( $spinta_sul_sito['ricerche'] ?? 0 ) > 0;
+		$spinta_nuove  = $spinta_attiva
+			? (int) $spinta['conteggi']['ricerche'] - (int) $spinta_sul_sito['ricerche']
+			: 0;
+		?>
 		<?php if ( ! empty( $spinta['gruppi'] ) ) : ?>
 		<section class="scheda">
 			<h2>Spingi le pagine con i link interni</h2>
+
+			<?php if ( $spinta_attiva ) : ?>
+				<p class="avviso ok-bg">
+					<strong>La spinta è attiva sul sito.</strong>
+					Il sito sta mettendo fino a <strong><?php echo num( (int) $spinta_sul_sito['per_articolo'] ); ?> link per articolo</strong>
+					su <strong><?php echo num( (int) $spinta_sul_sito['ricerche'] ); ?> ricerche</strong>.
+					Questo numero non l'ha scritto questa pagina: gliel'ho appena chiesto al sito.
+					<?php if ( 0 !== $spinta_nuove ) : ?>
+						Da allora l'ultima lettura di Search Console ha cambiato il piano:
+						adesso le ricerche sarebbero <?php echo num( (int) $spinta['conteggi']['ricerche'] ); ?>.
+						Rimandarlo lo aggiorna.
+					<?php else : ?>
+						Il piano qui sotto è lo stesso che il sito sta già usando: non c'è niente da rifare
+						finché non rileggi Search Console.
+					<?php endif; ?>
+				</p>
+			<?php elseif ( $spinta_sul_sito ) : ?>
+				<p class="nota">
+					Sul sito la spinta è <strong>spenta</strong> (zero link per articolo): il piano qui sotto
+					è pronto ma non è ancora in pagina.
+				</p>
+			<?php endif; ?>
+
 			<p class="guida">
 				Questa non riscrive niente e non costa token. Google stesso dice, ricerca per ricerca,
 				quali tue pagine si alternano e quale delle tue sta messa meglio: si prende quella e
@@ -365,9 +396,9 @@ function delta( $ora, $prima, $meglio = false ) {
 							trasformare il testo in una rete di collegamenti.
 						</small>
 					</span>
-					<input type="number" name="per_articolo" value="3" min="1" max="8" style="width:5rem">
+					<input type="number" name="per_articolo" value="<?php echo $spinta_attiva ? (int) $spinta_sul_sito['per_articolo'] : 3; ?>" min="1" max="8" style="width:5rem">
 				</label>
-				<button class="bottone" type="submit">Attiva la spinta sul sito</button>
+				<button class="bottone" type="submit"><?php echo $spinta_attiva ? 'Aggiorna la spinta sul sito' : 'Attiva la spinta sul sito'; ?></button>
 			</form>
 
 			<p class="nota">

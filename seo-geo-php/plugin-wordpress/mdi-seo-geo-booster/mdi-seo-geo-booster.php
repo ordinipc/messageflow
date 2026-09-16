@@ -3,7 +3,7 @@
  * Plugin Name:       MDI SEO & GEO Booster
  * Plugin URI:        https://maxdigitalinnovation.it/
  * Description:       Correzione automatica dei problemi SEO e GEO rilevati dall'audit: dati strutturati, meta ottimizzate, link interni, immagini, llms.txt e direttive per i crawler AI.
- * Version:           2.22.0
+ * Version:           2.22.1
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            seo-geo-toolkit
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'MDI_SEO_GEO_VERSION', '2.22.0' );
+define( 'MDI_SEO_GEO_VERSION', '2.22.1' );
 define( 'MDI_SEO_GEO_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MDI_SEO_GEO_URL', plugin_dir_url( __FILE__ ) );
 
@@ -51,8 +51,11 @@ function mdi_seo_geo_data( $name ) {
 	$file = MDI_SEO_GEO_DIR . 'data/' . sanitize_file_name( $name ) . '.json';
 
 	if ( ! file_exists( $file ) ) {
-		$cache[ $name ] = array();
-		return $cache[ $name ];
+		// Un file che non c e non si mette in cache: costa poco richiederlo,
+		// e ricordarsi «vuoto» vuol dire restare vuoti anche dopo che il
+		// file e arrivato. Succedeva gia dentro a una richiesta sola, appena
+		// qualcosa leggeva la mappa prima che fosse scritta.
+		return array();
 	}
 
 	$decoded       = json_decode( file_get_contents( $file ), true );

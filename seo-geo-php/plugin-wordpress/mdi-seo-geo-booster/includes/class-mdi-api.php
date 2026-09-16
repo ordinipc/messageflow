@@ -992,6 +992,15 @@ class MDI_Api {
 				'telefono'   => (bool) mdi_seo_geo_cfg( 'azienda.telefono' ),
 				'piva'       => (bool) mdi_seo_geo_cfg( 'azienda.partitaIva' ),
 				'analisi'    => class_exists( 'MDI_Admin' ) && '' !== MDI_Admin::url_analisi(),
+				// La spinta: quante ricerche ci sono nella mappa dei link
+				// interni e quanti link per articolo il sito sta mettendo.
+				// Il gestionale lo chiede al sito invece di tenersene un
+				// segno per conto suo: un segno a parte e vero solo finche
+				// nessuno tocca niente da un altra strada.
+				'spinta'     => array(
+					'ricerche'     => count( (array) mdi_seo_geo_data( 'internal-links' ) ),
+					'per_articolo' => (int) mdi_seo_geo_cfg( 'seo.linkInterniPerArticolo', 0 ),
+				),
 			)
 		);
 	}

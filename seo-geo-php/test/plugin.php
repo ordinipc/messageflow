@@ -1495,6 +1495,29 @@ MDI_Api::salva_dati( new WP_REST_Request( array( 'nome' => 'related', 'dati' => 
 
 verifica( 'e il sito smette di servire le pagine costruite sul piano di prima', 1 === count( $svuotamenti( 'litespeed_purge_all' ) ) );
 
+// Se la spinta sia accesa lo deve dire il sito. Tenersene un segno nel
+// gestionale vuol dire scrivere «attiva» anche dopo che qualcuno ha rimesso
+// il numero a zero da WordPress, ed e esattamente il difetto che ha fatto
+// perdere mezza giornata con i link nella home.
+$GLOBALS['wp']['opzioni']['mdi_seo_geo_dati_internal-links'] = array(
+	'agenzia di comunicazione a palermo' => 'https://esempio.it/',
+	'web agency a palermo'               => 'https://esempio.it/servizi/',
+);
+$GLOBALS['wp']['opzioni']['mdi_seo_geo_config'] = array_replace_recursive(
+	(array) ( $GLOBALS['wp']['opzioni']['mdi_seo_geo_config'] ?? array() ),
+	array( 'seo' => array( 'linkInterniPerArticolo' => 3 ) )
+);
+
+$statoSpinta = MDI_Api::stato();
+
+verifica( 'il sito dice quante ricerche ha nella mappa', 2 === (int) ( $statoSpinta['spinta']['ricerche'] ?? 0 ), wp_json_encode( $statoSpinta['spinta'] ?? array() ) );
+verifica( 'e quanti link per articolo sta mettendo', 3 === (int) ( $statoSpinta['spinta']['per_articolo'] ?? 0 ), wp_json_encode( $statoSpinta['spinta'] ?? array() ) );
+
+// Spenta da WordPress: il gestionale lo deve vedere alla richiesta dopo.
+$GLOBALS['wp']['opzioni']['mdi_seo_geo_config']['seo']['linkInterniPerArticolo'] = 0;
+
+verifica( 'e quando qualcuno la spegne da WordPress si vede subito', 0 === (int) ( MDI_Api::stato()['spinta']['per_articolo'] ?? -1 ) );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );
