@@ -202,6 +202,14 @@ class Coda {
 				'token_out' => 0,
 				'costo'     => null,
 			),
+			// Il totale, con lo stesso nome che usa Rewriter::stima(). Le due
+			// funzioni si chiamano tutte e due «stima» e rispondevano con
+			// forme diverse: chi leggeva 'costo_stimato' da questa otteneva
+			// niente, e con un «?? 0» in mezzo si vedeva «0,00 €» accanto a
+			// centosessantaquattro riscritture. Una cifra sbagliata detta con
+			// sicurezza e peggio di nessuna cifra.
+			'articoli'      => $quanti_bozze,
+			'costo_stimato' => round( $costo( $in_bozze, $out_bozze ) + $costo( $in_fus, $out_fus ), 2 ),
 		);
 	}
 

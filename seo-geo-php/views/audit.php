@@ -278,8 +278,16 @@ $scaricabili = array(
 // Quanto lavoro c e davvero da fare, per dire prima di premere che cosa
 // succede: un pulsante che dice «tutto» senza dire quanto costa non e un
 // pulsante, e una scommessa.
-$daRiscrivere = count( \SeoGeo\Ai\Rewriter::daCorreggere( $db, (int) $audit['id'] ) );
-$costoStima   = \SeoGeo\Coda::stima( $db, (int) $audit['id'], $cfg, array( 'tutto_larchivio' => true ) );
+// Un elenco solo, e da quello si ricavano sia il numero sia il costo: due
+// conti fatti da due parti diverse finiscono per non tornare.
+$articoliDaCorreggere = \SeoGeo\Ai\Rewriter::daCorreggere( $db, (int) $audit['id'] );
+$daRiscrivere         = count( $articoliDaCorreggere );
+$costoStima           = \SeoGeo\Ai\Rewriter::stima( $articoliDaCorreggere, $cfg['ai'] );
+
+// Quante operazioni saranno in coda: e il numero che comparira sulla pagina
+// del pilota. Ogni riscrittura ne vale due, perche va anche pubblicata; il
+// resto sono i lavori fissi.
+$operazioniStimate = $daRiscrivere * 2 + 20;
 ?>
 <form class="scheda" method="post" action="?p=pilota-avvia">
 	<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
@@ -301,8 +309,16 @@ $costoStima   = \SeoGeo\Coda::stima( $db, (int) $audit['id'], $cfg, array( 'tutt
 	</p>
 	<p class="guida">
 		<strong>Costo stimato: <?php echo number_format( (float) ( $costoStima['costo_stimato'] ?? 0 ), 2, ',', '.' ); ?> €</strong>
-		di token Gemini. Si lavora a lotti e si può fermare in qualsiasi momento: quello che è già
-		stato fatto resta. Le pagine non vengono toccate.
+		di token Gemini
+		(<?php echo num( (int) ( $costoStima['token_in'] ?? 0 ) + (int) ( $costoStima['token_out'] ?? 0 ) ); ?> token).
+		Si lavora a lotti e si può fermare in qualsiasi momento: quello che è già stato fatto resta.
+		Le pagine non vengono toccate.
+	</p>
+	<p class="nota">
+		Sulla pagina del pilota vedrai circa <strong><?php echo num( $operazioniStimate ); ?> operazioni</strong>,
+		non <?php echo num( $daRiscrivere ); ?>: ogni riscrittura conta due volte — una per scriverla,
+		una per pubblicarla sull'articolo — più i lavori fissi (dati aziendali, meta a blocchi,
+		redirect, categorie, immagini).
 	</p>
 	<p class="guida">
 		Quello che <strong>non</strong> fa: i controlli segnati «a mano» nella tabella qui sopra —

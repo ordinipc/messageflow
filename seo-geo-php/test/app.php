@@ -3863,7 +3863,28 @@ verifica( 'e il cambiamento piu grosso viene per primo', 'ONP-01' === $differenz
 verifica( 'il pulsante unico c e', false !== strpos( $vistaAudit, 'Correggi tutto e pubblica' ) );
 verifica( 'e chiede al pilota di lavorare su tutto l archivio', false !== strpos( $vistaAudit, "name=\"tutto_larchivio\"" ) );
 verifica( 'e il pilota legge quell opzione', false !== strpos( $indiceSorgente, "'tutto_larchivio' => ! empty( \$_POST['tutto_larchivio'] )" ) );
-verifica( 'e il costo mostrato e quello di quel lavoro', false !== strpos( $vistaAudit, "array( 'tutto_larchivio' => true )" ) );
+// Il numero e il costo devono uscire dallo stesso elenco: due conti fatti da
+// due parti diverse finiscono per non tornare, ed e successo - «164 articoli»
+// accanto a «0,00 €», perche si leggeva una chiave che quella funzione non
+// restituisce e un «?? 0» copriva il buco.
+verifica(
+	'il costo esce dallo stesso elenco del numero',
+	false !== strpos( $vistaAudit, "\$costoStima           = \SeoGeo\Ai\Rewriter::stima( \$articoliDaCorreggere" ),
+	'numero e costo vengono da due conti diversi'
+);
+
+// E le due funzioni che si chiamano «stima» devono almeno rispondere con le
+// stesse chiavi, cosi leggerne una al posto dell altra non da zero in
+// silenzio.
+$chiaviRewriter = array_keys( \SeoGeo\Ai\Rewriter::stima( array(), array( 'prezzo_per_milione' => array( 'input' => 1, 'output' => 2 ) ) ) );
+$chiaviCoda     = array_keys( \SeoGeo\Coda::stima( $dbTutto, $auditTutto, array( 'ai' => array( 'prezzo_per_milione' => array( 'input' => 1, 'output' => 2 ) ) ) ) );
+
+verifica(
+	'le due stime rispondono con le stesse chiavi principali',
+	array() === array_diff( array( 'articoli', 'costo_stimato' ), $chiaviRewriter )
+		&& array() === array_diff( array( 'articoli', 'costo_stimato' ), $chiaviCoda ),
+	json_encode( array( 'rewriter' => $chiaviRewriter, 'coda' => $chiaviCoda ) )
+);
 
 @unlink( $fileTutto );
 
