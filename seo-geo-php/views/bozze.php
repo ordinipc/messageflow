@@ -7,6 +7,7 @@
  * @var array  $rilievo   Riga del rilievo corrispondente.
  * @var array  $da_regola Contenuti che hanno quel problema.
  * @var array  $esclusi   Occorrenze della regola che non finiscono in coda, col perche.
+ * @var array  $contese   Ricerche contese: chi vince e chi cede.
  * @var array $audit  Riga audit.
  * @var array $cfg    Configurazione.
  * @var bool  $pronto Chiave API presente.
@@ -16,6 +17,11 @@
 
 $riuscite = array_filter( $bozze, static fn( $b ) => 'ok' === $b['stato'] );
 $errate   = array_filter( $bozze, static fn( $b ) => 'ok' !== $b['stato'] );
+
+// Questa vista si apre da piu strade: senza questa riga, da quelle che non
+// calcolano le ricerche contese la pagina uscirebbe con un avviso di PHP
+// dentro.
+$contese  = $contese ?? array();
 
 ?>
 <section class="intestazione">
@@ -198,11 +204,88 @@ $daFondere = in_array( $regola, array( 'LOC-05', 'ONP-06', 'CNT-03' ), true );
 
 	<?php if ( $daFondere ) : ?>
 		<p class="avviso">
-			Questo problema <strong>non si risolve riscrivendo un articolo per volta</strong>: due pagine
-			che si contendono la stessa ricerca vanno <strong>fuse in una</strong>. Lo strumento giusto è
-			<a href="#gruppi">Cannibalizzazione: gruppi da fondere</a>, più in basso in questa pagina —
-			<?php echo $gruppi > 0 ? 'ci sono ' . num( $gruppi ) . ' gruppi pronti.' : 'al momento non ci sono gruppi da fondere.'; ?>
+			Questo problema <strong>non si risolve riscrivendo un articolo per volta</strong>: due contenuti
+			che si contendono la stessa ricerca si tolgono forza finché uno dei due non smette di
+			dichiararla. Qui sotto c'è chi vince ogni ricerca e che cosa fanno gli altri.
+			<?php if ( $gruppi > 0 ) : ?>
+				Se invece sono due articoli davvero sovrapposti, si fondono:
+				<a href="#gruppi">ci sono <?php echo num( $gruppi ); ?> gruppi pronti</a>.
+			<?php endif; ?>
 		</p>
+	<?php endif; ?>
+
+	<?php if ( ! empty( $contese ) ) : ?>
+		<?php $pianoContese = \SeoGeo\Fix\Cannibalizzazione::piano( $contese ); ?>
+		<section class="scheda" id="contese">
+			<h3>Chi vince la ricerca, e che cosa fanno gli altri</h3>
+			<p class="guida">
+				Fondere non è l'unico rimedio, e spesso non è quello giusto: una <strong>pagina servizio</strong>
+				e un <strong>articolo del blog</strong> non sono due doppioni, sono due lavori diversi che per
+				sbaglio dichiarano la stessa parola chiave. La pagina deve vincere la ricerca commerciale;
+				l'articolo prende la variante lunga che già racconta e manda forza alla pagina con un link.
+			</p>
+
+			<?php foreach ( $contese as $g ) : ?>
+				<div class="tabellabox">
+					<table>
+						<thead>
+							<tr>
+								<th>Ricerca contesa: <span class="mono"><?php echo e( $g['ancora'] ); ?></span></th>
+								<th>Che cosa succede</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>
+									<span class="tag ok">vince</span>
+									<a href="<?php echo e( $g['vincitore']['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( $g['vincitore']['titolo'] ); ?></a>
+									<div class="sotto"><?php echo 'page' === $g['vincitore']['tipo'] ? 'pagina servizio' : 'articolo'; ?> · <?php echo num( $g['vincitore']['parole'] ); ?> parole</div>
+								</td>
+								<td><small><?php echo e( $g['spiega'] ); ?></small></td>
+							</tr>
+							<?php foreach ( $g['perdenti'] as $p ) : ?>
+								<tr>
+									<td>
+										<span class="tag <?php echo ! empty( $p['automatico'] ) ? 'alto' : 'grave'; ?>"><?php echo ! empty( $p['automatico'] ) ? 'cede' : 'a mano'; ?></span>
+										<a href="<?php echo e( $p['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( $p['titolo'] ); ?></a>
+										<div class="sotto"><?php echo 'page' === $p['tipo'] ? 'pagina servizio' : 'articolo'; ?> · ora dichiara «<?php echo e( $p['focus'] ); ?>»</div>
+									</td>
+									<td>
+										<?php if ( ! empty( $p['variante'] ) ) : ?>
+											passa a «<strong><?php echo e( $p['variante'] ); ?></strong>»<br>
+										<?php endif; ?>
+										<small><?php echo e( $p['motivo'] ); ?></small>
+									</td>
+								</tr>
+							<?php endforeach; ?>
+						</tbody>
+					</table>
+				</div>
+			<?php endforeach; ?>
+
+			<?php if ( $pianoContese['meta'] || $pianoContese['link'] ) : ?>
+				<form method="post" action="?p=applica-contese">
+					<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+					<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
+					<button class="bottone" type="submit">Applica: <?php echo num( count( $pianoContese['meta'] ) ); ?> articoli cedono la ricerca</button>
+				</form>
+				<p class="nota">
+					Cambia la <strong>parola chiave dichiarata</strong> degli articoli che cedono e aggiunge il link
+					verso chi vince. Non riscrive nessun testo, non crea redirect, non tocca le pagine servizio, e
+					si annulla rimettendo la parola chiave di prima da WordPress. Il title segue alla prossima
+					passata di «Meta degli articoli», che ora lo costruisce sulla parola chiave nuova.
+					<?php if ( $pianoContese['a_mano'] ) : ?>
+						<?php echo num( count( $pianoContese['a_mano'] ) ); ?> restano a te: sono pagine servizio, e
+						si sistemano aprendo la pagina in WordPress e cambiando lì la parola chiave.
+					<?php endif; ?>
+				</p>
+			<?php else : ?>
+				<p class="nota">
+					Qui non c'è niente da applicare da solo: i contenuti in gara sono pagine servizio, e quelle
+					si sistemano a mano — è una scelta voluta.
+				</p>
+			<?php endif; ?>
+		</section>
 	<?php endif; ?>
 
 	<?php if ( $pronto && ! $daFondere && count( $da_regola ) > 0 ) : ?>

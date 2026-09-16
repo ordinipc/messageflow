@@ -2865,10 +2865,16 @@ verifica(
 
 // I problemi che si risolvono fondendo due pagine non vanno mandati alla
 // riscrittura di un articolo per volta: sarebbe lo strumento sbagliato.
+// Prima questa prova chiedeva che la pagina dicesse «vanno fuse in una».
+// Era il rimedio sbagliato per i gruppi veri di questo sito: in tutti e due
+// una delle due e una pagina servizio, e fondere una pagina servizio con un
+// articolo del blog non si fa. Quello che deve restare e che la riscrittura
+// di un articolo per volta non e lo strumento, e che si veda chi vince.
 verifica(
 	'i problemi da accorpare portano al posto giusto',
 	false !== strpos( $vistaBozze, "array( 'LOC-05', 'ONP-06', 'CNT-03' )" )
-		&& false !== strpos( $vistaBozze, 'vanno <strong>fuse in una</strong>' )
+		&& false !== strpos( $vistaBozze, 'non si risolve riscrivendo un articolo per volta' )
+		&& false !== strpos( $vistaBozze, 'Chi vince la ricerca, e che cosa fanno gli altri' )
 );
 
 verifica(
@@ -4831,6 +4837,114 @@ verifica( 'e il contenuto non torna in coda', array() === \SeoGeo\Ai\Rewriter::c
 verifica( 'su una regola che non si sa misurare non si tocca niente', array() === \SeoGeo\Ai\Rewriter::bozzeCheNonChiudono( $dbVecchia, $auditVec, 'GEO-05' ) );
 
 @unlink( $fileVecchia );
+
+// ---------------------------------------------------------------------------
+// Cannibalizzazione: chi vince e chi cede
+//
+// «Due pagine tue competono sulla stessa ricerca» e una diagnosi, non un
+// rimedio. E il rimedio proposto - fondere - sui due gruppi trovati sul sito
+// non si poteva applicare: in tutti e due una delle due e una pagina
+// servizio, e le pagine non si toccano. Restava un rilievo aperto con scritto
+// «non c e niente da fondere».
+
+echo "\nCannibalizzazione: chi vince e chi cede\n";
+
+use SeoGeo\Fix\Cannibalizzazione;
+
+$fileCan = sys_get_temp_dir() . '/prova-cannibal-' . getmypid() . '.sqlite';
+@unlink( $fileCan );
+$dbCan   = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileCan ) );
+$auditCan = $dbCan->insert( 'audit', array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => '2026-09-16 10:00:00', 'punteggio' => 50 ) );
+
+$metti = static function ( $wp, $tipo, $titolo, $percorso, $focus, $parole ) use ( $dbCan, $auditCan ) {
+	return $dbCan->insert(
+		'documento',
+		array(
+			'audit_id' => $auditCan, 'wp_id' => (string) $wp, 'tipo' => $tipo, 'stato' => 'publish',
+			'titolo' => $titolo, 'slug' => trim( $percorso, '/' ), 'percorso' => $percorso,
+			'url' => 'https://esempio.it' . $percorso, 'parole' => $parole, 'focus_keyword' => $focus,
+		)
+	);
+};
+
+$paginaVideo  = $metti( 10, 'page', 'Produzione video Palermo', '/produzione-video-palermo/', 'produzione video palermo', 600 );
+$articoloVideo = $metti( 11, 'post', 'Produzione Video a Palermo: Come Scegliere l Agenzia Giusta', '/produzione-video-a-palermo-come-scegliere-lagenzia-giusta/', 'produzione video a palermo', 1400 );
+
+$gruppiCan = Cannibalizzazione::gruppi( $dbCan, $auditCan );
+
+verifica( 'le due pagine che si contendono la ricerca finiscono nello stesso gruppo', 1 === count( $gruppiCan ), (string) count( $gruppiCan ) );
+verifica(
+	'senza dati di Google vince la pagina servizio',
+	$paginaVideo === (int) $gruppiCan[0]['vincitore']['id'],
+	$gruppiCan[0]['vincitore']['titolo'] ?? ''
+);
+verifica( 'e non si spaccia per una decisione di Google', empty( $gruppiCan[0]['da_google'] ) );
+
+$perdente = $gruppiCan[0]['perdenti'][0] ?? array();
+
+verifica( 'chi perde prende una variante lunga ricavata dal suo titolo', false !== strpos( (string) ( $perdente['variante'] ?? '' ), 'scegliere' ), (string) ( $perdente['variante'] ?? '' ) );
+verifica( 'che contiene ancora la ricerca contesa', false !== strpos( (string) ( $perdente['variante'] ?? '' ), 'produzione' ), (string) ( $perdente['variante'] ?? '' ) );
+verifica( 'ed essendo un articolo si corregge da solo', ! empty( $perdente['automatico'] ) );
+
+// Se Google ha dei numeri, decide lui: e una misura, non un parere. Qui
+// l articolo prende i clic e la pagina no.
+$gsc = array(
+	array( 'query' => 'produzione video palermo', 'url' => 'https://esempio.it/produzione-video-a-palermo-come-scegliere-lagenzia-giusta/', 'clic' => 12, 'impression' => 300, 'posizione' => 4.0 ),
+	array( 'query' => 'produzione video palermo', 'url' => 'https://esempio.it/produzione-video-palermo/', 'clic' => 0, 'impression' => 20, 'posizione' => 30.0 ),
+);
+
+$conGoogle = Cannibalizzazione::gruppi( $dbCan, $auditCan, $gsc );
+
+verifica( 'con i dati di Google vince chi Google gia sceglie', $articoloVideo === (int) $conGoogle[0]['vincitore']['id'], $conGoogle[0]['vincitore']['titolo'] ?? '' );
+verifica( 'e lo si dice', ! empty( $conGoogle[0]['da_google'] ) );
+
+// Una pagina che perde non si tocca: si dice che cosa fare e lo fa una
+// persona. E il vincolo ripetuto piu volte da chi usa il programma.
+$perdenteOra = $conGoogle[0]['perdenti'][0] ?? array();
+
+verifica( 'una pagina che perde non si corregge da sola', 'page' === ( $perdenteOra['tipo'] ?? '' ) && empty( $perdenteOra['automatico'] ), json_encode( $perdenteOra['tipo'] ?? '' ) );
+verifica( 'e si dice perche', false !== strpos( (string) ( $perdenteOra['motivo'] ?? '' ), 'pagina servizio' ), (string) ( $perdenteOra['motivo'] ?? '' ) );
+
+// Il piano: che cosa va sul sito da solo, che cosa resta a una persona, e il
+// link che manda forza a chi vince.
+$pianoCan = Cannibalizzazione::piano( $conGoogle );
+
+// Il testo del link deve essere una frase che qualcuno scrive davvero: la
+// chiave del gruppo e ordinata alfabeticamente per raggruppare, e come
+// ancora non servirebbe a niente perche in nessun testo compare.
+verifica( 'il link verso chi vince c e', 'https://esempio.it/produzione-video-a-palermo-come-scegliere-lagenzia-giusta/' === ( $pianoCan['link']['produzione video a palermo'] ?? '' ), json_encode( $pianoCan['link'] ) );
+verifica( 'e il suo testo e una frase vera, non la chiave ordinata', ! isset( $pianoCan['link']['palermo produzione video'] ), json_encode( array_keys( $pianoCan['link'] ) ) );
+verifica( 'la pagina finisce fra le cose da fare a mano', 1 === count( $pianoCan['a_mano'] ), json_encode( $pianoCan['a_mano'] ) );
+verifica( 'e non fra le meta da inviare', array() === $pianoCan['meta'], json_encode( $pianoCan['meta'] ) );
+
+// Un titolo che non dice niente di diverso non produce una parola chiave
+// inventata: quel gruppo passa a chi decide.
+$metti( 12, 'post', 'Produzione video Palermo', '/produzione-video-palermo-2/', 'produzione video palermo', 900 );
+
+$treCan   = Cannibalizzazione::gruppi( $dbCan, $auditCan );
+$doppione = null;
+
+foreach ( $treCan[0]['perdenti'] as $p ) {
+	if ( 12 === (int) $p['wp_id'] ) {
+		$doppione = $p;
+	}
+}
+
+verifica( 'un titolo identico non produce una variante inventata', '' === ( $doppione['variante'] ?? 'x' ), (string) ( $doppione['variante'] ?? '' ) );
+verifica( 'e si dice che li serve una decisione', false !== strpos( (string) ( $doppione['motivo'] ?? '' ), 'decisione' ), (string) ( $doppione['motivo'] ?? '' ) );
+
+// Le stesse parole in ordine diverso sono la stessa ricerca: se no i gruppi
+// qui sarebbero diversi da quelli della tabella dei problemi.
+verifica( 'l ordine delle parole non fa due ricerche diverse', Cannibalizzazione::normalizza( 'produzione video a palermo' ) === Cannibalizzazione::normalizza( 'video di produzione palermo' ) );
+
+// Un anno in coda al titolo non e un argomento: non puo diventare la parola
+// chiave di niente.
+verifica(
+	'un anno non diventa una variante',
+	false === strpos( Cannibalizzazione::variante( array( 'titolo' => 'Agenzia di comunicazione a Palermo nel 2025', 'tipo' => 'post' ), 'agenzia comunicazione palermo' ), '2025' )
+);
+
+@unlink( $fileCan );
 
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 

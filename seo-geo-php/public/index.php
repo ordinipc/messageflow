@@ -560,6 +560,67 @@ if ( 'applica-segnali' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	exit;
 }
 
+// ------------------ Cannibalizzazione: chi vince la ricerca, chi le cede
+if ( 'applica-contese' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Token di sessione non valido: ricarica la pagina e riprova.' );
+	}
+
+	$id    = (int) ( $_POST['id'] ?? 0 );
+	$piano = \SeoGeo\Fix\Cannibalizzazione::piano(
+		\SeoGeo\Fix\Cannibalizzazione::gruppi( $db, $id, \SeoGeo\Fix\Cannibalizzazione::daGoogle( $db, $cfg ) )
+	);
+
+	if ( ! $piano['meta'] && ! $piano['link'] ) {
+		header( 'Location: ?p=bozze&id=' . $id . '&errore=' . rawurlencode( 'Non c è niente da applicare: i contenuti in gara sono pagine, e quelle si sistemano a mano.' ) );
+		exit;
+	}
+
+	try {
+		$ponte = new WordPress( $cfg['wordpress'] );
+
+		// La parola chiave nuova va sul sito: da li Rank Math ricalcola, e la
+		// pagina smette di dichiarare la ricerca di chi vince.
+		$righe = array();
+
+		foreach ( $piano['meta'] as $m ) {
+			$righe[] = array( 'id' => (int) $m['wp_id'], 'focus' => (string) $m['focus'] );
+		}
+
+		if ( $righe ) {
+			$ponte->inviaMeta( $righe );
+		}
+
+		// E il link che manda forza a chi vince, con la ricerca per testo.
+		// Si aggiunge alla mappa che c e gia: sovrascriverla butterebbe via
+		// la spinta costruita sui dati di Search Console.
+		if ( $piano['link'] ) {
+			$ultima = Prestazioni::ultima( $db, Prestazioni::chiaveSito( $cfg ) );
+			$mappa  = $ultima
+				? \SeoGeo\Search\Spinta::daRilevazione( $db, (int) $ultima['id'] )['mappa']
+				: array();
+
+			$ponte->inviaDati( 'internal-links', $piano['link'] + $mappa );
+		}
+	} catch ( Throwable $e ) {
+		header( 'Location: ?p=bozze&id=' . $id . '&errore=' . rawurlencode( $e->getMessage() ) );
+		exit;
+	}
+
+	header(
+		'Location: ?p=bozze&id=' . $id . '&messaggio=' . rawurlencode(
+			sprintf(
+				'%d articoli hanno smesso di dichiarare la ricerca di chi vince e hanno preso la loro variante lunga; %d ricerche mandano forza alla pagina giusta. %s',
+				count( $piano['meta'] ),
+				count( $piano['link'] ),
+				$piano['a_mano'] ? count( $piano['a_mano'] ) . ' restano a te: sono pagine servizio.' : ''
+			)
+		)
+	);
+	exit;
+}
+
 // ------------------ Spinta: link interni costruiti sui dati di Google
 if ( 'applica-spinta' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
@@ -3161,6 +3222,14 @@ switch ( $pagina ) {
 				'fatte'     => (int) ( $_GET['fatte'] ?? 0 ),
 				'errori'    => (int) ( $_GET['errori'] ?? 0 ),
 				'gruppi'    => count( Rewriter::gruppi( $db, $id ) ),
+				// Fondere non e l unico rimedio alla cannibalizzazione, e sui
+				// gruppi di questo sito non e nemmeno quello giusto: una
+				// pagina servizio e un articolo non sono doppioni.
+				'contese'   => \SeoGeo\Fix\Cannibalizzazione::gruppi(
+					$db,
+					$id,
+					\SeoGeo\Fix\Cannibalizzazione::daGoogle( $db, $cfg )
+				),
 				// I buchi [DA VERIFICARE] rimasti nelle bozze, raggruppati:
 				// su duecento bozze le etichette distinte sono poche decine.
 				// Da quale problema si e arrivati: il pulsante nella tabella
