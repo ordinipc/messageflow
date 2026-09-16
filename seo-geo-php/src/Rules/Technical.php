@@ -21,10 +21,32 @@ class Technical {
 		return array(
 			array(
 				'id' => 'TEC-01', 'area' => 'technical', 'gravita' => Base::CRITICO, 'auto' => false,
-				'titolo' => 'Due plugin SEO attivi contemporaneamente (Rank Math e Yoast)',
+				'titolo' => 'Due plugin SEO attivi contemporaneamente',
 				'perche' => 'Entrambi stampano title, meta description, canonical, Open Graph e dati strutturati: si generano tag duplicati e in conflitto e Google può scegliere quello sbagliato.',
-				'soluzione' => 'Tenere Rank Math, migrare i dati residui di Yoast, disinstallare Yoast e ripulire i postmeta _yoast_*.',
+				'soluzione' => 'Tenerne uno solo: migrare i dati, disattivare l altro e ripulire i suoi postmeta.',
 				'check' => static function ( Site $s ) {
+					// Prima si guardavano i postmeta: se c erano sia
+					// rank_math_title sia _yoast_wpseo_title si concludeva che
+					// i due plugin erano entrambi attivi. Ma un Yoast
+					// disinstallato lascia i suoi postmeta nel database per
+					// sempre, e da quelli non si puo dedurre niente sul
+					// presente. Il gestionale segnalava un conflitto critico a
+					// chi aveva un plugin solo.
+					//
+					// Adesso si chiede al sito quali sono caricati davvero.
+					if ( $s->seoAttivi ) {
+						if ( count( $s->seoAttivi ) < 2 ) {
+							return array();
+						}
+
+						return array(
+							Base::sito( 'attivi insieme: ' . implode( ' e ', $s->seoAttivi ) ),
+						);
+					}
+
+					// Il sito non lo dichiara - analisi da un export, o plugin
+					// non aggiornato - e allora si torna a guardare i
+					// postmeta, ma dicendo che cosa si e visto davvero.
 					$rm = 0;
 					$yo = 0;
 					foreach ( $s->pubblicati as $d ) {
@@ -35,9 +57,53 @@ class Technical {
 							$yo++;
 						}
 					}
+
 					return ( $rm && $yo )
-						? array( Base::sito( "Rank Math su $rm contenuti e Yoast su $yo contenuti: entrambi installati" ) )
+						? array( Base::sito( "dati di Rank Math su $rm contenuti e di Yoast su $yo: da verificare quali plugin siano attivi" ) )
 						: array();
+				},
+			),
+			array(
+				'id' => 'TEC-09', 'area' => 'technical', 'gravita' => Base::BASSO, 'auto' => false,
+				'titolo' => 'Dati di un vecchio plugin SEO rimasti nel database',
+				'perche' => 'I postmeta di un plugin disinstallato non fanno danno a Google, ma restano nel database per sempre, appesantiscono i backup e confondono chi cerca di capire da dove esce un title.',
+				'soluzione' => 'Ripulire i postmeta del plugin non più in uso, dopo aver verificato che i dati siano stati migrati.',
+				'check' => static function ( Site $s ) {
+					// Ha senso solo quando si sa che cosa e attivo: senza,
+					// non si distingue un residuo da un plugin in funzione.
+					if ( ! $s->seoAttivi ) {
+						return array();
+					}
+
+					$altri = array(
+						'Yoast SEO'    => array( '_yoast_wpseo_title', '_yoast_wpseo_metadesc' ),
+						'Rank Math'    => array( 'rank_math_title', 'rank_math_description' ),
+					);
+
+					$out = array();
+
+					foreach ( $altri as $nome => $chiavi ) {
+						if ( in_array( $nome, $s->seoAttivi, true ) ) {
+							continue;
+						}
+
+						$quanti = 0;
+
+						foreach ( $s->pubblicati as $d ) {
+							foreach ( $chiavi as $chiave ) {
+								if ( isset( $d['meta'][ $chiave ] ) ) {
+									$quanti++;
+									break;
+								}
+							}
+						}
+
+						if ( $quanti ) {
+							$out[] = Base::sito( $nome . ' non è più attivo ma ha lasciato dati su ' . $quanti . ' contenuti' );
+						}
+					}
+
+					return $out;
 				},
 			),
 			array(

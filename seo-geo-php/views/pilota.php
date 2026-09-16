@@ -232,6 +232,50 @@ $in_corso    = $stato['attesa'] > 0 && ! $da_avviare;
 	</form>
 <?php endif; ?>
 
+<?php if ( ! empty( $stato['pubblicate'] ) && ( $stato['pubblicate']['fatte'] || $stato['pubblicate']['non_fatte'] ) ) : ?>
+<section class="scheda">
+	<h2>Le riscritture sono andate sul sito?</h2>
+	<p>
+		<strong><?php echo num( $stato['pubblicate']['fatte'] ); ?></strong>
+		<?php echo 1 === (int) $stato['pubblicate']['fatte'] ? 'riscrittura è stata scritta' : 'riscritture sono state scritte'; ?>
+		sugli articoli originali: quelle sono <strong>online adesso</strong>.
+		<?php if ( $stato['pubblicate']['non_fatte'] ) : ?>
+			Altre <strong><?php echo num( $stato['pubblicate']['non_fatte'] ); ?></strong> no — il motivo
+			è nella tabella qui sotto.
+		<?php endif; ?>
+	</p>
+	<p class="nota">
+		Quali articoli, uno per uno, si vedono in
+		<a href="?p=confronto-bozze&amp;id=<?php echo (int) $audit['id']; ?>">Vecchio e nuovo</a>:
+		lì ogni riscrittura dice se è già online e da quando.
+	</p>
+</section>
+<?php endif; ?>
+
+<?php $motivi = $motivi ?? array(); ?>
+<?php if ( $motivi ) : ?>
+<section class="scheda">
+	<h2>Perché si è fermato o ha saltato</h2>
+	<p class="guida">
+		Le righe non riuscite raggruppate per motivo: così si vede se è un problema solo ripetuto
+		cento volte o cento problemi diversi.
+	</p>
+	<div class="tabellabox">
+		<table>
+			<thead><tr><th>Motivo</th><th class="num">Quante volte</th></tr></thead>
+			<tbody>
+			<?php foreach ( $motivi as $m ) : ?>
+				<tr>
+					<td><?php echo e( $m['messaggio'] ); ?></td>
+					<td class="num"><?php echo num( $m['n'] ); ?></td>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
+		</table>
+	</div>
+</section>
+<?php endif; ?>
+
 <section class="scheda">
 	<h2>Registro</h2>
 	<div class="tabellabox">

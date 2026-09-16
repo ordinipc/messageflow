@@ -222,6 +222,9 @@ class Sito {
 				// stanno nel <head>, non nel testo degli articoli, e le
 				// regole devono saperlo invece di cercarli dove non sono.
 				'stampa'      => (array) ( $conteggi['sito']['stampa'] ?? array() ),
+				// Quali plugin SEO sono davvero caricati: i postmeta rimasti
+				// nel database non bastano a dirlo.
+				'seo_attivi'  => (array) ( $conteggi['sito']['seo_attivi'] ?? array() ),
 				'autori'      => $autori,
 			),
 			'items'     => $items,

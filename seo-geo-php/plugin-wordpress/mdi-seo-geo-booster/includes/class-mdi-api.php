@@ -248,6 +248,10 @@ class MDI_Api {
 					// modo - e che ha spinto il modello a scrivere il JSON-LD
 					// dentro agli articoli.
 					'stampa'      => self::cosa_stampa(),
+					// Quali plugin SEO sono davvero caricati adesso. Senza
+					// questo l analisi lo deduceva dai postmeta rimasti nel
+					// database, che sopravvivono alla disinstallazione.
+					'seo_attivi'  => self::plugin_seo_attivi(),
 				),
 				// Gli autori servono a valutare l attribuzione dei contenuti:
 				// un articolo firmato da una persona reale vale più di uno
@@ -1581,6 +1585,46 @@ class MDI_Api {
 	 * Sono cose che non si vedono guardando il testo di un articolo: stanno
 	 * nel <head>, le mette il plugin al momento di servire la pagina. Chi
 	 * analizza il sito leggendo i contenuti non le troverebbe mai.
+	 *
+	 * @return array<string,bool>
+	 */
+	public static function plugin_seo_attivi() {
+		$attivi = array();
+
+		// Si guarda se il plugin e davvero caricato, non se ha lasciato dei
+		// dati nel database: un Yoast disinstallato lascia i postmeta
+		// _yoast_* per sempre, e da quelli non si puo dedurre che sia ancora
+		// li. Il gestionale segnalava «due plugin SEO attivi» a chi ne aveva
+		// uno solo.
+		if ( defined( 'RANK_MATH_VERSION' ) || class_exists( 'RankMath' ) ) {
+			$attivi[] = 'Rank Math';
+		}
+
+		if ( defined( 'WPSEO_VERSION' ) || class_exists( 'WPSEO_Options' ) ) {
+			$attivi[] = 'Yoast SEO';
+		}
+
+		if ( defined( 'AIOSEO_VERSION' ) || function_exists( 'aioseo' ) ) {
+			$attivi[] = 'All in One SEO';
+		}
+
+		if ( defined( 'SEOPRESS_VERSION' ) ) {
+			$attivi[] = 'SEOPress';
+		}
+
+		if ( defined( 'SLIM_SEO_VERSION' ) ) {
+			$attivi[] = 'Slim SEO';
+		}
+
+		if ( defined( 'THE_SEO_FRAMEWORK_VERSION' ) ) {
+			$attivi[] = 'The SEO Framework';
+		}
+
+		return $attivi;
+	}
+
+	/**
+	 * Che cosa il plugin stampa nella testata di ogni pagina.
 	 *
 	 * @return array<string,bool>
 	 */

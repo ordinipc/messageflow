@@ -60,6 +60,15 @@ class Site {
 	 */
 	public $stampa = array();
 
+	/**
+	 * Quali plugin SEO sono davvero attivi sul sito, adesso.
+	 *
+	 * Vuoto quando non si sa: da un export WXR questa informazione non c e.
+	 *
+	 * @var string[]
+	 */
+	public $seoAttivi = array();
+
 	/** @var array<string,int> Percorso => numero di link interni ricevuti. */
 	private $inbound = array();
 
@@ -72,6 +81,7 @@ class Site {
 		$this->tag       = $parsed['tag'];
 		$this->autori    = $parsed['sito']['autori'];
 		$this->stampa    = (array) ( $parsed['sito']['stampa'] ?? array() );
+		$this->seoAttivi = array_values( array_filter( array_map( 'strval', (array) ( $parsed['sito']['seo_attivi'] ?? array() ) ) ) );
 		$this->url       = rtrim( $parsed['sito']['link'] ?: $parsed['sito']['baseUrl'], '/' );
 		$this->host      = preg_replace( '#^www\.#', '', (string) parse_url( $this->url, PHP_URL_HOST ) );
 

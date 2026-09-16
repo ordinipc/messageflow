@@ -426,6 +426,21 @@ class Coda {
 
 		$totale = array_sum( $conteggi );
 
+		// La domanda che si fa chi guarda questa pagina non e «quante
+		// operazioni» ma «le riscritture sono andate sul sito o no?».
+		$pubblicate = array( 'fatte' => 0, 'non_fatte' => 0 );
+
+		foreach ( $db->all(
+			"SELECT stato, COUNT(*) n FROM coda WHERE audit_id = ? AND tipo = 'applica_bozza' GROUP BY stato",
+			array( $auditId )
+		) as $riga ) {
+			if ( self::FATTO === $riga['stato'] ) {
+				$pubblicate['fatte'] += (int) $riga['n'];
+			} elseif ( self::ATTESA !== $riga['stato'] ) {
+				$pubblicate['non_fatte'] += (int) $riga['n'];
+			}
+		}
+
 		return array(
 			'totale'     => $totale,
 			'attesa'     => $conteggi[ self::ATTESA ],
@@ -434,6 +449,7 @@ class Coda {
 			'saltato'    => $conteggi[ self::SALTATO ],
 			'completate' => $totale - $conteggi[ self::ATTESA ],
 			'percentuale' => $totale ? (int) round( ( $totale - $conteggi[ self::ATTESA ] ) / $totale * 100 ) : 0,
+			'pubblicate' => $pubblicate,
 		);
 	}
 
@@ -776,7 +792,10 @@ class Coda {
 				);
 
 				if ( ! $riga ) {
-					throw new SaltaCompito( 'Nessuna bozza pronta per questo articolo.' );
+					// Non e un guasto di questo compito: e la conseguenza di
+					// una riscrittura che non e stata prodotta. Detto com era
+					// prima sembrava che la pubblicazione fosse rotta.
+					throw new SaltaCompito( 'niente da pubblicare: la riscrittura di questo articolo non è stata prodotta, il motivo è nella riga «Riscrittura» dello stesso articolo' );
 				}
 
 				// Il testo che parte e quello ripulito dai dati strutturati:

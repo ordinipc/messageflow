@@ -3849,6 +3849,145 @@ verifica( 'e il costo mostrato e quello di quel lavoro', false !== strpos( $vist
 
 @unlink( $fileTutto );
 
+// ---------------------------------------------------------------------------
+// «Due plugin SEO attivi» va detto solo se e vero
+//
+// La regola guardava i postmeta: se c erano sia rank_math_title sia
+// _yoast_wpseo_title concludeva che i due plugin erano entrambi attivi. Ma un
+// Yoast disinstallato lascia i suoi postmeta nel database per sempre. Il
+// gestionale segnalava un conflitto critico a chi aveva un plugin solo.
+
+echo "\nIl conflitto fra plugin SEO si chiede al sito\n";
+
+$sitoSeo = static function ( $attivi, $metaContenuto ) {
+	return new Site(
+		array(
+			'sito'      => array(
+				'titolo'     => 'Prova',
+				'link'       => 'https://esempio.it',
+				'baseUrl'    => 'https://esempio.it',
+				'autori'     => array(),
+				'seo_attivi' => $attivi,
+			),
+			'categorie' => array(),
+			'tag'       => array(),
+			'items'     => array(
+				array(
+					'wp_id' => '1', 'tipo' => 'post', 'stato' => 'publish',
+					'titolo' => 'Articolo', 'slug' => 'articolo',
+					'link' => 'https://esempio.it/articolo/',
+					'data' => '2026-01-01 10:00:00', 'modificato' => '2026-02-01 10:00:00',
+					'autore' => 'Redazione', 'contenuto' => '<p>testo</p>', 'estratto' => '',
+					'categorie' => array(), 'tag' => array(), 'commenti' => 'closed',
+					'genitore' => '0', 'meta' => $metaContenuto,
+				),
+			),
+		)
+	);
+};
+
+$regolaTec = static function ( $id ) {
+	foreach ( \SeoGeo\Rules\Technical::rules() as $regola ) {
+		if ( $id === $regola['id'] ) {
+			return $regola;
+		}
+	}
+
+	return null;
+};
+
+$tec01 = $regolaTec( 'TEC-01' );
+$tec09 = $regolaTec( 'TEC-09' );
+
+// Il caso vero: solo Rank Math attivo, ma i postmeta di Yoast sono rimasti.
+$conResidui = array( 'rank_math_title' => 'Titolo', '_yoast_wpseo_title' => 'Vecchio titolo' );
+$soloRank   = $sitoSeo( array( 'Rank Math' ), $conResidui );
+
+verifica(
+	'con un plugin solo attivo non si segnala nessun conflitto',
+	0 === count( $tec01['check']( $soloRank ) ),
+	json_encode( $tec01['check']( $soloRank ) )
+);
+
+verifica(
+	'ma i dati rimasti si segnalano, come cosa minore',
+	1 === count( $tec09['check']( $soloRank ) ) && false !== strpos( $tec09['check']( $soloRank )[0]['dettaglio'], 'Yoast' ),
+	json_encode( $tec09['check']( $soloRank ) )
+);
+
+// Due davvero attivi: quello si.
+$dueVeri = $sitoSeo( array( 'Rank Math', 'Yoast SEO' ), $conResidui );
+
+verifica(
+	'due plugin davvero attivi restano un problema critico',
+	1 === count( $tec01['check']( $dueVeri ) ),
+	json_encode( $tec01['check']( $dueVeri ) )
+);
+
+verifica(
+	'e in quel caso non si parla di residui',
+	0 === count( $tec09['check']( $dueVeri ) ),
+	json_encode( $tec09['check']( $dueVeri ) )
+);
+
+// Quando il sito non lo dichiara - export, o plugin non aggiornato - non si
+// puo dire ne una cosa ne l altra con certezza: si segnala, ma dicendo che e
+// da verificare, e non si parla di residui.
+$nonDichiara = $sitoSeo( array(), $conResidui );
+
+verifica(
+	'se il sito non lo dichiara si segnala come da verificare',
+	1 === count( $tec01['check']( $nonDichiara ) )
+		&& false !== strpos( $tec01['check']( $nonDichiara )[0]['dettaglio'], 'da verificare' ),
+	json_encode( $tec01['check']( $nonDichiara ) )
+);
+
+verifica(
+	'e non si accusa nessuno di aver lasciato residui',
+	0 === count( $tec09['check']( $nonDichiara ) ),
+	json_encode( $tec09['check']( $nonDichiara ) )
+);
+
+// Un sito pulito non deve produrre niente.
+$pulito = $sitoSeo( array( 'Rank Math' ), array( 'rank_math_title' => 'Titolo' ) );
+
+verifica( 'un sito con un plugin solo e senza residui non segnala niente', 0 === count( $tec01['check']( $pulito ) ) + count( $tec09['check']( $pulito ) ) );
+
+// «Le riscritture sono andate sul sito o no?» e la domanda che si fa chi
+// guarda il pilota: deve avere una risposta in cifre, non un registro da
+// scorrere.
+$fileCoda = sys_get_temp_dir() . '/prova-coda-' . getmypid() . '.sqlite';
+@unlink( $fileCoda );
+$dbCoda = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileCoda ) );
+
+$auditCoda = $dbCoda->insert( 'audit', array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => date( 'Y-m-d H:i:s' ), 'punteggio' => 50 ) );
+
+foreach ( array(
+	array( 'applica_bozza', 'fatto' ),
+	array( 'applica_bozza', 'fatto' ),
+	array( 'applica_bozza', 'saltato' ),
+	array( 'applica_bozza', 'attesa' ),
+	array( 'bozza', 'fatto' ),
+) as $i => $riga ) {
+	$dbCoda->insert(
+		'coda',
+		array( 'audit_id' => $auditCoda, 'ordine' => $i, 'tipo' => $riga[0], 'riferimento' => (string) $i, 'etichetta' => 'x', 'stato' => $riga[1], 'messaggio' => '', 'creato_il' => date( 'Y-m-d H:i:s' ), 'eseguito_il' => '' )
+	);
+}
+
+$statoCoda = \SeoGeo\Coda::stato( $dbCoda, $auditCoda );
+
+verifica( 'si dice quante riscritture sono davvero online', 2 === $statoCoda['pubblicate']['fatte'], json_encode( $statoCoda['pubblicate'] ) );
+verifica( 'e quante non ce l hanno fatta', 1 === $statoCoda['pubblicate']['non_fatte'], json_encode( $statoCoda['pubblicate'] ) );
+verifica( 'quelle ancora in coda non si contano da nessuna delle due parti', 3 === $statoCoda['pubblicate']['fatte'] + $statoCoda['pubblicate']['non_fatte'], json_encode( $statoCoda['pubblicate'] ) );
+
+@unlink( $fileCoda );
+
+verifica(
+	'e il plugin sa dire quali plugin SEO sono caricati',
+	false !== strpos( file_get_contents( __DIR__ . '/../plugin-wordpress/mdi-seo-geo-booster/includes/class-mdi-api.php' ), 'public static function plugin_seo_attivi()' )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );
