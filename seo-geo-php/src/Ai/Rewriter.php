@@ -38,8 +38,15 @@ class Rewriter {
 		// FAQ», «nessun H2» - contano i contenuti che hanno quel problema,
 		// non la categoria del triage: un articolo puo essere buono e
 		// mancargli comunque le domande frequenti.
+		//
+		// E quando si chiede un contenuto preciso la scelta e gia stata
+		// fatta da chi lo ha chiesto: filtrarlo di nuovo per categoria lo
+		// faceva sparire. E successo davvero: il pilota metteva in coda 349
+		// articoli classificati «da mantenere», e qui venivano scartati tutti
+		// con un messaggio che dava la colpa a una bozza gia pronta che non
+		// c era. Centotre errori, una causa sola.
 		$categorie = $opzioni['categorie'] ?? (
-			'' !== $regola
+			( '' !== $regola || ! empty( $opzioni['solo_documento'] ) )
 				? array( 'riscrivere', 'accorpare', 'mantenere' )
 				: array( 'riscrivere', 'accorpare' )
 		);
@@ -411,9 +418,13 @@ class Rewriter {
 		// registro deve poterle distinguere: "il modello non ha prodotto la
 		// bozza" le confondeva in un unica frase che dava la colpa al modello.
 		if ( ! $articoli ) {
+			// Il messaggio mandava «all elenco delle bozze», che non e il nome
+			// di nessuna pagina del gestionale: la pagina si chiama «Vecchio
+			// e nuovo». Un messaggio che indica un posto inesistente e
+			// peggio di nessun messaggio.
 			$errori[] = ! empty( $opzioni['solo_documento'] )
-				? 'questo contenuto ha già una bozza pronta: aprila dall elenco delle bozze, oppure rigenerala da lì'
-				: 'nessun articolo da riscrivere: o hanno già tutti una bozza, o il triage non ne ha segnalato nessuno';
+				? 'questo contenuto ha già una riscrittura pronta: si vede in «Vecchio e nuovo», dove si applica al sito o si rigenera'
+				: 'nessun articolo da riscrivere: o hanno già tutti una riscrittura in «Vecchio e nuovo», o il triage non ne ha segnalato nessuno';
 		}
 
 		// Fermarsi al tetto di tempo non e un guasto: e il funzionamento

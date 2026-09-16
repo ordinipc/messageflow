@@ -3779,6 +3779,24 @@ $conProblemi = \SeoGeo\Ai\Rewriter::daCorreggere( $dbTutto, $auditTutto );
 verifica( 'il criterio vecchio ne prende uno solo', 1 === count( $soloTriage ), (string) count( $soloTriage ) );
 verifica( 'quello nuovo prende tutti e tre', 3 === count( $conProblemi ), (string) count( $conProblemi ) );
 
+// Il difetto che ha prodotto 103 errori: il pilota metteva in coda articoli
+// classificati «da mantenere», e chi li doveva riscrivere li riscartava per
+// categoria. Chiedere un contenuto preciso vuol dire che la scelta e gia
+// stata fatta: non si rifiltra.
+$mantenere = null;
+
+foreach ( $conProblemi as $riga ) {
+	if ( '/due/' === $riga['percorso'] ) {
+		$mantenere = (int) $riga['doc_id'];
+	}
+}
+
+verifica(
+	'un contenuto chiesto per identificativo non viene scartato per categoria',
+	1 === count( \SeoGeo\Ai\Rewriter::candidati( $dbTutto, $auditTutto, array( 'solo_documento' => $mantenere ) ) ),
+	'il documento «da mantenere» sparisce quando lo si chiede per id'
+);
+
 // Chi ha piu problemi aperti viene prima: e li che il giro rende di piu.
 $ridSecondo = $dbTutto->insert(
 	'rilievo',

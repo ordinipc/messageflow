@@ -260,6 +260,15 @@ $in_corso    = $stato['attesa'] > 0 && ! $da_avviare;
 		Le righe non riuscite raggruppate per motivo: così si vede se è un problema solo ripetuto
 		cento volte o cento problemi diversi.
 	</p>
+	<p class="nota">
+		Dove andare, a seconda del motivo:
+		<a href="?p=confronto-bozze&amp;id=<?php echo (int) $audit['id']; ?>">Vecchio e nuovo</a>
+		per le riscritture già pronte (lì si applicano al sito o si rigenerano) ·
+		<a href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>">Riscrittura assistita</a>
+		per generarne di nuove ·
+		<a href="?p=impostazioni">Impostazioni</a>
+		se manca la chiave di Gemini o il collegamento al sito.
+	</p>
 	<div class="tabellabox">
 		<table>
 			<thead><tr><th>Motivo</th><th class="num">Quante volte</th></tr></thead>
