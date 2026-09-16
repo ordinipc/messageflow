@@ -4883,7 +4883,22 @@ verifica( 'e non si spaccia per una decisione di Google', empty( $gruppiCan[0]['
 $perdente = $gruppiCan[0]['perdenti'][0] ?? array();
 
 verifica( 'chi perde prende una variante lunga ricavata dal suo titolo', false !== strpos( (string) ( $perdente['variante'] ?? '' ), 'scegliere' ), (string) ( $perdente['variante'] ?? '' ) );
-verifica( 'che contiene ancora la ricerca contesa', false !== strpos( (string) ( $perdente['variante'] ?? '' ), 'produzione' ), (string) ( $perdente['variante'] ?? '' ) );
+
+// Le parole contese devono sparire, non spostarsi dentro a una frase piu
+// lunga: tenerle vorrebbe dire continuare a gareggiare sulla stessa ricerca,
+// cioe non fare niente.
+verifica( 'e la ricerca contesa sparisce da li dentro', false === strpos( (string) ( $perdente['variante'] ?? '' ), 'produzione' ), (string) ( $perdente['variante'] ?? '' ) );
+
+// «Scegliere l agenzia giusta» e «come scegliere l agenzia giusta» non sono
+// la stessa cosa: la seconda e come la gente scrive davvero.
+verifica( 'la parola che dice l intenzione resta in testa', 0 === strpos( (string) ( $perdente['variante'] ?? '' ), 'come ' ), (string) ( $perdente['variante'] ?? '' ) );
+verifica( 'ed e una frase nell ordine del titolo, non parole sparse', 'come scegliere l agenzia giusta' === ( $perdente['variante'] ?? '' ), (string) ( $perdente['variante'] ?? '' ) );
+
+// Un titolo che e tutto ricerca contesa non lascia niente: li non si inventa.
+verifica(
+	'se del titolo non avanza niente di distintivo non si inventa una chiave',
+	'' === Cannibalizzazione::variante( array( 'titolo' => 'Quanto costa un sito web a Palermo', 'tipo' => 'post' ), 'sito web palermo' )
+);
 verifica( 'ed essendo un articolo si corregge da solo', ! empty( $perdente['automatico'] ) );
 
 // Se Google ha dei numeri, decide lui: e una misura, non un parere. Qui

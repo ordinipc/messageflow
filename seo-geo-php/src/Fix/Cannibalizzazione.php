@@ -46,6 +46,18 @@ class Cannibalizzazione {
 	const MIN_PAROLE_VARIANTE = 2;
 
 	/**
+	 * Parole vuote ovunque, tranne all inizio di una ricerca.
+	 *
+	 * «Scegliere l agenzia giusta» e «come scegliere l agenzia giusta» non
+	 * sono la stessa cosa: la seconda e una domanda, ed e cosi che la gente
+	 * scrive nella barra di ricerca. Toglierla perche sta nell elenco delle
+	 * parole vuote butta via proprio la parte che vale.
+	 *
+	 * @var string[]
+	 */
+	const INTENZIONE = array( 'come', 'perche', 'perché', 'quando', 'quanto', 'quale', 'quali', 'cosa', 'dove', 'guida', 'migliori', 'meglio' );
+
+	/**
 	 * I gruppi di contenuti che si contendono la stessa ricerca.
 	 *
 	 * Si ricostruiscono dalla parola chiave dichiarata, che e la stessa cosa
@@ -205,6 +217,15 @@ class Cannibalizzazione {
 	 * e gia scritto li dentro. Non si inventa niente: se non avanza abbastanza
 	 * il gruppo passa a chi decide.
 	 *
+	 * Le parole contese vanno via del tutto, non riciclate dentro a una
+	 * frase piu lunga: lasciarcele vorrebbe dire continuare a gareggiare
+	 * sulla stessa ricerca, cioe non fare niente.
+	 *
+	 * «Produzione Video a Palermo: Come Scegliere l Agenzia Giusta», tolte
+	 * produzione, video e palermo, diventa «come scegliere l agenzia
+	 * giusta»: una ricerca che qualcuno fa davvero, e che quell articolo
+	 * risponde meglio della pagina servizio.
+	 *
 	 * @param array  $doc    Contenuto che perde.
 	 * @param string $chiave Ricerca contesa.
 	 * @return string Vuoto se non si puo ricavare.
@@ -216,10 +237,18 @@ class Cannibalizzazione {
 			$contese[ $p ] = true;
 		}
 
+		// Si lavora sul titolo nell ordine in cui e scritto: una parola
+		// chiave e una frase, e «scegliere agenzia giusta come» non la cerca
+		// nessuno. Le parole piccole restano dentro - «come», «il», «di» -
+		// perche sono quelle che la fanno somigliare a una ricerca vera;
+		// vengono tolte solo se restano appese all inizio o alla fine.
 		$restano = array();
 
-		foreach ( Text::words( (string) $doc['titolo'] ) as $p ) {
-			if ( isset( $contese[ $p ] ) || in_array( $p, Text::$stopwords, true ) || mb_strlen( $p ) < 3 ) {
+		foreach ( Text::words( mb_strtolower( (string) $doc['titolo'] ) ) as $p ) {
+			// Le parole della ricerca contesa devono sparire, non spostarsi:
+			// tenerle vorrebbe dire continuare a gareggiare sulla stessa
+			// ricerca, che e esattamente quello che si sta togliendo.
+			if ( isset( $contese[ $p ] ) ) {
 				continue;
 			}
 
@@ -229,16 +258,32 @@ class Cannibalizzazione {
 				continue;
 			}
 
-			$restano[ $p ] = true;
+			$restano[] = $p;
 		}
 
-		if ( count( $restano ) < self::MIN_PAROLE_VARIANTE ) {
+		// Via le parole vuote appese ai due capi: «il tuo business» comincia
+		// con due parole che non dicono niente, «come scegliere l agenzia
+		// giusta» comincia con una che dice tutto.
+		while ( $restano && in_array( $restano[0], Text::$stopwords, true ) && ! in_array( $restano[0], self::INTENZIONE, true ) ) {
+			array_shift( $restano );
+		}
+
+		while ( $restano && in_array( end( $restano ), Text::$stopwords, true ) ) {
+			array_pop( $restano );
+		}
+
+		$piene = array_filter(
+			$restano,
+			static function ( $p ) {
+				return ! in_array( $p, Text::$stopwords, true ) && mb_strlen( $p ) > 2;
+			}
+		);
+
+		if ( count( $piene ) < self::MIN_PAROLE_VARIANTE ) {
 			return '';
 		}
 
-		// La ricerca contesa resta dentro, ma non piu da sola: e la variante
-		// lunga che distingue questo contenuto da chi vince.
-		return trim( $chiave . ' ' . implode( ' ', array_slice( array_keys( $restano ), 0, 4 ) ) );
+		return implode( ' ', array_slice( $restano, 0, 6 ) );
 	}
 
 	/**
