@@ -200,7 +200,115 @@ class Content {
 					return $out;
 				},
 			),
+			array(
+				'id' => 'CNT-10', 'area' => 'content', 'gravita' => Base::ALTO, 'auto' => true,
+				'titolo' => 'Anno superato nel titolo',
+				'perche' => 'Un anno vecchio nel titolo si vede in SERP prima di ogni altra cosa: «Strategie 2025» letto nel 2026 dice «questo articolo è di un altro anno» e il clic va al risultato sotto. Google usa anche la freschezza dichiarata per le ricerche che la chiedono.',
+				'soluzione' => 'Portare l anno a quello corrente insieme al contenuto che lo giustifica. La riscrittura assistita lo fa e poi controlla di averlo fatto.',
+				'check' => static function ( Site $s ) {
+					$out  = array();
+					$anno = (int) date( 'Y' );
+
+					foreach ( $s->pubblicati as $d ) {
+						// Il titolo che si vede in SERP puo essere quello SEO
+						// o quello dell articolo: sono due posti diversi e
+						// l anno vecchio in uno solo basta a rovinare il clic.
+						$vecchi = self::anniSuperati( $d['titolo'] . ' ' . $d['seo_title'], $anno );
+
+						if ( $vecchi ) {
+							$out[] = Base::doc( $d, 'il titolo dice ' . implode( ', ', $vecchi ) . ', siamo nel ' . $anno );
+						}
+					}
+
+					return $out;
+				},
+			),
+			array(
+				'id' => 'CNT-11', 'area' => 'content', 'gravita' => Base::MEDIO, 'auto' => true,
+				'titolo' => 'Anno superato dentro al testo',
+				'perche' => 'Frasi come «nel 2025» o «guida aggiornata al 2025» dicono a chi legge, e ai modelli che citano, che il pezzo non è più attuale: il contenuto può anche essere valido, ma si presenta scaduto.',
+				'soluzione' => 'Aggiornare l anno dove è una promessa di attualità. Dove invece è un fatto («dal 2015 lavoriamo a Palermo») si lascia stare: qui non viene segnalato.',
+				'check' => static function ( Site $s ) {
+					$out  = array();
+					$anno = (int) date( 'Y' );
+
+					foreach ( $s->pubblicati as $d ) {
+						$vecchi = self::anniDiAttualita( $d['testo'], $anno );
+
+						if ( $vecchi ) {
+							$out[] = Base::doc( $d, implode( ', ', $vecchi ) . ' dato come anno in corso, siamo nel ' . $anno );
+						}
+					}
+
+					return $out;
+				},
+			),
 		);
+	}
+
+	/**
+	 * Gli anni superati citati in un testo breve, tipo un titolo.
+	 *
+	 * Si guardano solo gli ultimi sei anni: piu indietro un anno e quasi
+	 * sempre un fatto - quando e nata l azienda, quando e uscita una legge -
+	 * e segnalarlo vorrebbe dire chiedere di cambiare una cosa vera.
+	 * L anno in corso e quelli futuri non sono superati.
+	 *
+	 * @param string $testo Testo.
+	 * @param int    $anno  Anno corrente.
+	 * @return string[] Anni trovati, dal piu recente.
+	 */
+	public static function anniSuperati( $testo, $anno ) {
+		$anno = (int) $anno;
+
+		if ( ! preg_match_all( '/\b(20\d{2})\b/', (string) $testo, $m ) ) {
+			return array();
+		}
+
+		$trovati = array();
+
+		foreach ( array_map( 'intval', $m[1] ) as $trovato ) {
+			if ( $trovato < $anno && $trovato >= $anno - 6 ) {
+				$trovati[ $trovato ] = true;
+			}
+		}
+
+		krsort( $trovati );
+
+		return array_map( 'strval', array_keys( $trovati ) );
+	}
+
+	/**
+	 * Gli anni che dentro a un testo lungo si danno per correnti.
+	 *
+	 * Qui non basta trovare il numero. «Dal 2015 lavoriamo a Palermo» e vero
+	 * e deve restare; «le strategie del 2025» no. La differenza sta nella
+	 * parola che precede, e si cercano solo quelle che promettono attualita:
+	 * cosi un anno storico non diventa un rilievo da correggere.
+	 *
+	 * @param string $testo Testo dell articolo.
+	 * @param int    $anno  Anno corrente.
+	 * @return string[]
+	 */
+	public static function anniDiAttualita( $testo, $anno ) {
+		$anno   = (int) $anno;
+		$schema = '/\b(?:nel|del|per il|entro il|aggiornat[oaie]+ al|aggiornat[oaie]+ a|guida|trend|novit[aà]|edizione|previsioni|strategie|classifica)\s+(?:del\s+)?(20\d{2})\b/iu';
+
+		if ( ! preg_match_all( $schema, (string) $testo, $m ) ) {
+			return array();
+		}
+
+		$trovati = array();
+
+		foreach ( array_map( 'intval', $m[1] ) as $trovato ) {
+			if ( $trovato < $anno && $trovato >= $anno - 6 ) {
+				$trovati[ $trovato ] = true;
+			}
+		}
+
+		krsort( $trovati );
+
+		return array_map( 'strval', array_keys( $trovati ) );
 	}
 
 	/**

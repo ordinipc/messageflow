@@ -115,6 +115,8 @@ class Rimedi {
 			'CNT-08' => array( $perRegola( 'CNT-08' ), 'Riscrittura assistita', 'La riscrittura aggiunge un elenco o una tabella dove c è solo testo continuo.' ),
 			'ONP-09' => array( $perRegola( 'ONP-09' ), 'Riscrittura assistita', 'La riscrittura lascia un solo H1: quello del titolo, stampato dal tema.' ),
 			'ONP-11' => array( $perRegola( 'ONP-11' ), 'Riscrittura assistita', 'La riscrittura rimette i livelli dei titoli in sequenza.' ),
+			'CNT-10' => array( $perRegola( 'CNT-10' ), 'Riscrittura assistita', 'La riscrittura porta l anno del titolo a quello corrente, e controlla di averlo fatto.' ),
+			'CNT-11' => array( $perRegola( 'CNT-11' ), 'Riscrittura assistita', 'La riscrittura aggiorna gli anni dati per correnti dentro al testo.' ),
 			'LOC-02' => array( $impostazioni, 'Impostazioni', 'Compila indirizzo e partita IVA: vengono inviati al sito e finiscono nello schema.' ),
 			'LOC-01' => array( $impostazioni, 'Impostazioni', 'Compila il telefono: finisce nello schema LocalBusiness, e lo shortcode [mdi_nap] lo stampa nel footer.' ),
 			'LOC-07' => array( $perRegola( 'LOC-07' ), 'Riscrittura assistita', 'La riscrittura aggiunge i riferimenti geografici alle landing locali.' ),

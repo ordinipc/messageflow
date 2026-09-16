@@ -4595,6 +4595,100 @@ verifica(
 	false !== strpos( file_get_contents( __DIR__ . '/../public/index.php' ), '$spinta_sul_sito = array();' )
 );
 
+// ---------------------------------------------------------------------------
+// Gli anni superati
+//
+// «Come ottimizzare i tuoi video per i motori di ricerca nel 2025» letto nel
+// 2026 dice, prima di ogni altra cosa e direttamente in SERP, che l articolo
+// e di un altro anno: il clic va al risultato sotto.
+
+echo "\nGli anni superati\n";
+
+use SeoGeo\Rules\Content;
+
+verifica( 'un anno vecchio nel titolo si trova', array( '2025' ) === Content::anniSuperati( 'Strategie SEO 2025 per le PMI', 2026 ) );
+verifica( 'l anno in corso non e vecchio', array() === Content::anniSuperati( 'Strategie SEO 2026 per le PMI', 2026 ) );
+verifica( 'nemmeno uno futuro', array() === Content::anniSuperati( 'Le previsioni per il 2027', 2026 ) );
+verifica( 'e uno di sette anni fa e un fatto, non un titolo scaduto', array() === Content::anniSuperati( 'La normativa del 2019', 2026 ) );
+verifica( 'se ce ne sono due si riportano dal piu recente', array( '2025', '2024' ) === Content::anniSuperati( 'Dal 2024 al 2025: cosa e cambiato', 2026 ) );
+
+// Dentro al testo la differenza pesa: «dal 2015 lavoriamo a Palermo» e vero e
+// deve restare. Segnalarlo vorrebbe dire chiedere di cambiare una cosa giusta.
+verifica( 'nel testo «nel 2025» si segnala', array( '2025' ) === Content::anniDiAttualita( 'Le cose da fare nel 2025 sono cambiate.', 2026 ) );
+verifica( 'e anche «guida 2025»', array( '2025' ) === Content::anniDiAttualita( 'Questa guida 2025 spiega tutto.', 2026 ) );
+verifica( 'ma «dal 2015 lavoriamo a Palermo» resta com e', array() === Content::anniDiAttualita( 'Dal 2015 lavoriamo a Palermo con le PMI del territorio.', 2026 ) );
+verifica( 'e «fondata nel 1998» pure', array() === Content::anniDiAttualita( 'Azienda fondata nel 1998 e cresciuta con il territorio.', 2026 ) );
+
+// La riscrittura deve chiudere l anno nel titolo, e il controllo lo verifica
+// sul testo prodotto: e una delle poche cose che si misurano senza discutere.
+verifica( 'l anno nel titolo e fra le regole che la riscrittura deve chiudere', in_array( 'CNT-10', Chiusura::VERIFICABILI, true ) );
+verifica(
+	'mentre quello dentro al testo no, per non far riscrivere fatti veri',
+	! in_array( 'CNT-11', Chiusura::VERIFICABILI, true ),
+	'pretendere che sparisca vorrebbe dire far riscrivere «dal 2015 lavoriamo a Palermo», a spese di chi paga i token'
+);
+
+$annoOra    = (int) date( 'Y' );
+$bozzaVecchia = $bozzaBuona;
+$bozzaVecchia['titolo']     = 'Strategie che funzionano nel ' . ( $annoOra - 1 );
+$bozzaVecchia['meta_title'] = 'Strategie ' . ( $annoOra - 1 );
+
+verifica(
+	'una riscrittura che lascia l anno vecchio nel titolo non passa',
+	array( 'CNT-10' ) === array_column( Chiusura::controlla( $bozzaVecchia, $articoloProva, array( 'CNT-10' ) ), 'regola' ),
+	json_encode( Chiusura::controlla( $bozzaVecchia, $articoloProva, array( 'CNT-10' ) ) )
+);
+
+$bozzaAggiornata = $bozzaVecchia;
+$bozzaAggiornata['titolo']     = 'Strategie che funzionano nel ' . $annoOra;
+$bozzaAggiornata['meta_title'] = 'Strategie ' . $annoOra;
+
+verifica( 'con l anno portato a oggi passa', array() === Chiusura::controlla( $bozzaAggiornata, $articoloProva, array( 'CNT-10' ) ) );
+
+// Il modello non sa in che anno siamo: se non glielo si dice, «aggiorna gli
+// anni superati» non vuol dire niente.
+$promptAnno = \SeoGeo\Ai\Prompt::miglioramento(
+	array( 'titolo' => 'T', 'url' => 'u', 'focus' => 'f', 'intento' => 'informativo', 'parole' => 100 ),
+	array( 'testo' => 'x' ),
+	array(),
+	array(),
+	$cfgChi
+);
+
+verifica( 'e al modello si dice in che anno siamo', false !== strpos( $promptAnno, 'Anno in corso: ' . date( 'Y' ) ), 'senza l anno il modello non puo aggiornarlo' );
+
+// Si corregge da un pulsante: era il punto della richiesta.
+verifica( 'l anno superato si corregge dalla riscrittura, non a mano', 'azione' === ( \SeoGeo\Rimedi::mappa( 1 )['CNT-10']['come'] ?? '' ) );
+
+// E il generatore delle meta non deve portarselo avanti: e la strada piu
+// economica per toglierlo, perche le meta vanno sul sito senza passare da
+// Gemini. Prima lo copiava tale e quale, o perche il title andava gia bene
+// per lunghezza e parola chiave, o perche lo ricostruiva dal titolo.
+$docAnno = array(
+	'titolo'     => 'Strategie video per le PMI nel ' . ( $annoOra - 1 ),
+	'seo_title'  => 'Strategie video per le PMI nel ' . ( $annoOra - 1 ),
+	'slug'       => 'strategie-video-pmi',
+	'focus'      => 'strategie video',
+	'testo'      => 'Un testo di prova sulle strategie video per le piccole imprese del territorio.',
+	'estratto'   => '',
+	'seo_desc'   => '',
+);
+
+list( $titoloAnno, $cambiatoAnno ) = \SeoGeo\Fix\Meta::title( $docAnno, $cfgChi );
+
+verifica( 'il title generato non porta avanti l anno vecchio', false === strpos( $titoloAnno, (string) ( $annoOra - 1 ) ), $titoloAnno );
+verifica( 'ci mette quello corrente', false !== strpos( $titoloAnno, (string) $annoOra ), $titoloAnno );
+verifica( 'e risulta cambiato, se no non verrebbe inviato al sito', $cambiatoAnno );
+
+// Su un title senza anni non deve toccare niente.
+$docPulito = $docAnno;
+$docPulito['titolo']    = 'Strategie video per le piccole e medie imprese';
+$docPulito['seo_title'] = 'Strategie video per le piccole e medie imprese';
+
+list( $titoloPulito, $cambiatoPulito ) = \SeoGeo\Fix\Meta::title( $docPulito, $cfgChi );
+
+verifica( 'un title senza anni resta identico', 'Strategie video per le piccole e medie imprese' === $titoloPulito && ! $cambiatoPulito, $titoloPulito );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

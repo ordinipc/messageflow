@@ -50,6 +50,12 @@ class Chiusura {
 		'CNT-07',
 		'CNT-08',
 		'CNT-09',
+		// Solo il titolo. Dentro al testo un anno puo essere un fatto vero -
+		// «dal 2015 lavoriamo a Palermo» - e pretendere che sparisca vorrebbe
+		// dire far riscrivere una cosa giusta, per giunta a spese di chi paga
+		// i token. Nel titolo un anno vecchio e sempre una promessa di
+		// attualita scaduta.
+		'CNT-10',
 		'GEO-03',
 		'GEO-04',
 		'GEO-10',
@@ -232,6 +238,7 @@ class Chiusura {
 			'CNT-07' => 'Togli ogni blocco <style> e ogni attributo style dal corpo.',
 			'CNT-08' => 'Aggiungi almeno un elenco puntato o una tabella.',
 			'CNT-09' => 'Riscrivi gli H2 che ripetono il titolo dell articolo: devono dire di che cosa parla la sezione.',
+			'CNT-10' => 'Porta l anno del titolo e del meta_title a quello corrente, e aggiorna il contenuto che lo giustifica.',
 			'GEO-03' => 'Il campo in_breve deve contenere una sintesi di 40-60 parole che risponde subito.',
 			'GEO-04' => 'Il campo faq deve contenere almeno tre domande vere con la risposta.',
 			'GEO-10' => 'Aggiungi una tabella <table> con dati gia presenti nel testo (mai prezzi inventati).',

@@ -10,6 +10,7 @@ namespace SeoGeo\Fix;
 use SeoGeo\Db;
 use SeoGeo\Site;
 use SeoGeo\Text;
+use SeoGeo\Rules\Content;
 
 /**
  * Genera le meta ottimizzate per ogni contenuto pubblicato.
@@ -100,9 +101,16 @@ class Meta {
 		// controllo guardava solo la lunghezza e la parola chiave.
 		$monco = $attuale !== Text::polishClause( $attuale );
 
+		// Un anno superato nel title si vede in SERP prima di ogni altra
+		// cosa: «Strategie 2025» letto nel 2026 manda il clic al risultato
+		// sotto. Il generatore lo portava avanti tale e quale - o perche il
+		// title andava gia bene per lunghezza e parola chiave, o perche lo
+		// ricostruiva dal titolo dell articolo, che l anno ce l ha dentro.
 		if ( ! $monco && mb_strlen( $attuale ) <= $max && mb_strlen( $attuale ) >= 30
 			&& ( '' === $kw || false !== mb_stripos( $attuale, $kw ) ) ) {
-			return array( $attuale, false );
+			$aggiornato = self::annoAggiornato( $attuale );
+
+			return array( $aggiornato, $aggiornato !== $attuale );
 		}
 
 		if ( $legale ) {
@@ -206,8 +214,32 @@ class Meta {
 		// Su un titolo ben formato questa riga non cambia niente, perché non
 		// finisce con una preposizione o un possessivo.
 		$scelto = trim( Text::polishClause( $scelto ) );
+		$scelto = self::annoAggiornato( $scelto );
 
 		return array( $scelto, $scelto !== $attuale );
+	}
+
+	/**
+	 * Lo stesso testo con gli anni superati portati a quello corrente.
+	 *
+	 * Solo gli anni che un titolo usa come promessa di attualita: quali
+	 * siano lo decide Content, che e anche chi apre il rilievo. Due elenchi
+	 * scritti in due posti diversi finiscono per non dire piu la stessa
+	 * cosa, e allora il gestionale scriverebbe un title che la sua stessa
+	 * regola boccia - e successo gia con le description troppo corte.
+	 *
+	 * @param string $testo Titolo.
+	 * @return string
+	 */
+	public static function annoAggiornato( $testo ) {
+		$testo = (string) $testo;
+		$anno  = (int) date( 'Y' );
+
+		foreach ( Content::anniSuperati( $testo, $anno ) as $vecchio ) {
+			$testo = preg_replace( '/\b' . preg_quote( $vecchio, '/' ) . '\b/', (string) $anno, $testo );
+		}
+
+		return $testo;
 	}
 
 	/**

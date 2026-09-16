@@ -241,6 +241,10 @@ TXT;
 		// al modello verrebbe perso nel rimando.
 		$testoOriginale = Text::truncate( $doc['testo'], (int) ( $cfg['ai']['testo_max_caratteri'] ?? 14000 ) );
 
+		// Il modello non sa in che anno siamo, e senza questo «aggiorna gli
+		// anni superati» non vuol dire niente.
+		$annoCorrente = date( 'Y' );
+
 		// Al secondo tentativo si dice, misurato sul testo appena prodotto,
 		// che cosa non ha chiuso. Va in cima: in fondo, dopo il testo
 		// originale, si perde.
@@ -260,6 +264,8 @@ DATI DELLA PAGINA
 - Focus keyword: {$keyword}
 - Intento di ricerca rilevato: {$articolo['intento']}
 - Lunghezza attuale: {$articolo['parole']} parole
+- Anno in corso: {$annoCorrente}. Gli anni piu vecchi di questo, dove
+  promettono attualita, vanno aggiornati: tu da solo non sai in che anno sei.
 
 PROBLEMI RILEVATI DALL AUDIT SU QUESTA PAGINA (è quello che devi sistemare)
 {$elencoProblemi}
@@ -278,6 +284,10 @@ COSA PUOI FARE
 - Inserire i link interni indicati.
 - Sistemare la keyword nel primo paragrafo e nei titoli se non c è.
 - Aggiungere le domande frequenti se mancano.
+- Portare all anno in corso gli anni che promettono attualita: un titolo che
+  dice «nel 2025» letto oggi sembra vecchio. Aggiorna anche il contenuto che
+  quell anno regge, non solo il numero. Gli anni che sono fatti - da quando
+  esiste l azienda, quando e uscita una norma - restano come sono.
 
 COSA NON DEVI FARE
 - Non cancellare sezioni che non hanno problemi.
