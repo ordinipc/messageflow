@@ -13,6 +13,7 @@ use SeoGeo\Ai\Rewriter as Riscrittura;
 use SeoGeo\Ai\Rewriter;
 use SeoGeo\Ai\Verifiche;
 use SeoGeo\Allinea;
+use SeoGeo\Continuita;
 use SeoGeo\Applicato;
 use SeoGeo\Audit;
 use SeoGeo\Bridge\WordPress;
@@ -192,6 +193,19 @@ PHP;
  * @return void
  */
 function vista( $vista, array $dati = array() ) {
+	// Si puo restare per ore su una pagina di un analisi vecchia senza
+	// accorgersene, e lavorare su una fotografia superata mentre ce n e una
+	// nuova. Il gestionale lo sa e non lo diceva: ogni pagina che parla di un
+	// analisi lo scrive in cima, una volta sola, senza che le viste debbano
+	// ricordarsene.
+	if ( ! isset( $dati['piu_recente'] ) && ! empty( $dati['audit']['id'] ) && ! empty( $dati['audit']['sito_url'] ) ) {
+		global $db;
+
+		$dati['piu_recente'] = $db instanceof Db
+			? SeoGeo\Continuita::piuRecente( $db, (int) $dati['audit']['id'], (string) $dati['audit']['sito_url'] )
+			: array();
+	}
+
 	extract( $dati, EXTR_SKIP );
 	$percorso_vista = __DIR__ . '/../views/' . $vista . '.php';
 

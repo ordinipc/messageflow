@@ -261,6 +261,20 @@ class Audit {
 			$db->insertMany( 'occorrenza', $righe );
 		}
 
+		// Le riscritture gia fatte seguono il sito, non l analisi in cui sono
+		// nate. Senza questo passaggio ogni rilettura le faceva sparire dalla
+		// vista: la riscrittura assistita ripartiva da zero e si ripagava
+		// Gemini per rifare un lavoro gia fatto e gia pagato.
+		//
+		// I problemi rilevati invece non si portano avanti apposta: una
+		// rilettura e una fotografia nuova, e se una regola scatta di nuovo
+		// vuol dire che il problema c e davvero.
+		$precedente = Continuita::precedente( $db, $auditId, (string) $site->url );
+
+		if ( $precedente ) {
+			Continuita::riportaBozze( $db, $auditId, $precedente );
+		}
+
 		return $auditId;
 	}
 }

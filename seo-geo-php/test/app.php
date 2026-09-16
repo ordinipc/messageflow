@@ -4131,6 +4131,94 @@ verifica(
 	'la vista da ripulire non e distinta'
 );
 
+// ---------------------------------------------------------------------------
+// Le riscritture seguono il sito, non l analisi in cui sono nate
+//
+// «Correggo, poi rileggo, e li ritrovo tutti: sembra che non salvi». Non era
+// un problema di salvataggio: ogni rilettura crea un analisi nuova, e le
+// riscritture restavano attaccate a quella vecchia. Sparivano dalla vista, la
+// riscrittura assistita ripartiva da zero e si ripagava Gemini per rifare un
+// lavoro gia fatto.
+
+echo "\nLe riscritture passano da un analisi alla successiva\n";
+
+$fileCont = sys_get_temp_dir() . '/prova-continuita-' . getmypid() . '.sqlite';
+@unlink( $fileCont );
+$dbCont = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileCont ) );
+
+$auditVecchio = $dbCont->insert( 'audit', array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => '2026-09-15 10:00:00', 'punteggio' => 50 ) );
+$auditNuovo   = $dbCont->insert( 'audit', array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => '2026-09-16 10:00:00', 'punteggio' => 50 ) );
+$auditAltro   = $dbCont->insert( 'audit', array( 'sito_nome' => 'Altro', 'sito_url' => 'https://altrosito.it', 'creato_il' => '2026-09-16 11:00:00', 'punteggio' => 50 ) );
+
+// Gli stessi due articoli, letti due volte: il numero di riga cambia, l
+// identificativo WordPress no.
+$docVecchio = array();
+$docNuovo   = array();
+
+foreach ( array( '80', '81' ) as $wp ) {
+	$docVecchio[ $wp ] = $dbCont->insert( 'documento', array( 'audit_id' => $auditVecchio, 'wp_id' => $wp, 'tipo' => 'post', 'stato' => 'publish', 'titolo' => 'Articolo ' . $wp, 'percorso' => '/a-' . $wp . '/', 'url' => 'https://esempio.it/a-' . $wp . '/' ) );
+	$docNuovo[ $wp ]   = $dbCont->insert( 'documento', array( 'audit_id' => $auditNuovo, 'wp_id' => $wp, 'tipo' => 'post', 'stato' => 'publish', 'titolo' => 'Articolo ' . $wp, 'percorso' => '/a-' . $wp . '/', 'url' => 'https://esempio.it/a-' . $wp . '/' ) );
+}
+
+$dbCont->insert( 'bozza', array( 'audit_id' => $auditVecchio, 'documento_id' => $docVecchio['80'], 'wp_id' => '80', 'stato' => 'ok', 'modello' => 'gemini', 'titolo' => 'Titolo riscritto', 'corpo_html' => '<p>Testo nuovo</p>', 'parole' => 900, 'token_in' => 1000, 'token_out' => 2000, 'creato_il' => '2026-09-15 11:00:00', 'inviata_il' => '2026-09-15 12:00:00' ) );
+$dbCont->insert( 'bozza', array( 'audit_id' => $auditVecchio, 'documento_id' => $docVecchio['81'], 'wp_id' => '81', 'stato' => 'ok', 'modello' => 'gemini', 'titolo' => 'Altro titolo', 'corpo_html' => '<p>Altro testo</p>', 'parole' => 800, 'creato_il' => '2026-09-15 11:05:00' ) );
+// Una fallita non si porta avanti: non c e niente da salvare.
+$dbCont->insert( 'bozza', array( 'audit_id' => $auditVecchio, 'documento_id' => $docVecchio['81'], 'wp_id' => '81', 'stato' => 'errore', 'modello' => 'gemini', 'titolo' => '', 'corpo_html' => '', 'errore' => 'il modello non ha risposto', 'creato_il' => '2026-09-15 11:06:00' ) );
+
+$portate = \SeoGeo\Continuita::riportaBozze( $dbCont, $auditNuovo, $auditVecchio );
+
+$bozzeNuove = $dbCont->all( 'SELECT * FROM bozza WHERE audit_id = ? ORDER BY documento_id', array( $auditNuovo ) );
+
+verifica( 'le riscritture riuscite passano alla nuova analisi', 2 === $portate && 2 === count( $bozzeNuove ), $portate . ' portate, ' . count( $bozzeNuove ) . ' presenti' );
+verifica( 'si riattaccano al contenuto giusto', $docNuovo['80'] === (int) $bozzeNuove[0]['documento_id'], json_encode( array_column( $bozzeNuove, 'documento_id' ) ) );
+verifica( 'col testo intatto', '<p>Testo nuovo</p>' === $bozzeNuove[0]['corpo_html'], (string) $bozzeNuove[0]['corpo_html'] );
+verifica( 'e chi era gia online resta segnato come tale', '2026-09-15 12:00:00' === $bozzeNuove[0]['inviata_il'], (string) $bozzeNuove[0]['inviata_il'] );
+verifica( 'quella fallita non si porta avanti', 0 === count( array_filter( $bozzeNuove, static fn( $b ) => 'ok' !== $b['stato'] ) ) );
+
+// Rifarlo non deve creare doppioni.
+\SeoGeo\Continuita::riportaBozze( $dbCont, $auditNuovo, $auditVecchio );
+
+verifica( 'ripetere l operazione non fa doppioni', 2 === (int) $dbCont->one( 'SELECT COUNT(*) n FROM bozza WHERE audit_id = ?', array( $auditNuovo ) )['n'] );
+
+// Un altro sito non c entra niente.
+verifica( 'le analisi di un altro sito non si mescolano', 0 === \SeoGeo\Continuita::precedente( $dbCont, $auditAltro, 'https://altrosito.it' ) );
+verifica( 'mentre dello stesso sito si trova quella prima', $auditVecchio === \SeoGeo\Continuita::precedente( $dbCont, $auditNuovo, 'https://esempio.it' ) );
+
+// Un articolo cancellato dal sito non deve far fallire niente.
+$dbCont->run( 'DELETE FROM documento WHERE audit_id = ? AND wp_id = ?', array( $auditNuovo, '81' ) );
+$dbCont->run( 'DELETE FROM bozza WHERE audit_id = ?', array( $auditNuovo ) );
+
+verifica( 'un contenuto sparito dal sito si salta senza rompere niente', 1 === \SeoGeo\Continuita::riportaBozze( $dbCont, $auditNuovo, $auditVecchio ) );
+
+// Chi guarda un analisi vecchia deve saperlo: si puo restare per ore sul
+// pilota di un analisi superata e lavorare su dati di ieri.
+$dbCont2 = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileCont ) );
+
+verifica(
+	'di un analisi vecchia si sa che ce n e una piu recente',
+	$auditNuovo === (int) ( \SeoGeo\Continuita::piuRecente( $dbCont2, $auditVecchio, 'https://esempio.it' )['id'] ?? 0 )
+);
+
+verifica(
+	'e della piu recente non si dice niente',
+	array() === \SeoGeo\Continuita::piuRecente( $dbCont2, $auditNuovo, 'https://esempio.it' )
+);
+
+verifica(
+	'l avviso compare su tutte le pagine, non solo su una',
+	false !== strpos( file_get_contents( __DIR__ . '/../views/layout.php' ), "Stai guardando un'analisi vecchia" ),
+	'l avviso non e nel contorno comune'
+);
+
+// E il salvataggio di un analisi lo fa da solo, da qualunque strada arrivi.
+verifica(
+	'il salvataggio dell analisi lo fa da solo',
+	false !== strpos( file_get_contents( __DIR__ . '/../src/Audit.php' ), 'Continuita::riportaBozze( $db, $auditId, $precedente )' ),
+	'chi salva un analisi puo dimenticarsene'
+);
+
+@unlink( $fileCont );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

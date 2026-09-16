@@ -33,6 +33,15 @@
 </header>
 
 <main class="contenitore">
+	<?php if ( ! empty( $piu_recente['id'] ) ) : ?>
+		<p class="avviso">
+			<strong>Stai guardando un'analisi vecchia.</strong>
+			Del <?php echo e( substr( (string) ( $audit['creato_il'] ?? '' ), 0, 16 ) ); ?>; ce n'è una più
+			recente, del <?php echo e( substr( (string) $piu_recente['creato_il'], 0, 16 ) ); ?>.
+			Quello che fai qui lavora sui dati di allora.
+			<a href="?p=audit&amp;id=<?php echo (int) $piu_recente['id']; ?>">Vai all'analisi più recente</a>.
+		</p>
+	<?php endif; ?>
 	<?php echo $contenuto; ?>
 </main>
 

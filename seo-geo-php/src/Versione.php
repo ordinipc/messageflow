@@ -18,7 +18,7 @@ namespace SeoGeo;
 class Versione {
 
 	/** Stessa numerazione del plugin, cosi le due si confrontano. */
-	const NUMERO = '2.18.3';
+	const NUMERO = '2.19.0';
 
 	/**
 	 * Versione del gestionale.
