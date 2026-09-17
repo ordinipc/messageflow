@@ -5150,6 +5150,49 @@ verifica( 'e si dice che non e un giudizio su adesso', false !== strpos( $vistaT
 verifica( 'il confronto guarda la fine del periodo, non la data della lettura', false !== strpos( $vistaTempo, "(string) \$ultima['periodo_a']" ) );
 verifica( 'e in cima si dice quante sono, senza doverle contare a mano', false !== strpos( $vistaTempo, 'riguardano contenuti che hai già cambiato' ) );
 
+// ---------------------------------------------------------------------------
+// Il giudizio di Google, detto in italiano
+//
+// «Google per indicizzare da dei punti per capire se e buona o no?» Un
+// punteggio no, e nessuno puo leggerne uno. Un giudizio per pagina si, e
+// l API lo restituisce con le sue parole: PASS, NEUTRAL, «Crawled -
+// currently not indexed». Chi legge restava con una sigla in mano.
+
+echo "\nIl giudizio di Google\n";
+
+$spiega = static function ( $copertura, $stato = 'NEUTRAL', $canonica = '' ) {
+	return \SeoGeo\Diagnosi::spiegaGoogle( array( 'stato' => $stato, 'copertura' => $copertura, 'canonica_google' => $canonica ) );
+};
+
+// La differenza che conta: «non l ho ancora guardata» e «l ho guardata e ho
+// deciso di no» portano a due cose opposte - aspettare, o smettere di
+// aspettare.
+$letta   = $spiega( 'Scansionata - attualmente non indicizzata' );
+$attesa  = $spiega( 'Rilevata - attualmente non indicizzata' );
+
+verifica( 'scansionata e non indicizzata e un no, non un ritardo', false !== strpos( $letta['titolo'], 'scelto di non tenerla' ), $letta['titolo'] );
+verifica( 'e lo dice: aspettare non serve', false !== strpos( $letta['fare'], 'Aspettare non serve' ), $letta['fare'] );
+verifica( 'rilevata e invece un ritardo vero', false !== strpos( $attesa['titolo'], 'non l ha ancora letta' ), $attesa['titolo'] );
+verifica( 'e li il consiglio e un altro', false === strpos( $attesa['fare'], 'Aspettare non serve' ), $attesa['fare'] );
+
+$doppione = $spiega( 'Duplicata: Google ha scelto una pagina canonica diversa', 'NEUTRAL', 'https://esempio.it/quella-giusta/' );
+
+verifica( 'un doppione si riconosce', false !== strpos( $doppione['titolo'], 'doppione' ), $doppione['titolo'] );
+verifica( 'e si dice di non riscriverlo una terza volta', false !== strpos( $doppione['fare'], 'terza volta' ), $doppione['fare'] );
+
+verifica( 'una pagina indicizzata lo dice', false !== strpos( $spiega( 'Inviata e indicizzata', 'PASS' )['titolo'], 'nell indice' ) );
+verifica( 'ma non promette posizioni', false !== strpos( $spiega( 'Inviata e indicizzata', 'PASS' )['spiega'], 'non vuol dire comparire in alto' ) );
+
+verifica( 'un noindex non si spaccia per un giudizio di Google', false !== strpos( $spiega( 'Esclusa dal tag noindex' )['spiega'], 'non è un giudizio di Google' ) );
+verifica( 'e di una pagina sconosciuta si dice che e sconosciuta', false !== strpos( $spiega( '', '' )['titolo'], 'non dice niente' ) );
+
+// E si dice da dove viene quel giudizio: il punteggio dell audit e quello di
+// Rank Math sono liste di controllo nostre, non di Google.
+verifica(
+	'si distingue il giudizio di Google dai punteggi nostri',
+	false !== strpos( file_get_contents( __DIR__ . '/../views/controlla.php' ), 'Google non dà un punteggio alle pagine' )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

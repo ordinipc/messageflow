@@ -206,4 +206,81 @@ class Diagnosi {
 
 		return $cause;
 	}
+
+	/**
+	 * Che cosa vuol dire, in italiano, il verdetto di Google.
+	 *
+	 * L API risponde con le sue parole - PASS, NEUTRAL, «Crawled - currently
+	 * not indexed» - e chi legge resta con una sigla in mano. Qui si dice che
+	 * cosa significa e che cosa cambia, perche fra «non l ho ancora guardata»
+	 * e «l ho guardata e ho deciso di no» c e tutta la differenza del mondo:
+	 * nel primo caso si aspetta, nel secondo aspettare non serve a niente.
+	 *
+	 * Google non da un punteggio a una pagina, e nessuno puo leggerne uno:
+	 * quello che si puo sapere e questo, ed e il piu vicino a un giudizio che
+	 * esista.
+	 *
+	 * @param array $google Esito di SearchConsole::ispeziona().
+	 * @return array 'titolo', 'spiega', 'fare'.
+	 */
+	public static function spiegaGoogle( array $google ) {
+		$stato     = strtoupper( trim( (string) ( $google['stato'] ?? '' ) ) );
+		$copertura = mb_strtolower( (string) ( $google['copertura'] ?? '' ) );
+
+		// La copertura e piu precisa del verdetto: dice il perche, non solo
+		// il si o il no.
+		if ( false !== mb_strpos( $copertura, 'duplicat' ) || '' !== trim( (string) ( $google['canonica_google'] ?? '' ) ) && false !== mb_strpos( $copertura, 'canonic' ) ) {
+			return array(
+				'titolo' => 'Google la considera un doppione',
+				'spiega' => 'L ha vista, e ha deciso che un altra pagina tua dice la stessa cosa meglio. Quella che tiene è indicata qui sotto come «originale scelta da Google».',
+				'fare'   => 'Non riscriverla di nuovo: o la si accorpa con quella che Google ha scelto, o si cambia argomento a questa. Riscriverla per la terza volta non cambia il giudizio.',
+			);
+		}
+
+		if ( false !== mb_strpos( $copertura, 'scansionat' ) || false !== mb_strpos( $copertura, 'crawled' ) ) {
+			return array(
+				'titolo' => 'Google l ha letta e ha scelto di non tenerla',
+				'spiega' => 'È il giudizio più severo che esista, e non è un ritardo: la pagina è stata guardata e scartata. Di solito perché somiglia troppo ad altre, o perché risponde a una ricerca che nessuno fa.',
+				'fare'   => 'Aspettare non serve. O si accorpa con le pagine simili, o le si dà un argomento che le altre non coprono.',
+			);
+		}
+
+		if ( false !== mb_strpos( $copertura, 'rilevat' ) || false !== mb_strpos( $copertura, 'discovered' ) ) {
+			return array(
+				'titolo' => 'Google la conosce ma non l ha ancora letta',
+				'spiega' => 'Sa che esiste - dalla sitemap o da un link - e non è ancora passato a leggerla. Qui il tempo serve davvero.',
+				'fare'   => 'Mandale qualche link interno dalle pagine che Google visita spesso: è quello che la fa salire nella coda.',
+			);
+		}
+
+		if ( false !== mb_strpos( $copertura, 'noindex' ) || false !== mb_strpos( $copertura, 'esclusa' ) ) {
+			return array(
+				'titolo' => 'La pagina dice a Google di non tenerla',
+				'spiega' => 'C è una direttiva noindex, o il robots.txt la blocca: non è un giudizio di Google, è un ordine che arriva dal sito.',
+				'fare'   => 'Se è voluto va bene così. Se non lo è, togli il noindex in Rank Math e richiedi l indicizzazione.',
+			);
+		}
+
+		if ( 'PASS' === $stato ) {
+			return array(
+				'titolo' => 'È nell indice di Google',
+				'spiega' => 'Google la conosce e può mostrarla. Essere nell indice non vuol dire comparire in alto: quello lo decidono le ricerche, e si guarda nel rendimento.',
+				'fare'   => '',
+			);
+		}
+
+		if ( '' === $stato ) {
+			return array(
+				'titolo' => 'Google non dice niente su questa pagina',
+				'spiega' => 'Non risulta nemmeno conosciuta: di solito è una pagina nuova, o nessun link e nessuna sitemap gliel ha mai segnalata.',
+				'fare'   => 'Mettila nella sitemap e collegala da una pagina che Google già visita.',
+			);
+		}
+
+		return array(
+			'titolo' => 'Google non la mostra',
+			'spiega' => 'Il motivo esatto è nella riga «copertura» qui sotto, con le parole di Google.',
+			'fare'   => '',
+		);
+	}
 }

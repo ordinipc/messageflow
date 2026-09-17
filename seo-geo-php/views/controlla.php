@@ -79,6 +79,20 @@ $classi = array( 'grave' => 'grave', 'alto' => 'alto', 'medio' => 'medio' );
 			<p class="avviso grave"><?php echo e( $esito['google_err'] ); ?></p>
 		<?php elseif ( $esito['google'] ) : ?>
 			<?php $g = $esito['google']; ?>
+			<?php $verdetto = \SeoGeo\Diagnosi::spiegaGoogle( $g ); ?>
+			<p class="guida">
+				<strong><?php echo e( $verdetto['titolo'] ); ?>.</strong>
+				<?php echo e( $verdetto['spiega'] ); ?>
+				<?php if ( '' !== $verdetto['fare'] ) : ?>
+					<br><strong>Che cosa fare:</strong> <?php echo e( $verdetto['fare'] ); ?>
+				<?php endif; ?>
+			</p>
+			<p class="nota">
+				Google non dà un punteggio alle pagine, e nessuno può leggerne uno: questo è il giudizio
+				che si può sapere, e viene da Google, non dal gestionale. Il punteggio dell audit e quello
+				di Rank Math sono liste di controllo nostre: una pagina può farle tutte e restare fuori
+				dall indice lo stesso.
+			</p>
 			<table class="widefat">
 				<tbody>
 					<tr><td>Esito</td><td><strong><?php echo e( $g['stato'] ?? '' ); ?></strong></td></tr>
