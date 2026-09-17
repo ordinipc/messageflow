@@ -5393,8 +5393,22 @@ $indiceLotto = file_get_contents( __DIR__ . '/../public/index.php' );
 $vistaLotto  = file_get_contents( __DIR__ . '/../views/indice.php' );
 
 verifica( 'e chi legge sa perche ne ha fatti meno', false !== strpos( $indiceLotto, 'chiude le richieste dopo %d secondi' ) );
-verifica( 'la pagina dice che il numero e un massimo, non un minimo', false !== strpos( $vistaLotto, 'il <strong>massimo</strong> per lotto, non il minimo' ) );
+// Prima questa prova chiedeva che la pagina spiegasse che il numero e un
+// massimo. Adesso quel numero non lo sceglie piu chi guarda: si regola da se
+// sulla misura dell hosting, ed e questo che va detto.
+verifica( 'la pagina dice che il numero si regola da se', false !== strpos( $vistaLotto, 'si regola da sé sulla misura del tuo hosting' ) );
 verifica( 'e si puo chiedere di continuare da solo', false !== strpos( $vistaLotto, 'Continua da solo fino alla fine' ) );
+
+// Continuare da solo e il modo normale di usarlo: chiedere trecento volte di
+// premere un pulsante non e un programma, e una penitenza.
+verifica( 'continuare da solo e acceso di suo', false !== strpos( $vistaLotto, 'name="continua" value="1" checked' ) );
+verifica(
+	'e il blocco successivo si regola su quanti ne sono entrati davvero',
+	false !== strpos( $indiceLotto, "\$prossimo = ! empty( \$esito['interrotto'] ) && \$esito['chiesti'] > 0" ),
+	'senza questo ogni blocco riparte da un numero scelto a tavolino e si tronca sempre'
+);
+verifica( 'e quel numero torna nel modulo', false !== strpos( $indiceLotto, "'&quanti=' . max( 1, \$prossimo )" ) );
+verifica( 'mentre si lavora si vede a che punto e', false !== strpos( $vistaLotto, 'chiesti,' ) && false !== strpos( $vistaLotto, 'class="barra"' ) );
 
 verifica(
 	'e la canonica si puo disfare, perche entra nel salvataggio',

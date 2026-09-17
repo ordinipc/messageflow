@@ -12,10 +12,11 @@
  * @var int    $pagine_fuori Pagine servizio escluse dal piano.
  * @var string $messaggio   Esito dell ultimo lotto.
  * @var bool   $continua    Se deve rilanciare il lotto successivo da se.
+ * @var int    $quanti      Quanti indirizzi per blocco, regolati sulla misura dell hosting.
  * @var string $errore      Errore dell ultimo lotto.
  */
 ?>
-<?php $piano = $piano ?? array(); $pagine_fuori = $pagine_fuori ?? 0; $continua = $continua ?? false; ?>
+<?php $piano = $piano ?? array(); $pagine_fuori = $pagine_fuori ?? 0; $continua = $continua ?? false; $quanti = $quanti ?? 10; ?>
 <section class="intestazione">
 	<p class="briciole"><a href="?p=home">Audit archiviati</a> › <a href="?p=audit&amp;id=<?php echo (int) $audit['id']; ?>"><?php echo e( $audit['sito_nome'] ); ?></a> › Che cosa dice Google</p>
 	<h1>Che cosa dice Google</h1>
@@ -43,8 +44,9 @@
 
 	<?php if ( ! $quadro['totale'] ) : ?>
 		<p class="guida">
-			Non è ancora stato chiesto niente. Ogni indirizzo costa una richiesta e il limite di Google
-			è duemila al giorno, quindi si lavora a lotti: premi, aspetta, ripremi.
+			Non è ancora stato chiesto niente. Premi una volta e va avanti da sé: lavora a blocchi,
+			perché ogni indirizzo costa una richiesta e l'hosting chiude quelle troppo lunghe. Per
+			i tuoi contenuti ci vogliono pochi minuti, e puoi lasciarlo andare e tornare dopo.
 		</p>
 	<?php else : ?>
 		<div class="tabellabox">
@@ -73,39 +75,53 @@
 		<form method="post" action="?p=chiedi-indice" id="modulo-indice">
 			<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
 			<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
-			<label for="quanti-indice">Quanti indirizzi in questo lotto</label>
-			<input id="quanti-indice" type="number" name="quanti" value="25" min="1" max="100" style="width:90px;padding:8px;border:1px solid var(--linea);border-radius:4px">
-
 			<label class="scelta">
-				<input type="checkbox" name="continua" value="1" <?php echo $continua ? 'checked' : ''; ?>>
+				<input type="checkbox" name="continua" value="1" checked>
 				<span>
 					<strong>Continua da solo fino alla fine</strong>
 					<small>
-						Rilancia il lotto successivo da sé finché non finiscono. Puoi fermarlo in qualsiasi
-						momento chiudendo la pagina: quello che è già stato chiesto resta.
+						Lo avvii una volta e va avanti da sé, un blocco dopo l'altro, finché non finiscono.
+						Per fermarlo basta chiudere la pagina: quello che è già stato chiesto resta.
 					</small>
 				</span>
 			</label>
 
-			<button class="bottone" type="submit">Chiedi a Google (ne restano <?php echo num( $restano ); ?>)</button>
+			<details>
+				<summary>Quanti per blocco (<?php echo num( $quanti ); ?>)</summary>
+				<p class="nota">
+					Questo numero si regola da sé sulla misura del tuo hosting: se un blocco si ferma prima
+					del tempo, il successivo parte dal numero che c'è davvero entrato. Cambialo solo se sai
+					perché.
+				</p>
+				<input id="quanti-indice" type="number" name="quanti" value="<?php echo (int) $quanti; ?>" min="1" max="100" style="width:90px;padding:8px;border:1px solid var(--linea);border-radius:4px">
+			</details>
+
+			<button class="bottone" type="submit">Avvia: ne restano <?php echo num( $restano ); ?></button>
 		</form>
 
-		<p class="nota">
-			Il numero che scrivi è il <strong>massimo</strong> per lotto, non il minimo: se il tuo hosting
-			chiude la richiesta prima, il lotto si ferma lì e il resto va al giro dopo. Niente va perso —
-			quello che è stato chiesto non si richiede, e si riparte sempre da dove si era arrivati.
-		</p>
-
 		<?php if ( $continua ) : ?>
-			<p class="avviso ok-bg" id="avviso-continua">Riparto da solo fra pochi secondi…</p>
+			<?php $fatti = (int) $quadro['totale']; ?>
+			<div class="avviso ok-bg" id="avviso-continua">
+				<p style="margin:0 0 8px">
+					<strong><?php echo num( $fatti ); ?></strong> chiesti,
+					<strong><?php echo num( $restano ); ?></strong> da fare.
+					<span id="testo-continua">Riparto da solo fra pochi secondi…</span>
+				</p>
+				<div class="barra" style="height:10px">
+					<i class="ok" style="height:10px;width:<?php echo max( 1, (int) round( $fatti / max( 1, $fatti + $restano ) * 100 ) ); ?>%"></i>
+				</div>
+			</div>
 			<script>
 			(function () {
 				var modulo = document.getElementById('modulo-indice');
-				var avviso = document.getElementById('avviso-continua');
+				var avviso = document.getElementById('testo-continua');
 
 				if (!modulo) { return; }
 
-				var secondi = 3;
+				// Due secondi fra un blocco e l altro: abbastanza da poter
+				// chiudere la pagina per fermarlo, non tanti da raddoppiare
+				// il tempo totale.
+				var secondi = 2;
 
 				var orologio = setInterval(function () {
 					secondi--;

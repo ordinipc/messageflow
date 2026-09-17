@@ -584,13 +584,21 @@ if ( 'chiedi-indice' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		$console,
 		$id,
 		array(
-			'quanti'      => max( 1, min( 200, (int) ( $_POST['quanti'] ?? 25 ) ) ),
+			'quanti'      => max( 1, min( 200, (int) ( $_POST['quanti'] ?? 10 ) ) ),
 			'secondi_max' => $limite > 0 ? max( 20, $limite - 15 ) : 60,
 		)
 	);
 
+	// Quanti ne sono entrati davvero in questo hosting: il lotto successivo
+	// parte da quella misura invece che da un numero scelto a tavolino.
+	// Cosi chi lascia andare il programma non vede piu meta lotti troncati.
+	$prossimo = ! empty( $esito['interrotto'] ) && $esito['chiesti'] > 0
+		? (int) $esito['chiesti']
+		: (int) ( $_POST['quanti'] ?? 10 );
+
 	header(
 		'Location: ?p=indice&id=' . $id
+		. '&quanti=' . max( 1, $prossimo )
 		. ( ! empty( $_POST['continua'] ) && $esito['restano'] > 0 ? '&continua=1' : '' )
 		. '&messaggio=' . rawurlencode(
 			sprintf(
@@ -2954,6 +2962,7 @@ switch ( $pagina ) {
 				'pagine_fuori' => \SeoGeo\Search\Indicizzazione::paginePerse( $db, (int) $audit['id'] ),
 				'messaggio'   => (string) ( $_GET['messaggio'] ?? '' ),
 				'continua'    => ! empty( $_GET['continua'] ),
+				'quanti'      => max( 1, min( 200, (int) ( $_GET['quanti'] ?? 10 ) ) ),
 				'errore'      => (string) ( $_GET['errore'] ?? '' ),
 			)
 		);
