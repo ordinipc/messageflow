@@ -23,6 +23,7 @@
 		<nav>
 			<a href="?p=home">Audit archiviati</a>
 			<a href="?p=prestazioni">Rendimento</a>
+			<a href="?p=indice">Che cosa dice Google</a>
 			<a href="?p=controlla">Controlla una pagina</a>
 			<a href="?p=impostazioni">Impostazioni</a>
 			<a href="?p=diagnostica">Diagnostica</a>

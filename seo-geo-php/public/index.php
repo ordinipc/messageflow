@@ -560,6 +560,48 @@ if ( 'applica-segnali' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	exit;
 }
 
+// ------------------ Chiedi a Google, articolo per articolo, se lo tiene
+if ( 'chiedi-indice' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Token di sessione non valido: ricarica la pagina e riprova.' );
+	}
+
+	$id = (int) ( $_POST['id'] ?? 0 );
+
+	try {
+		$console = Prestazioni::client( $cfg );
+	} catch ( Throwable $e ) {
+		header( 'Location: ?p=prestazioni&errore=' . rawurlencode( $e->getMessage() ) );
+		exit;
+	}
+
+	set_time_limit( 0 );
+
+	$limite = (int) ini_get( 'max_execution_time' );
+	$esito  = \SeoGeo\Search\Indicizzazione::esegui(
+		$db,
+		$console,
+		$id,
+		array(
+			'quanti'      => max( 1, min( 200, (int) ( $_POST['quanti'] ?? 25 ) ) ),
+			'secondi_max' => $limite > 0 ? max( 20, $limite - 15 ) : 60,
+		)
+	);
+
+	header(
+		'Location: ?p=indice&id=' . $id . '&messaggio=' . rawurlencode(
+			sprintf(
+				'Chiesti a Google %d indirizzi, ne restano %d.%s',
+				$esito['chiesti'],
+				$esito['restano'],
+				$esito['errori'] ? ' Non riusciti: ' . count( $esito['errori'] ) . ' — ' . $esito['errori'][0] : ''
+			)
+		)
+	);
+	exit;
+}
+
 // ------------------ Cannibalizzazione: chi vince la ricerca, chi le cede
 if ( 'applica-contese' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
@@ -2837,6 +2879,30 @@ switch ( $pagina ) {
 		);
 		break;
 
+
+	case 'indice':
+		$id    = (int) ( $_GET['id'] ?? 0 );
+		$audit = $db->one( 'SELECT * FROM audit WHERE id = ?', array( $id ) ) ?: $db->one( 'SELECT * FROM audit ORDER BY id DESC LIMIT 1' );
+
+		if ( ! $audit ) {
+			http_response_code( 404 );
+			exit( 'Nessuna analisi: fanne una prima.' );
+		}
+
+		vista(
+			'indice',
+			array(
+				'titolo'      => 'Che cosa dice Google',
+				'audit'       => $audit,
+				'configurato' => Prestazioni::configurata( $cfg ),
+				'quadro'      => \SeoGeo\Search\Indicizzazione::quadro( $db, (int) $audit['id'] ),
+				'restano'     => \SeoGeo\Search\Indicizzazione::quantiRestano( $db, (int) $audit['id'] ),
+				'gruppi'      => \SeoGeo\Search\Indicizzazione::gruppi( $db, (int) $audit['id'] ),
+				'messaggio'   => (string) ( $_GET['messaggio'] ?? '' ),
+				'errore'      => (string) ( $_GET['errore'] ?? '' ),
+			)
+		);
+		break;
 
 	case 'prestazioni':
 		$sito     = chiave_sito( $cfg );

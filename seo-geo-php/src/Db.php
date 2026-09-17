@@ -252,6 +252,18 @@ class Db {
 				dettaglio $txt
 			)$suff",
 
+			"CREATE TABLE IF NOT EXISTS gsc_indice (
+				id $pk,
+				audit_id INT NOT NULL,
+				documento_id INT,
+				url $txt,
+				verdetto $vc,
+				copertura $txt,
+				canonica_google $txt,
+				ultima_scansione $vc,
+				chiesto_il $vc
+			)$suff",
+
 			"CREATE TABLE IF NOT EXISTS link_piano (
 				id $pk,
 				audit_id INT NOT NULL,
@@ -301,6 +313,7 @@ class Db {
 			'CREATE INDEX IF NOT EXISTS idx_gsc_pag ON gsc_pagina (rilevazione_id)',
 			'CREATE INDEX IF NOT EXISTS idx_gsc_qry ON gsc_query (rilevazione_id)',
 			'CREATE INDEX IF NOT EXISTS idx_gsc_seg ON gsc_segnale (rilevazione_id, priorita)',
+			'CREATE INDEX IF NOT EXISTS idx_gsc_idx ON gsc_indice (audit_id, documento_id)',
 		) as $sql ) {
 			$this->pdo->exec( $sql );
 		}

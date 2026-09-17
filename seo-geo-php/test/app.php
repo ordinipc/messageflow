@@ -5193,6 +5193,85 @@ verifica(
 	false !== strpos( file_get_contents( __DIR__ . '/../views/controlla.php' ), 'Google non dà un punteggio alle pagine' )
 );
 
+// ---------------------------------------------------------------------------
+// I doppioni raggruppati da Google
+//
+// Search Console ha mandato: «Pagina duplicata, Google ha scelto una pagina
+// canonica diversa da quella specificata dall utente». Non e un sospetto
+// nostro: e Google che dice quali pagine considera doppioni e quale tiene.
+
+echo "\nI doppioni raggruppati da Google\n";
+
+use SeoGeo\Search\Indicizzazione;
+
+verifica( 'un doppione si riconosce dalle parole di Google', 'doppioni' === Indicizzazione::caso( 'NEUTRAL', 'Pagina duplicata, Google ha scelto una pagina canonica diversa' ) );
+verifica( 'anche in inglese', 'doppioni' === Indicizzazione::caso( 'NEUTRAL', 'Duplicate, Google chose different canonical than user' ) );
+verifica( 'letta e scartata e un altro caso', 'scartati' === Indicizzazione::caso( 'NEUTRAL', 'Scansionata - attualmente non indicizzata' ) );
+verifica( 'in coda anche', 'in_attesa' === Indicizzazione::caso( 'NEUTRAL', 'Rilevata - attualmente non indicizzata' ) );
+verifica( 'e chi e dentro e dentro', 'dentro' === Indicizzazione::caso( 'PASS', 'Inviata e indicizzata' ) );
+
+$fileIdx = sys_get_temp_dir() . '/prova-indice-' . getmypid() . '.sqlite';
+@unlink( $fileIdx );
+$dbIdx    = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileIdx ) );
+$auditIdx = $dbIdx->insert( 'audit', array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => '2026-09-17 10:00:00', 'punteggio' => 50 ) );
+
+$mettiIdx = static function ( $wp, $titolo, $percorso ) use ( $dbIdx, $auditIdx ) {
+	return $dbIdx->insert(
+		'documento',
+		array(
+			'audit_id' => $auditIdx, 'wp_id' => (string) $wp, 'tipo' => 'post', 'stato' => 'publish',
+			'titolo' => $titolo, 'slug' => trim( $percorso, '/' ), 'percorso' => $percorso,
+			'url' => 'https://esempio.it' . $percorso, 'parole' => 900,
+		)
+	);
+};
+
+$tenuta  = $mettiIdx( 1, 'Agenzia di branding a Palermo', '/agenzia-branding-palermo/' );
+$scartata = $mettiIdx( 2, 'Creazione marchi aziendali', '/creazione-marchi/' );
+$altra    = $mettiIdx( 3, 'Comunicazione e branding', '/comunicazione-branding/' );
+
+$scrivi = static function ( $doc, $url, $copertura, $canonica, $verdetto = 'NEUTRAL' ) use ( $dbIdx, $auditIdx ) {
+	$dbIdx->insert(
+		'gsc_indice',
+		array(
+			'audit_id' => $auditIdx, 'documento_id' => $doc, 'url' => $url, 'verdetto' => $verdetto,
+			'copertura' => $copertura, 'canonica_google' => $canonica, 'ultima_scansione' => '2026-09-15',
+			'chiesto_il' => '2026-09-17 10:00:00',
+		)
+	);
+};
+
+$scrivi( $tenuta, 'https://esempio.it/agenzia-branding-palermo/', 'Inviata e indicizzata', 'https://esempio.it/agenzia-branding-palermo/', 'PASS' );
+$scrivi( $scartata, 'https://esempio.it/creazione-marchi/', 'Pagina duplicata, Google ha scelto una pagina canonica diversa', 'https://esempio.it/agenzia-branding-palermo/' );
+$scrivi( $altra, 'https://esempio.it/comunicazione-branding/', 'Pagina duplicata, Google ha scelto una pagina canonica diversa', 'https://esempio.it/agenzia-branding-palermo/' );
+
+$quadroIdx = Indicizzazione::quadro( $dbIdx, $auditIdx );
+
+verifica( 'il quadro conta i doppioni', 2 === $quadroIdx['doppioni'], json_encode( $quadroIdx ) );
+verifica( 'e chi e nell indice', 1 === $quadroIdx['dentro'], json_encode( $quadroIdx ) );
+
+$gruppiIdx = Indicizzazione::gruppi( $dbIdx, $auditIdx );
+
+verifica( 'i doppioni finiscono sotto la pagina che Google tiene', 1 === count( $gruppiIdx ) && 2 === $gruppiIdx[0]['quante'], json_encode( array_column( $gruppiIdx, 'quante' ) ) );
+verifica( 'e la pagina tenuta e riconosciuta col suo titolo', 'Agenzia di branding a Palermo' === $gruppiIdx[0]['titolo'], $gruppiIdx[0]['titolo'] );
+verifica(
+	'la pagina che Google ha scelto non si conta fra le ignorate',
+	! in_array( 'https://esempio.it/agenzia-branding-palermo/', array_column( $gruppiIdx[0]['membri'], 'url' ), true ),
+	json_encode( array_column( $gruppiIdx[0]['membri'], 'url' ) )
+);
+
+// Il giro a lotti: quello che e stato chiesto non si richiede.
+verifica( 'chi e gia stato chiesto non si richiede', 0 === Indicizzazione::quantiRestano( $dbIdx, $auditIdx ) );
+
+$nuovo = $mettiIdx( 4, 'Un articolo nuovo', '/nuovo/' );
+
+verifica( 'e uno nuovo entra in coda', 1 === Indicizzazione::quantiRestano( $dbIdx, $auditIdx ) );
+verifica( 'con il suo indirizzo', 'https://esempio.it/nuovo/' === ( Indicizzazione::daChiedere( $dbIdx, $auditIdx, 5 )[0]['url'] ?? '' ) );
+
+@unlink( $fileIdx );
+
+verifica( 'e la pagina e raggiungibile dal menu', false !== strpos( file_get_contents( __DIR__ . '/../views/layout.php' ), '?p=indice' ) );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );
