@@ -249,6 +249,74 @@ class Indicizzazione {
 	}
 
 	/**
+	 * Le canoniche da allineare a quello che Google ha gia scelto.
+	 *
+	 * «Pagina duplicata, Google ha scelto una pagina canonica diversa da
+	 * quella specificata dall utente» vuol dire che la pagina dichiara se
+	 * stessa come originale e Google non e d accordo. Finche resta cosi, il
+	 * disaccordo resta, e Google segnala il motivo a ogni giro.
+	 *
+	 * Allineare la canonica e dire per iscritto quello che Google ha gia
+	 * deciso. Non e una rinuncia: la pagina resta online e leggibile, i suoi
+	 * link continuano a valere, e il valore che ha va a rinforzare quella che
+	 * Google tiene invece di disperdersi. Ed e l unica strada che si disfa
+	 * togliendo un campo: nessun 301, niente cancellato, niente riscritto.
+	 *
+	 * @param Db    $db      Database.
+	 * @param int   $auditId Analisi.
+	 * @param array $opzioni 'pagine' => true per includere le pagine servizio.
+	 * @return array[] 'wp_id', 'titolo', 'tipo', 'da', 'canonical'.
+	 */
+	public static function pianoCanoniche( Db $db, $auditId, array $opzioni = array() ) {
+		$piano = array();
+
+		foreach ( self::gruppi( $db, $auditId ) as $gruppo ) {
+			$dove = $db->one(
+				'SELECT url FROM documento WHERE audit_id = ? AND ( percorso = ? OR percorso = ? ) LIMIT 1',
+				array( (int) $auditId, $gruppo['canonica'], $gruppo['canonica'] . '/' )
+			);
+
+			// Senza l indirizzo per esteso non si scrive niente: una
+			// canonica relativa o inventata e peggio di nessuna canonica.
+			if ( empty( $dove['url'] ) ) {
+				continue;
+			}
+
+			foreach ( $gruppo['membri'] as $membro ) {
+				if ( 'post' !== (string) $membro['tipo'] && empty( $opzioni['pagine'] ) ) {
+					continue;
+				}
+
+				if ( '' === (string) $membro['wp_id'] ) {
+					continue;
+				}
+
+				$piano[] = array(
+					'wp_id'     => (string) $membro['wp_id'],
+					'titolo'    => (string) $membro['titolo'],
+					'tipo'      => (string) $membro['tipo'],
+					'da'        => (string) $membro['url'],
+					'canonical' => (string) $dove['url'],
+				);
+			}
+		}
+
+		return $piano;
+	}
+
+	/**
+	 * Quante pagine servizio resterebbero fuori dal piano.
+	 *
+	 * @param Db  $db      Database.
+	 * @param int $auditId Analisi.
+	 * @return int
+	 */
+	public static function paginePerse( Db $db, $auditId ) {
+		return count( self::pianoCanoniche( $db, $auditId, array( 'pagine' => true ) ) )
+			- count( self::pianoCanoniche( $db, $auditId ) );
+	}
+
+	/**
 	 * Percorso confrontabile.
 	 *
 	 * @param string $url Indirizzo.

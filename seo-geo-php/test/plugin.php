@@ -1581,6 +1581,48 @@ verifica( 'quelli di casa si', false !== strpos( $correlati, 'esempio.it/x/' ), 
 $GLOBALS['wp']['singolo'] = 0;
 unset( $GLOBALS['wp']['opzioni']['mdi_seo_geo_dati_related'] );
 
+// --- La canonica allineata a quella che Google ha scelto -------------------
+echo "\nLa canonica\n";
+
+stub_crea_post( 820, 'Un doppione', '<p>Testo.</p>' );
+
+MDI_Api::aggiorna_meta(
+	new WP_REST_Request(
+		array(
+			'contenuti' => array( array( 'id' => 820, 'canonical' => 'https://esempio.it/quella-che-google-tiene/' ) ),
+			'anteprima' => false,
+		)
+	)
+);
+
+verifica( 'la canonica arriva al sito', 'https://esempio.it/quella-che-google-tiene/' === get_post_meta( 820, 'rank_math_canonical_url', true ), (string) get_post_meta( 820, 'rank_math_canonical_url', true ) );
+
+// E quando il sito non ha nessun plugin SEO, la canonica stampata deve essere
+// quella: ristampare l indirizzo della pagina vorrebbe dire continuare a
+// dichiararsi originale, cioe il problema che si stava togliendo.
+$GLOBALS['wp']['singolo']      = 820;
+$GLOBALS['wp']['tipo_singolo'] = 'post';
+
+ob_start();
+MDI_Meta::print_meta();
+$testa = (string) ob_get_clean();
+
+verifica( 'e in pagina si stampa quella, non l indirizzo di se stessa', false !== strpos( $testa, 'href="https://esempio.it/quella-che-google-tiene/"' ), $testa );
+
+// Una canonica vuota va tolta, non scritta vuota.
+MDI_Api::aggiorna_meta(
+	new WP_REST_Request(
+		array(
+			'contenuti' => array( array( 'id' => 820, 'canonical' => '' ) ),
+			'anteprima' => false,
+		)
+	)
+);
+
+verifica( 'una canonica vuota si toglie, non si scrive vuota', '' === (string) get_post_meta( 820, 'rank_math_canonical_url', true ) );
+
+$GLOBALS['wp']['singolo'] = 0;
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

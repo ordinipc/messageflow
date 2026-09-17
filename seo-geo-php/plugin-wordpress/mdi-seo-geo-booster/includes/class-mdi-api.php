@@ -1031,6 +1031,9 @@ class MDI_Api {
 				'rank_math_title'         => get_post_meta( $id, 'rank_math_title', true ),
 				'rank_math_description'   => get_post_meta( $id, 'rank_math_description', true ),
 				'rank_math_focus_keyword' => get_post_meta( $id, 'rank_math_focus_keyword', true ),
+				// Anche la canonica sta nel salvataggio: e la cosa piu facile
+				// da sbagliare di tutto il gruppo, e deve potersi disfare.
+				'rank_math_canonical_url' => get_post_meta( $id, 'rank_math_canonical_url', true ),
 				'post_excerpt'            => get_post_field( 'post_excerpt', $id ),
 			);
 
@@ -1038,6 +1041,7 @@ class MDI_Api {
 				'rank_math_title'         => isset( $riga['title'] ) ? sanitize_text_field( $riga['title'] ) : $prima['rank_math_title'],
 				'rank_math_description'   => isset( $riga['description'] ) ? sanitize_text_field( $riga['description'] ) : $prima['rank_math_description'],
 				'rank_math_focus_keyword' => isset( $riga['focus'] ) ? sanitize_text_field( $riga['focus'] ) : $prima['rank_math_focus_keyword'],
+				'rank_math_canonical_url' => isset( $riga['canonical'] ) ? esc_url_raw( $riga['canonical'] ) : $prima['rank_math_canonical_url'],
 				'post_excerpt'            => isset( $riga['excerpt'] ) ? wp_kses_post( $riga['excerpt'] ) : $prima['post_excerpt'],
 			);
 
@@ -1060,6 +1064,14 @@ class MDI_Api {
 			update_post_meta( $id, 'rank_math_title', $dopo['rank_math_title'] );
 			update_post_meta( $id, 'rank_math_description', $dopo['rank_math_description'] );
 			update_post_meta( $id, 'rank_math_focus_keyword', $dopo['rank_math_focus_keyword'] );
+
+			// Una canonica vuota va tolta, non scritta vuota: un tag
+			// canonical con href="" e peggio di nessun tag.
+			if ( '' === trim( (string) $dopo['rank_math_canonical_url'] ) ) {
+				delete_post_meta( $id, 'rank_math_canonical_url' );
+			} else {
+				update_post_meta( $id, 'rank_math_canonical_url', $dopo['rank_math_canonical_url'] );
+			}
 
 			if ( $dopo['post_excerpt'] !== $prima['post_excerpt'] ) {
 				wp_update_post( array( 'ID' => $id, 'post_excerpt' => $dopo['post_excerpt'] ) );

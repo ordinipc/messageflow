@@ -8,10 +8,13 @@
  * @var array  $quadro      Conteggi per caso.
  * @var int    $restano     Quanti indirizzi non sono ancora stati chiesti.
  * @var array  $gruppi      Doppioni raggruppati per la pagina che Google tiene.
+ * @var array  $piano       Canoniche da allineare.
+ * @var int    $pagine_fuori Pagine servizio escluse dal piano.
  * @var string $messaggio   Esito dell ultimo lotto.
  * @var string $errore      Errore dell ultimo lotto.
  */
 ?>
+<?php $piano = $piano ?? array(); $pagine_fuori = $pagine_fuori ?? 0; ?>
 <section class="intestazione">
 	<p class="briciole"><a href="?p=home">Audit archiviati</a> › <a href="?p=audit&amp;id=<?php echo (int) $audit['id']; ?>"><?php echo e( $audit['sito_nome'] ); ?></a> › Che cosa dice Google</p>
 	<h1>Che cosa dice Google</h1>
@@ -87,6 +90,54 @@
 			Riscrivere una pagina che sta in questo elenco non cambia il giudizio: o si accorpa con quella
 			che Google tiene, o le si dà un argomento che quella non copre.
 		</p>
+
+		<?php if ( ! empty( $piano ) ) : ?>
+			<div class="tabellabox" style="margin-bottom:14px">
+				<table>
+					<tbody>
+						<tr>
+							<td>Contenuti che dichiarano sé stessi originali mentre Google dice il contrario</td>
+							<td class="num"><strong><?php echo num( count( $piano ) ); ?></strong></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<form method="post" action="?p=allinea-canoniche">
+				<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
+				<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
+
+				<?php if ( $pagine_fuori > 0 ) : ?>
+					<label class="scelta">
+						<input type="checkbox" name="pagine" value="1">
+						<span>
+							<strong>Tocca anche le <?php echo num( $pagine_fuori ); ?> pagine servizio</strong>
+							<small>
+								Escluse di default, come sempre. Qui non si riscrive niente: cambia solo quale
+								indirizzo la pagina dichiara come originale.
+							</small>
+						</span>
+					</label>
+				<?php endif; ?>
+
+				<button class="bottone" type="submit"
+					onclick="return confirm('Questi contenuti smetteranno di dichiararsi originali e indicheranno la pagina che Google ha già scelto. Restano online, non viene cancellato né riscritto niente, e si disfa in un clic. Procedere?')">
+					Allinea le canoniche a quello che Google ha scelto
+				</button>
+			</form>
+
+			<p class="nota">
+				<strong>Che cosa fa davvero:</strong> scrive in Rank Math, su ognuno di questi contenuti, che
+				l'originale è la pagina qui sotto — cioè mette per iscritto quello che Google ha già deciso da
+				solo. Finché i due non sono d'accordo, Google continua a segnalare il motivo a ogni giro.
+			</p>
+			<p class="nota">
+				<strong>Che cosa non fa:</strong> non cancella niente, non crea redirect, non tocca una riga di
+				testo. Le pagine restano online e leggibili, i loro link continuano a valere, e il peso che
+				hanno va a rinforzare quella che Google tiene invece di disperdersi. Si disfa da
+				<a href="?p=collega&amp;id=<?php echo (int) $audit['id']; ?>">Applica sul sito → «Rimetti le meta com'erano»</a>.
+			</p>
+		<?php endif; ?>
 
 		<?php foreach ( $gruppi as $g ) : ?>
 			<div class="tabellabox">

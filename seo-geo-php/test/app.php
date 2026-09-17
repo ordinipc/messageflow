@@ -5272,6 +5272,76 @@ verifica( 'con il suo indirizzo', 'https://esempio.it/nuovo/' === ( Indicizzazio
 
 verifica( 'e la pagina e raggiungibile dal menu', false !== strpos( file_get_contents( __DIR__ . '/../views/layout.php' ), '?p=indice' ) );
 
+// --- Allineare le canoniche -----------------------------------------------
+// «Pagina duplicata, Google ha scelto una pagina canonica diversa da quella
+// specificata dall utente»: finche i due non sono d accordo, Google continua
+// a segnalare il motivo. Allineare vuol dire mettere per iscritto quello che
+// Google ha gia deciso.
+
+$fileCan2 = sys_get_temp_dir() . '/prova-canoniche-' . getmypid() . '.sqlite';
+@unlink( $fileCan2 );
+$dbCan2    = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileCan2 ) );
+$auditCan2 = $dbCan2->insert( 'audit', array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => '2026-09-17 10:00:00', 'punteggio' => 50 ) );
+
+$mettiCan2 = static function ( $wp, $titolo, $percorso, $tipo = 'post' ) use ( $dbCan2, $auditCan2 ) {
+	return $dbCan2->insert(
+		'documento',
+		array(
+			'audit_id' => $auditCan2, 'wp_id' => (string) $wp, 'tipo' => $tipo, 'stato' => 'publish',
+			'titolo' => $titolo, 'slug' => trim( $percorso, '/' ), 'percorso' => $percorso,
+			'url' => 'https://esempio.it' . $percorso, 'parole' => 900,
+		)
+	);
+};
+
+$tiene   = $mettiCan2( 1, 'Quella che Google tiene', '/tiene/' );
+$ignorato = $mettiCan2( 2, 'Un articolo ignorato', '/ignorato/' );
+$paginaIg = $mettiCan2( 3, 'Una pagina ignorata', '/pagina-ignorata/', 'page' );
+
+$scriviCan = static function ( $doc, $percorso, $copertura, $canonica, $verdetto = 'NEUTRAL' ) use ( $dbCan2, $auditCan2 ) {
+	$dbCan2->insert(
+		'gsc_indice',
+		array(
+			'audit_id' => $auditCan2, 'documento_id' => $doc, 'url' => 'https://esempio.it' . $percorso,
+			'verdetto' => $verdetto, 'copertura' => $copertura, 'canonica_google' => $canonica,
+			'ultima_scansione' => '2026-09-15', 'chiesto_il' => '2026-09-17 10:00:00',
+		)
+	);
+};
+
+$scriviCan( $tiene, '/tiene/', 'Inviata e indicizzata', 'https://esempio.it/tiene/', 'PASS' );
+$scriviCan( $ignorato, '/ignorato/', 'Pagina duplicata, Google ha scelto una pagina canonica diversa', 'https://esempio.it/tiene/' );
+$scriviCan( $paginaIg, '/pagina-ignorata/', 'Pagina duplicata, Google ha scelto una pagina canonica diversa', 'https://esempio.it/tiene/' );
+
+$pianoCan2 = Indicizzazione::pianoCanoniche( $dbCan2, $auditCan2 );
+
+verifica( 'l articolo ignorato entra nel piano', 1 === count( $pianoCan2 ), json_encode( array_column( $pianoCan2, 'titolo' ) ) );
+verifica( 'con l indirizzo per esteso di quella che Google tiene', 'https://esempio.it/tiene/' === ( $pianoCan2[0]['canonical'] ?? '' ), (string) ( $pianoCan2[0]['canonical'] ?? '' ) );
+verifica( 'la pagina servizio resta fuori', 'post' === ( $pianoCan2[0]['tipo'] ?? '' ) );
+verifica( 'ma si sa che c e', 1 === Indicizzazione::paginePerse( $dbCan2, $auditCan2 ) );
+verifica( 'e chiedendolo entra', 2 === count( Indicizzazione::pianoCanoniche( $dbCan2, $auditCan2, array( 'pagine' => true ) ) ) );
+
+// Quella che Google tiene non deve mai finire nel piano: si dichiarerebbe
+// doppione di se stessa.
+verifica(
+	'quella che Google tiene non si tocca',
+	! in_array( '1', array_column( Indicizzazione::pianoCanoniche( $dbCan2, $auditCan2, array( 'pagine' => true ) ), 'wp_id' ), true )
+);
+
+// Senza l indirizzo per esteso non si scrive niente: una canonica relativa o
+// inventata e peggio di nessuna canonica.
+$dbCan2->run( 'DELETE FROM documento WHERE id = ?', array( $tiene ) );
+
+verifica( 'senza la pagina di destinazione non si scrive niente', array() === Indicizzazione::pianoCanoniche( $dbCan2, $auditCan2, array( 'pagine' => true ) ) );
+
+@unlink( $fileCan2 );
+
+verifica(
+	'e la canonica si puo disfare, perche entra nel salvataggio',
+	false !== strpos( file_get_contents( __DIR__ . '/../plugin-wordpress/mdi-seo-geo-booster/includes/class-mdi-api.php' ), "'rank_math_canonical_url' => get_post_meta" ),
+	'senza il valore di prima nel backup, «rimetti com era» non la rimette'
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

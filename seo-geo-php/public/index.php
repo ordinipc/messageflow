@@ -602,6 +602,46 @@ if ( 'chiedi-indice' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	exit;
 }
 
+// ------------------ Allinea le canoniche a quello che Google ha scelto
+if ( 'allinea-canoniche' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Token di sessione non valido: ricarica la pagina e riprova.' );
+	}
+
+	$id    = (int) ( $_POST['id'] ?? 0 );
+	$piano = \SeoGeo\Search\Indicizzazione::pianoCanoniche( $db, $id, array( 'pagine' => ! empty( $_POST['pagine'] ) ) );
+
+	if ( ! $piano ) {
+		header( 'Location: ?p=indice&id=' . $id . '&errore=' . rawurlencode( 'Non c è nessuna canonica da allineare: chiedi prima a Google, o i doppioni sono tutti pagine servizio ed è escluso di proposito.' ) );
+		exit;
+	}
+
+	try {
+		$ponte  = new WordPress( $cfg['wordpress'] );
+		$righe  = array();
+
+		foreach ( $piano as $voce ) {
+			$righe[] = array( 'id' => (int) $voce['wp_id'], 'canonical' => $voce['canonical'] );
+		}
+
+		$esito = $ponte->inviaMeta( $righe );
+	} catch ( Throwable $e ) {
+		header( 'Location: ?p=indice&id=' . $id . '&errore=' . rawurlencode( $e->getMessage() ) );
+		exit;
+	}
+
+	header(
+		'Location: ?p=indice&id=' . $id . '&messaggio=' . rawurlencode(
+			sprintf(
+				'%d contenuti ora dichiarano come originale la pagina che Google ha già scelto. Restano online e leggibili: si disfa da «Rimetti le meta com erano».',
+				(int) ( $esito['aggiornati'] ?? count( $righe ) )
+			)
+		)
+	);
+	exit;
+}
+
 // ------------------ Cannibalizzazione: chi vince la ricerca, chi le cede
 if ( 'applica-contese' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
@@ -2898,6 +2938,8 @@ switch ( $pagina ) {
 				'quadro'      => \SeoGeo\Search\Indicizzazione::quadro( $db, (int) $audit['id'] ),
 				'restano'     => \SeoGeo\Search\Indicizzazione::quantiRestano( $db, (int) $audit['id'] ),
 				'gruppi'      => \SeoGeo\Search\Indicizzazione::gruppi( $db, (int) $audit['id'] ),
+				'piano'       => \SeoGeo\Search\Indicizzazione::pianoCanoniche( $db, (int) $audit['id'] ),
+				'pagine_fuori' => \SeoGeo\Search\Indicizzazione::paginePerse( $db, (int) $audit['id'] ),
 				'messaggio'   => (string) ( $_GET['messaggio'] ?? '' ),
 				'errore'      => (string) ( $_GET['errore'] ?? '' ),
 			)

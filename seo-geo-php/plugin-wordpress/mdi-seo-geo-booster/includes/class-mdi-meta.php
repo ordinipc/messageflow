@@ -221,7 +221,17 @@ class MDI_Meta {
 		}
 
 		if ( is_singular() ) {
-			printf( "<link rel=\"canonical\" href=\"%s\" />\n", esc_url( get_permalink() ) );
+			// Quando il gestionale ha allineato la canonica a quella che
+			// Google ha gia scelto, e quella che va stampata: ristampare
+			// l indirizzo della pagina stessa vorrebbe dire continuare a
+			// dichiarare originale un contenuto che Google considera un
+			// doppione, cioe il problema che si stava togliendo.
+			$scelta = (string) get_post_meta( get_queried_object_id(), 'rank_math_canonical_url', true );
+
+			printf(
+				"<link rel=\"canonical\" href=\"%s\" />\n",
+				esc_url( '' !== $scelta ? $scelta : get_permalink() )
+			);
 		}
 	}
 
