@@ -381,6 +381,30 @@ $conWww = Segnali::deriva(
 );
 verifica( 'www e barra finale non fanno sembrare invisibile una pagina vista', empty( $conWww ) );
 
+// --- Il PUT che segnala la sitemap ----------------------------------------
+// «Search Console ha risposto 411». Non e un problema di permessi ne di
+// indirizzi: il PUT che segnala una sitemap non ha corpo, e senza
+// Content-Length il fronte di Google lo respinge. cURL la lunghezza la scrive
+// solo se gli si passa un corpo, fosse anche vuoto.
+echo "\nLa segnalazione della sitemap\n";
+
+$opzPut = \SeoGeo\Google\SearchConsole::opzioni( 'PUT', 'token-di-prova' );
+
+verifica( 'il PUT senza corpo dichiara la lunghezza zero', in_array( 'Content-Length: 0', $opzPut[ CURLOPT_HTTPHEADER ], true ), json_encode( $opzPut[ CURLOPT_HTTPHEADER ] ) );
+verifica( 'e passa un corpo vuoto, se no cURL la lunghezza non la scrive', array_key_exists( CURLOPT_POSTFIELDS, $opzPut ) && '' === $opzPut[ CURLOPT_POSTFIELDS ] );
+verifica( 'resta un PUT', 'PUT' === ( $opzPut[ CURLOPT_CUSTOMREQUEST ] ?? '' ) );
+verifica( 'col token di accesso', in_array( 'Authorization: Bearer token-di-prova', $opzPut[ CURLOPT_HTTPHEADER ], true ) );
+
+$opzGet = \SeoGeo\Google\SearchConsole::opzioni( 'GET', 'token-di-prova' );
+
+verifica( 'una lettura non dichiara nessuna lunghezza', ! in_array( 'Content-Length: 0', $opzGet[ CURLOPT_HTTPHEADER ], true ) );
+verifica( 'e non manda nessun corpo', ! array_key_exists( CURLOPT_POSTFIELDS, $opzGet ) );
+
+$opzPost = \SeoGeo\Google\SearchConsole::opzioni( 'POST', 'token-di-prova', array( 'a' => 1 ) );
+
+verifica( 'un POST manda il suo corpo', '{"a":1}' === ( $opzPost[ CURLOPT_POSTFIELDS ] ?? '' ), (string) ( $opzPost[ CURLOPT_POSTFIELDS ] ?? '' ) );
+verifica( 'e non aggiunge una lunghezza zero sbagliata', ! in_array( 'Content-Length: 0', $opzPost[ CURLOPT_HTTPHEADER ], true ) );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

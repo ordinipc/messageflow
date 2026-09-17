@@ -61,7 +61,7 @@ class Azioni {
 	public static function abbina( Db $db, $auditId, array $segnali ) {
 		$per_percorso = array();
 
-		foreach ( $db->all( 'SELECT id, wp_id, titolo, percorso, url, tipo FROM documento WHERE audit_id = ?', array( (int) $auditId ) ) as $documento ) {
+		foreach ( $db->all( 'SELECT id, wp_id, titolo, percorso, url, tipo, pubblicato, modificato FROM documento WHERE audit_id = ?', array( (int) $auditId ) ) as $documento ) {
 			foreach ( array( $documento['percorso'], $documento['url'] ) as $chiave ) {
 				$normale = self::percorso( $chiave );
 
@@ -78,6 +78,12 @@ class Azioni {
 			$segnale['wp_id']        = $documento ? (string) $documento['wp_id'] : '';
 			$segnale['titolo_sito']  = $documento ? (string) $documento['titolo'] : '';
 			$segnale['tipo_sito']    = $documento ? (string) $documento['tipo'] : '';
+			// Quando quel contenuto e stato toccato l ultima volta. «Se e
+			// stata modificata di recente, guarda cosa e cambiato» e un
+			// consiglio che senza la data non si puo seguire: non si sa se
+			// «di recente» sia ieri o due anni fa.
+			$segnale['modificato']   = $documento ? (string) ( $documento['modificato'] ?: $documento['pubblicato'] ) : '';
+			$segnale['pubblicato']   = $documento ? (string) $documento['pubblicato'] : '';
 		}
 
 		unset( $segnale );
@@ -96,6 +102,103 @@ class Azioni {
 		$url = preg_replace( '~^https?://[^/]+~i', '', $url );
 
 		return '/' . strtolower( trim( (string) $url, '/' ) );
+	}
+
+	/**
+	 * Che cosa risponde oggi un indirizzo che l analisi non conosce.
+	 *
+	 * «Non abbinata a un contenuto: rifai l analisi del sito» era un consiglio
+	 * sbagliato per meta dei casi. Un indirizzo che Google mostra e che nel
+	 * sito non c e puo essere due cose opposte: una pagina pubblicata dopo
+	 * l ultima lettura - e allora si rilegge - oppure una pagina cancellata,
+	 * e allora rileggere non serve a niente: quelle impression si perdono
+	 * finche non le si manda da qualche parte con un redirect.
+	 *
+	 * Distinguerle non si puo dedurre: si chiede al sito.
+	 *
+	 * @param array $segnali Segnali gia abbinati.
+	 * @param int   $quanti  Quanti indirizzi controllare al massimo.
+	 * @return array<string,array> url => 'stato', 'dice', 'azione'.
+	 */
+	public static function statoDegliSconosciuti( array $segnali, $quanti = 8 ) {
+		$fuori = array();
+		$visti = array();
+
+		foreach ( $segnali as $segnale ) {
+			if ( ! empty( $segnale['documento_id'] ) || count( $visti ) >= (int) $quanti ) {
+				continue;
+			}
+
+			$url = (string) ( $segnale['url'] ?? '' );
+
+			if ( '' === $url || isset( $visti[ $url ] ) ) {
+				continue;
+			}
+
+			$visti[ $url ] = true;
+			$fuori[ $url ] = self::comeRisponde( $url );
+		}
+
+		return $fuori;
+	}
+
+	/**
+	 * Una sola richiesta, e la sua traduzione in italiano.
+	 *
+	 * @param string $url Indirizzo.
+	 * @return array 'stato', 'dice', 'azione'.
+	 */
+	private static function comeRisponde( $url ) {
+		$ch = curl_init( $url );
+
+		curl_setopt_array(
+			$ch,
+			array(
+				CURLOPT_NOBODY         => true,
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_FOLLOWLOCATION => false,
+				CURLOPT_TIMEOUT        => 6,
+				CURLOPT_USERAGENT      => 'SeoGeoAudit',
+			)
+		);
+
+		curl_exec( $ch );
+		$stato = (int) curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+		curl_close( $ch );
+
+		return array( 'stato' => $stato ) + self::traduci( $stato );
+	}
+
+	/**
+	 * @param int $stato Codice HTTP.
+	 * @return array 'dice', 'azione'.
+	 */
+	public static function traduci( $stato ) {
+		$stato = (int) $stato;
+
+		if ( 404 === $stato || 410 === $stato ) {
+			return array(
+				'dice'   => 'questa pagina non esiste più: le impression qui accanto si perdono tutte',
+				'azione' => 'redirect',
+			);
+		}
+
+		if ( $stato >= 300 && $stato < 400 ) {
+			return array( 'dice' => 'è già reindirizzata altrove: non c è altro da fare', 'azione' => '' );
+		}
+
+		if ( 200 === $stato ) {
+			return array(
+				'dice'   => 'la pagina c è ed è viva: manca solo dall analisi, che è più vecchia. Rileggi il sito',
+				'azione' => 'rileggi',
+			);
+		}
+
+		if ( 0 === $stato ) {
+			return array( 'dice' => 'il sito non ha risposto: riprova più tardi', 'azione' => '' );
+		}
+
+		return array( 'dice' => 'il sito risponde ' . $stato . ': è un errore del server, non un problema di SEO', 'azione' => '' );
 	}
 
 	/**

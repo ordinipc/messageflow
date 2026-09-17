@@ -2826,7 +2826,12 @@ switch ( $pagina ) {
 		$segnali_abbinati  = $ultima ? Prestazioni::segnali( $db, $ultima['id'] ) : array();
 		$segnali_abbinati  = $audit_corrente
 			? Azioni::abbina( $db, $audit_corrente['id'], $segnali_abbinati )
-			: array_map( static fn( $x ) => $x + array( 'documento_id' => 0, 'wp_id' => '', 'titolo_sito' => '', 'tipo_sito' => '' ), $segnali_abbinati );
+			: array_map( static fn( $x ) => $x + array( 'documento_id' => 0, 'wp_id' => '', 'titolo_sito' => '', 'tipo_sito' => '', 'modificato' => '', 'pubblicato' => '' ), $segnali_abbinati );
+
+		// Un indirizzo che Google mostra e che nell analisi non c e puo
+		// essere una pagina nuova o una cancellata: sono due cose opposte, e
+		// si distinguono solo chiedendolo al sito.
+		$sconosciuti = $segnali_abbinati ? Azioni::statoDegliSconosciuti( $segnali_abbinati ) : array();
 		$storico  = $db->all( 'SELECT * FROM gsc_rilevazione WHERE sito_url = ? ORDER BY id DESC LIMIT 12', array( $sito ) );
 
 		// La spinta non passa dal pilota e non costa token: si calcola dalle
@@ -2868,6 +2873,8 @@ switch ( $pagina ) {
 					? Sitemap::trova( (string) ( $cfg['wordpress']['url'] ?? $sito ) )
 					: array(),
 				'spinta'       => $spinta,
+				'sconosciuti'  => $sconosciuti,
+				'audit_corrente' => $audit_corrente ?: array(),
 				'spinta_sul_sito' => $spinta_sul_sito,
 				'sitemap_google' => Prestazioni::configurata( $cfg )
 					? Sitemap::conosciute( Prestazioni::client( $cfg ) )

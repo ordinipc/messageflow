@@ -269,25 +269,7 @@ class SearchConsole {
 		$token = '' !== $ambito ? $this->account->token( $ambito ) : $this->account->token();
 		$ch    = curl_init( $this->base . $percorso );
 
-		$opzioni = array(
-			CURLOPT_HTTPHEADER     => array(
-				'Authorization: Bearer ' . $token,
-				'Content-Type: application/json',
-			),
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_TIMEOUT        => 60,
-		);
-
-		if ( 'POST' === $metodo ) {
-			$opzioni[ CURLOPT_POST ]       = true;
-			$opzioni[ CURLOPT_POSTFIELDS ] = json_encode( $corpo );
-		}
-
-		if ( 'PUT' === $metodo ) {
-			$opzioni[ CURLOPT_CUSTOMREQUEST ] = 'PUT';
-		}
-
-		curl_setopt_array( $ch, $opzioni );
+		curl_setopt_array( $ch, self::opzioni( $metodo, $token, $corpo ) );
 
 		$risposta = curl_exec( $ch );
 		$stato    = (int) curl_getinfo( $ch, CURLINFO_HTTP_CODE );
@@ -306,6 +288,50 @@ class SearchConsole {
 		}
 
 		return is_array( $dati ) ? $dati : array();
+	}
+
+	/**
+	 * Le opzioni della chiamata, separate per poterle collaudare.
+	 *
+	 * Il PUT che segnala una sitemap non ha corpo, ed e proprio per questo
+	 * che serve dirlo: senza Content-Length il fronte di Google risponde
+	 * 411, «lunghezza richiesta», e il pulsante «Dillo a Google» falliva con
+	 * un numero che non spiega niente. cURL la lunghezza la scrive solo se
+	 * gli si passa un corpo, fosse anche vuoto.
+	 *
+	 * @param string $metodo GET, POST o PUT.
+	 * @param string $token  Token di accesso.
+	 * @param array  $corpo  Corpo JSON, per il POST.
+	 * @return array Opzioni per curl_setopt_array().
+	 */
+	public static function opzioni( $metodo, $token, array $corpo = array() ) {
+		$intestazioni = array(
+			'Authorization: Bearer ' . $token,
+			'Content-Type: application/json',
+		);
+
+		$opzioni = array(
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_TIMEOUT        => 60,
+		);
+
+		if ( 'POST' === $metodo ) {
+			$opzioni[ CURLOPT_POST ]       = true;
+			$opzioni[ CURLOPT_POSTFIELDS ] = json_encode( $corpo );
+		}
+
+		if ( 'PUT' === $metodo ) {
+			$opzioni[ CURLOPT_CUSTOMREQUEST ] = 'PUT';
+			$opzioni[ CURLOPT_POSTFIELDS ]    = $corpo ? json_encode( $corpo ) : '';
+
+			if ( ! $corpo ) {
+				$intestazioni[] = 'Content-Length: 0';
+			}
+		}
+
+		$opzioni[ CURLOPT_HTTPHEADER ] = $intestazioni;
+
+		return $opzioni;
 	}
 
 	/**
@@ -343,6 +369,14 @@ class SearchConsole {
 			return 'Proprietà "' . $this->proprieta . '" non trovata in Search Console. Controlla che sia scritta '
 				. 'esattamente come compare lì: "https://sito.it/" per una proprietà con prefisso URL, '
 				. '"sc-domain:sito.it" per una proprietà di dominio.';
+		}
+
+		if ( 411 === $stato ) {
+			// Non e un problema di permessi ne di indirizzi: e la richiesta
+			// mandata senza dire quanto e lunga. Se ricompare, il difetto e
+			// qui dentro, non nella configurazione di chi legge.
+			return 'La richiesta è partita senza la lunghezza del contenuto e Google l ha respinta (411). '
+				. 'È un difetto del gestionale, non della tua configurazione: aggiornalo e riprova. Dettaglio: ' . $messaggio;
 		}
 
 		if ( 429 === $stato ) {

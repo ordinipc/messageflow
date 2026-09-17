@@ -14,6 +14,8 @@
  * @var array|null $ultima      Ultima rilevazione.
  * @var array|null $precedente  Rilevazione prima di quella.
  * @var array      $spinta      Piano di spinta dai dati di Search Console.
+ * @var array      $sconosciuti Che cosa rispondono oggi gli indirizzi che l analisi non conosce.
+ * @var array      $audit_corrente Ultima analisi, per i collegamenti.
  * @var array      $spinta_sul_sito Come sta la spinta adesso, chiesto al sito.
  * @var array[]    $storico     Rilevazioni recenti.
  * @var array[]    $segnali     Cose da fare.
@@ -58,6 +60,13 @@ function delta( $ora, $prima, $meglio = false ) {
 	return '<span class="tag ' . ( $bene ? 'ok' : 'grave' ) . '">' . $segno . $numero . '</span>';
 }
 
+
+// Questa vista si apre anche da strade che non calcolano queste cose: senza
+// i valori di riserva la pagina uscirebbe con un avviso di PHP dentro.
+$sconosciuti    = $sconosciuti ?? array();
+$audit_corrente = $audit_corrente ?? array();
+$spinta         = $spinta ?? array( 'gruppi' => array(), 'mappa' => array(), 'conteggi' => array( 'ricerche' => 0, 'contese' => 0, 'pagine_che_cedono' => 0 ) );
+$spinta_sul_sito = $spinta_sul_sito ?? array();
 ?>
 <section class="intestazione">
 	<h1>Rendimento in Google</h1>
@@ -444,9 +453,30 @@ function delta( $ora, $prima, $meglio = false ) {
 									#<?php echo e( $segnale['wp_id'] ); ?> ·
 									<a href="<?php echo e( $segnale['url'] ); ?>" target="_blank" rel="noopener">apri</a>
 								</div>
+								<?php if ( ! empty( $segnale['modificato'] ) ) : ?>
+									<div class="sotto">
+										ultima modifica <strong><?php echo e( substr( (string) $segnale['modificato'], 0, 10 ) ); ?></strong>
+										<?php if ( ! empty( $segnale['pubblicato'] ) && substr( (string) $segnale['pubblicato'], 0, 10 ) !== substr( (string) $segnale['modificato'], 0, 10 ) ) : ?>
+											· pubblicato <?php echo e( substr( (string) $segnale['pubblicato'], 0, 10 ) ); ?>
+										<?php endif; ?>
+									</div>
+								<?php endif; ?>
 							<?php else : ?>
+								<?php $risposta = $sconosciuti[ $segnale['url'] ] ?? array(); ?>
 								<a href="<?php echo e( $segnale['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( ltrim( (string) parse_url( $segnale['url'], PHP_URL_PATH ), '/' ) ?: '/' ); ?></a>
-								<div class="sotto">non abbinata a un contenuto: rifai l analisi del sito</div>
+								<div class="sotto">
+									<?php if ( ! empty( $risposta['dice'] ) ) : ?>
+										<?php if ( 'redirect' === ( $risposta['azione'] ?? '' ) ) : ?>
+											<span class="tag grave">sparita</span>
+										<?php endif; ?>
+										<?php echo e( $risposta['dice'] ); ?>
+										<?php if ( 'redirect' === ( $risposta['azione'] ?? '' ) ) : ?>
+											— <a href="?p=collega&amp;id=<?php echo (int) ( $audit_corrente['id'] ?? 0 ); ?>#redirect">imposta un redirect 301</a>
+										<?php endif; ?>
+									<?php else : ?>
+										non risulta fra i contenuti letti dal sito
+									<?php endif; ?>
+								</div>
 							<?php endif; ?>
 						</td>
 						<td class="num"><?php echo $segnale['posizione'] > 0 ? number_format( (float) $segnale['posizione'], 1, ',', '' ) : '—'; ?></td>

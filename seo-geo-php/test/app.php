@@ -5050,6 +5050,42 @@ verifica(
 
 @unlink( $fileCerca );
 
+// ---------------------------------------------------------------------------
+// Gli indirizzi che Google mostra e che nel sito non ci sono
+//
+// «Non abbinata a un contenuto: rifai l analisi del sito» era un consiglio
+// sbagliato per meta dei casi. Un indirizzo cosi puo essere una pagina
+// pubblicata dopo l ultima lettura - e allora si rilegge - oppure una pagina
+// cancellata, e allora rileggere non serve a niente: quelle impression si
+// perdono finche non le si manda da qualche parte.
+
+echo "\nGli indirizzi che il sito non ha piu\n";
+
+$traduci = static function ( $stato ) {
+	return \SeoGeo\Search\Azioni::traduci( $stato );
+};
+
+verifica( 'una pagina cancellata si riconosce', 'redirect' === $traduci( 404 )['azione'] );
+verifica( 'e lo dice senza giri di parole', false !== strpos( $traduci( 410 )['dice'], 'non esiste più' ), $traduci( 410 )['dice'] );
+verifica( 'una pagina viva chiede una rilettura, non un redirect', 'rileggi' === $traduci( 200 )['azione'] );
+verifica( 'una gia reindirizzata non chiede niente', '' === $traduci( 301 )['azione'] );
+verifica( 'un sito che non risponde non si spaccia per una pagina sparita', '' === $traduci( 0 )['azione'] );
+verifica( 'e un errore del server si distingue da un problema di SEO', false !== strpos( $traduci( 500 )['dice'], 'errore del server' ), $traduci( 500 )['dice'] );
+
+$vistaRend = file_get_contents( __DIR__ . '/../views/prestazioni.php' );
+
+verifica( 'il consiglio sbagliato non c e piu', false === strpos( $vistaRend, 'non abbinata a un contenuto: rifai l analisi' ) );
+verifica( 'e al suo posto c e il redirect da impostare', false !== strpos( $vistaRend, 'imposta un redirect 301' ) );
+
+// Ogni riga dice quando quel contenuto e stato toccato l ultima volta:
+// «se e stata modificata di recente, guarda cosa e cambiato» non si puo
+// seguire senza sapere se «di recente» sia ieri o due anni fa.
+verifica( 'ogni riga porta la data dell ultima modifica', false !== strpos( $vistaRend, 'ultima modifica' ) );
+verifica(
+	'e la data arriva dall abbinamento, non da un secondo conto',
+	false !== strpos( file_get_contents( __DIR__ . '/../src/Search/Azioni.php' ), "\$segnale['modificato']   = \$documento" )
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );
