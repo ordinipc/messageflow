@@ -5133,6 +5133,23 @@ $vistaColl = file_get_contents( __DIR__ . '/../views/collega.php' );
 verifica( 'la pagina elenca anche quelli che conosce solo Google', false !== strpos( $vistaColl, 'Indirizzi che Google mostra e il sito non ha più' ) );
 verifica( 'e dice quante impression si stanno perdendo', false !== strpos( $vistaColl, "array_column( \$orfani, 'impression' )" ) );
 
+// ---------------------------------------------------------------------------
+// I numeri di Google sono di ieri, non di adesso
+//
+// «Le pagine non indicizzate sono pagine che abbiamo corretto e riscritto».
+// Vero: la lettura di Search Console copre un periodo che finisce prima delle
+// correzioni, e il gestionale scriveva comunque «Google non la mostra mai».
+// Un giudizio che nessuno ha ancora dato, presentato come un fatto.
+
+echo "\nI numeri di Google sono di ieri\n";
+
+$vistaTempo = file_get_contents( __DIR__ . '/../views/prestazioni.php' );
+
+verifica( 'una riga cambiata dopo il periodo misurato si riconosce', false !== strpos( $vistaTempo, 'cambiata dopo' ) );
+verifica( 'e si dice che non e un giudizio su adesso', false !== strpos( $vistaTempo, "Non è un giudizio" ) );
+verifica( 'il confronto guarda la fine del periodo, non la data della lettura', false !== strpos( $vistaTempo, "(string) \$ultima['periodo_a']" ) );
+verifica( 'e in cima si dice quante sono, senza doverle contare a mano', false !== strpos( $vistaTempo, 'riguardano contenuti che hai già cambiato' ) );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

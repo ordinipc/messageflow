@@ -427,6 +427,30 @@ $spinta_sul_sito = $spinta_sul_sito ?? array();
 		</section>
 		<?php endif; ?>
 
+		<?php
+		// Quante di queste segnalazioni riguardano contenuti gia cambiati
+		// dopo la fine del periodo misurato. Senza questa riga si legge una
+		// lista di duecento «Google non la mostra mai» e si conclude che il
+		// lavoro fatto ieri non e servito a niente.
+		$giaCambiati = 0;
+
+		foreach ( $segnali as $s_ ) {
+			if ( ! empty( $s_['modificato'] ) && ! empty( $ultima['periodo_a'] )
+				&& substr( (string) $s_['modificato'], 0, 10 ) > (string) $ultima['periodo_a'] ) {
+				$giaCambiati++;
+			}
+		}
+		?>
+		<?php if ( $giaCambiati ) : ?>
+			<p class="avviso ok-bg">
+				<strong><?php echo num( $giaCambiati ); ?> di queste segnalazioni riguardano contenuti che hai già cambiato.</strong>
+				I numeri qui sotto arrivano dal periodo <?php echo e( (string) $ultima['periodo_da'] ); ?> →
+				<?php echo e( (string) $ultima['periodo_a'] ); ?>, e quelle modifiche sono più recenti: Google
+				non le ha ancora riviste. Non sono un giudizio su quello che c'è adesso sul sito — sono la
+				fotografia di prima. Si aggiornano da sole quando Google ripassa, da qualche giorno a qualche settimana.
+			</p>
+		<?php endif; ?>
+
 		<div class="tabellabox">
 			<table>
 				<thead>
@@ -454,12 +478,29 @@ $spinta_sul_sito = $spinta_sul_sito ?? array();
 									<a href="<?php echo e( $segnale['url'] ); ?>" target="_blank" rel="noopener">apri</a>
 								</div>
 								<?php if ( ! empty( $segnale['modificato'] ) ) : ?>
+									<?php
+									// Un contenuto cambiato dopo la fine del periodo misurato non
+									// e stato bocciato da Google: Google non l ha ancora visto.
+									// Dirgli «non la mostra mai» e dargli la colpa di un giudizio
+									// che nessuno ha ancora dato.
+									$dopo = ! empty( $ultima['periodo_a'] )
+										&& substr( (string) $segnale['modificato'], 0, 10 ) > (string) $ultima['periodo_a'];
+									?>
 									<div class="sotto">
 										ultima modifica <strong><?php echo e( substr( (string) $segnale['modificato'], 0, 10 ) ); ?></strong>
 										<?php if ( ! empty( $segnale['pubblicato'] ) && substr( (string) $segnale['pubblicato'], 0, 10 ) !== substr( (string) $segnale['modificato'], 0, 10 ) ) : ?>
 											· pubblicato <?php echo e( substr( (string) $segnale['pubblicato'], 0, 10 ) ); ?>
 										<?php endif; ?>
 									</div>
+									<?php if ( $dopo ) : ?>
+										<div class="sotto">
+											<span class="tag ok">cambiata dopo</span>
+											questi numeri arrivano dal periodo che finisce il
+											<?php echo e( (string) $ultima['periodo_a'] ); ?>: il contenuto è cambiato
+											<strong>dopo</strong>, e Google non l'ha ancora riletto. Non è un giudizio
+											su quello che c'è adesso.
+										</div>
+									<?php endif; ?>
 								<?php endif; ?>
 							<?php else : ?>
 								<?php $risposta = $sconosciuti[ $segnale['url'] ] ?? array(); ?>
