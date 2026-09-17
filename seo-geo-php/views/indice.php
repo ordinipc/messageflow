@@ -11,10 +11,11 @@
  * @var array  $piano       Canoniche da allineare.
  * @var int    $pagine_fuori Pagine servizio escluse dal piano.
  * @var string $messaggio   Esito dell ultimo lotto.
+ * @var bool   $continua    Se deve rilanciare il lotto successivo da se.
  * @var string $errore      Errore dell ultimo lotto.
  */
 ?>
-<?php $piano = $piano ?? array(); $pagine_fuori = $pagine_fuori ?? 0; ?>
+<?php $piano = $piano ?? array(); $pagine_fuori = $pagine_fuori ?? 0; $continua = $continua ?? false; ?>
 <section class="intestazione">
 	<p class="briciole"><a href="?p=home">Audit archiviati</a> › <a href="?p=audit&amp;id=<?php echo (int) $audit['id']; ?>"><?php echo e( $audit['sito_nome'] ); ?></a> › Che cosa dice Google</p>
 	<h1>Che cosa dice Google</h1>
@@ -69,13 +70,60 @@
 	<?php endif; ?>
 
 	<?php if ( $restano > 0 ) : ?>
-		<form method="post" action="?p=chiedi-indice">
+		<form method="post" action="?p=chiedi-indice" id="modulo-indice">
 			<input type="hidden" name="token" value="<?php echo e( token() ); ?>">
 			<input type="hidden" name="id" value="<?php echo (int) $audit['id']; ?>">
 			<label for="quanti-indice">Quanti indirizzi in questo lotto</label>
 			<input id="quanti-indice" type="number" name="quanti" value="25" min="1" max="100" style="width:90px;padding:8px;border:1px solid var(--linea);border-radius:4px">
+
+			<label class="scelta">
+				<input type="checkbox" name="continua" value="1" <?php echo $continua ? 'checked' : ''; ?>>
+				<span>
+					<strong>Continua da solo fino alla fine</strong>
+					<small>
+						Rilancia il lotto successivo da sé finché non finiscono. Puoi fermarlo in qualsiasi
+						momento chiudendo la pagina: quello che è già stato chiesto resta.
+					</small>
+				</span>
+			</label>
+
 			<button class="bottone" type="submit">Chiedi a Google (ne restano <?php echo num( $restano ); ?>)</button>
 		</form>
+
+		<p class="nota">
+			Il numero che scrivi è il <strong>massimo</strong> per lotto, non il minimo: se il tuo hosting
+			chiude la richiesta prima, il lotto si ferma lì e il resto va al giro dopo. Niente va perso —
+			quello che è stato chiesto non si richiede, e si riparte sempre da dove si era arrivati.
+		</p>
+
+		<?php if ( $continua ) : ?>
+			<p class="avviso ok-bg" id="avviso-continua">Riparto da solo fra pochi secondi…</p>
+			<script>
+			(function () {
+				var modulo = document.getElementById('modulo-indice');
+				var avviso = document.getElementById('avviso-continua');
+
+				if (!modulo) { return; }
+
+				var secondi = 3;
+
+				var orologio = setInterval(function () {
+					secondi--;
+
+					if (avviso) {
+						avviso.textContent = secondi > 0
+							? 'Riparto da solo fra ' + secondi + ' second' + (1 === secondi ? 'o' : 'i') + '…'
+							: 'Riparto…';
+					}
+
+					if (secondi <= 0) {
+						clearInterval(orologio);
+						modulo.submit();
+					}
+				}, 1000);
+			})();
+			</script>
+		<?php endif; ?>
 	<?php else : ?>
 		<p class="nota">Chiesti tutti. Per rifare il giro serve una lettura nuova del sito.</p>
 	<?php endif; ?>

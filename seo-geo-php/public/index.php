@@ -590,10 +590,22 @@ if ( 'chiedi-indice' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	);
 
 	header(
-		'Location: ?p=indice&id=' . $id . '&messaggio=' . rawurlencode(
+		'Location: ?p=indice&id=' . $id
+		. ( ! empty( $_POST['continua'] ) && $esito['restano'] > 0 ? '&continua=1' : '' )
+		. '&messaggio=' . rawurlencode(
 			sprintf(
-				'Chiesti a Google %d indirizzi, ne restano %d.%s',
+				'Chiesti a Google %d indirizzi%s, ne restano %d.%s',
 				$esito['chiesti'],
+				// Perche ne ha fatti meno di quelli chiesti: senza questa
+				// riga si legge «10» dopo aver scritto «25» e si pensa che
+				// il numero non venga nemmeno guardato.
+				! empty( $esito['interrotto'] )
+					? sprintf(
+						' su %d: il tuo hosting chiude le richieste dopo %d secondi e ogni indirizzo ne costa uno o due',
+						(int) $esito['chiesti_di'],
+						(int) $esito['secondi']
+					)
+					: '',
 				$esito['restano'],
 				$esito['errori'] ? ' Non riusciti: ' . count( $esito['errori'] ) . ' — ' . $esito['errori'][0] : ''
 			)
@@ -2941,6 +2953,7 @@ switch ( $pagina ) {
 				'piano'       => \SeoGeo\Search\Indicizzazione::pianoCanoniche( $db, (int) $audit['id'] ),
 				'pagine_fuori' => \SeoGeo\Search\Indicizzazione::paginePerse( $db, (int) $audit['id'] ),
 				'messaggio'   => (string) ( $_GET['messaggio'] ?? '' ),
+				'continua'    => ! empty( $_GET['continua'] ),
 				'errore'      => (string) ( $_GET['errore'] ?? '' ),
 			)
 		);

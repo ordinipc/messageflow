@@ -5336,6 +5336,66 @@ verifica( 'senza la pagina di destinazione non si scrive niente', array() === In
 
 @unlink( $fileCan2 );
 
+// --- Il lotto che si ferma prima ------------------------------------------
+// «Se ho messo 25 indirizzi perche ne fa sempre 10?» Perche l hosting chiude
+// le richieste dopo N secondi e ogni indirizzo ne costa uno o due. Non era
+// scritto da nessuna parte, e leggere 10 dopo aver scritto 25 fa pensare che
+// il numero non venga nemmeno guardato.
+$fileLotto = sys_get_temp_dir() . '/prova-lotto-' . getmypid() . '.sqlite';
+@unlink( $fileLotto );
+$dbLotto    = new \SeoGeo\Db( array( 'driver' => 'sqlite', 'sqlite' => $fileLotto ) );
+$auditLotto = $dbLotto->insert( 'audit', array( 'sito_nome' => 'Prova', 'sito_url' => 'https://esempio.it', 'creato_il' => '2026-09-17 10:00:00', 'punteggio' => 50 ) );
+
+foreach ( range( 1, 5 ) as $n ) {
+	$dbLotto->insert(
+		'documento',
+		array(
+			'audit_id' => $auditLotto, 'wp_id' => (string) $n, 'tipo' => 'post', 'stato' => 'publish',
+			'titolo' => 'Articolo ' . $n, 'slug' => 'a-' . $n, 'percorso' => '/a-' . $n . '/',
+			'url' => 'https://esempio.it/a-' . $n . '/', 'parole' => 900,
+		)
+	);
+}
+
+// Un client che ci mette un secondo per indirizzo, con un tetto di due: deve
+// fermarsi prima di finirli e dirlo.
+$consoleLenta = new class( array( 'chiave' => 'prova' ) ) extends \SeoGeo\Google\SearchConsole {
+	public $quanti = 0;
+
+	public function __construct( $x = null ) {}
+
+	public function ispeziona( $url ) {
+		$this->quanti++;
+		sleep( 1 );
+
+		return array( 'stato' => 'PASS', 'copertura' => 'Inviata e indicizzata', 'canonica_google' => $url, 'ultima_scansione' => '2026-09-15' );
+	}
+};
+
+$esitoLotto = Indicizzazione::esegui( $dbLotto, $consoleLenta, $auditLotto, array( 'quanti' => 5, 'secondi_max' => 2 ) );
+
+verifica( 'il lotto si ferma al tetto di tempo', ! empty( $esitoLotto['interrotto'] ), json_encode( $esitoLotto ) );
+verifica( 'e ne ha fatti meno di quelli chiesti', $esitoLotto['chiesti'] < 5 && $esitoLotto['chiesti'] > 0, (string) $esitoLotto['chiesti'] );
+verifica( 'dicendo quanti erano quelli chiesti', 5 === (int) $esitoLotto['chiesti_di'], (string) $esitoLotto['chiesti_di'] );
+verifica( 'e quanti secondi aveva', 2 === (int) $esitoLotto['secondi'], (string) $esitoLotto['secondi'] );
+verifica( 'quello che resta resta', $esitoLotto['restano'] === 5 - $esitoLotto['chiesti'], (string) $esitoLotto['restano'] );
+
+// E il giro dopo riparte da dove si era arrivati, non da capo.
+$primoGiro = $esitoLotto['chiesti'];
+$secondo   = Indicizzazione::esegui( $dbLotto, $consoleLenta, $auditLotto, array( 'quanti' => 5, 'secondi_max' => 2 ) );
+
+verifica( 'il giro dopo riparte da dove si era arrivati', $primoGiro + $secondo['chiesti'] === $consoleLenta->quanti, $consoleLenta->quanti . ' chiesti in tutto' );
+verifica( 'senza richiedere quelli gia fatti', $secondo['restano'] === 5 - $primoGiro - $secondo['chiesti'], (string) $secondo['restano'] );
+
+@unlink( $fileLotto );
+
+$indiceLotto = file_get_contents( __DIR__ . '/../public/index.php' );
+$vistaLotto  = file_get_contents( __DIR__ . '/../views/indice.php' );
+
+verifica( 'e chi legge sa perche ne ha fatti meno', false !== strpos( $indiceLotto, 'chiude le richieste dopo %d secondi' ) );
+verifica( 'la pagina dice che il numero e un massimo, non un minimo', false !== strpos( $vistaLotto, 'il <strong>massimo</strong> per lotto, non il minimo' ) );
+verifica( 'e si puo chiedere di continuare da solo', false !== strpos( $vistaLotto, 'Continua da solo fino alla fine' ) );
+
 verifica(
 	'e la canonica si puo disfare, perche entra nel salvataggio',
 	false !== strpos( file_get_contents( __DIR__ . '/../plugin-wordpress/mdi-seo-geo-booster/includes/class-mdi-api.php' ), "'rank_math_canonical_url' => get_post_meta" ),

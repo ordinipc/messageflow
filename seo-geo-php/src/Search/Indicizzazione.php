@@ -47,15 +47,25 @@ class Indicizzazione {
 	 */
 	public static function esegui( Db $db, SearchConsole $console, $auditId, array $opzioni = array() ) {
 		$quanti   = max( 1, min( 200, (int) ( $opzioni['quanti'] ?? self::PER_LOTTO ) ) );
-		$scadenza = time() + max( 10, (int) ( $opzioni['secondi_max'] ?? 60 ) );
+		// Il tetto lo decide chi chiama, che sa quanto dura una richiesta su
+		// questo hosting. Qui si mette solo un fondo, per non ritrovarsi con
+		// zero secondi e un lotto che non parte mai.
+		$secondi  = max( 1, (int) ( $opzioni['secondi_max'] ?? 60 ) );
+		$scadenza = time() + $secondi;
 
 		$righe = self::daChiedere( $db, $auditId, $quanti );
 
-		$chiesti  = 0;
-		$errori   = array();
+		$chiesti    = 0;
+		$errori     = array();
+		$interrotto = false;
 
 		foreach ( $righe as $riga ) {
+			// Il tetto di tempo non e un guasto: e il funzionamento normale
+			// su hosting condiviso. Ma chi ha scritto 25 e ne vede fare 10
+			// deve leggere perche, se no pensa che il numero non venga
+			// nemmeno guardato.
 			if ( time() > $scadenza ) {
+				$interrotto = true;
 				break;
 			}
 
@@ -91,9 +101,12 @@ class Indicizzazione {
 		}
 
 		return array(
-			'chiesti' => $chiesti,
-			'errori'  => $errori,
-			'restano' => self::quantiRestano( $db, $auditId ),
+			'chiesti'    => $chiesti,
+			'chiesti_di' => count( $righe ),
+			'errori'     => $errori,
+			'interrotto' => $interrotto,
+			'secondi'    => $secondi,
+			'restano'    => self::quantiRestano( $db, $auditId ),
 		);
 	}
 
