@@ -68,6 +68,84 @@ class Sitemap {
 	}
 
 	/**
+	 * Tutti gli indirizzi elencati nelle sitemap del sito.
+	 *
+	 * Segue gli indici: una sitemap di WordPress e quasi sempre un indice
+	 * che ne elenca altre, e fermarsi al primo livello vuol dire leggere
+	 * dieci indirizzi invece di trecento.
+	 *
+	 * @param string $sito     Indirizzo del sito.
+	 * @param int    $maxFigli Quante sotto-sitemap seguire al massimo.
+	 * @return array<string,bool> Percorso confrontabile => true.
+	 */
+	public static function indirizzi( $sito, $maxFigli = 30 ) {
+		$base   = rtrim( (string) $sito, '/' );
+		$dentro = array();
+		$viste  = array();
+
+		foreach ( self::CANDIDATE as $percorso ) {
+			$corpo = self::leggi( $base . $percorso );
+
+			if ( '' === $corpo ) {
+				continue;
+			}
+
+			$figlie = array();
+
+			// Un indice elenca sitemap, una sitemap elenca pagine: la
+			// differenza sta nel tag che le contiene, non nel nome del file.
+			if ( false !== stripos( $corpo, '<sitemapindex' ) ) {
+				preg_match_all( '#<loc>\s*([^<]+?)\s*</loc>#i', $corpo, $m );
+				$figlie = array_slice( (array) $m[1], 0, max( 1, (int) $maxFigli ) );
+			} else {
+				self::raccogli( $corpo, $dentro );
+			}
+
+			foreach ( $figlie as $figlia ) {
+				if ( isset( $viste[ $figlia ] ) ) {
+					continue;
+				}
+
+				$viste[ $figlia ] = true;
+				self::raccogli( self::leggi( $figlia ), $dentro );
+			}
+		}
+
+		return $dentro;
+	}
+
+	/**
+	 * Mette i <loc> di una sitemap dentro all elenco, in forma confrontabile.
+	 *
+	 * @param string $corpo  XML.
+	 * @param array  $dentro Elenco da riempire.
+	 * @return void
+	 */
+	private static function raccogli( $corpo, array &$dentro ) {
+		if ( '' === (string) $corpo ) {
+			return;
+		}
+
+		preg_match_all( '#<loc>\s*([^<]+?)\s*</loc>#i', (string) $corpo, $m );
+
+		foreach ( (array) $m[1] as $url ) {
+			$dentro[ self::confrontabile( $url ) ] = true;
+		}
+	}
+
+	/**
+	 * Percorso confrontabile: senza dominio, senza barra finale, minuscolo.
+	 *
+	 * @param string $url Indirizzo.
+	 * @return string
+	 */
+	public static function confrontabile( $url ) {
+		$url = preg_replace( '~^https?://[^/]+~i', '', html_entity_decode( (string) $url ) );
+
+		return '/' . strtolower( trim( (string) $url, '/' ) );
+	}
+
+	/**
 	 * Scarica un indirizzo e restituisce il corpo solo se e una sitemap.
 	 *
 	 * @param string $indirizzo Indirizzo.

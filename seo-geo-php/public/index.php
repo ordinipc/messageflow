@@ -2957,6 +2957,13 @@ switch ( $pagina ) {
 				'configurato' => Prestazioni::configurata( $cfg ),
 				'quadro'      => \SeoGeo\Search\Indicizzazione::quadro( $db, (int) $audit['id'] ),
 				'dettaglio'   => \SeoGeo\Search\Indicizzazione::perCopertura( $db, (int) $audit['id'] ),
+				// Gli sconosciuti a Google sono il gruppo piu recuperabile,
+				// ma solo sapendo perche non li ha trovati.
+				'sitemap'     => \SeoGeo\Search\Indicizzazione::fuoriDallaSitemap(
+					$db,
+					(int) $audit['id'],
+					(string) ( $cfg['wordpress']['url'] ?? $audit['sito_url'] )
+				),
 				'restano'     => \SeoGeo\Search\Indicizzazione::quantiRestano( $db, (int) $audit['id'] ),
 				'gruppi'      => \SeoGeo\Search\Indicizzazione::gruppi( $db, (int) $audit['id'] ),
 				'piano'       => \SeoGeo\Search\Indicizzazione::pianoCanoniche( $db, (int) $audit['id'] ),

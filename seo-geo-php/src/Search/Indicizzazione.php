@@ -319,6 +319,83 @@ class Indicizzazione {
 	}
 
 	/**
+	 * Gli indirizzi che Google non conosce e che non sono nemmeno nella
+	 * sitemap.
+	 *
+	 * «L URL e sconosciuto a Google» vuol dire che non li ha mai visti, non
+	 * che li ha scartati: sono il gruppo piu facile da recuperare, ma solo
+	 * se si capisce perche non li ha trovati. Le strade con cui li avrebbe
+	 * trovati sono due, la sitemap e i link interni, e la prima si puo
+	 * controllare: si legge la sitemap vera del sito e si guarda chi non c e.
+	 *
+	 * Quando la sitemap non risponde non si dice «mancano tutti»: si dice
+	 * che non si e potuto guardare. E la differenza fra una diagnosi e un
+	 * allarme inventato.
+	 *
+	 * @param Db     $db      Database.
+	 * @param int    $auditId Analisi.
+	 * @param string $sito    Indirizzo del sito.
+	 * @return array 'letta' => bool, 'voci' => int, 'fuori' => array[], 'dentro' => int.
+	 */
+	public static function fuoriDallaSitemap( Db $db, $auditId, $sito ) {
+		$sconosciuti = array();
+
+		foreach ( $db->all(
+			"SELECT i.url, i.copertura, i.verdetto, d.titolo
+			 FROM gsc_indice i LEFT JOIN documento d ON d.id = i.documento_id
+			 WHERE i.audit_id = ?",
+			array( (int) $auditId )
+		) as $riga ) {
+			if ( 'altro' !== self::caso( (string) $riga['verdetto'], (string) $riga['copertura'] ) ) {
+				continue;
+			}
+
+			// Solo quelli che Google dice di non conoscere: gli altri
+			// «altro» sono noindex ed errori, e li la sitemap non c entra.
+			$c = mb_strtolower( (string) $riga['copertura'] );
+
+			if ( false === mb_strpos( $c, 'sconosciut' ) && false === mb_strpos( $c, 'unknown' ) ) {
+				continue;
+			}
+
+			$sconosciuti[] = array(
+				'url'    => (string) $riga['url'],
+				'titolo' => (string) ( $riga['titolo'] ?: $riga['url'] ),
+			);
+		}
+
+		if ( ! $sconosciuti ) {
+			return array( 'letta' => true, 'voci' => 0, 'fuori' => array(), 'dentro' => 0 );
+		}
+
+		$nella = Sitemap::indirizzi( $sito );
+
+		if ( ! $nella ) {
+			return array( 'letta' => false, 'voci' => 0, 'fuori' => array(), 'dentro' => 0, 'sconosciuti' => count( $sconosciuti ) );
+		}
+
+		$fuori  = array();
+		$dentro = 0;
+
+		foreach ( $sconosciuti as $uno ) {
+			if ( isset( $nella[ Sitemap::confrontabile( $uno['url'] ) ] ) ) {
+				$dentro++;
+				continue;
+			}
+
+			$fuori[] = $uno;
+		}
+
+		return array(
+			'letta'       => true,
+			'voci'        => count( $nella ),
+			'fuori'       => $fuori,
+			'dentro'      => $dentro,
+			'sconosciuti' => count( $sconosciuti ),
+		);
+	}
+
+	/**
 	 * Le canoniche da allineare a quello che Google ha gia scelto.
 	 *
 	 * «Pagina duplicata, Google ha scelto una pagina canonica diversa da

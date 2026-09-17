@@ -5283,6 +5283,25 @@ verifica( 'e con degli esempi da aprire', ! empty( $dettaglioIdx[0]['esempi'][0]
 verifica( 'ognuna dice in quale casella e finita', 'dentro' === $dettaglioIdx[1]['caso'], $dettaglioIdx[1]['caso'] );
 verifica( 'e la pagina la mostra', false !== strpos( file_get_contents( __DIR__ . '/../views/indice.php' ), 'Le parole esatte di Google' ) );
 
+// «L URL e sconosciuto a Google» finisce in «altro», ma e il gruppo piu
+// recuperabile di tutti: non li ha scartati, non li ha mai visti. Le strade
+// per trovarli sono due, e una si puo controllare.
+verifica( 'uno sconosciuto a Google finisce in altro', 'altro' === Indicizzazione::caso( 'NEUTRAL', "L'URL è sconosciuto a Google" ) );
+
+$sitemapVista = file_get_contents( __DIR__ . '/../views/indice.php' );
+
+verifica( 'e la pagina lo distingue dal resto di «altro»', false !== strpos( $sitemapVista, 'Non li ha scartati: non li ha mai visti' ) );
+verifica( 'dicendo quali non sono nella sitemap', false !== strpos( $sitemapVista, 'non sono nella sitemap' ) );
+verifica(
+	'e se la sitemap non risponde non si inventa che manchino tutti',
+	false !== strpos( $sitemapVista, 'non si è potuto controllare' ),
+	'dire «mancano tutti» quando non si e riusciti a guardare e un allarme inventato'
+);
+
+// Gli indirizzi si confrontano senza dominio e senza barra finale: la sitemap
+// li scrive per esteso, l analisi li tiene come percorsi.
+verifica( 'gli indirizzi si confrontano nella stessa forma', \SeoGeo\Search\Sitemap::confrontabile( 'https://esempio.it/una-pagina/' ) === \SeoGeo\Search\Sitemap::confrontabile( '/Una-Pagina' ) );
+
 // --- Allineare le canoniche -----------------------------------------------
 // «Pagina duplicata, Google ha scelto una pagina canonica diversa da quella
 // specificata dall utente»: finche i due non sono d accordo, Google continua

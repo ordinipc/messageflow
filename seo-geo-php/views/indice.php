@@ -7,6 +7,7 @@
  * @var bool   $configurato Search Console collegata.
  * @var array  $quadro      Conteggi per caso.
  * @var array  $dettaglio   Le risposte di Google raggruppate per quello che dicono.
+ * @var array  $sitemap     Gli sconosciuti a Google, confrontati con la sitemap vera.
  * @var int    $restano     Quanti indirizzi non sono ancora stati chiesti.
  * @var array  $gruppi      Doppioni raggruppati per la pagina che Google tiene.
  * @var array  $piano       Canoniche da allineare.
@@ -17,7 +18,7 @@
  * @var string $errore      Errore dell ultimo lotto.
  */
 ?>
-<?php $piano = $piano ?? array(); $pagine_fuori = $pagine_fuori ?? 0; $continua = $continua ?? false; $quanti = $quanti ?? 10; $dettaglio = $dettaglio ?? array(); ?>
+<?php $piano = $piano ?? array(); $pagine_fuori = $pagine_fuori ?? 0; $continua = $continua ?? false; $quanti = $quanti ?? 10; $dettaglio = $dettaglio ?? array(); $sitemap = $sitemap ?? array(); ?>
 <section class="intestazione">
 	<p class="briciole"><a href="?p=home">Audit archiviati</a> › <a href="?p=audit&amp;id=<?php echo (int) $audit['id']; ?>"><?php echo e( $audit['sito_nome'] ); ?></a> › Che cosa dice Google</p>
 	<h1>Che cosa dice Google</h1>
@@ -70,6 +71,41 @@
 			«Lette e scartate» e «in coda» si somigliano e vogliono dire il contrario: sulle prime
 			aspettare non serve a niente, sulle seconde è l'unica cosa da fare.
 		</p>
+
+		<?php if ( ! empty( $sitemap['sconosciuti'] ) ) : ?>
+			<div class="avviso <?php echo ! empty( $sitemap['fuori'] ) ? 'grave' : 'ok-bg'; ?>">
+				<strong><?php echo num( (int) $sitemap['sconosciuti'] ); ?> contenuti Google dice di non conoscerli affatto.</strong>
+				Non li ha scartati: non li ha mai visti. È il gruppo più facile da recuperare, e le strade
+				con cui li avrebbe trovati sono due — la sitemap e i link interni.
+				<?php if ( empty( $sitemap['letta'] ) ) : ?>
+					<br>La sitemap del sito non risponde, quindi non si è potuto controllare se ci siano dentro.
+					<strong>Sistemare la sitemap è il primo passo</strong>: senza, Google non ha modo di trovarli.
+				<?php elseif ( ! empty( $sitemap['fuori'] ) ) : ?>
+					<br><strong><?php echo num( count( $sitemap['fuori'] ) ); ?> di questi non sono nella sitemap</strong>
+					(che ne elenca <?php echo num( (int) $sitemap['voci'] ); ?>): ecco perché Google non li trova.
+					Vanno rimessi dentro da Rank Math → Impostazione della sitemap.
+				<?php else : ?>
+					<br>Nella sitemap ci sono tutti (<?php echo num( (int) $sitemap['voci'] ); ?> indirizzi elencati):
+					allora è un problema di collegamenti. Mandaci link interni dalle pagine che Google visita
+					spesso — è quello che fa la <a href="?p=prestazioni">spinta</a>.
+				<?php endif; ?>
+			</div>
+
+			<?php if ( ! empty( $sitemap['fuori'] ) ) : ?>
+				<details>
+					<summary>Quali non sono nella sitemap (<?php echo num( count( $sitemap['fuori'] ) ); ?>)</summary>
+					<div class="tabellabox">
+						<table>
+							<tbody>
+							<?php foreach ( array_slice( $sitemap['fuori'], 0, 40 ) as $f ) : ?>
+								<tr><td><a href="<?php echo e( $f['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( $f['titolo'] ); ?></a></td></tr>
+							<?php endforeach; ?>
+							</tbody>
+						</table>
+					</div>
+				</details>
+			<?php endif; ?>
+		<?php endif; ?>
 
 		<?php if ( ! empty( $dettaglio ) ) : ?>
 			<details>
