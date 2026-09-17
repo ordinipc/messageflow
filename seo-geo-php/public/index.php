@@ -2956,6 +2956,7 @@ switch ( $pagina ) {
 				'audit'       => $audit,
 				'configurato' => Prestazioni::configurata( $cfg ),
 				'quadro'      => \SeoGeo\Search\Indicizzazione::quadro( $db, (int) $audit['id'] ),
+				'dettaglio'   => \SeoGeo\Search\Indicizzazione::perCopertura( $db, (int) $audit['id'] ),
 				'restano'     => \SeoGeo\Search\Indicizzazione::quantiRestano( $db, (int) $audit['id'] ),
 				'gruppi'      => \SeoGeo\Search\Indicizzazione::gruppi( $db, (int) $audit['id'] ),
 				'piano'       => \SeoGeo\Search\Indicizzazione::pianoCanoniche( $db, (int) $audit['id'] ),

@@ -5272,6 +5272,17 @@ verifica( 'con il suo indirizzo', 'https://esempio.it/nuovo/' === ( Indicizzazio
 
 verifica( 'e la pagina e raggiungibile dal menu', false !== strpos( file_get_contents( __DIR__ . '/../views/layout.php' ), '?p=indice' ) );
 
+// «Altro» e una casella, non una spiegazione: su questo sito sono sessanta
+// contenuti su trecento, e chi guarda non ha modo di sapere che cosa siano.
+$dettaglioIdx = Indicizzazione::perCopertura( $dbIdx, $auditIdx );
+
+verifica( 'le risposte di Google si vedono per quello che dicono', 2 === count( $dettaglioIdx ), json_encode( array_column( $dettaglioIdx, 'copertura' ) ) );
+verifica( 'con quante volte ciascuna', 2 === (int) $dettaglioIdx[0]['quanti'], (string) $dettaglioIdx[0]['quanti'] );
+verifica( 'la piu numerosa per prima', 'doppioni' === $dettaglioIdx[0]['caso'], $dettaglioIdx[0]['caso'] );
+verifica( 'e con degli esempi da aprire', ! empty( $dettaglioIdx[0]['esempi'][0]['url'] ) );
+verifica( 'ognuna dice in quale casella e finita', 'dentro' === $dettaglioIdx[1]['caso'], $dettaglioIdx[1]['caso'] );
+verifica( 'e la pagina la mostra', false !== strpos( file_get_contents( __DIR__ . '/../views/indice.php' ), 'Le parole esatte di Google' ) );
+
 // --- Allineare le canoniche -----------------------------------------------
 // «Pagina duplicata, Google ha scelto una pagina canonica diversa da quella
 // specificata dall utente»: finche i due non sono d accordo, Google continua

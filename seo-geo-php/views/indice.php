@@ -6,6 +6,7 @@
  * @var array  $audit       Riga audit.
  * @var bool   $configurato Search Console collegata.
  * @var array  $quadro      Conteggi per caso.
+ * @var array  $dettaglio   Le risposte di Google raggruppate per quello che dicono.
  * @var int    $restano     Quanti indirizzi non sono ancora stati chiesti.
  * @var array  $gruppi      Doppioni raggruppati per la pagina che Google tiene.
  * @var array  $piano       Canoniche da allineare.
@@ -16,7 +17,7 @@
  * @var string $errore      Errore dell ultimo lotto.
  */
 ?>
-<?php $piano = $piano ?? array(); $pagine_fuori = $pagine_fuori ?? 0; $continua = $continua ?? false; $quanti = $quanti ?? 10; ?>
+<?php $piano = $piano ?? array(); $pagine_fuori = $pagine_fuori ?? 0; $continua = $continua ?? false; $quanti = $quanti ?? 10; $dettaglio = $dettaglio ?? array(); ?>
 <section class="intestazione">
 	<p class="briciole"><a href="?p=home">Audit archiviati</a> › <a href="?p=audit&amp;id=<?php echo (int) $audit['id']; ?>"><?php echo e( $audit['sito_nome'] ); ?></a> › Che cosa dice Google</p>
 	<h1>Che cosa dice Google</h1>
@@ -69,6 +70,39 @@
 			«Lette e scartate» e «in coda» si somigliano e vogliono dire il contrario: sulle prime
 			aspettare non serve a niente, sulle seconde è l'unica cosa da fare.
 		</p>
+
+		<?php if ( ! empty( $dettaglio ) ) : ?>
+			<details>
+				<summary>Le parole esatte di Google, e quante volte le ha dette</summary>
+				<p class="nota">
+					Le caselle qui sopra raggruppano; questo è quello che Google ha risposto davvero.
+					Serve soprattutto per «altro», che è una casella e non una spiegazione.
+				</p>
+				<div class="tabellabox">
+					<table>
+						<thead><tr><th>Risposta di Google</th><th>Casella</th><th class="num">Quanti</th></tr></thead>
+						<tbody>
+						<?php foreach ( $dettaglio as $d ) : ?>
+							<tr>
+								<td>
+									<?php echo e( $d['copertura'] ?: '(nessuna spiegazione)' ); ?>
+									<div class="sotto">
+										esito <span class="mono"><?php echo e( $d['verdetto'] ?: '—' ); ?></span> ·
+										<?php foreach ( array_slice( $d['esempi'], 0, 2 ) as $i => $es ) : ?>
+											<?php echo 0 === $i ? 'per esempio ' : ', '; ?>
+											<a href="<?php echo e( $es['url'] ); ?>" target="_blank" rel="noopener"><?php echo e( $es['titolo'] ); ?></a>
+										<?php endforeach; ?>
+									</div>
+								</td>
+								<td><small><?php echo e( $d['caso'] ); ?></small></td>
+								<td class="num"><strong><?php echo num( $d['quanti'] ); ?></strong></td>
+							</tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+				</div>
+			</details>
+		<?php endif; ?>
 	<?php endif; ?>
 
 	<?php if ( $restano > 0 ) : ?>

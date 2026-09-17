@@ -262,6 +262,63 @@ class Indicizzazione {
 	}
 
 	/**
+	 * Le risposte di Google raggruppate per quello che dicono davvero.
+	 *
+	 * Il quadro mette in «altro» tutto quello che non ricade nei quattro
+	 * casi noti, e su questo sito sono sessanta contenuti su trecento: un
+	 * quinto dell archivio dentro a una casella che non spiega niente. Qui
+	 * ci sono le frasi vere, con quante volte compaiono, cosi si vede che
+	 * cosa c e dentro invece di indovinarlo.
+	 *
+	 * @param Db  $db      Database.
+	 * @param int $auditId Analisi.
+	 * @return array[] 'copertura', 'verdetto', 'quanti', 'caso', 'esempi'.
+	 */
+	public static function perCopertura( Db $db, $auditId ) {
+		$righe = $db->all(
+			"SELECT i.copertura, i.verdetto, i.url, d.titolo
+			 FROM gsc_indice i
+			 LEFT JOIN documento d ON d.id = i.documento_id
+			 WHERE i.audit_id = ?",
+			array( (int) $auditId )
+		);
+
+		$gruppi = array();
+
+		foreach ( $righe as $riga ) {
+			$chiave = (string) $riga['verdetto'] . '|' . (string) $riga['copertura'];
+
+			if ( ! isset( $gruppi[ $chiave ] ) ) {
+				$gruppi[ $chiave ] = array(
+					'copertura' => (string) $riga['copertura'],
+					'verdetto'  => (string) $riga['verdetto'],
+					'caso'      => self::caso( (string) $riga['verdetto'], (string) $riga['copertura'] ),
+					'quanti'    => 0,
+					'esempi'    => array(),
+				);
+			}
+
+			$gruppi[ $chiave ]['quanti']++;
+
+			if ( count( $gruppi[ $chiave ]['esempi'] ) < 5 ) {
+				$gruppi[ $chiave ]['esempi'][] = array(
+					'url'    => (string) $riga['url'],
+					'titolo' => (string) ( $riga['titolo'] ?: $riga['url'] ),
+				);
+			}
+		}
+
+		usort(
+			$gruppi,
+			static function ( $a, $b ) {
+				return $b['quanti'] <=> $a['quanti'];
+			}
+		);
+
+		return array_values( $gruppi );
+	}
+
+	/**
 	 * Le canoniche da allineare a quello che Google ha gia scelto.
 	 *
 	 * «Pagina duplicata, Google ha scelto una pagina canonica diversa da
