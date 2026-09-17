@@ -5086,6 +5086,53 @@ verifica(
 	false !== strpos( file_get_contents( __DIR__ . '/../src/Search/Azioni.php' ), "\$segnale['modificato']   = \$documento" )
 );
 
+// ---------------------------------------------------------------------------
+// Dove mandare un indirizzo che Google mostra e il sito non ha piu
+//
+// Il confronto fra due analisi trova solo i contenuti rinominati mentre il
+// programma guardava. Gli indirizzi rotti piu costosi sono altri: quelli che
+// Google ha in memoria da prima della prima analisi.
+
+echo "\nDove mandare un indirizzo morto\n";
+
+$vivi = array(
+	'/produzione-video-palermo' => array( 'titolo' => 'Produzione video Palermo' ),
+	'/agenzia-di-comunicazione' => array( 'titolo' => 'Agenzia di comunicazione' ),
+	'/chi-siamo'                => array( 'titolo' => 'Chi siamo' ),
+);
+
+$dove = \SeoGeo\Redirezioni::destinazione( '/produzione-video-a-palermo-prezzi', $vivi );
+
+verifica( 'un indirizzo morto va sul contenuto che gli somiglia', '/produzione-video-palermo' === $dove['percorso'], $dove['percorso'] );
+verifica( 'e si dice perche', false !== strpos( $dove['perche'], 'parole in comune' ), $dove['perche'] );
+
+// Mandare tutto in home fa perdere comunque la posizione: si propone solo
+// quando non somiglia a niente, e si dice che va guardato.
+$nessuno = \SeoGeo\Redirezioni::destinazione( '/ricette-di-pesce-siciliane', $vivi );
+
+verifica( 'quando non somiglia a niente si propone la home', '/' === $nessuno['percorso'], $nessuno['percorso'] );
+verifica( 'dicendo che va guardata prima', false !== strpos( $nessuno['perche'], 'guardala prima' ), $nessuno['perche'] );
+
+// I due elenchi vanno mandati insieme: la tabella dei redirect sul sito viene
+// sostituita per intero, e due pulsanti separati si cancellerebbero a vicenda.
+$indiceRed = file_get_contents( __DIR__ . '/../public/index.php' );
+
+verifica(
+	'i redirect delle analisi e quelli di Google partono insieme',
+	false !== strpos( $indiceRed, 'array_merge( $cambiati, $orfani )' ),
+	'mandarli separati vuol dire che il secondo invio cancella il primo'
+);
+
+verifica(
+	'e senza doppioni sullo stesso indirizzo di partenza',
+	false !== strpos( $indiceRed, "\$righe[ \$riga['da'] ] = array(" )
+);
+
+$vistaColl = file_get_contents( __DIR__ . '/../views/collega.php' );
+
+verifica( 'la pagina elenca anche quelli che conosce solo Google', false !== strpos( $vistaColl, 'Indirizzi che Google mostra e il sito non ha più' ) );
+verifica( 'e dice quante impression si stanno perdendo', false !== strpos( $vistaColl, "array_column( \$orfani, 'impression' )" ) );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

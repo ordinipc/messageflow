@@ -543,6 +543,7 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 	</section>
 
 	<?php $cambiati = $confronto['cambiati']; ?>
+	<?php $orfani = $orfani ?? array(); ?>
 
 	<section class="scheda" id="indirizzi">
 		<h2>Indirizzi cambiati</h2>
@@ -582,13 +583,49 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 				</table>
 			</div>
 
-			<div class="azioni"><?php azione( $audit['id'], 'redirect_cambiati', 'Manda i vecchi indirizzi sui nuovi (301)', 'Creare i redirect 301 dai vecchi indirizzi ai nuovi?' ); ?></div>
+	<?php endif; ?>
+
+		<?php if ( ! empty( $orfani ) ) : ?>
+			<h3>Indirizzi che Google mostra e il sito non ha più</h3>
+			<p class="guida">
+				Questi non li può trovare il confronto fra due analisi: il programma non li ha mai visti,
+				perché erano già spariti prima della prima lettura. Li conosce Google, che continua a
+				mostrarli e a mandarci gente: <strong><?php echo num( array_sum( array_column( $orfani, 'impression' ) ) ); ?> impression</strong>
+				che oggi finiscono su una pagina non trovata. La destinazione qui sotto è proposta dalle
+				parole dell'indirizzo: <strong>guardala prima di applicare</strong>.
+			</p>
+
+			<div class="tabellabox" style="margin-bottom:14px">
+				<table>
+					<thead><tr><th>Indirizzo morto</th><th>Dove mandarlo</th><th class="num">Impr.</th><th class="num">Clic</th></tr></thead>
+					<tbody>
+					<?php foreach ( $orfani as $riga ) : ?>
+						<tr>
+							<td class="mono"><?php echo e( $riga['da'] ); ?></td>
+							<td>
+								<span class="mono"><?php echo e( $riga['a'] ); ?></span>
+								<div class="sotto">
+									<?php echo $riga['titolo'] ? e( $riga['titolo'] ) . ' · ' : ''; ?><?php echo e( $riga['perche'] ); ?>
+								</div>
+							</td>
+							<td class="num"><?php echo num( $riga['impression'] ); ?></td>
+							<td class="num"><?php echo num( $riga['clic'] ); ?></td>
+						</tr>
+					<?php endforeach; ?>
+					</tbody>
+				</table>
+			</div>
+		<?php endif; ?>
+
+		<?php if ( $cambiati || ! empty( $orfani ) ) : ?>
+			<div class="azioni"><?php azione( $audit['id'], 'redirect_cambiati', 'Manda i vecchi indirizzi sui nuovi (301)', 'Creare i redirect 301? Controlla prima le destinazioni proposte.' ); ?></div>
 
 			<p class="nota">
 				Il plugin applica i 301 solo sulle pagine che danno 404, quindi non interferisce con niente
-				di quello che funziona. Questa operazione sostituisce la tabella dei redirect sul sito.
+				di quello che funziona. I due elenchi vengono mandati insieme, perché questa operazione
+				sostituisce la tabella dei redirect sul sito.
 			</p>
-	<?php endif; ?>
+		<?php endif; ?>
 	</section>
 
 	<section class="scheda">

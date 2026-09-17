@@ -2159,20 +2159,42 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				// perdono, e la posizione in Google riparte da zero.
 				$cambiati = Redirezioni::cambiati( $db, $audit['sito_url'] );
 
-				if ( ! $cambiati ) {
-					throw new RuntimeException( 'Nessun indirizzo è cambiato fra le ultime due analisi.' );
+				// La tabella dei redirect sul sito viene sostituita per
+				// intero: i due elenchi vanno mandati insieme, se no il
+				// secondo pulsante cancella quello che ha fatto il primo.
+				$orfani = array();
+
+				try {
+					$lettura = Prestazioni::ultima( $db, Prestazioni::chiaveSito( $cfg ) );
+
+					if ( $lettura ) {
+						$orfani = Redirezioni::orfaniDaGoogle(
+							$db,
+							$audit['id'],
+							$db->all( 'SELECT url, clic, impression FROM gsc_pagina WHERE rilevazione_id = ?', array( (int) $lettura['id'] ) )
+						);
+					}
+				} catch ( Throwable $e ) {
+					unset( $e );
+				}
+
+				if ( ! $cambiati && ! $orfani ) {
+					throw new RuntimeException( 'Nessun indirizzo da rimandare: né fra le analisi né fra quelli che Google ha in memoria.' );
 				}
 
 				$righe = array();
 
-				foreach ( $cambiati as $riga ) {
-					$righe[] = array( 'da' => $riga['da'], 'a' => rtrim( $audit['sito_url'], '/' ) . $riga['a'] );
+				foreach ( array_merge( $cambiati, $orfani ) as $riga ) {
+					$righe[ $riga['da'] ] = array( 'da' => $riga['da'], 'a' => rtrim( $audit['sito_url'], '/' ) . $riga['a'] );
 				}
 
-				$esito     = $ponte->inviaRedirect( $righe );
+				$esito     = $ponte->inviaRedirect( array_values( $righe ) );
 				$messaggio = sprintf(
-					'%d indirizzi vecchi ora rimandano a quelli nuovi. Attenzione: questo sostituisce la tabella dei redirect sul sito.',
-					count( $righe )
+					'%d indirizzi vecchi ora rimandano a quelli nuovi (%d dalle analisi, %d da quelli che Google mostra e il sito non ha più). '
+						. 'Attenzione: questo sostituisce la tabella dei redirect sul sito.',
+					count( $righe ),
+					count( $cambiati ),
+					count( $orfani )
 				);
 				break;
 
@@ -3121,9 +3143,29 @@ switch ( $pagina ) {
 			}
 		}
 
+		// Gli indirizzi che Google ha in memoria e che il sito non ha piu:
+		// il confronto fra due analisi non puo vederli, perche il programma
+		// non li ha mai visti. Search Console si.
+		$orfani = array();
+
+		try {
+			$lettura = Prestazioni::ultima( $db, Prestazioni::chiaveSito( $cfg ) );
+
+			if ( $lettura ) {
+				$orfani = Redirezioni::orfaniDaGoogle(
+					$db,
+					$id,
+					$db->all( 'SELECT url, clic, impression FROM gsc_pagina WHERE rilevazione_id = ?', array( (int) $lettura['id'] ) )
+				);
+			}
+		} catch ( Throwable $e ) {
+			unset( $e );
+		}
+
 		vista(
 			'collega',
 			array(
+				'orfani'    => $orfani,
 				'confronto' => Redirezioni::confronto( $db, $audit['sito_url'], $ponte ),
 				'archivio'  => $db->all(
 					'SELECT a.id, a.creato_il, (SELECT COUNT(*) FROM documento d WHERE d.audit_id = a.id) AS contenuti
