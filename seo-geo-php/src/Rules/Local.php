@@ -125,7 +125,7 @@ class Local {
 				'perche' => 'Le ricerche locali si frammentano per comune: senza pagine o sezioni dedicate si perde tutta la coda lunga geografica.',
 				'soluzione' => 'Creare pagine servizio-comune con contenuto realmente differenziato, mai duplicato.',
 				'check' => static function ( Site $s ) {
-					$comuni = array( 'monreale', 'bagheria', 'carini', 'cefalù', 'cefalu', 'termini imerese', 'partinico', 'misilmeri' );
+					$comuni = Base::comuni();
 					$testo  = '';
 					foreach ( $s->pubblicati as $d ) {
 						$testo .= ' ' . mb_strtolower( $d['testo'] );
@@ -150,7 +150,7 @@ class Local {
 						if ( ! Base::citaCitta( $d['focus'] ) ) {
 							continue;
 						}
-						$n = preg_match_all( '/palermo/i', $d['testo'] );
+						$n = preg_match_all( '/' . preg_quote( Base::citta(), '/' ) . '/iu', $d['testo'] );
 						if ( $n < 3 ) {
 							$out[] = Base::doc( $d, "keyword locale ma solo $n menzioni della città nel testo" );
 						}

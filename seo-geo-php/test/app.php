@@ -5446,6 +5446,69 @@ verifica(
 	'senza il valore di prima nel backup, «rimetti com era» non la rimette'
 );
 
+// ---------------------------------------------------------------------------
+// La geografia arriva dalle impostazioni, non dal codice
+//
+// «Palermo», «Sicilia», «Monreale» stavano scritte dentro alle regole. Su
+// questo sito funzionavano; su qualunque altro le regole locali dicevano cose
+// senza senso - una landing di Bolzano non cita mai Palermo, e risultava
+// sempre sbagliata.
+
+echo "\nLa geografia del sito\n";
+
+use SeoGeo\Rules\Base;
+
+$cfgBolzano = array(
+	'seo' => array(
+		'cittaPrincipale' => 'Bolzano',
+		'comuniVicini'    => array( 'Merano', 'Bressanone', 'Laives' ),
+		'zona'            => array( 'Alto Adige', 'altoatesino' ),
+	),
+);
+
+Base::configura( $cfgBolzano );
+
+verifica( 'la citta e quella delle impostazioni', 'bolzano' === Base::citta(), Base::citta() );
+verifica( 'i comuni pure', in_array( 'merano', Base::comuni(), true ), json_encode( Base::comuni() ) );
+verifica( 'una keyword locale di quel posto si riconosce', Base::citaCitta( 'web agency a Bolzano' ) );
+verifica( 'e anche la zona larga', Base::citaCitta( 'servizi per le imprese dell Alto Adige' ) );
+verifica( 'mentre Palermo li non e piu un segnale locale', ! Base::citaCitta( 'web agency a Palermo' ) );
+
+// Senza impostazioni si resta come prima: nessuna analisi gia fatta deve
+// cambiare risultato solo perche il valore adesso e configurabile.
+Base::configura( array() );
+
+verifica( 'senza impostazioni il ripiego e quello di prima', 'palermo' === Base::citta(), Base::citta() );
+verifica( 'con i suoi comuni', in_array( 'monreale', Base::comuni(), true ), json_encode( Base::comuni() ) );
+verifica( 'e Palermo torna a essere un segnale locale', Base::citaCitta( 'web agency a Palermo' ) );
+
+// E l audit gliela passa: se la configurazione non arriva alle regole, averla
+// nelle impostazioni non serve a niente.
+verifica(
+	'l audit passa la configurazione alle regole',
+	false !== strpos( file_get_contents( __DIR__ . '/../src/Audit.php' ), 'Base::configura( $cfg )' )
+);
+
+verifica(
+	'e chi lancia l audit gliela da',
+	3 === substr_count( file_get_contents( __DIR__ . '/../public/index.php' ), 'Audit::esegui( $site, $cfg )' ),
+	'una delle strade che lancia l analisi non passa la configurazione'
+);
+
+// E si compila dalle impostazioni, se no resta una manopola che esiste solo
+// per chi apre config.php.
+$vistaImp = file_get_contents( __DIR__ . '/../views/impostazioni.php' );
+
+verifica( 'i comuni si scrivono dalle impostazioni', false !== strpos( $vistaImp, "campo( 'seo_comuni'" ) );
+verifica( 'e la zona pure', false !== strpos( $vistaImp, "campo( 'seo_zona'" ) );
+verifica(
+	'scritti separati da virgola, come li scrive chi li compila',
+	false !== strpos( file_get_contents( __DIR__ . '/../public/index.php' ), "explode( ',', (string) \$campo( 'seo_comuni' ) )" )
+);
+
+// Rimessa com era per le prove che vengono dopo.
+Base::configura( require __DIR__ . '/../config.php' );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

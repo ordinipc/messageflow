@@ -69,7 +69,13 @@ class Audit {
 	 * @param Site $site Sito analizzato.
 	 * @return array
 	 */
-	public static function esegui( Site $site ) {
+	public static function esegui( Site $site, array $cfg = array() ) {
+		// Dove si trova il sito: le regole locali lo avevano scritto dentro,
+		// e su un sito che non fosse a Palermo dicevano cose senza senso.
+		if ( $cfg ) {
+			\SeoGeo\Rules\Base::configura( $cfg );
+		}
+
 		$risultati = array();
 		$totale    = max( 1, count( $site->pubblicati ) );
 

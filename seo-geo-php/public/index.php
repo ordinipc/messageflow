@@ -254,7 +254,7 @@ if ( 'analizza' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	set_time_limit( 300 );
 
 	$site   = new Site( WxrParser::parse( $destinazione ) );
-	$audit  = Audit::esegui( $site );
+	$audit  = Audit::esegui( $site, $cfg );
 	$triage = Triage::esegui( $site, $cfg );
 	$meta   = Meta::piano( $site, $cfg );
 	$link   = InternalLinks::piano( $site, $cfg );
@@ -407,7 +407,7 @@ if ( 'api-analizza' === $pagina ) {
 		$lettore = new SitoRemoto( new WordPress( $cfg['wordpress'] ) );
 		$site    = new Site( $lettore->leggi() );
 
-		$audit  = Audit::esegui( $site );
+		$audit  = Audit::esegui( $site, $cfg );
 		$triage = Triage::esegui( $site, $cfg );
 		$meta   = Meta::piano( $site, $cfg );
 		$link   = InternalLinks::piano( $site, $cfg );
@@ -900,7 +900,7 @@ if ( 'risincronizza' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		$lettore = new SitoRemoto( $ponte );
 		$site    = new Site( $lettore->leggi() );
 
-		$audit   = Audit::esegui( $site );
+		$audit   = Audit::esegui( $site, $cfg );
 		$triage  = Triage::esegui( $site, $cfg );
 		$meta    = Meta::piano( $site, $cfg );
 		$link    = InternalLinks::piano( $site, $cfg );
@@ -2518,6 +2518,11 @@ if ( 'salva-impostazioni' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] )
 		'seo'     => array(
 			'brandSuffix'            => $campo( 'seo_brand' ),
 			'cittaPrincipale'        => $campo( 'seo_citta' ),
+			// Scritti separati da virgola: e cosi che li scrive chi li
+			// compila, e chiedergli un formato diverso vuol dire solo
+			// farglielo sbagliare.
+			'comuniVicini'           => array_values( array_filter( array_map( 'trim', explode( ',', (string) $campo( 'seo_comuni' ) ) ) ) ),
+			'zona'                   => array_values( array_filter( array_map( 'trim', explode( ',', (string) $campo( 'seo_zona' ) ) ) ) ),
 			'linkInterniPerArticolo' => max( 0, min( 10, (int) $campo( 'seo_link' ) ) ),
 			'sogliaQualita'          => max( 0, min( 100, (int) $campo( 'seo_soglia' ) ) ),
 			'linkAutomaticiNellePagine' => ! empty( $_POST['seo_link_pagine'] ),

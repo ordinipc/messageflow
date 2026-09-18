@@ -218,6 +218,8 @@ function campo( $nome, $etichetta, $valore, $nota = '', $tipo = 'text' ) {
 		<div class="griglia">
 			<?php campo( 'seo_brand', 'Suffisso del brand nei title', $cfg['seo']['brandSuffix'] ); ?>
 			<?php campo( 'seo_citta', 'Città principale', $cfg['seo']['cittaPrincipale'] ); ?>
+			<?php campo( 'seo_comuni', 'Comuni intorno', implode( ', ', (array) ( $cfg['seo']['comuniVicini'] ?? array() ) ), 'Separati da virgola. Servono a capire quando una ricerca è locale e a misurare la copertura della provincia.' ); ?>
+			<?php campo( 'seo_zona', 'Regione o area', implode( ', ', (array) ( $cfg['seo']['zona'] ?? array() ) ), 'Separate da virgola, anche negli aggettivi: Sicilia, siciliana, siciliano.' ); ?>
 			<?php campo( 'seo_link', 'Link interni per articolo', $cfg['seo']['linkInterniPerArticolo'], '', 'number' ); ?>
 			<?php campo( 'seo_soglia', 'Soglia qualità per "da mantenere"', $cfg['seo']['sogliaQualita'], 'Da 0 a 100. Più alta, più articoli finiscono fra quelli da riscrivere.', 'number' ); ?>
 		</div>

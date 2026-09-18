@@ -79,13 +79,88 @@ class Base {
 	 * @return bool
 	 */
 	public static function citaCitta( $testo ) {
-		foreach ( array( 'palermo', 'sicilia', 'siciliana', 'siciliano', 'monreale', 'bagheria', 'cefalù' ) as $c ) {
-			if ( false !== mb_stripos( (string) $testo, $c ) ) {
+		foreach ( self::luoghi() as $c ) {
+			if ( '' !== $c && false !== mb_stripos( (string) $testo, $c ) ) {
 				return true;
 			}
 		}
 
 		return false;
+	}
+
+	/**
+	 * La geografia del sito che si sta analizzando.
+	 *
+	 * Era scritta dentro alle regole: «palermo», «sicilia», «monreale». Su
+	 * questo sito funzionava, su qualunque altro le regole locali dicevano
+	 * cose senza senso - una landing di Bolzano non cita mai Palermo, e
+	 * risultava sempre sbagliata. Adesso arriva dalle impostazioni, e i
+	 * valori di prima restano come ripiego: cosi nessuna analisi gia fatta
+	 * cambia risultato.
+	 *
+	 * @var array
+	 */
+	private static $geografia = array();
+
+	/**
+	 * Dice alle regole dove si trova questo sito.
+	 *
+	 * Si chiama una volta prima di eseguire l audit. Non e un bel modo di
+	 * passare un valore - lo stato statico non lo e mai - ma le regole sono
+	 * settantacinque chiusure che ricevono solo il sito, e cambiarne la
+	 * firma per un dato che serve a tre di loro costerebbe piu di quanto
+	 * renda.
+	 *
+	 * @param array $cfg Configurazione completa.
+	 * @return void
+	 */
+	public static function configura( array $cfg ) {
+		$seo = (array) ( $cfg['seo'] ?? array() );
+
+		self::$geografia = array(
+			'citta'  => trim( (string) ( $seo['cittaPrincipale'] ?? '' ) ),
+			'comuni' => array_values( array_filter( array_map( 'trim', (array) ( $seo['comuniVicini'] ?? array() ) ) ) ),
+			'zona'   => array_values( array_filter( array_map( 'trim', (array) ( $seo['zona'] ?? array() ) ) ) ),
+		);
+	}
+
+	/**
+	 * La citta principale, minuscola.
+	 *
+	 * @return string
+	 */
+	public static function citta() {
+		return mb_strtolower( (string) ( self::$geografia['citta'] ?? '' ) ) ?: 'palermo';
+	}
+
+	/**
+	 * I comuni intorno, minuscoli.
+	 *
+	 * @return string[]
+	 */
+	public static function comuni() {
+		$comuni = (array) ( self::$geografia['comuni'] ?? array() );
+
+		if ( ! $comuni ) {
+			$comuni = array( 'Monreale', 'Bagheria', 'Carini', 'Cefalù', 'Termini Imerese', 'Partinico', 'Misilmeri' );
+		}
+
+		return array_map( 'mb_strtolower', $comuni );
+	}
+
+	/**
+	 * Tutti i nomi di luogo che rendono locale una parola chiave.
+	 *
+	 * @return string[]
+	 */
+	public static function luoghi() {
+		$zona = (array) ( self::$geografia['zona'] ?? array() );
+
+		if ( ! $zona ) {
+			$zona = array( 'Sicilia', 'siciliana', 'siciliano' );
+		}
+
+		return array_merge( array( self::citta() ), self::comuni(), array_map( 'mb_strtolower', $zona ) );
 	}
 
 	/**

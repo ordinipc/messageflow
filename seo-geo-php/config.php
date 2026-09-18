@@ -140,6 +140,14 @@ return array(
 	'seo' => array(
 		'brandSuffix'             => 'Max Digital Innovation',
 		'cittaPrincipale'         => 'Palermo',
+		// I comuni intorno, per la copertura della provincia e per capire
+		// quando una parola chiave e locale. Stavano scritti dentro alle
+		// regole: su un sito che non e a Palermo quelle regole dicevano
+		// cose senza senso, e non c era modo di correggerle senza toccare
+		// il codice.
+		'comuniVicini'            => array( 'Monreale', 'Bagheria', 'Carini', 'Cefalù', 'Termini Imerese', 'Partinico', 'Misilmeri' ),
+		// Come si chiama la zona piu larga: regione, provincia, area.
+		'zona'                    => array( 'Sicilia', 'siciliana', 'siciliano' ),
 		'titleMax'                => 60,
 		'descMin'                 => 140,
 		'descMax'                 => 158,
