@@ -43,8 +43,8 @@ class GLP_Admin {
 			return;
 		}
 
-		wp_enqueue_style( 'glp-admin', GLP_URL . 'assets/css/admin.css', array(), GLP_VERSION );
-		wp_enqueue_script( 'glp-admin', GLP_URL . 'assets/js/admin.js', array(), GLP_VERSION, true );
+		wp_enqueue_style( 'glp-admin', GLP_URL . 'assets/css/admin.css', array(), GLP_Plugin::asset_version( 'assets/css/admin.css' ) );
+		wp_enqueue_script( 'glp-admin', GLP_URL . 'assets/js/admin.js', array(), GLP_Plugin::asset_version( 'assets/js/admin.js' ), true );
 		wp_localize_script(
 			'glp-admin',
 			'GLP',

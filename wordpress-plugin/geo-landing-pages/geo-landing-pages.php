@@ -3,7 +3,7 @@
  * Plugin Name:       Geo Landing Pages
  * Plugin URI:        https://chiaviitalia.it/
  * Description:       Crea landing page locali per città (es. /trapani/) con questionario guidato, contenuti reali, FAQ e SEO locale completa (meta tag, JSON-LD, sitemap).
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 5.9
  * Requires PHP:      7.4
  * Author:            Chiavi Italia
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'GLP_VERSION', '1.0.0' );
+define( 'GLP_VERSION', '1.1.0' );
 define( 'GLP_FILE', __FILE__ );
 define( 'GLP_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GLP_URL', plugin_dir_url( __FILE__ ) );
@@ -62,11 +62,26 @@ final class GLP_Plugin {
 		GLP_AI::init();
 
 		add_action( 'init', array( $this, 'load_textdomain' ) );
-		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_front_assets' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_front_assets' ), 100 );
 	}
 
 	public function load_textdomain() {
 		load_plugin_textdomain( 'geo-landing-pages', false, dirname( plugin_basename( GLP_FILE ) ) . '/languages' );
+	}
+
+	/**
+	 * Versione di un file statico, basata sulla data di modifica.
+	 *
+	 * Evita che browser e plugin di cache continuino a servire un file
+	 * vecchio quando il plugin viene aggiornato.
+	 *
+	 * @param string $relative Percorso relativo alla cartella del plugin.
+	 * @return string
+	 */
+	public static function asset_version( $relative ) {
+		$file = GLP_PATH . ltrim( $relative, '/' );
+		$time = file_exists( $file ) ? filemtime( $file ) : 0;
+		return $time ? GLP_VERSION . '.' . $time : GLP_VERSION;
 	}
 
 	public function enqueue_front_assets() {
@@ -77,9 +92,9 @@ final class GLP_Plugin {
 			return;
 		}
 
-		wp_enqueue_style( 'glp-frontend', GLP_URL . 'assets/css/frontend.css', array(), GLP_VERSION );
+		wp_enqueue_style( 'glp-frontend', GLP_URL . 'assets/css/frontend.css', array(), self::asset_version( 'assets/css/frontend.css' ) );
 		wp_add_inline_style( 'glp-frontend', GLP_Settings::css_variables() );
-		wp_enqueue_script( 'glp-frontend', GLP_URL . 'assets/js/frontend.js', array(), GLP_VERSION, true );
+		wp_enqueue_script( 'glp-frontend', GLP_URL . 'assets/js/frontend.js', array(), self::asset_version( 'assets/js/frontend.js' ), true );
 	}
 
 	/** Attivazione: registra le entità e ricostruisce le regole di rewrite. */

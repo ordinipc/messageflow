@@ -210,7 +210,9 @@ class GLP_Content {
 		$stile = $sfondo ? ' style="background-image:url(' . esc_url( $sfondo ) . ')"' : '';
 		$class = 'glp-hero' . ( $sfondo ? ' glp-hero--image' : '' );
 
-		$html = '<header class="' . $class . '"' . $stile . '><div class="glp-hero__inner">';
+		// Volutamente un <div> e non un <header>: molti temi applicano regole
+		// aggressive al tag header e spengono lo sfondo dell'intestazione.
+		$html = '<div class="' . $class . '"' . $stile . '><div class="glp-hero__inner">';
 
 		if ( '' !== $occhiello ) {
 			$html .= '<p class="glp-hero__eyebrow">' . esc_html( $occhiello ) . '</p>';
@@ -241,7 +243,7 @@ class GLP_Content {
 			$html .= '<div class="glp-hero__cta">' . $bottoni . '</div>';
 		}
 
-		$html .= '</div></header>';
+		$html .= '</div></div>';
 
 		/**
 		 * HTML dell'intestazione.

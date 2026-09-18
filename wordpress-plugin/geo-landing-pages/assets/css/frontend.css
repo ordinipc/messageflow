@@ -5,8 +5,12 @@
  * (--glp-accent, --glp-dark, …): qui ci sono solo i valori di riserva.
  */
 
-.glp-hero,
-.glp-sections {
+/*
+ * Valori di riserva su :root, cioè nello stesso punto in cui il plugin
+ * scrive i colori scelti nelle impostazioni: essendo caricati prima,
+ * le impostazioni dell'utente hanno la precedenza.
+ */
+:root {
 	--glp-accent: #f5d400;
 	--glp-on-accent: #111111;
 	--glp-dark: #111111;
@@ -14,7 +18,10 @@
 	--glp-text: #1d1d1f;
 	--glp-soft: #f4f5f7;
 	--glp-radius: 14px;
+}
 
+.glp-hero.glp-hero,
+.glp-sections.glp-sections {
 	--glp-muted: color-mix(in srgb, var(--glp-text) 62%, transparent);
 	--glp-border: color-mix(in srgb, var(--glp-text) 14%, transparent);
 	--glp-gap: clamp(1.5rem, 4vw, 3rem);
@@ -24,8 +31,8 @@
 
 /* Riserva per i browser senza color-mix. */
 @supports not (color: color-mix(in srgb, #000 50%, transparent)) {
-	.glp-hero,
-	.glp-sections {
+	.glp-hero.glp-hero,
+	.glp-sections.glp-sections {
 		--glp-muted: #5c5c66;
 		--glp-border: #e2e2e6;
 	}
@@ -35,7 +42,7 @@
  * Intestazione
  * ------------------------------------------------------------------ */
 
-.glp-hero {
+.glp-hero.glp-hero {
 	position: relative;
 	margin: 0 0 var(--glp-gap);
 	padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.25rem, 5vw, 3.5rem);
@@ -49,20 +56,20 @@
 	text-align: center;
 }
 
-.glp-hero--image::before {
+.glp-hero--image.glp-hero--image::before {
 	content: "";
 	position: absolute;
 	inset: 0;
 	background: linear-gradient( to bottom, rgba(0, 0, 0, .72), rgba(0, 0, 0, .84) );
 }
 
-.glp-hero__inner {
+.glp-hero__inner.glp-hero__inner {
 	position: relative;
 	max-width: 46rem;
 	margin: 0 auto;
 }
 
-.glp-hero__eyebrow {
+.glp-hero__eyebrow.glp-hero__eyebrow {
 	margin: 0 0 .5rem;
 	font-size: .82rem;
 	font-weight: 600;
@@ -71,7 +78,7 @@
 	color: var(--glp-accent);
 }
 
-.glp-hero__title {
+.glp-hero__title.glp-hero__title {
 	margin: 0 0 .9rem;
 	font-size: clamp(1.9rem, 4.6vw, 3.1rem);
 	line-height: 1.12;
@@ -81,7 +88,7 @@
 	text-wrap: balance;
 }
 
-.glp-hero__text {
+.glp-hero__text.glp-hero__text {
 	margin: 0 auto;
 	max-width: 40rem;
 	font-size: clamp(1rem, 1.6vw, 1.12rem);
@@ -89,7 +96,7 @@
 	opacity: .88;
 }
 
-.glp-hero__cta {
+.glp-hero__cta.glp-hero__cta {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: center;
@@ -101,7 +108,7 @@
  * Pulsanti
  * ------------------------------------------------------------------ */
 
-.glp-btn {
+.glp-btn.glp-btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -116,25 +123,25 @@
 	transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease;
 }
 
-.glp-btn:hover,
-.glp-btn:focus-visible {
+.glp-btn.glp-btn:hover,
+.glp-btn.glp-btn:focus-visible {
 	transform: translateY(-2px);
 	text-decoration: none;
 }
 
-.glp-btn--primary {
+.glp-btn--primary.glp-btn--primary {
 	background: var(--glp-accent);
 	color: var(--glp-on-accent);
 	box-shadow: 0 6px 20px color-mix(in srgb, var(--glp-accent) 45%, transparent);
 }
 
-.glp-btn--ghost {
+.glp-btn--ghost.glp-btn--ghost {
 	border-color: currentColor;
 	color: inherit;
 	background: transparent;
 }
 
-.glp-btn--wa {
+.glp-btn--wa.glp-btn--wa {
 	background: #25d366;
 	color: #06301a;
 }
@@ -143,15 +150,15 @@
  * Sezioni
  * ------------------------------------------------------------------ */
 
-.glp-sections {
+.glp-sections.glp-sections {
 	margin-top: var(--glp-gap);
 }
 
-.glp-section {
+.glp-section.glp-section {
 	margin: 0 0 var(--glp-gap);
 }
 
-.glp-section__title {
+.glp-section__title.glp-section__title {
 	position: relative;
 	margin: 0 0 1.4rem;
 	padding-bottom: .7rem;
@@ -162,7 +169,7 @@
 	color: var(--glp-text);
 }
 
-.glp-section__title::after {
+.glp-section__title.glp-section__title::after {
 	content: "";
 	position: absolute;
 	left: 0;
@@ -173,13 +180,13 @@
 	background: var(--glp-accent);
 }
 
-.glp-intro {
+.glp-intro.glp-intro {
 	font-size: clamp(1.02rem, 1.6vw, 1.15rem);
 	line-height: 1.7;
 	color: var(--glp-muted);
 }
 
-.glp-section--approfondimento p {
+.glp-section--approfondimento.glp-section--approfondimento p {
 	line-height: 1.75;
 }
 
@@ -187,7 +194,7 @@
  * Elenchi con spunta
  * ------------------------------------------------------------------ */
 
-.glp-list {
+.glp-list.glp-list {
 	list-style: none;
 	margin: 0;
 	padding: 0;
@@ -195,17 +202,17 @@
 	gap: .8rem;
 }
 
-.glp-list--check li,
-.glp-list--why li,
-.glp-list--certs li {
+.glp-list--check.glp-list--check li,
+.glp-list--why.glp-list--why li,
+.glp-list--certs.glp-list--certs li {
 	position: relative;
 	padding-left: 2.4rem;
 	line-height: 1.55;
 }
 
-.glp-list--check li::before,
-.glp-list--why li::before,
-.glp-list--certs li::before {
+.glp-list--check.glp-list--check li::before,
+.glp-list--why.glp-list--why li::before,
+.glp-list--certs.glp-list--certs li::before {
 	content: "✓";
 	position: absolute;
 	left: 0;
@@ -225,7 +232,7 @@
  * Schede
  * ------------------------------------------------------------------ */
 
-.glp-cards {
+.glp-cards.glp-cards {
 	list-style: none;
 	margin: 0;
 	padding: 0;
@@ -234,7 +241,7 @@
 	gap: 1.1rem;
 }
 
-.glp-card__link {
+.glp-card__link.glp-card__link {
 	display: flex;
 	flex-direction: column;
 	gap: .5rem;
@@ -248,34 +255,34 @@
 	transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
 }
 
-.glp-card__link:hover,
-.glp-card__link:focus-visible {
+.glp-card__link.glp-card__link:hover,
+.glp-card__link.glp-card__link:focus-visible {
 	transform: translateY(-3px);
 	border-color: var(--glp-accent);
 	box-shadow: 0 12px 30px rgba(0, 0, 0, .09);
 	text-decoration: none;
 }
 
-.glp-card__title {
+.glp-card__title.glp-card__title {
 	font-size: 1.12rem;
 	font-weight: 700;
 	line-height: 1.3;
 }
 
-.glp-card__text {
+.glp-card__text.glp-card__text {
 	color: var(--glp-muted);
 	font-size: .94rem;
 	line-height: 1.55;
 }
 
-.glp-card__price {
+.glp-card__price.glp-card__price {
 	margin-top: auto;
 	padding-top: .6rem;
 	font-weight: 800;
 	color: var(--glp-text);
 }
 
-.glp-card__price::before {
+.glp-card__price.glp-card__price::before {
 	content: "→";
 	float: right;
 	color: var(--glp-accent);
@@ -286,7 +293,7 @@
  * Numeri in evidenza
  * ------------------------------------------------------------------ */
 
-.glp-stats {
+.glp-stats.glp-stats {
 	list-style: none;
 	margin: 1.8rem 0 0;
 	padding: 1.4rem 1.6rem;
@@ -297,20 +304,20 @@
 	gap: 1.2rem;
 }
 
-.glp-stats li {
+.glp-stats.glp-stats li {
 	display: flex;
 	flex-direction: column;
 	gap: .15rem;
 }
 
-.glp-stats strong {
+.glp-stats.glp-stats strong {
 	font-size: clamp(1.5rem, 3vw, 2rem);
 	font-weight: 800;
 	line-height: 1.05;
 	color: var(--glp-text);
 }
 
-.glp-stats li::after {
+.glp-stats.glp-stats li::after {
 	content: "";
 	width: 2rem;
 	height: 3px;
@@ -319,13 +326,13 @@
 	background: var(--glp-accent);
 }
 
-.glp-stats span {
+.glp-stats.glp-stats span {
 	color: var(--glp-muted);
 	font-size: .9rem;
 }
 
 /* Valori testuali: stessa griglia, dimensione proporzionata. */
-.glp-stat--text strong {
+.glp-stat--text.glp-stat--text strong {
 	font-size: 1.12rem;
 	line-height: 1.35;
 	font-weight: 700;
@@ -335,7 +342,7 @@
  * Passaggi
  * ------------------------------------------------------------------ */
 
-.glp-steps {
+.glp-steps.glp-steps {
 	list-style: none;
 	margin: 0;
 	padding: 0;
@@ -344,13 +351,13 @@
 	gap: 1.2rem;
 }
 
-.glp-step {
+.glp-step.glp-step {
 	counter-increment: glp-step;
 	position: relative;
 	padding: 0 0 0 3.6rem;
 }
 
-.glp-step::before {
+.glp-step.glp-step::before {
 	content: counter(glp-step);
 	position: absolute;
 	left: 0;
@@ -365,19 +372,19 @@
 	font-weight: 800;
 }
 
-.glp-step__title {
+.glp-step__title.glp-step__title {
 	margin: .3rem 0 .35rem;
 	font-size: 1.1rem;
 	font-weight: 700;
 }
 
-.glp-step p {
+.glp-step.glp-step p {
 	margin: 0 0 .3rem;
 	line-height: 1.6;
 	color: var(--glp-muted);
 }
 
-.glp-step__time {
+.glp-step__time.glp-step__time {
 	font-size: .88rem;
 	font-weight: 600;
 	color: var(--glp-text);
@@ -387,22 +394,22 @@
  * Prezzi
  * ------------------------------------------------------------------ */
 
-.glp-section--prezzi {
+.glp-section--prezzi.glp-section--prezzi {
 	padding: clamp(1.4rem, 3vw, 2rem);
 	background: var(--glp-soft);
 	border-radius: var(--glp-radius);
 }
 
-.glp-price {
+.glp-price.glp-price {
 	margin: 0 0 .4rem;
 	font-size: clamp(1.6rem, 3.4vw, 2.3rem);
 	font-weight: 800;
 	line-height: 1.1;
 }
 
-.glp-price__free,
-.glp-guarantee,
-.glp-payments {
+.glp-price__free.glp-price__free,
+.glp-guarantee.glp-guarantee,
+.glp-payments.glp-payments {
 	margin: .35rem 0 0;
 	color: var(--glp-muted);
 	line-height: 1.55;
@@ -412,7 +419,7 @@
  * Zone servite
  * ------------------------------------------------------------------ */
 
-.glp-tags {
+.glp-tags.glp-tags {
 	list-style: none;
 	margin: 0 0 1.2rem;
 	padding: 0;
@@ -421,7 +428,7 @@
 	gap: .5rem;
 }
 
-.glp-tags li {
+.glp-tags.glp-tags li {
 	padding: .35rem .95rem;
 	background: var(--glp-soft);
 	border: 1px solid var(--glp-border);
@@ -429,13 +436,13 @@
 	font-size: .92rem;
 }
 
-.glp-tags--links li {
+.glp-tags--links.glp-tags--links li {
 	padding: 0;
 	background: none;
 	border: 0;
 }
 
-.glp-tags--links li a {
+.glp-tags--links.glp-tags--links li a {
 	display: inline-block;
 	padding: .35rem .95rem;
 	border: 1px solid var(--glp-border);
@@ -445,13 +452,13 @@
 	transition: border-color .15s ease, background-color .15s ease;
 }
 
-.glp-tags--links li a:hover,
-.glp-tags--links li a:focus-visible {
+.glp-tags--links.glp-tags--links li a:hover,
+.glp-tags--links.glp-tags--links li a:focus-visible {
 	border-color: var(--glp-accent);
 	background: var(--glp-soft);
 }
 
-.glp-areas__label {
+.glp-areas__label.glp-areas__label {
 	margin: 0 0 .6rem;
 	font-weight: 600;
 	color: var(--glp-muted);
@@ -462,7 +469,7 @@
  * Recensioni
  * ------------------------------------------------------------------ */
 
-.glp-reviews {
+.glp-reviews.glp-reviews {
 	list-style: none;
 	margin: 0;
 	padding: 0;
@@ -471,21 +478,21 @@
 	gap: 1.1rem;
 }
 
-.glp-review {
+.glp-review.glp-review {
 	padding: 1.4rem;
 	background: #fff;
 	border: 1px solid var(--glp-border);
 	border-radius: var(--glp-radius);
 }
 
-.glp-review__rating {
+.glp-review__rating.glp-review__rating {
 	color: var(--glp-accent);
 	letter-spacing: .1em;
 	font-size: 1.05rem;
 	filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .15));
 }
 
-.glp-review blockquote {
+.glp-review.glp-review blockquote {
 	margin: .6rem 0;
 	padding: 0;
 	border: 0;
@@ -493,14 +500,14 @@
 	line-height: 1.6;
 }
 
-.glp-review cite {
+.glp-review.glp-review cite {
 	color: var(--glp-muted);
 	font-size: .9rem;
 	font-style: normal;
 	font-weight: 600;
 }
 
-.glp-review__src {
+.glp-review__src.glp-review__src {
 	font-size: .84rem;
 }
 
@@ -508,18 +515,18 @@
  * Persone e sede
  * ------------------------------------------------------------------ */
 
-.glp-person {
+.glp-person.glp-person {
 	margin: 0 0 .3rem;
 	font-size: 1.08rem;
 }
 
-.glp-person__creds {
+.glp-person__creds.glp-person__creds {
 	margin: 0 0 1rem;
 	color: var(--glp-muted);
 	line-height: 1.55;
 }
 
-.glp-address {
+.glp-address.glp-address {
 	display: inline-block;
 	margin: 0 0 .8rem;
 	padding: .5rem 1rem;
@@ -529,7 +536,7 @@
 	font-weight: 600;
 }
 
-.glp-map {
+.glp-map.glp-map {
 	position: relative;
 	padding-top: 52%;
 	margin-top: 1.2rem;
@@ -538,7 +545,7 @@
 	box-shadow: 0 10px 30px rgba(0, 0, 0, .1);
 }
 
-.glp-map iframe {
+.glp-map.glp-map iframe {
 	position: absolute;
 	inset: 0;
 	width: 100%;
@@ -550,12 +557,12 @@
  * FAQ
  * ------------------------------------------------------------------ */
 
-.glp-faq {
+.glp-faq.glp-faq {
 	display: grid;
 	gap: .7rem;
 }
 
-.glp-faq__item {
+.glp-faq__item.glp-faq__item {
 	background: #fff;
 	border: 1px solid var(--glp-border);
 	border-radius: var(--glp-radius);
@@ -563,11 +570,11 @@
 	transition: border-color .15s ease;
 }
 
-.glp-faq__item[open] {
+.glp-faq__item.glp-faq__item[open] {
 	border-color: var(--glp-accent);
 }
 
-.glp-faq__q {
+.glp-faq__q.glp-faq__q {
 	position: relative;
 	cursor: pointer;
 	padding-right: 2rem;
@@ -577,11 +584,11 @@
 	list-style: none;
 }
 
-.glp-faq__q::-webkit-details-marker {
+.glp-faq__q.glp-faq__q::-webkit-details-marker {
 	display: none;
 }
 
-.glp-faq__q::after {
+.glp-faq__q.glp-faq__q::after {
 	content: "+";
 	position: absolute;
 	right: 0;
@@ -599,17 +606,17 @@
 	line-height: 1;
 }
 
-.glp-faq__item[open] .glp-faq__q::after {
+.glp-faq__item.glp-faq__item[open] .glp-faq__q::after {
 	content: "–";
 }
 
-.glp-faq__a {
+.glp-faq__a.glp-faq__a {
 	padding-top: .7rem;
 	line-height: 1.7;
 	color: var(--glp-muted);
 }
 
-.glp-faq__a p:last-child {
+.glp-faq__a.glp-faq__a p:last-child {
 	margin-bottom: 0;
 }
 
@@ -617,7 +624,7 @@
  * Chiamata all'azione finale
  * ------------------------------------------------------------------ */
 
-.glp-section--cta {
+.glp-section--cta.glp-section--cta {
 	padding: clamp(1.8rem, 4vw, 3rem);
 	background: var(--glp-dark);
 	border-radius: calc(var(--glp-radius) * 1.4);
@@ -626,23 +633,23 @@
 	text-align: center;
 }
 
-.glp-section--cta .glp-section__title {
+.glp-section--cta.glp-section--cta .glp-section__title {
 	color: var(--glp-on-dark);
 }
 
-.glp-section--cta .glp-section__title::after {
+.glp-section--cta.glp-section--cta .glp-section__title::after {
 	left: 50%;
 	transform: translateX(-50%);
 }
 
-.glp-cta {
+.glp-cta.glp-cta {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: center;
 	gap: .75rem;
 }
 
-.glp-form {
+.glp-form.glp-form {
 	margin: 1.6rem auto 0;
 	max-width: 34rem;
 	text-align: left;
@@ -652,7 +659,7 @@
  * Briciole di pane e indici
  * ------------------------------------------------------------------ */
 
-.glp-breadcrumbs ol {
+.glp-breadcrumbs.glp-breadcrumbs ol {
 	list-style: none;
 	margin: 0 0 1.2rem;
 	padding: 0;
@@ -663,22 +670,22 @@
 	color: #5c5c66;
 }
 
-.glp-breadcrumbs a {
+.glp-breadcrumbs.glp-breadcrumbs a {
 	color: inherit;
 }
 
-.glp-breadcrumbs li + li::before {
+.glp-breadcrumbs.glp-breadcrumbs li + li::before {
 	content: "›";
 	margin-right: .4rem;
 	opacity: .6;
 }
 
-.glp-index__title {
+.glp-index__title.glp-index__title {
 	font-size: clamp(1.4rem, 2.8vw, 2rem);
 	font-weight: 800;
 }
 
-.glp-index__list {
+.glp-index__list.glp-index__list {
 	list-style: none;
 	margin: 0;
 	padding: 0;
@@ -687,7 +694,7 @@
 	gap: .55rem 1.4rem;
 }
 
-.glp-index__list a {
+.glp-index__list.glp-index__list a {
 	display: block;
 	padding: .45rem 0;
 	text-decoration: none;
@@ -695,13 +702,13 @@
 	border-bottom: 1px solid #ececf0;
 }
 
-.glp-index__list a:hover,
-.glp-index__list a:focus-visible {
+.glp-index__list.glp-index__list a:hover,
+.glp-index__list.glp-index__list a:focus-visible {
 	color: #000;
 	border-bottom-color: var(--glp-accent, #f5d400);
 }
 
-.glp-index__prov {
+.glp-index__prov.glp-index__prov {
 	opacity: .6;
 	font-size: .9em;
 }
@@ -711,32 +718,126 @@
  * ------------------------------------------------------------------ */
 
 @media (max-width: 782px) {
-	.glp-hero {
+	.glp-hero.glp-hero {
 		border-radius: var(--glp-radius);
 	}
 
-	.glp-hero__cta .glp-btn,
-	.glp-cta .glp-btn {
+	.glp-hero__cta.glp-hero__cta .glp-btn,
+	.glp-cta.glp-cta .glp-btn {
 		flex: 1 1 100%;
 	}
 
-	.glp-index__list {
+	.glp-index__list.glp-index__list {
 		grid-template-columns: 1fr 1fr;
 	}
 
-	.glp-stats {
+	.glp-stats.glp-stats {
 		padding: 1.1rem;
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.glp-btn,
-	.glp-card__link {
+	.glp-btn.glp-btn,
+	.glp-card__link.glp-card__link {
 		transition: none;
 	}
 
-	.glp-btn:hover,
-	.glp-card__link:hover {
+	.glp-btn.glp-btn:hover,
+	.glp-card__link.glp-card__link:hover {
 		transform: none;
 	}
+}
+
+/* ------------------------------------------------------------------
+ * Blindatura contro i temi
+ *
+ * Molti temi azzerano liste, intestazioni e link dentro il contenuto
+ * usando !important. Qui riaffermiamo soltanto le proprietà senza le
+ * quali la pagina si rompe visibilmente, con una specificità alta
+ * abbastanza da avere la meglio.
+ * ------------------------------------------------------------------ */
+
+.glp-hero.glp-hero {
+	background-color: var(--glp-dark) !important;
+	color: var(--glp-on-dark) !important;
+	padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.25rem, 5vw, 3.5rem) !important;
+}
+
+.glp-hero.glp-hero .glp-hero__title,
+.glp-hero.glp-hero .glp-hero__text {
+	color: var(--glp-on-dark) !important;
+}
+
+.glp-hero.glp-hero .glp-hero__eyebrow {
+	color: var(--glp-accent) !important;
+}
+
+/* Elenchi: nessun pallino, nessun rientro ereditato dal tema. */
+.glp-sections.glp-sections .glp-list,
+.glp-sections.glp-sections .glp-cards,
+.glp-sections.glp-sections .glp-tags,
+.glp-sections.glp-sections .glp-steps,
+.glp-sections.glp-sections .glp-reviews,
+.glp-sections.glp-sections .glp-faq,
+.glp-breadcrumbs.glp-breadcrumbs ol,
+.glp-index.glp-index .glp-index__list {
+	list-style: none !important;
+	margin-left: 0 !important;
+	padding-left: 0 !important;
+}
+
+.glp-sections.glp-sections .glp-stats {
+	list-style: none !important;
+	margin-left: 0 !important;
+	padding: 1.4rem 1.6rem !important;
+}
+
+/* Voci di elenco: lo spazio per la spunta e per il numero del passaggio. */
+.glp-sections.glp-sections .glp-list--check > li,
+.glp-sections.glp-sections .glp-list--why > li,
+.glp-sections.glp-sections .glp-list--certs > li {
+	padding-left: 2.4rem !important;
+	list-style: none !important;
+}
+
+.glp-sections.glp-sections .glp-step {
+	padding-left: 3.6rem !important;
+	list-style: none !important;
+}
+
+.glp-sections.glp-sections .glp-cards > li,
+.glp-sections.glp-sections .glp-tags > li,
+.glp-sections.glp-sections .glp-reviews > li,
+.glp-sections.glp-sections .glp-stats > li {
+	list-style: none !important;
+}
+
+/* Blocchi colorati e pulsanti. */
+.glp-sections.glp-sections .glp-section--cta {
+	background: var(--glp-dark) !important;
+	color: var(--glp-on-dark) !important;
+}
+
+.glp-sections.glp-sections .glp-section--cta .glp-section__title {
+	color: var(--glp-on-dark) !important;
+}
+
+.glp-btn.glp-btn {
+	text-decoration: none !important;
+}
+
+.glp-btn.glp-btn--primary {
+	background: var(--glp-accent) !important;
+	color: var(--glp-on-accent) !important;
+}
+
+.glp-sections.glp-sections .glp-card__link,
+.glp-sections.glp-sections .glp-tags--links a {
+	text-decoration: none !important;
+}
+
+.glp-sections.glp-sections .glp-review blockquote {
+	margin: .6rem 0 !important;
+	padding: 0 !important;
+	border: 0 !important;
 }
