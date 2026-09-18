@@ -73,7 +73,12 @@ final class GLP_Plugin {
 		if ( ! is_singular( GLP_POST_TYPE ) && ! is_tax( GLP_TAXONOMY ) && ! is_post_type_archive( GLP_POST_TYPE ) ) {
 			return;
 		}
+		if ( ! GLP_Settings::get( 'design_enabled', 1 ) ) {
+			return;
+		}
+
 		wp_enqueue_style( 'glp-frontend', GLP_URL . 'assets/css/frontend.css', array(), GLP_VERSION );
+		wp_add_inline_style( 'glp-frontend', GLP_Settings::css_variables() );
 		wp_enqueue_script( 'glp-frontend', GLP_URL . 'assets/js/frontend.js', array(), GLP_VERSION, true );
 	}
 

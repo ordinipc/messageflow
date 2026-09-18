@@ -74,7 +74,7 @@ class GLP_SEO {
 			? GLP_Settings::get( 'city_title_template', '{servizio_default} a {citta}{sep}{brand}' )
 			: GLP_Settings::get( 'title_template', '{servizio} a {citta}{sep}{brand}' );
 
-		$title = GLP_Content::render( $template, $post_id );
+		$title = GLP_Content::ucfirst_text( GLP_Content::render( $template, $post_id ) );
 		return '' !== $title ? $title : get_the_title( $post_id );
 	}
 

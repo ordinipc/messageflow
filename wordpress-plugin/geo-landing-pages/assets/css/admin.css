@@ -234,3 +234,21 @@
 	gap: .5rem;
 	padding: .15rem 0;
 }
+
+/* Selettori di colore */
+.glp-color {
+	display: inline-flex;
+	align-items: center;
+	gap: .4rem;
+	margin: 0 1.2rem .4rem 0;
+}
+
+.glp-color input[type="color"] {
+	width: 44px;
+	height: 30px;
+	padding: 2px;
+	border: 1px solid #8c8f94;
+	border-radius: 4px;
+	background: #fff;
+	cursor: pointer;
+}

@@ -43,6 +43,16 @@ class GLP_Settings {
 			'schema_type'       => 'LocalBusiness',
 			'breadcrumbs'       => 1,
 
+			// Aspetto grafico.
+			'design_enabled'    => 1,
+			'hero_mode'         => 'h1',        // off | h1 | notitle
+			'color_primary'     => '#f5d400',
+			'color_dark'        => '#111111',
+			'color_text'        => '#1d1d1f',
+			'color_soft'        => '#f4f5f7',
+			'radius'            => 14,
+			'full_bleed'        => 0,
+
 			// Assistente AI (Google Gemini).
 			'ai_enabled'        => 0,
 			'gemini_key'        => '',
@@ -118,7 +128,27 @@ class GLP_Settings {
 		$parts  = array_filter( array_map( 'sanitize_title', explode( '/', (string) $prefix ) ) );
 		$out['url_prefix'] = implode( '/', $parts );
 
+		$out['design_enabled'] = empty( $input['design_enabled'] ) ? 0 : 1;
+		$out['full_bleed']     = empty( $input['full_bleed'] ) ? 0 : 1;
 		$out['ai_enabled']     = empty( $input['ai_enabled'] ) ? 0 : 1;
+
+		$modi = array( 'off', 'h1', 'notitle' );
+		if ( isset( $input['hero_mode'] ) && in_array( $input['hero_mode'], $modi, true ) ) {
+			$out['hero_mode'] = $input['hero_mode'];
+		}
+
+		foreach ( array( 'color_primary', 'color_dark', 'color_text', 'color_soft' ) as $colore ) {
+			if ( isset( $input[ $colore ] ) ) {
+				$valore = sanitize_hex_color( trim( (string) $input[ $colore ] ) );
+				if ( $valore ) {
+					$out[ $colore ] = $valore;
+				}
+			}
+		}
+
+		if ( isset( $input['radius'] ) ) {
+			$out['radius'] = max( 0, min( 40, (int) $input['radius'] ) );
+		}
 		$out['schema_enabled'] = empty( $input['schema_enabled'] ) ? 0 : 1;
 
 		// La chiave API: il campo mascherato non deve sovrascrivere quella salvata.
@@ -142,6 +172,70 @@ class GLP_Settings {
 		update_option( 'glp_flush_needed', 1 );
 
 		return $out;
+	}
+
+	/**
+	 * Variabili CSS derivate dalle impostazioni di aspetto.
+	 *
+	 * @return string Dichiarazioni CSS.
+	 */
+	public static function css_variables() {
+		$s = self::all();
+
+		$primary = $s['color_primary'];
+		$dark    = $s['color_dark'];
+
+		$vars = array(
+			'--glp-accent'      => $primary,
+			'--glp-on-accent'   => self::readable_text( $primary ),
+			'--glp-dark'        => $dark,
+			'--glp-on-dark'     => self::readable_text( $dark ),
+			'--glp-text'        => $s['color_text'],
+			'--glp-soft'        => $s['color_soft'],
+			'--glp-radius'      => (int) $s['radius'] . 'px',
+		);
+
+		$out = '';
+		foreach ( $vars as $nome => $valore ) {
+			$out .= $nome . ':' . $valore . ';';
+		}
+		$css = ':root{' . $out . '}';
+
+		// Bande a tutta larghezza: l'intestazione e la CTA escono dal contenitore.
+		if ( ! empty( $s['full_bleed'] ) ) {
+			$css .= '.glp-hero,.glp-section--cta{margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);'
+				. 'border-radius:0;padding-left:max(1.25rem,calc(50vw - 36rem));padding-right:max(1.25rem,calc(50vw - 36rem));}';
+		}
+
+		return $css;
+	}
+
+	/**
+	 * Colore di testo leggibile sopra uno sfondo dato.
+	 *
+	 * @param string $hex Colore di sfondo.
+	 * @return string
+	 */
+	public static function readable_text( $hex ) {
+		$hex = ltrim( (string) $hex, '#' );
+		if ( 3 === strlen( $hex ) ) {
+			$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+		}
+		if ( 6 !== strlen( $hex ) ) {
+			return '#111111';
+		}
+		// Luminanza relativa approssimata (formula WCAG semplificata).
+		$r = hexdec( substr( $hex, 0, 2 ) ) / 255;
+		$g = hexdec( substr( $hex, 2, 2 ) ) / 255;
+		$b = hexdec( substr( $hex, 4, 2 ) ) / 255;
+
+		foreach ( array( 'r', 'g', 'b' ) as $canale ) {
+			$v = $$canale;
+			$$canale = $v <= 0.03928 ? $v / 12.92 : pow( ( $v + 0.055 ) / 1.055, 2.4 );
+		}
+		$luminanza = 0.2126 * $r + 0.7152 * $g + 0.0722 * $b;
+
+		return $luminanza > 0.45 ? '#111111' : '#ffffff';
 	}
 
 	/**

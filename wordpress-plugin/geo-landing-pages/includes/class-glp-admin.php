@@ -568,6 +568,61 @@ class GLP_Admin {
 					</tr>
 				</table>
 
+				<h2><?php esc_html_e( 'Aspetto grafico', 'geo-landing-pages' ); ?></h2>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Stile del plugin', 'geo-landing-pages' ); ?></th>
+						<td>
+							<label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[design_enabled]" value="1" <?php checked( $s['design_enabled'], 1 ); ?> /> <?php esc_html_e( 'Applica lo stile grafico alle landing locali', 'geo-landing-pages' ); ?></label>
+							<p class="description"><?php esc_html_e( 'Togli la spunta se preferisci che le sezioni ereditino soltanto lo stile del tema.', 'geo-landing-pages' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="glp-hero-mode"><?php esc_html_e( 'Intestazione della pagina', 'geo-landing-pages' ); ?></label></th>
+						<td>
+							<select id="glp-hero-mode" name="<?php echo esc_attr( $name ); ?>[hero_mode]">
+								<option value="h1" <?php selected( $s['hero_mode'], 'h1' ); ?>><?php esc_html_e( 'Intestazione grafica con titolo H1 (se il tema non mostra il titolo)', 'geo-landing-pages' ); ?></option>
+								<option value="notitle" <?php selected( $s['hero_mode'], 'notitle' ); ?>><?php esc_html_e( 'Intestazione grafica senza titolo (se il tema mostra già il titolo)', 'geo-landing-pages' ); ?></option>
+								<option value="off" <?php selected( $s['hero_mode'], 'off' ); ?>><?php esc_html_e( 'Nessuna intestazione', 'geo-landing-pages' ); ?></option>
+							</select>
+							<p class="description"><?php esc_html_e( 'Riproduce il blocco scuro della home: occhiello, titolo, testo e pulsanti di contatto. Se vedi il titolo due volte, scegli la seconda opzione.', 'geo-landing-pages' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Colori', 'geo-landing-pages' ); ?></th>
+						<td>
+							<?php
+							$colori = array(
+								'color_primary' => __( 'Accento', 'geo-landing-pages' ),
+								'color_dark'    => __( 'Sfondo scuro', 'geo-landing-pages' ),
+								'color_text'    => __( 'Testo', 'geo-landing-pages' ),
+								'color_soft'    => __( 'Sfondo chiaro', 'geo-landing-pages' ),
+							);
+							foreach ( $colori as $key => $label ) :
+								?>
+								<label class="glp-color">
+									<input type="color" name="<?php echo esc_attr( $name ); ?>[<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( $s[ $key ] ); ?>" />
+									<span><?php echo esc_html( $label ); ?></span>
+								</label>
+							<?php endforeach; ?>
+							<p class="description"><?php esc_html_e( 'Il colore del testo sopra l\'accento e sopra lo sfondo scuro viene scelto in automatico per restare leggibile.', 'geo-landing-pages' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="glp-radius"><?php esc_html_e( 'Arrotondamento angoli', 'geo-landing-pages' ); ?></label></th>
+						<td>
+							<input type="number" min="0" max="40" id="glp-radius" name="<?php echo esc_attr( $name ); ?>[radius]" value="<?php echo esc_attr( $s['radius'] ); ?>" /> px
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Larghezza delle bande', 'geo-landing-pages' ); ?></th>
+						<td>
+							<label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[full_bleed]" value="1" <?php checked( $s['full_bleed'], 1 ); ?> /> <?php esc_html_e( 'Intestazione e riquadro finale a tutta larghezza schermo', 'geo-landing-pages' ); ?></label>
+							<p class="description"><?php esc_html_e( 'Da provare: con alcuni temi a larghezza fissa può creare una barra di scorrimento orizzontale. In quel caso togli la spunta.', 'geo-landing-pages' ); ?></p>
+						</td>
+					</tr>
+				</table>
+
 				<h2><?php esc_html_e( 'Dati dell\'attività', 'geo-landing-pages' ); ?></h2>
 				<table class="form-table" role="presentation">
 					<?php

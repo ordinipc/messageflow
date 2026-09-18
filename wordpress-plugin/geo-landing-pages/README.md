@@ -132,6 +132,41 @@ Se un segnaposto resta vuoto, il plugin ripulisce il testo (niente `a  | ` o par
 
 ---
 
+## Aspetto grafico
+
+Le landing usano uno stile proprio allineato al brand: intestazione scura come la home,
+accenti colorati, pulsanti a pillola, schede, FAQ a fisarmonica e riquadro finale di contatto.
+
+**Landing locali → Impostazioni → Aspetto grafico**
+
+| Impostazione | Cosa fa |
+|---|---|
+| Stile del plugin | togli la spunta per ereditare solo lo stile del tema |
+| Intestazione della pagina | blocco scuro con occhiello, titolo, testo e pulsanti |
+| Colori | accento, sfondo scuro, testo, sfondo chiaro |
+| Arrotondamento angoli | da 0 (squadrato) a 40 px |
+| Larghezza delle bande | intestazione e CTA a tutto schermo |
+
+I colori dei testi sopra l'accento e sopra lo sfondo scuro sono calcolati in automatico
+(formula di contrasto WCAG): se cambi il giallo con un colore scuro, le scritte diventano
+bianche da sole.
+
+### Se vedi il titolo due volte
+
+Alcuni temi stampano già il titolo della pagina. In quel caso imposta **Intestazione della
+pagina → Intestazione grafica senza titolo**: resta il blocco scuro con testo e pulsanti, ma
+l'H1 lo gestisce il tema. È importante per la SEO che l'H1 sia uno solo.
+
+### Se compare una barra di scorrimento orizzontale
+
+Togli la spunta da **Larghezza delle bande**: alcuni temi a larghezza fissa non gradiscono le
+sezioni a tutto schermo.
+
+Il font non viene forzato: i titoli ereditano quello del tema, così le pagine restano coerenti
+col resto del sito anche se cambi tema.
+
+---
+
 ## Assistente AI (Google Gemini)
 
 Gemini scrive i testi **partendo dalle risposte che hai inserito**. Non è un generatore di
@@ -229,6 +264,7 @@ add_filter( 'glp_questionnaire_groups', function ( $groups ) { /* aggiungi doman
 add_filter( 'glp_faq_suggestions',      function ( $faq ) { /* domande del tuo settore */ return $faq; } );
 add_filter( 'glp_tokens',               function ( $tokens, $post_id ) { return $tokens; }, 10, 2 );
 add_filter( 'glp_sections_html',        function ( $html, $post_id ) { return $html; }, 10, 2 );
+add_filter( 'glp_hero_html',            function ( $html, $post_id ) { return $html; }, 10, 2 );
 add_filter( 'glp_schema_graph',         function ( $data, $post_id ) { return $data; }, 10, 2 );
 add_filter( 'glp_ai_tasks',             function ( $tasks ) { /* attività dell'assistente */ return $tasks; } );
 add_filter( 'glp_ai_system_rules',      function ( $rules, $post_id ) { return $rules; }, 10, 2 );

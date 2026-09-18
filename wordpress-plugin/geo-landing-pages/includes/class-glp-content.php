@@ -131,6 +131,23 @@ class GLP_Content {
 	}
 
 	/**
+	 * Iniziale maiuscola, compatibile con i caratteri accentati.
+	 *
+	 * @param string $text Testo.
+	 * @return string
+	 */
+	public static function ucfirst_text( $text ) {
+		$text = (string) $text;
+		if ( '' === $text ) {
+			return '';
+		}
+		if ( function_exists( 'mb_substr' ) ) {
+			return mb_strtoupper( mb_substr( $text, 0, 1, 'UTF-8' ), 'UTF-8' ) . mb_substr( $text, 1, null, 'UTF-8' );
+		}
+		return ucfirst( $text );
+	}
+
+	/**
 	 * H1 della pagina.
 	 *
 	 * @param int $post_id ID post.
@@ -138,7 +155,7 @@ class GLP_Content {
 	 */
 	public static function h1( $post_id ) {
 		$template = GLP_Settings::get( 'h1_template', '{servizio} a {citta}' );
-		$h1       = self::render( $template, $post_id );
+		$h1       = self::ucfirst_text( self::render( $template, $post_id ) );
 		return '' !== $h1 ? $h1 : get_the_title( $post_id );
 	}
 
@@ -155,7 +172,84 @@ class GLP_Content {
 		if ( 'filter' !== GLP_Settings::get( 'template_mode', 'filter' ) ) {
 			return $content;
 		}
-		return $content . self::sections( get_the_ID() );
+		$post_id = get_the_ID();
+		return self::hero( $post_id ) . $content . self::sections( $post_id );
+	}
+
+	/**
+	 * Intestazione grafica in stile brand.
+	 *
+	 * @param int $post_id ID post.
+	 * @return string
+	 */
+	public static function hero( $post_id ) {
+		$modo = GLP_Settings::get( 'hero_mode', 'h1' );
+		if ( 'off' === $modo ) {
+			return '';
+		}
+
+		$post_id = (int) $post_id;
+		$tokens  = self::tokens( $post_id );
+
+		$occhiello = $tokens['{brand}'];
+		$titolo    = self::h1( $post_id );
+		$testo     = GLP_Meta::get( $post_id, 'seo_description' );
+		if ( '' === $testo ) {
+			$testo = self::render( GLP_Settings::get( 'intro_template', '' ), $post_id );
+		}
+
+		$tel = $tokens['{telefono}'];
+		$wa  = GLP_Meta::get( $post_id, 'whatsapp' );
+		$wa  = '' !== $wa ? $wa : GLP_Settings::get( 'whatsapp', '' );
+
+		$sfondo = GLP_Meta::get( $post_id, 'og_image' );
+		if ( '' === $sfondo ) {
+			$sfondo = get_the_post_thumbnail_url( $post_id, 'full' );
+		}
+
+		$stile = $sfondo ? ' style="background-image:url(' . esc_url( $sfondo ) . ')"' : '';
+		$class = 'glp-hero' . ( $sfondo ? ' glp-hero--image' : '' );
+
+		$html = '<header class="' . $class . '"' . $stile . '><div class="glp-hero__inner">';
+
+		if ( '' !== $occhiello ) {
+			$html .= '<p class="glp-hero__eyebrow">' . esc_html( $occhiello ) . '</p>';
+		}
+
+		// Con 'notitle' il titolo lo stampa già il tema: non lo ripetiamo.
+		if ( 'h1' === $modo && '' !== $titolo ) {
+			$html .= '<h1 class="glp-hero__title">' . esc_html( $titolo ) . '</h1>';
+		}
+
+		if ( '' !== $testo ) {
+			$html .= '<p class="glp-hero__text">' . esc_html( $testo ) . '</p>';
+		}
+
+		$bottoni = '';
+		if ( '' !== $tel ) {
+			$bottoni .= '<a class="glp-btn glp-btn--primary" href="tel:' . esc_attr( preg_replace( '/[^0-9+]/', '', $tel ) ) . '">'
+				/* translators: %s: numero di telefono. */
+				. esc_html( sprintf( __( 'Chiama %s', 'geo-landing-pages' ), $tel ) ) . '</a>';
+		}
+		if ( '' !== $wa ) {
+			$messaggio = rawurlencode( self::render( __( 'Salve, vi scrivo da {citta}: avrei bisogno di {servizio}.', 'geo-landing-pages' ), $post_id ) );
+			$bottoni  .= '<a class="glp-btn glp-btn--ghost" rel="nofollow noopener" target="_blank" href="https://wa.me/'
+				. esc_attr( preg_replace( '/[^0-9]/', '', $wa ) ) . '?text=' . $messaggio . '">'
+				. esc_html__( 'Scrivici su WhatsApp', 'geo-landing-pages' ) . '</a>';
+		}
+		if ( '' !== $bottoni ) {
+			$html .= '<div class="glp-hero__cta">' . $bottoni . '</div>';
+		}
+
+		$html .= '</div></header>';
+
+		/**
+		 * HTML dell'intestazione.
+		 *
+		 * @param string $html    HTML.
+		 * @param int    $post_id ID post.
+		 */
+		return apply_filters( 'glp_hero_html', $html, $post_id );
 	}
 
 	/**
@@ -250,7 +344,7 @@ class GLP_Content {
 		$tokens = self::tokens( $post_id );
 		$title  = '' !== $citta
 			/* translators: 1: servizio, 2: città. */
-			? trim( sprintf( __( '%1$s a %2$s: cosa sapere', 'geo-landing-pages' ), $tokens['{servizio}'], $citta ), ' :' )
+			? self::ucfirst_text( trim( sprintf( __( '%1$s a %2$s: cosa sapere', 'geo-landing-pages' ), $tokens['{servizio}'], $citta ), ' :' ) )
 			: __( 'Approfondimento', 'geo-landing-pages' );
 
 		return self::open( 'approfondimento', $title )
@@ -329,7 +423,12 @@ class GLP_Content {
 		if ( ! empty( $stats ) ) {
 			$html .= '<ul class="glp-stats">';
 			foreach ( $stats as $stat ) {
-				$html .= '<li><strong>' . esc_html( $stat[0] ) . '</strong><span>' . esc_html( $stat[1] ) . '</span></li>';
+				// Un valore non numerico (es. "entro 30 minuti") va reso come
+				// testo: alla dimensione di una cifra risulterebbe sproporzionato.
+				$numerico = is_numeric( str_replace( array( '.', ',', ' ' ), '', (string) $stat[0] ) );
+				$html .= '<li class="' . ( $numerico ? 'glp-stat--num' : 'glp-stat--text' ) . '">'
+					. '<strong>' . esc_html( $stat[0] ) . '</strong>'
+					. '<span>' . esc_html( $stat[1] ) . '</span></li>';
 			}
 			$html .= '</ul>';
 		}
