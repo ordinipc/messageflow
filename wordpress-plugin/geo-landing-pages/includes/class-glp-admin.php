@@ -49,8 +49,19 @@ class GLP_Admin {
 			'glp-admin',
 			'GLP',
 			array(
-				'confirmRemove' => __( 'Vuoi eliminare questa riga?', 'geo-landing-pages' ),
+				'confirmRemove'  => __( 'Vuoi eliminare questa riga?', 'geo-landing-pages' ),
 				'faqSuggestions' => GLP_Questionnaire::faq_suggestions(),
+				'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
+				'aiNonce'        => wp_create_nonce( 'glp_ai' ),
+				'aiEnabled'      => GLP_AI::is_enabled(),
+				'postId'         => get_the_ID(),
+				'i18n'           => array(
+					'working'   => __( 'Scrivo…', 'geo-landing-pages' ),
+					'error'     => __( 'Errore', 'geo-landing-pages' ),
+					'overwrite' => __( 'Il campo contiene già del testo: lo sostituisco?', 'geo-landing-pages' ),
+					'accepted'  => __( 'Rivisto', 'geo-landing-pages' ),
+					'checking'  => __( 'Verifico…', 'geo-landing-pages' ),
+				),
 			)
 		);
 	}
@@ -118,6 +129,22 @@ class GLP_Admin {
 			echo '</ul>';
 		}
 		echo '</div>';
+
+		$pending = GLP_AI::pending_fields( $post->ID );
+		if ( ! empty( $pending ) ) {
+			$fields = GLP_Questionnaire::fields();
+			echo '<div class="glp-ai-review"><p><strong>' . esc_html__( 'Testi scritti dall\'assistente da rileggere:', 'geo-landing-pages' ) . '</strong></p><ul>';
+			foreach ( $pending as $field_key ) {
+				$label = isset( $fields[ $field_key ] ) ? $fields[ $field_key ]['label'] : $field_key;
+				printf(
+					'<li><span>%1$s</span> <button type="button" class="button-link glp-ai__accept" data-field="%2$s">%3$s</button></li>',
+					esc_html( wp_html_excerpt( $label, 48, '…' ) ),
+					esc_attr( $field_key ),
+					esc_html__( 'l\'ho riletto', 'geo-landing-pages' )
+				);
+			}
+			echo '</ul><p class="glp-hint">' . esc_html__( 'Rispondi tu di ciò che pubblichi: verifica ogni dato prima di mettere la pagina online.', 'geo-landing-pages' ) . '</p></div>';
+		}
 
 		if ( GLP_Post_Types::is_city( $post ) ) {
 			echo '<p class="glp-hint">' . esc_html__( 'Questa è una pagina città: i dati di contatto e di zona verranno ereditati da tutte le pagine servizio figlie.', 'geo-landing-pages' ) . '</p>';
@@ -288,6 +315,19 @@ class GLP_Admin {
 				esc_html__( 'Se lasci vuoto viene usato il valore della pagina città: %s', 'geo-landing-pages' ),
 				'<code>' . esc_html( wp_html_excerpt( $inherited, 60, '…' ) ) . '</code>'
 			) . '</p>';
+		}
+
+		if ( ! empty( $field['ai'] ) && GLP_AI::is_enabled() ) {
+			$tasks = GLP_AI::tasks();
+			if ( isset( $tasks[ $field['ai'] ] ) ) {
+				printf(
+					'<p class="glp-ai"><button type="button" class="button glp-ai__btn" data-task="%1$s" data-target="%2$s" data-format="%3$s">%4$s</button> <span class="glp-ai__msg" role="status"></span></p>',
+					esc_attr( $field['ai'] ),
+					esc_attr( $key ),
+					esc_attr( $tasks[ $field['ai'] ]['format'] ),
+					esc_html( $tasks[ $field['ai'] ]['label'] )
+				);
+			}
 		}
 
 		if ( ! empty( $field['hint'] ) ) {
@@ -572,6 +612,64 @@ class GLP_Admin {
 							<td><textarea class="large-text" rows="2" id="glp-<?php echo esc_attr( $key ); ?>" name="<?php echo esc_attr( $name ); ?>[<?php echo esc_attr( $key ); ?>]"><?php echo esc_textarea( $s[ $key ] ); ?></textarea></td>
 						</tr>
 					<?php endforeach; ?>
+				</table>
+
+				<h2><?php esc_html_e( 'Assistente AI (Google Gemini)', 'geo-landing-pages' ); ?></h2>
+				<p class="description">
+					<?php esc_html_e( 'L\'assistente riceve solo le risposte del questionario e ha il divieto esplicito di inventare prezzi, contatti, recensioni e certificazioni. I testi generati vanno sempre riletti prima della pubblicazione: la responsabilità di ciò che pubblichi resta tua.', 'geo-landing-pages' ); ?>
+					<br />
+					<?php
+					printf(
+						/* translators: %s: indirizzo per ottenere la chiave. */
+						esc_html__( 'La chiave API si crea gratuitamente su %s.', 'geo-landing-pages' ),
+						'<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>'
+					);
+					?>
+				</p>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Attivazione', 'geo-landing-pages' ); ?></th>
+						<td>
+							<label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[ai_enabled]" value="1" <?php checked( $s['ai_enabled'], 1 ); ?> /> <?php esc_html_e( 'Mostra i pulsanti dell\'assistente nelle pagine', 'geo-landing-pages' ); ?></label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="glp-gemini-key"><?php esc_html_e( 'Chiave API', 'geo-landing-pages' ); ?></label></th>
+						<td>
+							<?php if ( GLP_AI::key_is_constant() ) : ?>
+								<p><code>GLP_GEMINI_API_KEY</code> — <?php esc_html_e( 'definita in wp-config.php: il campo qui sotto viene ignorato.', 'geo-landing-pages' ); ?></p>
+							<?php else : ?>
+								<input type="password" class="regular-text" id="glp-gemini-key" name="<?php echo esc_attr( $name ); ?>[gemini_key]" autocomplete="off"
+									value="<?php echo esc_attr( '' !== $s['gemini_key'] ? str_repeat( '•', 12 ) : '' ); ?>" />
+								<p class="description">
+									<?php esc_html_e( 'Più sicuro: invece di salvarla qui, aggiungi in wp-config.php la riga', 'geo-landing-pages' ); ?>
+									<code>define( 'GLP_GEMINI_API_KEY', 'la-tua-chiave' );</code>
+								</p>
+							<?php endif; ?>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="glp-gemini-model"><?php esc_html_e( 'Modello', 'geo-landing-pages' ); ?></label></th>
+						<td>
+							<input type="text" class="regular-text" id="glp-gemini-model" name="<?php echo esc_attr( $name ); ?>[gemini_model]" value="<?php echo esc_attr( $s['gemini_model'] ); ?>" />
+							<button type="button" class="button glp-ai-models"><?php esc_html_e( 'Verifica chiave e carica i modelli', 'geo-landing-pages' ); ?></button>
+							<span class="glp-ai__msg" role="status"></span>
+							<p class="description"><?php esc_html_e( 'I modelli disponibili cambiano nel tempo: premi il pulsante per vedere quelli attivi sulla tua chiave e sceglierne uno. I modelli "flash" costano meno e bastano per questi testi.', 'geo-landing-pages' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="glp-ai-style"><?php esc_html_e( 'Indicazioni di stile', 'geo-landing-pages' ); ?></label></th>
+						<td>
+							<textarea class="large-text" rows="3" id="glp-ai-style" name="<?php echo esc_attr( $name ); ?>[ai_style]" placeholder="<?php esc_attr_e( 'es. tono diretto, frasi brevi, dare del tu al lettore, evitare il gergo tecnico', 'geo-landing-pages' ); ?>"><?php echo esc_textarea( $s['ai_style'] ); ?></textarea>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="glp-ai-temp"><?php esc_html_e( 'Creatività', 'geo-landing-pages' ); ?></label></th>
+						<td>
+							<input type="number" step="0.1" min="0" max="1" id="glp-ai-temp" name="<?php echo esc_attr( $name ); ?>[ai_temperature]" value="<?php echo esc_attr( $s['ai_temperature'] ); ?>" />
+							<p class="description"><?php esc_html_e( 'Da 0 (testi prevedibili e aderenti ai dati) a 1 (più varietà, più rischio di imprecisioni). Consigliato 0,4.', 'geo-landing-pages' ); ?></p>
+						</td>
+					</tr>
 				</table>
 
 				<h2><?php esc_html_e( 'SEO e qualità', 'geo-landing-pages' ); ?></h2>

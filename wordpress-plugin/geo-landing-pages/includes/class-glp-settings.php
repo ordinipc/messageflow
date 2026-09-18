@@ -43,6 +43,13 @@ class GLP_Settings {
 			'schema_type'       => 'LocalBusiness',
 			'breadcrumbs'       => 1,
 
+			// Assistente AI (Google Gemini).
+			'ai_enabled'        => 0,
+			'gemini_key'        => '',
+			'gemini_model'      => 'gemini-2.5-flash',
+			'ai_style'          => '',
+			'ai_temperature'    => '0.4',
+
 			// Qualità.
 			'min_score'         => 60,
 			'template_mode'     => 'filter',    // filter | template
@@ -86,7 +93,7 @@ class GLP_Settings {
 		$input    = is_array( $input ) ? $input : array();
 		$defaults = self::defaults();
 
-		$text_keys = array( 'brand', 'servizio_default', 'telefono', 'whatsapp', 'partita_iva', 'schema_type', 'archive_title' );
+		$text_keys = array( 'brand', 'servizio_default', 'telefono', 'whatsapp', 'partita_iva', 'schema_type', 'archive_title', 'gemini_model' );
 		foreach ( $text_keys as $key ) {
 			if ( isset( $input[ $key ] ) ) {
 				$out[ $key ] = sanitize_text_field( wp_unslash( $input[ $key ] ) );
@@ -97,7 +104,7 @@ class GLP_Settings {
 			$out['email'] = sanitize_email( wp_unslash( $input['email'] ) );
 		}
 
-		$template_keys = array( 'title_template', 'city_title_template', 'desc_template', 'h1_template', 'intro_template' );
+		$template_keys = array( 'title_template', 'city_title_template', 'desc_template', 'h1_template', 'intro_template', 'ai_style' );
 		foreach ( $template_keys as $key ) {
 			if ( isset( $input[ $key ] ) ) {
 				$out[ $key ] = sanitize_textarea_field( wp_unslash( $input[ $key ] ) );
@@ -111,7 +118,21 @@ class GLP_Settings {
 		$parts  = array_filter( array_map( 'sanitize_title', explode( '/', (string) $prefix ) ) );
 		$out['url_prefix'] = implode( '/', $parts );
 
+		$out['ai_enabled']     = empty( $input['ai_enabled'] ) ? 0 : 1;
 		$out['schema_enabled'] = empty( $input['schema_enabled'] ) ? 0 : 1;
+
+		// La chiave API: il campo mascherato non deve sovrascrivere quella salvata.
+		if ( isset( $input['gemini_key'] ) ) {
+			$chiave = trim( sanitize_text_field( wp_unslash( $input['gemini_key'] ) ) );
+			if ( false === strpos( $chiave, '•' ) ) {
+				$out['gemini_key'] = $chiave;
+			}
+		}
+
+		if ( isset( $input['ai_temperature'] ) ) {
+			$temp = (float) str_replace( ',', '.', (string) $input['ai_temperature'] );
+			$out['ai_temperature'] = (string) max( 0, min( 1, $temp ) );
+		}
 		$out['breadcrumbs']    = empty( $input['breadcrumbs'] ) ? 0 : 1;
 
 		$score = isset( $input['min_score'] ) ? (int) $input['min_score'] : $defaults['min_score'];

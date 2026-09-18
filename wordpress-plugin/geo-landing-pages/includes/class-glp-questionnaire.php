@@ -166,6 +166,7 @@ class GLP_Questionnaire {
 				'intro'  => __( 'È la sezione che distingue una landing page reale da una doorway page. Google confronta le tue pagine città tra loro: se cambia solo il nome della città, le declassa tutte.', 'geo-landing-pages' ),
 				'fields' => array(
 					'perche_noi' => array(
+						'ai' => 'perche_noi',
 						'label'  => __( 'Perché un cliente di questa città dovrebbe scegliere voi? (un motivo per riga)', 'geo-landing-pages' ),
 						'hint'   => __( 'Motivi concreti e verificabili, diversi da città a città. Esempio: intervento in 30 minuti in tutto il centro storico.', 'geo-landing-pages' ),
 						'type'   => 'list',
@@ -205,6 +206,7 @@ class GLP_Questionnaire {
 						'weight' => 4,
 					),
 					'come_raggiungerci' => array(
+						'ai' => 'come_raggiungerci',
 						'inherit' => true,
 						'label'  => __( 'Come si raggiunge la sede? Parcheggio, mezzi, riferimenti', 'geo-landing-pages' ),
 						'hint'   => __( 'Riferimenti reali del posto (piazze, stazioni, vie) sono il segnale locale più difficile da falsificare.', 'geo-landing-pages' ),
@@ -225,6 +227,13 @@ class GLP_Questionnaire {
 							'testo'  => array( 'label' => __( 'Testo della recensione', 'geo-landing-pages' ), 'type' => 'textarea' ),
 							'fonte'  => array( 'label' => __( 'URL della recensione originale', 'geo-landing-pages' ), 'type' => 'url' ),
 						),
+					),
+					'approfondimento' => array(
+						'label'  => __( 'Approfondimento: cosa deve sapere chi cerca questo servizio qui', 'geo-landing-pages' ),
+						'hint'   => __( 'Due o tre paragrafi di testo utile, specifico per questa città. È la parte che dà profondità alla pagina: se lo lasci vuoto la pagina resta un elenco di dati.', 'geo-landing-pages' ),
+						'type'   => 'textarea',
+						'weight' => 8,
+						'ai'     => 'approfondimento',
 					),
 					'foto_locali' => array(
 						'inherit' => true,
@@ -284,6 +293,7 @@ class GLP_Questionnaire {
 				'intro'  => __( 'Il prezzo è la prima domanda di ogni ricerca locale. Rispondere in pagina riduce il pogo-sticking verso i concorrenti.', 'geo-landing-pages' ),
 				'fields' => array(
 					'servizi_inclusi' => array(
+						'ai' => 'servizi_inclusi',
 						'scope' => 'service',
 						'label'  => __( 'Cosa comprende esattamente il servizio? (una voce per riga)', 'geo-landing-pages' ),
 						'type'   => 'list',
@@ -323,6 +333,7 @@ class GLP_Questionnaire {
 						'weight' => 1,
 					),
 					'processo' => array(
+						'ai' => 'processo',
 						'scope' => 'service',
 						'label'     => __( 'Come si svolge il servizio, passo per passo?', 'geo-landing-pages' ),
 						'hint'      => __( 'Genera la sezione "Come funziona" e può essere mostrato come elenco ordinato nei risultati di ricerca.', 'geo-landing-pages' ),
@@ -348,6 +359,7 @@ class GLP_Questionnaire {
 				'intro'  => __( 'Sono le domande che compaiono nel riquadro "Le persone chiedono anche". Rispondere con parole tue è ciò che rende il contenuto originale. Usa il pulsante qui sotto per precaricare le domande tipiche della ricerca locale, poi riscrivi le risposte.', 'geo-landing-pages' ),
 				'fields' => array(
 					'faq' => array(
+						'ai' => 'faq',
 						'label'     => __( 'Domande e risposte', 'geo-landing-pages' ),
 						'hint'      => __( 'Minimo 5 domande consigliate. Le risposte generiche non portano traffico: rispondi con dati della tua città.', 'geo-landing-pages' ),
 						'type'      => 'repeater',
@@ -365,12 +377,14 @@ class GLP_Questionnaire {
 				'intro'  => __( 'Se lasci vuoti title e description vengono generati dai modelli impostati nelle opzioni del plugin.', 'geo-landing-pages' ),
 				'fields' => array(
 					'seo_title' => array(
+						'ai' => 'seo_title',
 						'label'  => __( 'Title del motore di ricerca', 'geo-landing-pages' ),
 						'hint'   => __( 'Massimo ~60 caratteri, con città e servizio all\'inizio.', 'geo-landing-pages' ),
 						'type'   => 'text',
 						'weight' => 5,
 					),
 					'seo_description' => array(
+						'ai' => 'seo_description',
 						'label'  => __( 'Meta description', 'geo-landing-pages' ),
 						'hint'   => __( 'Massimo ~155 caratteri, con una ragione per cliccare e una call to action.', 'geo-landing-pages' ),
 						'type'   => 'textarea',

@@ -34,6 +34,7 @@ require_once GLP_PATH . 'includes/class-glp-content.php';
 require_once GLP_PATH . 'includes/class-glp-seo.php';
 require_once GLP_PATH . 'includes/class-glp-schema.php';
 require_once GLP_PATH . 'includes/class-glp-shortcodes.php';
+require_once GLP_PATH . 'includes/class-glp-ai.php';
 
 /**
  * Bootstrap del plugin.
@@ -58,6 +59,7 @@ final class GLP_Plugin {
 		GLP_SEO::init();
 		GLP_Schema::init();
 		GLP_Shortcodes::init();
+		GLP_AI::init();
 
 		add_action( 'init', array( $this, 'load_textdomain' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_front_assets' ) );

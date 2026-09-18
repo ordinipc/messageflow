@@ -170,6 +170,7 @@ class GLP_Content {
 
 		$parts = array(
 			self::section_intro( $post_id ),
+			self::section_deep( $post_id ),
 			$is_city ? self::section_services( $post_id ) : self::section_included( $post_id ),
 			self::section_why( $post_id ),
 			self::section_process( $post_id ),
@@ -237,6 +238,24 @@ class GLP_Content {
 		unset( $intro );
 
 		return self::open( 'intro', '' ) . '<p class="glp-intro">' . esc_html( $text ) . '</p></section>';
+	}
+
+	/** Approfondimento redazionale. */
+	private static function section_deep( $post_id ) {
+		$testo = GLP_Meta::get( $post_id, 'approfondimento' );
+		if ( '' === $testo ) {
+			return '';
+		}
+		$citta = GLP_Meta::get( $post_id, 'citta' );
+		$tokens = self::tokens( $post_id );
+		$title  = '' !== $citta
+			/* translators: 1: servizio, 2: città. */
+			? trim( sprintf( __( '%1$s a %2$s: cosa sapere', 'geo-landing-pages' ), $tokens['{servizio}'], $citta ), ' :' )
+			: __( 'Approfondimento', 'geo-landing-pages' );
+
+		return self::open( 'approfondimento', $title )
+			. wpautop( esc_html( $testo ) )
+			. '</section>';
 	}
 
 	/** Elenco dei servizi della città (solo pagina città). */

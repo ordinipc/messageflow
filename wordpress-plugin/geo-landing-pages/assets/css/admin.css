@@ -185,3 +185,52 @@
 .glp-badge.is-ok {
 	background: #00a32a;
 }
+
+/* Assistente AI */
+.glp-ai {
+	display: flex;
+	align-items: center;
+	gap: .5rem;
+	flex-wrap: wrap;
+	margin: .45rem 0 0;
+}
+
+.glp-ai__msg {
+	font-size: 12px;
+	color: #00733f;
+	line-height: 1.4;
+}
+
+.glp-ai__msg.is-error {
+	color: #b32d2e;
+}
+
+.glp-field--ai {
+	box-shadow: inset 3px 0 0 #8c5cf6;
+	background: #fbf9ff;
+}
+
+.glp-ai-review {
+	margin: .8rem 0;
+	padding: .7rem .8rem;
+	background: #fbf9ff;
+	border-left: 4px solid #8c5cf6;
+}
+
+.glp-ai-review p {
+	margin: 0 0 .4rem;
+}
+
+.glp-ai-review ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: 12px;
+}
+
+.glp-ai-review li {
+	display: flex;
+	justify-content: space-between;
+	gap: .5rem;
+	padding: .15rem 0;
+}

@@ -75,7 +75,7 @@ Le 8 sezioni corrispondono ai segnali che Google valuta su una pagina locale.
 |---|---|
 | 1. Servizio e luogo | rende la pagina univoca: città, provincia, keyword da intercettare |
 | 2. Dati di contatto (NAP) | nome-indirizzo-telefono devono coincidere con il profilo Google Business: è il primo fattore di ranking locale |
-| 3. Prova di presenza locale | quartieri, tempi di intervento, numeri reali, recensioni: è ciò che distingue una pagina vera da una doorway page |
+| 3. Prova di presenza locale | quartieri, tempi di intervento, numeri reali, recensioni e approfondimento: è ciò che distingue una pagina vera da una doorway page |
 | 4. E-E-A-T | chi risponde del servizio: nome, qualifiche, iscrizioni |
 | 5. Offerta e prezzi | il prezzo è la prima domanda di ogni ricerca locale |
 | 6. FAQ | le domande del riquadro "Le persone chiedono anche", con dati strutturati `FAQPage` |
@@ -132,6 +132,73 @@ Se un segnaposto resta vuoto, il plugin ripulisce il testo (niente `a  | ` o par
 
 ---
 
+## Assistente AI (Google Gemini)
+
+Gemini scrive i testi **partendo dalle risposte che hai inserito**. Non è un generatore di
+contenuti a comando: senza risposte nel questionario non ha materiale e produce banalità.
+
+### Attivazione
+
+1. Crea una chiave gratuita su [Google AI Studio](https://aistudio.google.com/apikey).
+2. **Landing locali → Impostazioni → Assistente AI**: spunta l'attivazione e incolla la chiave.
+3. Premi **Verifica chiave e carica i modelli** e scegli il modello (i `flash` costano meno e
+   bastano per questi testi).
+
+**Modo più sicuro di conservare la chiave** — in `wp-config.php`:
+
+```php
+define( 'GLP_GEMINI_API_KEY', 'la-tua-chiave' );
+```
+
+Così la chiave non finisce nel database e non è leggibile dagli altri amministratori. Se la
+costante è presente, il campo nelle impostazioni viene ignorato.
+
+### Cosa può scrivere
+
+| Pulsante | Campo | Cosa fa |
+|---|---|---|
+| Genera il title | SEO title | massimo 60 caratteri, servizio e città in testa |
+| Genera la meta description | Meta description | massimo 155 caratteri con un motivo concreto e una CTA |
+| Riscrivi i motivi | Perché sceglierci | riformula i tuoi motivi, non ne aggiunge di nuovi |
+| Riscrivi cosa comprende | Servizi inclusi | riscrive l'elenco in linguaggio da cliente |
+| Scrivi i passaggi | Processo | 3-5 passaggi dal contatto alla conclusione |
+| Scrivi le risposte alle FAQ | FAQ | risponde alle tue domande; se sono meno di 5 ne aggiunge |
+| Scrivi l'approfondimento | Approfondimento | 2-4 paragrafi di testo specifico per quella città |
+| Riscrivi le indicazioni | Come raggiungerci | riscrive usando solo i riferimenti che hai dato |
+
+I pulsanti leggono anche le risposte **non ancora salvate**: puoi compilare e generare senza
+passare dal salvataggio.
+
+### I limiti, detti chiaramente
+
+Il prompt vieta di inventare prezzi, telefoni, indirizzi, orari, tempi di intervento, anni di
+attività, numeri di clienti, certificazioni, garanzie e recensioni. Questo **riduce molto** le
+invenzioni, ma non è una garanzia: un modello linguistico può sempre sbagliare.
+
+Per questo ogni campo generato resta **marcato in viola** e compare nel riquadro laterale
+sotto *"Testi scritti dall'assistente da rileggere"*, con un pulsante *"l'ho riletto"*. Il
+segno non sparisce da solo.
+
+Tre cose da verificare sempre, prima di pubblicare:
+
+1. **I numeri** — prezzi, tempi, anni, quantità: che siano quelli che hai scritto tu.
+2. **Le promesse** — garanzie e impegni che l'azienda deve poter mantenere.
+3. **I riferimenti locali** — vie, quartieri, mezzi: che esistano davvero e siano giusti.
+
+Per contenuti che riguardano sicurezza, salute o denaro, Google valuta con particolare
+severità (criteri YMYL): un dato sbagliato lì costa più di una pagina non scritta.
+
+### Costi e privacy
+
+Le chiamate vanno all'API di Google e **consumano il credito della tua chiave**. Ogni
+generazione invia a Google le risposte del questionario di quella pagina: sono dati aziendali
+pubblici (servizi, zone, orari), ma se inserisci nomi di clienti nelle recensioni, quelli
+partono insieme al resto. Il piano gratuito di Google AI Studio può usare i dati inviati per
+migliorare i servizi: per non farlo, serve un piano a pagamento. Verifica le condizioni
+correnti prima di inviare dati sensibili.
+
+---
+
 ## Shortcode
 
 | Shortcode | Effetto |
@@ -163,6 +230,8 @@ add_filter( 'glp_faq_suggestions',      function ( $faq ) { /* domande del tuo s
 add_filter( 'glp_tokens',               function ( $tokens, $post_id ) { return $tokens; }, 10, 2 );
 add_filter( 'glp_sections_html',        function ( $html, $post_id ) { return $html; }, 10, 2 );
 add_filter( 'glp_schema_graph',         function ( $data, $post_id ) { return $data; }, 10, 2 );
+add_filter( 'glp_ai_tasks',             function ( $tasks ) { /* attività dell'assistente */ return $tasks; } );
+add_filter( 'glp_ai_system_rules',      function ( $rules, $post_id ) { return $rules; }, 10, 2 );
 ```
 
 Override del template nel tema: `/wp-content/themes/<tema>/geo-landing-pages/single-glp_landing.php`
