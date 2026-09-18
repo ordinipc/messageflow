@@ -1,0 +1,187 @@
+/* Geo Landing Pages — stili dell'area di amministrazione. */
+
+.glp-group__intro {
+	margin: 0 0 1rem;
+	padding: .7rem .9rem;
+	background: #f0f6fc;
+	border-left: 4px solid #2271b1;
+	line-height: 1.5;
+}
+
+.glp-fields {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+	gap: 1.2rem;
+}
+
+.glp-field--textarea,
+.glp-field--list,
+.glp-field--repeater,
+.glp-field--hours {
+	grid-column: 1 / -1;
+}
+
+.glp-field__label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: .3rem;
+}
+
+.glp-req {
+	color: #b32d2e;
+}
+
+.glp-field__hint,
+.glp-hint {
+	margin: .35rem 0 0;
+	color: #646970;
+	font-size: 12px;
+	line-height: 1.5;
+}
+
+.glp-hint--warn {
+	color: #8a6100;
+}
+
+.glp-field__inherit {
+	margin: .3rem 0 0;
+	font-size: 12px;
+	color: #2271b1;
+}
+
+.glp-checkbox {
+	display: inline-flex;
+	align-items: center;
+	gap: .4rem;
+}
+
+/* Orari */
+.glp-hours {
+	border-collapse: collapse;
+}
+
+.glp-hours th {
+	text-align: left;
+	font-weight: 500;
+	padding: .2rem 1rem .2rem 0;
+	width: 110px;
+}
+
+.glp-hours td {
+	padding: .2rem .5rem .2rem 0;
+}
+
+/* Ripetitori */
+.glp-repeater__row {
+	position: relative;
+	display: flex;
+	align-items: flex-start;
+	gap: .6rem;
+	padding: .8rem;
+	margin-bottom: .6rem;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #fff;
+}
+
+.glp-repeater__handle {
+	color: #c3c4c7;
+	padding-top: 1.4rem;
+	cursor: default;
+}
+
+.glp-repeater__cells {
+	flex: 1;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+	gap: .6rem;
+}
+
+.glp-repeater__cell {
+	display: flex;
+	flex-direction: column;
+	gap: .2rem;
+}
+
+.glp-repeater__cell > span {
+	font-size: 12px;
+	color: #646970;
+}
+
+.glp-repeater__cell--textarea {
+	grid-column: 1 / -1;
+}
+
+.glp-repeater__remove {
+	color: #b32d2e;
+	font-size: 20px;
+	line-height: 1;
+	text-decoration: none;
+	cursor: pointer;
+	padding-top: 1.1rem;
+}
+
+/* Punteggio */
+.glp-score__value {
+	font-size: 2.4rem;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.glp-score__value span {
+	font-size: 1rem;
+	font-weight: 400;
+	color: #646970;
+}
+
+.glp-score__bar {
+	height: 8px;
+	border-radius: 4px;
+	background: #f0f0f1;
+	overflow: hidden;
+	margin: .6rem 0;
+}
+
+.glp-score__bar span {
+	display: block;
+	height: 100%;
+	background: #d63638;
+}
+
+.glp-score.is-ok .glp-score__bar span {
+	background: #00a32a;
+}
+
+.glp-score__msg {
+	margin: .4rem 0;
+	line-height: 1.5;
+}
+
+.glp-score__missing-title {
+	margin: .8rem 0 .3rem;
+	font-weight: 600;
+}
+
+.glp-score__missing {
+	margin: 0;
+	padding-left: 1.1rem;
+	color: #646970;
+	font-size: 12px;
+	line-height: 1.6;
+}
+
+.glp-badge {
+	display: inline-block;
+	min-width: 2.2em;
+	padding: .1rem .5rem;
+	border-radius: 999px;
+	text-align: center;
+	font-size: 12px;
+	font-weight: 600;
+	color: #fff;
+	background: #d63638;
+}
+
+.glp-badge.is-ok {
+	background: #00a32a;
+}

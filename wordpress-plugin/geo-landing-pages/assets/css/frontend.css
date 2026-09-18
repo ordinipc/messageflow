@@ -1,0 +1,355 @@
+/* Geo Landing Pages — stili front-end (neutri, pensati per non sovrascrivere il tema). */
+
+.glp-sections {
+	--glp-accent: #0b63ce;
+	--glp-border: rgba(0, 0, 0, .12);
+	--glp-muted: rgba(0, 0, 0, .62);
+	--glp-radius: 10px;
+	margin-top: 2.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+	.glp-sections {
+		--glp-border: rgba(255, 255, 255, .18);
+		--glp-muted: rgba(255, 255, 255, .68);
+	}
+}
+
+.glp-section {
+	margin: 0 0 2.5rem;
+}
+
+.glp-section__title {
+	margin: 0 0 .85rem;
+	line-height: 1.25;
+}
+
+.glp-intro {
+	font-size: 1.06em;
+	line-height: 1.65;
+}
+
+/* Elenchi */
+.glp-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: .55rem;
+}
+
+.glp-list--check li,
+.glp-list--why li,
+.glp-list--certs li {
+	position: relative;
+	padding-left: 1.6rem;
+	line-height: 1.5;
+}
+
+.glp-list--check li::before,
+.glp-list--why li::before,
+.glp-list--certs li::before {
+	content: "✓";
+	position: absolute;
+	left: 0;
+	color: var(--glp-accent);
+	font-weight: 700;
+}
+
+/* Etichette zone */
+.glp-tags {
+	list-style: none;
+	margin: 0 0 1rem;
+	padding: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: .45rem;
+}
+
+.glp-tags li {
+	border: 1px solid var(--glp-border);
+	border-radius: 999px;
+	padding: .25rem .8rem;
+	font-size: .9em;
+}
+
+.glp-tags--links li a {
+	text-decoration: none;
+}
+
+.glp-areas__label {
+	margin: 0 0 .5rem;
+	color: var(--glp-muted);
+	font-size: .92em;
+}
+
+/* Schede servizi */
+.glp-cards {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: 1rem;
+}
+
+.glp-card__link {
+	display: flex;
+	flex-direction: column;
+	gap: .4rem;
+	height: 100%;
+	padding: 1.1rem;
+	border: 1px solid var(--glp-border);
+	border-radius: var(--glp-radius);
+	text-decoration: none;
+}
+
+.glp-card__link:hover,
+.glp-card__link:focus-visible {
+	border-color: var(--glp-accent);
+}
+
+.glp-card__title {
+	font-weight: 700;
+}
+
+.glp-card__text {
+	color: var(--glp-muted);
+	font-size: .92em;
+	line-height: 1.5;
+}
+
+.glp-card__price {
+	margin-top: auto;
+	font-weight: 700;
+	color: var(--glp-accent);
+}
+
+/* Numeri in evidenza */
+.glp-stats {
+	list-style: none;
+	margin: 1.2rem 0 0;
+	padding: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1.5rem;
+}
+
+.glp-stats li {
+	display: flex;
+	flex-direction: column;
+}
+
+.glp-stats strong {
+	font-size: 1.6em;
+	line-height: 1.1;
+	color: var(--glp-accent);
+}
+
+.glp-stats span {
+	color: var(--glp-muted);
+	font-size: .88em;
+}
+
+/* Passaggi */
+.glp-steps {
+	margin: 0;
+	padding-left: 1.2rem;
+	display: grid;
+	gap: 1.1rem;
+}
+
+.glp-step__title {
+	margin: 0 0 .25rem;
+	font-size: 1.05em;
+}
+
+.glp-step__time {
+	margin: .2rem 0 0;
+	color: var(--glp-muted);
+	font-size: .9em;
+}
+
+/* Prezzi */
+.glp-price {
+	font-size: 1.35em;
+	font-weight: 700;
+	margin: 0 0 .4rem;
+}
+
+.glp-price__free,
+.glp-guarantee,
+.glp-payments {
+	margin: .3rem 0;
+	color: var(--glp-muted);
+}
+
+/* Recensioni */
+.glp-reviews {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+	gap: 1rem;
+}
+
+.glp-review {
+	border: 1px solid var(--glp-border);
+	border-radius: var(--glp-radius);
+	padding: 1.1rem;
+}
+
+.glp-review__rating {
+	color: #e8a400;
+	letter-spacing: .08em;
+}
+
+.glp-review blockquote {
+	margin: .5rem 0;
+	padding: 0;
+	border: 0;
+	font-style: italic;
+	line-height: 1.55;
+}
+
+.glp-review cite {
+	color: var(--glp-muted);
+	font-size: .9em;
+	font-style: normal;
+}
+
+.glp-review__src {
+	font-size: .85em;
+}
+
+/* Persone */
+.glp-person {
+	margin: 0 0 .3rem;
+}
+
+.glp-person__creds {
+	margin: 0 0 .8rem;
+	color: var(--glp-muted);
+	font-size: .93em;
+}
+
+/* Mappa */
+.glp-address {
+	font-weight: 600;
+}
+
+.glp-map {
+	position: relative;
+	padding-top: 56%;
+	border-radius: var(--glp-radius);
+	overflow: hidden;
+	margin-top: 1rem;
+}
+
+.glp-map iframe {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	border: 0;
+}
+
+/* FAQ */
+.glp-faq {
+	display: grid;
+	gap: .5rem;
+}
+
+.glp-faq__item {
+	border: 1px solid var(--glp-border);
+	border-radius: var(--glp-radius);
+	padding: .85rem 1.1rem;
+}
+
+.glp-faq__q {
+	cursor: pointer;
+	font-weight: 600;
+	line-height: 1.4;
+}
+
+.glp-faq__a {
+	padding-top: .5rem;
+	line-height: 1.6;
+}
+
+.glp-faq__a p:last-child {
+	margin-bottom: 0;
+}
+
+/* Call to action */
+.glp-cta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: .75rem;
+}
+
+.glp-btn {
+	display: inline-block;
+	padding: .8rem 1.4rem;
+	border-radius: var(--glp-radius);
+	font-weight: 700;
+	text-decoration: none;
+	line-height: 1.2;
+}
+
+.glp-btn--primary {
+	background: var(--glp-accent);
+	color: #fff;
+}
+
+.glp-btn--wa {
+	background: #25d366;
+	color: #06301a;
+}
+
+.glp-form {
+	margin-top: 1.2rem;
+}
+
+/* Briciole di pane */
+.glp-breadcrumbs ol {
+	list-style: none;
+	margin: 0 0 1rem;
+	padding: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: .35rem;
+	font-size: .88em;
+	color: var(--glp-muted, rgba(0, 0, 0, .62));
+}
+
+.glp-breadcrumbs li + li::before {
+	content: "/";
+	margin-right: .35rem;
+	opacity: .55;
+}
+
+/* Indice città */
+.glp-index__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(var(--glp-cols, 3), minmax(0, 1fr));
+	gap: .5rem 1.2rem;
+}
+
+.glp-index__prov {
+	opacity: .65;
+}
+
+@media (max-width: 600px) {
+	.glp-index__list {
+		grid-template-columns: 1fr 1fr;
+	}
+
+	.glp-stats {
+		gap: 1rem;
+	}
+}

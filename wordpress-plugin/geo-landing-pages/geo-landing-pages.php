@@ -1,0 +1,95 @@
+<?php
+/**
+ * Plugin Name:       Geo Landing Pages
+ * Plugin URI:        https://chiaviitalia.it/
+ * Description:       Crea landing page locali per città (es. /trapani/) con questionario guidato, contenuti reali, FAQ e SEO locale completa (meta tag, JSON-LD, sitemap).
+ * Version:           1.0.0
+ * Requires at least: 5.9
+ * Requires PHP:      7.4
+ * Author:            Chiavi Italia
+ * License:           GPL-2.0-or-later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:       geo-landing-pages
+ * Domain Path:       /languages
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+define( 'GLP_VERSION', '1.0.0' );
+define( 'GLP_FILE', __FILE__ );
+define( 'GLP_PATH', plugin_dir_path( __FILE__ ) );
+define( 'GLP_URL', plugin_dir_url( __FILE__ ) );
+define( 'GLP_POST_TYPE', 'glp_landing' );
+define( 'GLP_TAXONOMY', 'glp_service' );
+define( 'GLP_META_PREFIX', '_glp_' );
+
+require_once GLP_PATH . 'includes/class-glp-questionnaire.php';
+require_once GLP_PATH . 'includes/class-glp-settings.php';
+require_once GLP_PATH . 'includes/class-glp-meta.php';
+require_once GLP_PATH . 'includes/class-glp-post-types.php';
+require_once GLP_PATH . 'includes/class-glp-admin.php';
+require_once GLP_PATH . 'includes/class-glp-content.php';
+require_once GLP_PATH . 'includes/class-glp-seo.php';
+require_once GLP_PATH . 'includes/class-glp-schema.php';
+require_once GLP_PATH . 'includes/class-glp-shortcodes.php';
+
+/**
+ * Bootstrap del plugin.
+ */
+final class GLP_Plugin {
+
+	/** @var GLP_Plugin|null */
+	private static $instance = null;
+
+	public static function instance() {
+		if ( null === self::$instance ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
+
+	private function __construct() {
+		GLP_Post_Types::init();
+		GLP_Meta::init();
+		GLP_Admin::init();
+		GLP_Content::init();
+		GLP_SEO::init();
+		GLP_Schema::init();
+		GLP_Shortcodes::init();
+
+		add_action( 'init', array( $this, 'load_textdomain' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_front_assets' ) );
+	}
+
+	public function load_textdomain() {
+		load_plugin_textdomain( 'geo-landing-pages', false, dirname( plugin_basename( GLP_FILE ) ) . '/languages' );
+	}
+
+	public function enqueue_front_assets() {
+		if ( ! is_singular( GLP_POST_TYPE ) && ! is_tax( GLP_TAXONOMY ) && ! is_post_type_archive( GLP_POST_TYPE ) ) {
+			return;
+		}
+		wp_enqueue_style( 'glp-frontend', GLP_URL . 'assets/css/frontend.css', array(), GLP_VERSION );
+		wp_enqueue_script( 'glp-frontend', GLP_URL . 'assets/js/frontend.js', array(), GLP_VERSION, true );
+	}
+
+	/** Attivazione: registra le entità e ricostruisce le regole di rewrite. */
+	public static function activate() {
+		GLP_Post_Types::register_post_type();
+		GLP_Post_Types::register_taxonomy();
+		GLP_Post_Types::register_rewrite_rules();
+		flush_rewrite_rules();
+	}
+
+	/** Disattivazione: pulisce le regole di rewrite. */
+	public static function deactivate() {
+		flush_rewrite_rules();
+	}
+}
+
+register_activation_hook( __FILE__, array( 'GLP_Plugin', 'activate' ) );
+register_deactivation_hook( __FILE__, array( 'GLP_Plugin', 'deactivate' ) );
+
+GLP_Plugin::instance();
