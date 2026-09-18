@@ -20,7 +20,29 @@
 <header class="testa">
 	<div class="contenitore">
 		<a class="marchio" href="?p=home">SEO &amp; GEO <span>Audit</span></a>
+
+		<?php
+		// Su quale cliente si sta lavorando, sempre sotto agli occhi: con
+		// piu clienti aperti in schede diverse, non saperlo vuol dire
+		// mandare le correzioni sul sito sbagliato.
+		$clienti_tutti = \SeoGeo\Siti::elenco();
+		?>
+		<?php if ( count( $clienti_tutti ) > 1 ) : ?>
+			<form method="get" action="" class="scelta-sito" style="margin:0">
+				<input type="hidden" name="p" value="<?php echo e( (string) ( $_GET['p'] ?? 'home' ) ); ?>">
+				<select name="sito" onchange="this.form.submit()"
+					style="padding:6px;border:1px solid var(--linea);border-radius:4px;max-width:220px">
+					<?php foreach ( $clienti_tutti as $uno ) : ?>
+						<option value="<?php echo e( $uno['slug'] ); ?>" <?php echo ( $uno['slug'] === ( $GLOBALS['sito_slug'] ?? '' ) ) ? 'selected' : ''; ?>>
+							<?php echo e( $uno['nome'] ); ?>
+						</option>
+					<?php endforeach; ?>
+				</select>
+				<noscript><button type="submit">vai</button></noscript>
+			</form>
+		<?php endif; ?>
 		<nav>
+			<a href="?p=clienti">Clienti</a>
 			<a href="?p=home">Audit archiviati</a>
 			<a href="?p=prestazioni">Rendimento</a>
 			<a href="?p=indice">Che cosa dice Google</a>

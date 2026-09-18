@@ -35,21 +35,40 @@ class Impostazioni {
 	}
 
 	/**
+	 * Dice quale file usare: e cosi che si cambia cliente.
+	 *
+	 * Tutto il resto della classe passa da file(), quindi spostare quel
+	 * puntatore sposta insieme lettura, scrittura e valori salvati. Un
+	 * secondo modo di scegliere il file avrebbe finito per dire cose
+	 * diverse dal primo.
+	 *
+	 * @param string $percorso Percorso del file.
+	 * @return void
+	 */
+	public static function usaFile( $percorso ) {
+		self::$file = (string) $percorso;
+	}
+
+	/**
 	 * Configurazione completa: valori predefiniti più quelli salvati.
 	 *
 	 * @param array $predefiniti Contenuto di config.php.
 	 * @return array
 	 */
 	public static function carica( array $predefiniti ) {
+		// Le chiavi che si pagano a consumo sono dell agenzia e valgono per
+		// tutti i clienti: stanno sopra ai valori di config.php e sotto a
+		// quelli del cliente, che puo sempre avere una chiave sua.
+		$base = self::unisci( $predefiniti, Siti::globali() );
 		$file = self::file();
 
 		if ( ! is_file( $file ) ) {
-			return $predefiniti;
+			return $base;
 		}
 
 		$salvate = json_decode( (string) file_get_contents( $file ), true );
 
-		return is_array( $salvate ) ? self::unisci( $predefiniti, $salvate ) : $predefiniti;
+		return is_array( $salvate ) ? self::unisci( $base, $salvate ) : $base;
 	}
 
 	/**

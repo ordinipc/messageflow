@@ -39,7 +39,45 @@ use SeoGeo\WxrParser;
 
 session_start();
 
+// Quale cliente si sta guardando. Prima di qualunque altra cosa: da qui
+// dipendono quali impostazioni si leggono e quale database si apre, e
+// sbagliare l ordine vorrebbe dire aprire il database di uno con le
+// impostazioni di un altro.
+$prima_volta = \SeoGeo\Siti::migra();
+$sito_slug   = \SeoGeo\Siti::corrente( (string) ( $_GET['sito'] ?? '' ) );
+
+if ( '' !== $sito_slug ) {
+	$cartella_sito = \SeoGeo\Siti::cartella( $sito_slug );
+
+	Impostazioni::usaFile( $cartella_sito . '/impostazioni.json' );
+
+	// Resta scelto anche cambiando pagina: chi lavora su un cliente per
+	// un ora non deve riselezionarlo a ogni clic.
+	if ( ( $_COOKIE['seo_sito'] ?? '' ) !== $sito_slug ) {
+		setcookie( 'seo_sito', $sito_slug, time() + 60 * 60 * 24 * 90, '/' );
+	}
+}
+
 $cfg = Impostazioni::carica( require __DIR__ . '/../config.php' );
+
+if ( '' !== $sito_slug ) {
+	// Ogni cliente ha il suo database. Non e una scelta di comodita: con
+	// una tabella condivisa sarebbe bastato dimenticare un «WHERE sito» in
+	// una delle centocinquanta query per mostrare a un cliente il lavoro
+	// fatto per un altro.
+	$cfg['database']['sqlite'] = $cartella_sito . '/audit.sqlite';
+	$cfg['cartella_sito']      = $cartella_sito;
+	$cfg['sito_slug']          = $sito_slug;
+
+	// Anche i file - export, bozze, immagini generate - vanno nella sua
+	// cartella: i numeri delle analisi ripartono da uno per ogni cliente, e
+	// «audit-1» di due clienti si sovrascriverebbe.
+	\SeoGeo\Siti::usa( $cartella_sito );
+
+	// Il selettore nell intestazione deve sapere quale e scelto, e la
+	// intestazione la disegna il layout, che non riceve la configurazione.
+	$GLOBALS['sito_slug'] = $sito_slug;
+}
 
 try {
 	$db = new Db( $cfg['database'] );
@@ -272,7 +310,7 @@ if ( 'analizza' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 			'triage'   => $triage,
 			'meta'     => $meta,
 			'link'     => $link,
-			'cartella' => __DIR__ . '/../storage/export/audit-' . $auditId,
+			'cartella' => \SeoGeo\Siti::export( $auditId ),
 		)
 	);
 
@@ -427,7 +465,7 @@ if ( 'api-analizza' === $pagina ) {
 				'triage'   => $triage,
 				'meta'     => $meta,
 				'link'     => $link,
-				'cartella' => __DIR__ . '/../storage/export/audit-' . $auditId,
+				'cartella' => \SeoGeo\Siti::export( $auditId ),
 			)
 		);
 
@@ -557,6 +595,37 @@ if ( 'applica-segnali' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	Azioni::inCoda( $db, $audit['id'], $piano );
 
 	header( 'Location: ?p=pilota&id=' . (int) $audit['id'] . '&da=google' );
+	exit;
+}
+
+// ------------------------------------------------- Clienti: crea e scegli
+if ( 'clienti-nuovo' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+	if ( ! hash_equals( token(), $_POST['token'] ?? '' ) ) {
+		http_response_code( 400 );
+		exit( 'Token di sessione non valido: ricarica la pagina e riprova.' );
+	}
+
+	$nome = trim( (string) ( $_POST['nome'] ?? '' ) );
+
+	if ( '' === $nome ) {
+		header( 'Location: ?p=clienti&errore=' . rawurlencode( 'Serve un nome per il cliente.' ) );
+		exit;
+	}
+
+	try {
+		$nuovo = \SeoGeo\Siti::crea( $nome );
+
+		// Le impostazioni del cliente nuovo partono con il suo nome gia
+		// dentro: aprire una scheda vuota e non sapere di chi sia e il modo
+		// piu rapido per configurare il cliente sbagliato.
+		Impostazioni::usaFile( \SeoGeo\Siti::cartella( $nuovo ) . '/impostazioni.json' );
+		Impostazioni::salva( array( 'azienda' => array( 'nome' => $nome ) ) );
+	} catch ( Throwable $e ) {
+		header( 'Location: ?p=clienti&errore=' . rawurlencode( $e->getMessage() ) );
+		exit;
+	}
+
+	header( 'Location: ?p=impostazioni&sito=' . rawurlencode( $nuovo ) . '&messaggio=' . rawurlencode( 'Cliente «' . $nome . '» creato: adesso compila indirizzo del sito, token del plugin e dati aziendali.' ) );
 	exit;
 }
 
@@ -918,7 +987,7 @@ if ( 'risincronizza' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				'triage'   => $triage,
 				'meta'     => $meta,
 				'link'     => $link,
-				'cartella' => __DIR__ . '/../storage/export/audit-' . $auditId,
+				'cartella' => \SeoGeo\Siti::export( $auditId ),
 			)
 		);
 
@@ -1806,7 +1875,7 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 					// Il confronto va su file: in sessione occuperebbe troppo e
 					// così resta consultabile anche dopo aver chiuso il browser.
 					Export::scrivi(
-						__DIR__ . '/../storage/export/audit-' . $id . '/anteprima-meta.json',
+						\SeoGeo\Siti::export( $id ) . '/anteprima-meta.json',
 						json_encode(
 							array( 'quando' => date( 'Y-m-d H:i:s' ), 'ambito' => $ambito, 'righe' => $confronto ),
 							JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
@@ -1820,7 +1889,7 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				// Quali contenuti sono stati toccati, non solo quanti: senza
 				// l elenco non c e modo di andare a controllarli su WordPress.
 				Export::scrivi(
-					__DIR__ . '/../storage/export/audit-' . $id . '/applicate-meta.json',
+					\SeoGeo\Siti::export( $id ) . '/applicate-meta.json',
 					json_encode(
 						array( 'quando' => date( 'Y-m-d H:i:s' ), 'ambito' => $ambito, 'righe' => $confronto ),
 						JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
@@ -1950,7 +2019,7 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 			exit( 'Audit non trovato.' );
 		}
 
-		$file      = __DIR__ . '/../storage/export/audit-' . $id . '/anteprima-meta.json';
+		$file      = \SeoGeo\Siti::export( $id ) . '/anteprima-meta.json';
 		$dal_sito  = is_file( $file ) ? json_decode( (string) file_get_contents( $file ), true ) : null;
 		$righe     = array();
 		$sorgente  = 'sito';
@@ -2085,7 +2154,7 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				// Quando e stata scritta l ultima volta la lista delle meta:
 				// serve a offrire il link a "quali contenuti ho cambiato".
 				'applicate'    => ( static function () use ( $id ) {
-					$f = __DIR__ . '/../storage/export/audit-' . $id . '/applicate-meta.json';
+					$f = \SeoGeo\Siti::export( $id ) . '/applicate-meta.json';
 					$d = is_file( $f ) ? json_decode( (string) file_get_contents( $f ), true ) : null;
 					return is_array( $d ) && ! empty( $d['righe'] ) ? (string) ( $d['quando'] ?? '' ) : '';
 				} )(),
@@ -2688,7 +2757,7 @@ if ( 'download' === $pagina ) {
 	$id   = (int) ( $_GET['id'] ?? 0 );
 	$nome = basename( (string) ( $_GET['f'] ?? '' ) );
 	$sub  = preg_replace( '#[^a-z0-9/-]#i', '', (string) ( $_GET['d'] ?? '' ) );
-	$base = realpath( __DIR__ . '/../storage/export/audit-' . $id );
+	$base = realpath( \SeoGeo\Siti::export( $id ) );
 
 	// Lo zip del plugin viene costruito una volta sola, quando si fa
 	// l analisi. Aggiornando il gestionale restava in archivio quello
@@ -2981,6 +3050,20 @@ switch ( $pagina ) {
 		);
 		break;
 
+	case 'clienti':
+		vista(
+			'clienti',
+			array(
+				'titolo'    => 'Clienti',
+				'clienti'   => \SeoGeo\Siti::elenco(),
+				'corrente'  => $sito_slug,
+				'globali'   => \SeoGeo\Siti::globali(),
+				'messaggio' => (string) ( $_GET['messaggio'] ?? '' ),
+				'errore'    => (string) ( $_GET['errore'] ?? '' ),
+			)
+		);
+		break;
+
 	case 'prestazioni':
 		$sito     = chiave_sito( $cfg );
 		$ultima   = Prestazioni::ultima( $db, $sito );
@@ -3193,7 +3276,7 @@ switch ( $pagina ) {
 		$fatte = isset( $_GET['applicate'] );
 		$nome  = $fatte ? 'applicate-meta.json' : 'anteprima-meta.json';
 
-		$file      = __DIR__ . '/../storage/export/audit-' . $id . '/' . $nome;
+		$file      = \SeoGeo\Siti::export( $id ) . '/' . $nome;
 		$dal_sito  = is_file( $file ) ? json_decode( (string) file_get_contents( $file ), true ) : null;
 		$righe     = array();
 		$sorgente  = 'sito';
@@ -3361,7 +3444,7 @@ switch ( $pagina ) {
 				// Quando e stata scritta l ultima volta la lista delle meta:
 				// serve a offrire il link a "quali contenuti ho cambiato".
 				'applicate'    => ( static function () use ( $id ) {
-					$f = __DIR__ . '/../storage/export/audit-' . $id . '/applicate-meta.json';
+					$f = \SeoGeo\Siti::export( $id ) . '/applicate-meta.json';
 					$d = is_file( $f ) ? json_decode( (string) file_get_contents( $f ), true ) : null;
 					return is_array( $d ) && ! empty( $d['righe'] ) ? (string) ( $d['quando'] ?? '' ) : '';
 				} )(),

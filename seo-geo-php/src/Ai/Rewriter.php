@@ -527,7 +527,7 @@ class Rewriter {
 		$articoli   = self::candidati( $db, $auditId, $opzioni );
 		$istruzioni = Prompt::istruzioni( $cfg );
 		$modello    = $cfg['ai']['modello'] ?? 'gemini-2.5-flash';
-		$cartella   = $opzioni['cartella'] ?? __DIR__ . '/../../storage/export/audit-' . (int) $auditId . '/bozze';
+		$cartella   = $opzioni['cartella'] ?? \SeoGeo\Siti::export( (int) $auditId ) . '/bozze';
 		$progresso  = $opzioni['su_progresso'] ?? null;
 
 		// Migliorare e il modo giusto per un archivio che gia funziona; la
@@ -797,7 +797,7 @@ class Rewriter {
 			);
 		}
 		$modello    = $cfg['ai']['modello'] ?? 'gemini-2.5-flash';
-		$cartella   = $opzioni['cartella'] ?? dirname( __DIR__, 2 ) . '/storage/export/audit-' . (int) $auditId . '/bozze';
+		$cartella   = $opzioni['cartella'] ?? \SeoGeo\Siti::export( (int) $auditId ) . '/bozze';
 		$progresso  = $opzioni['su_progresso'] ?? null;
 
 		if ( ! empty( $opzioni['limite'] ) ) {

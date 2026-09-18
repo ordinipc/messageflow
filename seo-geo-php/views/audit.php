@@ -459,7 +459,7 @@ $restano  = \SeoGeo\Rimedi::aMano( $rilievi, (int) $audit['id'] );
 	<p><a class="bottone" href="?p=bozze&amp;id=<?php echo (int) $audit['id']; ?>">Apri la riscrittura</a></p>
 </section>
 
-<?php $zip = __DIR__ . '/../storage/export/audit-' . (int) $audit['id'] . '/mdi-seo-geo-booster.zip'; ?>
+<?php $zip = \SeoGeo\Siti::export( (int) $audit['id'] ) . '/mdi-seo-geo-booster.zip'; ?>
 <?php if ( is_file( $zip ) ) : ?>
 <section class="scheda">
 	<h2>Plugin WordPress pronto</h2>
@@ -497,7 +497,7 @@ $restano  = \SeoGeo\Rimedi::aMano( $rilievi, (int) $audit['id'] );
 	</p>
 	<ul class="elenco-file">
 	<?php foreach ( $scaricabili as $f ) : ?>
-		<?php $percorso = __DIR__ . '/../storage/export/audit-' . (int) $audit['id'] . '/' . ( $f[0] ? $f[0] . '/' : '' ) . $f[1]; ?>
+		<?php $percorso = \SeoGeo\Siti::export( (int) $audit['id'] ) . '/' . ( $f[0] ? $f[0] . '/' : '' ) . $f[1]; ?>
 		<?php if ( is_file( $percorso ) ) : ?>
 			<li>
 				<a href="?p=download&amp;id=<?php echo (int) $audit['id']; ?>&amp;d=<?php echo e( $f[0] ); ?>&amp;f=<?php echo e( $f[1] ); ?>"><?php echo e( $f[1] ); ?></a>

@@ -193,7 +193,7 @@ class Immagini {
 	 * @return string
 	 */
 	public static function cartella( $auditId ) {
-		return dirname( __DIR__, 2 ) . '/storage/export/audit-' . (int) $auditId . '/immagini';
+		return \SeoGeo\Siti::export( (int) $auditId ) . '/immagini';
 	}
 
 	/**

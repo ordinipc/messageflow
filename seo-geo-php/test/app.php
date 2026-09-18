@@ -5509,6 +5509,148 @@ verifica(
 // Rimessa com era per le prove che vengono dopo.
 Base::configura( require __DIR__ . '/../config.php' );
 
+// ---------------------------------------------------------------------------
+// Un cliente per cartella
+//
+// Il programma e nato per un sito solo. Per un agenzia non basta, e la cosa
+// che conta non e la comodita: e che il lavoro fatto per un cliente non deve
+// nemmeno poter comparire nell altro.
+
+echo "\nUn cliente per cartella\n";
+
+use SeoGeo\Siti;
+
+verifica( 'il nome diventa un identificativo sicuro', 'officina-pastore' === Siti::slug( 'Officina Pastore' ) );
+verifica( 'un indirizzo pure', 'esempio-it' === Siti::slug( 'https://esempio.it/' ) );
+verifica( 'e non si puo uscire dalla cartella storage', false === strpos( Siti::slug( '../../etc/passwd' ), '..' ), Siti::slug( '../../etc/passwd' ) );
+verifica( 'nemmeno con le barre', false === strpos( Siti::slug( 'a/b/c' ), '/' ), Siti::slug( 'a/b/c' ) );
+verifica( 'un nome vuoto non produce una cartella senza nome', '' !== Siti::slug( '   ' ) );
+
+// I file di un analisi vanno nella cartella del cliente: i numeri delle
+// analisi ripartono da uno per ognuno, e «audit-1» di due clienti diversi si
+// sovrascriverebbe.
+Siti::usa( '/tmp/cliente-uno' );
+$primo = Siti::export( 1 );
+
+Siti::usa( '/tmp/cliente-due' );
+$secondo = Siti::export( 1 );
+
+verifica( 'l analisi numero uno di due clienti non e la stessa cartella', $primo !== $secondo, $primo . ' vs ' . $secondo );
+verifica( 'e sta dentro al cliente giusto', false !== strpos( $secondo, 'cliente-due' ), $secondo );
+
+// Senza cliente scelto si resta dove si era: chi non ha ancora migrato non
+// deve trovarsi i file da un altra parte.
+Siti::usa( '' );
+verifica( 'senza cliente scelto la cartella e quella di sempre', false !== strpos( Siti::export( 3 ), '/storage/export/audit-3' ), Siti::export( 3 ) );
+
+// Le impostazioni seguono il cliente, e passano tutte da file(): un secondo
+// modo di scegliere il file avrebbe finito per dire cose diverse dal primo.
+$cartellaProva = sys_get_temp_dir() . '/prova-siti-' . getmypid();
+@mkdir( $cartellaProva, 0775, true );
+
+\SeoGeo\Impostazioni::usaFile( $cartellaProva . '/impostazioni.json' );
+\SeoGeo\Impostazioni::salva( array( 'azienda' => array( 'nome' => 'Cliente Uno' ) ) );
+
+verifica( 'le impostazioni si scrivono nella cartella del cliente', is_file( $cartellaProva . '/impostazioni.json' ) );
+verifica( 'e si rileggono da li', 'Cliente Uno' === ( \SeoGeo\Impostazioni::salvate()['azienda']['nome'] ?? '' ) );
+
+$cartellaDue = $cartellaProva . '-due';
+@mkdir( $cartellaDue, 0775, true );
+
+\SeoGeo\Impostazioni::usaFile( $cartellaDue . '/impostazioni.json' );
+
+verifica(
+	'e quelle di un cliente non si vedono dall altro',
+	array() === \SeoGeo\Impostazioni::salvate(),
+	json_encode( \SeoGeo\Impostazioni::salvate() )
+);
+
+@unlink( $cartellaProva . '/impostazioni.json' );
+@rmdir( $cartellaProva );
+@rmdir( $cartellaDue );
+
+// L avvio deve scegliere il cliente prima di aprire il database: sbagliare
+// l ordine vuol dire aprire il database di uno con le impostazioni di un
+// altro.
+$indiceSiti = file_get_contents( __DIR__ . '/../public/index.php' );
+
+verifica(
+	'il cliente si sceglie prima di caricare le impostazioni',
+	strpos( $indiceSiti, 'Siti::corrente(' ) < strpos( $indiceSiti, 'Impostazioni::carica(' ),
+	'si caricherebbero le impostazioni del cliente sbagliato'
+);
+
+verifica(
+	'e il database e quello del cliente',
+	false !== strpos( $indiceSiti, "\$cfg['database']['sqlite'] = \$cartella_sito . '/audit.sqlite'" )
+);
+
+verifica(
+	'anche i file seguono il cliente',
+	false !== strpos( $indiceSiti, 'Siti::usa( $cartella_sito )' ),
+	'export e bozze finirebbero in una cartella sola per tutti'
+);
+
+// Le chiavi che si pagano a consumo sono dell agenzia: stanno sopra a
+// config.php e sotto alle impostazioni del cliente, che puo averne una sua.
+$impSorgente = file_get_contents( __DIR__ . '/../src/Impostazioni.php' );
+
+verifica( 'le chiavi dell agenzia valgono per tutti i clienti', false !== strpos( $impSorgente, 'Siti::globali()' ) );
+verifica(
+	'ma quelle del cliente vincono',
+	strpos( $impSorgente, 'Siti::globali()' ) < strpos( $impSorgente, '$salvate = json_decode' ),
+	'un cliente non potrebbe piu avere una chiave sua'
+);
+
+// E il selettore in alto deve esserci: con piu clienti aperti in schede
+// diverse, non sapere su quale si sta lavorando vuol dire mandare le
+// correzioni sul sito sbagliato.
+// --- La migrazione -------------------------------------------------------
+// Chi usa il programma da mesi ha impostazioni e analisi nella vecchia
+// posizione: diventano il primo cliente, senza perdere niente. E il punto in
+// cui un errore costa una giornata di lavoro altrui, non un messaggio brutto.
+
+$finta = sys_get_temp_dir() . '/prova-migra-' . getmypid();
+@mkdir( $finta . '/export/audit-1', 0775, true );
+
+file_put_contents( $finta . '/impostazioni.json', json_encode( array( 'azienda' => array( 'nome' => 'Max Digital Innovation' ), 'ai' => array( 'chiave' => 'segreta' ) ) ) );
+file_put_contents( $finta . '/audit.sqlite', 'finto database' );
+file_put_contents( $finta . '/export/audit-1/llms.txt', 'contenuto' );
+
+Siti::usaBase( $finta );
+
+$slugMigrato = Siti::migra();
+
+verifica( 'quello che c era diventa il primo cliente', 'max-digital-innovation' === $slugMigrato, $slugMigrato );
+verifica( 'le impostazioni si spostano', is_file( $finta . '/siti/' . $slugMigrato . '/impostazioni.json' ) );
+verifica( 'con dentro quello che c era', 'segreta' === ( json_decode( (string) file_get_contents( $finta . '/siti/' . $slugMigrato . '/impostazioni.json' ), true )['ai']['chiave'] ?? '' ) );
+verifica( 'il database pure', 'finto database' === (string) @file_get_contents( $finta . '/siti/' . $slugMigrato . '/audit.sqlite' ) );
+verifica( 'e anche export e bozze, se no l archivio risulta vuoto', is_file( $finta . '/siti/' . $slugMigrato . '/export/audit-1/llms.txt' ) );
+verifica( 'nella vecchia posizione non resta un doppione', ! is_file( $finta . '/impostazioni.json' ) && ! is_file( $finta . '/audit.sqlite' ) );
+
+// Rifarla non deve creare un secondo cliente con le stesse cose dentro.
+verifica( 'rifarla non fa niente', '' === Siti::migra() );
+verifica( 'e il cliente resta uno solo', 1 === count( Siti::elenco() ), json_encode( array_column( Siti::elenco(), 'slug' ) ) );
+
+$elencoMigrato = Siti::elenco();
+
+verifica( 'che si chiama col suo nome', 'Max Digital Innovation' === ( $elencoMigrato[0]['nome'] ?? '' ), (string) ( $elencoMigrato[0]['nome'] ?? '' ) );
+
+// Un cliente nuovo con lo stesso nome non deve scrivere sopra al primo.
+$bis = Siti::crea( 'Max Digital Innovation' );
+
+verifica( 'due clienti con lo stesso nome restano due', $bis !== $slugMigrato && is_dir( $finta . '/siti/' . $bis ), $bis );
+
+// E si sceglie quello chiesto, non il primo che capita.
+verifica( 'si sceglie il cliente chiesto', $bis === Siti::corrente( $bis ), Siti::corrente( $bis ) );
+verifica( 'uno inesistente non manda in bianco la pagina', in_array( Siti::corrente( 'non-esiste' ), array( $slugMigrato, $bis ), true ) );
+
+exec( 'rm -rf ' . escapeshellarg( $finta ) );
+Siti::usaBase( '' );
+
+verifica( 'in alto si vede su quale cliente si sta lavorando', false !== strpos( file_get_contents( __DIR__ . '/../views/layout.php' ), 'scelta-sito' ) );
+verifica( 'e c e una pagina per crearli e cambiarli', is_file( __DIR__ . '/../views/clienti.php' ) );
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );
