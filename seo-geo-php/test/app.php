@@ -5651,6 +5651,29 @@ Siti::usaBase( '' );
 verifica( 'in alto si vede su quale cliente si sta lavorando', false !== strpos( file_get_contents( __DIR__ . '/../views/layout.php' ), 'scelta-sito' ) );
 verifica( 'e c e una pagina per crearli e cambiarli', is_file( __DIR__ . '/../views/clienti.php' ) );
 
+// --- Il plugin che il gestionale porta con se -----------------------------
+// Il gestionale genera lo zip del plugin dalla copia che ha dentro: se quella
+// e vecchia, ogni cliente nuovo parte con un plugin vecchio. E la pagina di
+// collegamento guardava una variabile che nessuno valorizzava, quindi
+// l avviso non e mai comparso: le versioni che non si parlavano si
+// scoprivano da un errore a meta di un lavoro lungo.
+verifica( 'il gestionale sa quale versione del plugin porta con se', '' !== \SeoGeo\Export::versionePlugin(), 'manca la cartella plugin-wordpress' );
+verifica(
+	'ed e la stessa del gestionale, se no una delle due e rimasta indietro',
+	\SeoGeo\Export::versionePlugin() === \SeoGeo\Versione::numero(),
+	\SeoGeo\Export::versionePlugin() . ' contro ' . \SeoGeo\Versione::numero()
+);
+
+$vistaColl2 = file_get_contents( __DIR__ . '/../views/collega.php' );
+
+verifica( 'la pagina confronta le due versioni', false !== strpos( $vistaColl2, 'version_compare( $plugin_la, $plugin_qui' ) );
+verifica( 'e dice tutte e due i numeri', false !== strpos( $vistaColl2, 'questo gestionale genera la' ) );
+verifica(
+	'e qualcuno gliela passa davvero',
+	2 === substr_count( file_get_contents( __DIR__ . '/../public/index.php' ), "'plugin_qui'   => Export::versionePlugin()" ),
+	'guardava una variabile mai valorizzata: l avviso non compariva mai'
+);
+
 echo "\n" . ( $errori ? "✖ $errori verifiche fallite\n\n" : "✔ tutte le verifiche superate\n\n" );
 
 exit( $errori ? 1 : 0 );

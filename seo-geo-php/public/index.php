@@ -2126,6 +2126,11 @@ if ( 'applica' === $pagina && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 				'cfg'          => $cfg,
 				'pronto'       => $ponte->pronto(),
 				'stato'        => $stato,
+				// La versione del plugin che questa copia del gestionale sa
+				// generare: se sul sito ce n e una piu vecchia, meta delle
+				// cose che il gestionale chiede il sito non le sa fare, e
+				// finora lo si scopriva solo da un errore.
+				'plugin_qui'   => Export::versionePlugin(),
 				'errore_stato' => $errore_stato,
 				'esito'        => (string) ( $_GET['esito'] ?? '' ),
 				'errore'       => (string) ( $_GET['errore'] ?? '' ),
@@ -3416,6 +3421,11 @@ switch ( $pagina ) {
 					)
 				),
 				'stato'        => $stato,
+				// La versione del plugin che questa copia del gestionale sa
+				// generare: se sul sito ce n e una piu vecchia, meta delle
+				// cose che il gestionale chiede il sito non le sa fare, e
+				// finora lo si scopriva solo da un errore.
+				'plugin_qui'   => Export::versionePlugin(),
 				'errore_stato' => $errore_stato,
 				'esito'        => (string) ( $_GET['esito'] ?? '' ),
 				'errore'       => (string) ( $_GET['errore'] ?? '' ),

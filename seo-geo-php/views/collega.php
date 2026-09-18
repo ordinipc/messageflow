@@ -7,6 +7,7 @@
  * @var bool   $pronto       Collegamento configurato.
  * @var array[] $archivio     Analisi archiviate da cui ripescare le meta.
  * @var array   $confronto    Esito del confronto fra le analisi.
+ * @var string $plugin_qui Versione del plugin che questa copia sa generare.
  * @var array  $stato        Risposta del sito.
  * @var string $errore_stato Errore della prova di collegamento.
  * @var array  $conteggi     Quantità per ogni operazione.
@@ -90,12 +91,26 @@ function azione( $id, $azione, $etichetta, $conferma = '', $classe = 'bottone', 
 		</div>
 	</div>
 
-	<?php if ( ! empty( $vecchio ) ) : ?>
+	<?php
+	// La versione sul sito contro quella che questa copia del gestionale sa
+	// generare. Prima qui si guardava una variabile che nessuno valorizzava:
+	// l avviso non e mai comparso, e le versioni che non si parlavano si
+	// scoprivano da un errore a meta di un lavoro lungo.
+	$plugin_qui  = $plugin_qui ?? '';
+	$plugin_la   = (string) ( $stato['plugin'] ?? '' );
+	$da_aggiornare = '' !== $plugin_qui && '' !== $plugin_la && version_compare( $plugin_la, $plugin_qui, '<' );
+	?>
+	<?php if ( $da_aggiornare ) : ?>
 		<p class="avviso grave">
-			Sul sito è installata la versione <?php echo e( $stato['plugin'] ); ?> del plugin: non sa ricevere i dati
-			aziendali né pubblicare le riscritture. Aggiornalo alla 1.1.0 dalla scheda dell'audit
-			(Plugin → Aggiungi nuovo → Carica plugin), poi torna qui.
+			<strong>Il plugin sul sito è indietro.</strong>
+			Lì c'è la <?php echo e( $plugin_la ); ?>, questo gestionale genera la <?php echo e( $plugin_qui ); ?>.
+			Le cose aggiunte nel frattempo il sito non le sa fare, e te ne accorgeresti da un errore a metà
+			di un lavoro lungo. Lo zip aggiornato è nella
+			<a href="?p=audit&amp;id=<?php echo (int) $audit['id']; ?>#plugin">scheda dell'analisi</a>:
+			WordPress → Plugin → Aggiungi nuovo → Carica plugin, sovrascrivendo.
 		</p>
+	<?php elseif ( '' !== $plugin_qui && $plugin_la === $plugin_qui ) : ?>
+		<p class="nota">Plugin allineato: <?php echo e( $plugin_la ); ?> sul sito e nel gestionale.</p>
 	<?php endif; ?>
 
 	<section class="scheda">
