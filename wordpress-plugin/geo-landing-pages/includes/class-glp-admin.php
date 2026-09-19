@@ -80,6 +80,16 @@ class GLP_Admin {
 		);
 
 		foreach ( GLP_Questionnaire::groups() as $key => $group ) {
+			$visibili = 0;
+			foreach ( $group['fields'] as $field ) {
+				if ( empty( $field['cap'] ) || current_user_can( $field['cap'] ) ) {
+					$visibili++;
+				}
+			}
+			if ( 0 === $visibili ) {
+				continue;
+			}
+
 			add_meta_box(
 				'glp-group-' . $key,
 				$group['title'],
@@ -146,6 +156,22 @@ class GLP_Admin {
 			echo '</ul><p class="glp-hint">' . esc_html__( 'Rispondi tu di ciò che pubblichi: verifica ogni dato prima di mettere la pagina online.', 'geo-landing-pages' ) . '</p></div>';
 		}
 
+		// Una landing di primo livello con lo stesso slug di una pagina
+		// esistente la coprirebbe: le regole del plugin hanno la precedenza.
+		if ( GLP_Post_Types::is_city( $post ) && '' !== $post->post_name ) {
+			$collisione = get_page_by_path( $post->post_name, OBJECT, 'page' );
+			if ( $collisione ) {
+				echo '<div class="glp-collision"><p><strong>' . esc_html__( 'Attenzione: slug già in uso.', 'geo-landing-pages' ) . '</strong></p><p>';
+				printf(
+					/* translators: 1: titolo della pagina esistente, 2: slug. */
+					esc_html__( 'Esiste già la pagina "%1$s" su /%2$s/. Pubblicando questa landing, quella pagina non sarà più raggiungibile a quell\'indirizzo. Cambia lo slug di una delle due.', 'geo-landing-pages' ),
+					esc_html( $collisione->post_title ),
+					esc_html( $post->post_name )
+				);
+				echo '</p></div>';
+			}
+		}
+
 		if ( GLP_Post_Types::is_city( $post ) ) {
 			echo '<p class="glp-hint">' . esc_html__( 'Questa è una pagina città: i dati di contatto e di zona verranno ereditati da tutte le pagine servizio figlie.', 'geo-landing-pages' ) . '</p>';
 		} else {
@@ -194,6 +220,9 @@ class GLP_Admin {
 
 		echo '<div class="glp-fields">';
 		foreach ( $group['fields'] as $field_key => $field ) {
+			if ( ! empty( $field['cap'] ) && ! current_user_can( $field['cap'] ) ) {
+				continue;
+			}
 			self::render_field( $post, $field_key, $field );
 		}
 		echo '</div>';
@@ -238,6 +267,15 @@ class GLP_Admin {
 		echo '</label>';
 
 		switch ( $type ) {
+			case 'code':
+				printf(
+					'<textarea class="widefat glp-code" rows="8" spellcheck="false" id="%1$s" name="%2$s">%3$s</textarea>',
+					esc_attr( $id ),
+					esc_attr( $name ),
+					esc_textarea( (string) $value )
+				);
+				break;
+
 			case 'textarea':
 				printf(
 					'<textarea class="widefat" rows="3" id="%1$s" name="%2$s" placeholder="%4$s">%3$s</textarea>',
@@ -668,6 +706,24 @@ class GLP_Admin {
 						</tr>
 					<?php endforeach; ?>
 				</table>
+
+				<?php if ( current_user_can( 'unfiltered_html' ) ) : ?>
+					<h2><?php esc_html_e( 'Codice personalizzato (tutte le landing)', 'geo-landing-pages' ); ?></h2>
+					<p class="description"><?php esc_html_e( 'Applicato a tutte le landing locali. Per il codice di una singola pagina usa la sezione 9 del questionario.', 'geo-landing-pages' ); ?></p>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th scope="row"><label for="glp-custom-css"><?php esc_html_e( 'CSS', 'geo-landing-pages' ); ?></label></th>
+							<td><textarea class="large-text glp-code" rows="6" spellcheck="false" id="glp-custom-css" name="<?php echo esc_attr( $name ); ?>[custom_css]"><?php echo esc_textarea( $s['custom_css'] ); ?></textarea></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="glp-custom-js"><?php esc_html_e( 'JavaScript', 'geo-landing-pages' ); ?></label></th>
+							<td>
+								<textarea class="large-text glp-code" rows="6" spellcheck="false" id="glp-custom-js" name="<?php echo esc_attr( $name ); ?>[custom_js]"><?php echo esc_textarea( $s['custom_js'] ); ?></textarea>
+								<p class="description"><?php esc_html_e( 'Senza i tag <script>. Viene eseguito a fine pagina, dentro una protezione che impedisce a un errore di bloccare gli altri script del sito.', 'geo-landing-pages' ); ?></p>
+							</td>
+						</tr>
+					</table>
+				<?php endif; ?>
 
 				<h2><?php esc_html_e( 'Assistente AI (Google Gemini)', 'geo-landing-pages' ); ?></h2>
 				<p class="description">

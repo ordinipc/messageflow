@@ -54,6 +54,17 @@ Requisiti: WordPress 5.9+, PHP 7.4+, permalink diversi da "Semplice".
 - Rispondi alle domande specifiche del servizio: prezzi, cosa comprende, processo, FAQ
 - I campi lasciati vuoti mostrano in grigio il valore ereditato dalla città
 
+### Quando la bozza diventa pubblica
+
+Finché la pagina è in **bozza** il link è quello di anteprima di WordPress
+(`?post_type=glp_landing&p=123`), così l'anteprima funziona. Appena la **pubblichi**
+l'indirizzo diventa `/trapani/`, e i servizi figli `/trapani/duplicazione-chiavi/`. Le regole
+degli URL vengono ricostruite a ogni salvataggio, quindi non serve fare altro.
+
+**Attenzione a un caso**: se esiste già una pagina del sito con lo stesso slug (per esempio
+una pagina `/servizi/` e una landing chiamata "Servizi"), la landing la copre. Il plugin te lo
+segnala in rosso nel riquadro laterale prima che accada.
+
 ### 4. Molte città insieme
 **Landing locali → Crea città in blocco**
 
@@ -164,6 +175,66 @@ sezioni a tutto schermo.
 
 Il font non viene forzato: i titoli ereditano quello del tema, così le pagine restano coerenti
 col resto del sito anche se cambi tema.
+
+---
+
+## Le altre pagine del sito
+
+**Landing locali → Pagine del sito**
+
+Elenca le pagine che un sito di servizi locali dovrebbe avere, dice **perché** servono e crea
+quelle mancanti **in bozza**, già con lo stile delle landing e i dati aziendali inseriti.
+
+| Pagina | Perché |
+|---|---|
+| Chi siamo | è il segnale più diretto su chi c'è dietro al sito (E-E-A-T) |
+| I nostri servizi | raccoglie i servizi e distribuisce link verso le città |
+| Dove operiamo | l'indice delle città: senza, le landing restano isolate |
+| Contatti | recapiti verificabili, coerenti con Google Business |
+| Domande frequenti | intercetta le ricerche in forma di domanda |
+| Recensioni | prova di affidabilità (solo recensioni reali) |
+| Note legali e dati aziendali | in Italia P. IVA e sede vanno indicate sul sito |
+| Privacy Policy | obbligatoria col GDPR se raccogli dati |
+| Cookie Policy | richiesta se usi cookie non tecnici |
+| Termini e condizioni | cosa comprende il servizio, tempi, garanzie |
+| Mappa del sito | indice leggibile, utile quando le città sono molte |
+
+Le pagine già esistenti sul sito vengono riconosciute dallo slug e **non** vengono toccate.
+
+### Le pagine legali sono tracce, non testi conformi
+
+Privacy, cookie e termini vengono generate come **scaletta con segnaposto `[DA COMPLETARE]`**:
+struttura dei capitoli e dati aziendali, non il testo legale. Una privacy policy richiede i
+dati reali del trattamento (finalità, basi giuridiche, conservazione, destinatari) e va
+verificata da chi se ne occupa per te. Pubblicarne una incompleta è un problema legale, non
+un dettaglio SEO.
+
+---
+
+## Codice personalizzato (HTML, CSS, JavaScript)
+
+Due livelli:
+
+- **Tutte le landing**: Impostazioni → *Codice personalizzato*
+- **Una sola pagina**: sezione 9 del questionario — HTML prima/dopo le sezioni, CSS, JavaScript
+
+Dove finisce il codice:
+
+| Campo | Dove viene stampato |
+|---|---|
+| HTML prima / dopo | nel contenuto, attorno alle sezioni generate (accetta gli shortcode) |
+| CSS | in `<style>` nell'intestazione della pagina |
+| JavaScript | in `<script>` a fine pagina |
+
+**Sicurezza.** I campi sono visibili e salvabili solo da chi ha il permesso `unfiltered_html`
+(gli amministratori). Un redattore non li vede e, salvando la pagina, non li cancella. Le
+sequenze `</style>` e `</script>` vengono neutralizzate, così il codice non può chiudere in
+anticipo il proprio blocco.
+
+**Il JavaScript gira dentro un `try/catch`**: un errore nel tuo codice viene scritto nella
+console del browser invece di bloccare gli altri script del sito. Restano due cose che il
+plugin non può evitare: script pesanti peggiorano i tempi di caricamento che Google misura, e
+codice di terze parti può installare cookie che vanno dichiarati nella cookie policy.
 
 ---
 

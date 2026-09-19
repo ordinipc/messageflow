@@ -17,6 +17,48 @@ class GLP_Content {
 	public static function init() {
 		add_filter( 'the_content', array( __CLASS__, 'append_sections' ), 20 );
 		add_filter( 'template_include', array( __CLASS__, 'template' ) );
+		add_action( 'wp_head', array( __CLASS__, 'custom_css' ), 99 );
+		add_action( 'wp_footer', array( __CLASS__, 'custom_js' ), 99 );
+	}
+
+	/**
+	 * CSS personalizzato: globale più quello della singola pagina.
+	 */
+	public static function custom_css() {
+		if ( ! is_singular( GLP_POST_TYPE ) ) {
+			return;
+		}
+		$css = (string) GLP_Settings::get( 'custom_css', '' );
+		$css .= "\n" . (string) GLP_Meta::raw( get_queried_object_id(), 'codice_css' );
+
+		$css = trim( $css );
+		if ( '' === $css ) {
+			return;
+		}
+		// Impedisce la chiusura anticipata del blocco di stile.
+		$css = str_ireplace( '</style', '<\\/style', $css );
+
+		echo "<style id=\"glp-custom-css\">\n" . $css . "\n</style>\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSS inserito da un amministratore.
+	}
+
+	/**
+	 * JavaScript personalizzato: globale più quello della singola pagina.
+	 */
+	public static function custom_js() {
+		if ( ! is_singular( GLP_POST_TYPE ) ) {
+			return;
+		}
+		$js = (string) GLP_Settings::get( 'custom_js', '' );
+		$js .= "\n" . (string) GLP_Meta::raw( get_queried_object_id(), 'codice_js' );
+
+		$js = trim( $js );
+		if ( '' === $js ) {
+			return;
+		}
+		$js = str_ireplace( '</script', '<\\/script', $js );
+
+		// L'involucro evita che un errore blocchi gli altri script della pagina.
+		echo "<script id=\"glp-custom-js\">\ntry{\n" . $js . "\n}catch(e){if(window.console){console.error('Geo Landing Pages — codice personalizzato:',e);}}\n</script>\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JS inserito da un amministratore.
 	}
 
 	/**
@@ -173,7 +215,15 @@ class GLP_Content {
 			return $content;
 		}
 		$post_id = get_the_ID();
-		return self::hero( $post_id ) . $content . self::sections( $post_id );
+
+		$sopra = (string) GLP_Meta::raw( $post_id, 'codice_html_top' );
+		$sotto = (string) GLP_Meta::raw( $post_id, 'codice_html_bottom' );
+
+		return self::hero( $post_id )
+			. ( '' !== $sopra ? do_shortcode( $sopra ) : '' )
+			. $content
+			. self::sections( $post_id )
+			. ( '' !== $sotto ? do_shortcode( $sotto ) : '' );
 	}
 
 	/**

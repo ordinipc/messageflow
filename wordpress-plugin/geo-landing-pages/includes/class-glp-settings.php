@@ -53,6 +53,10 @@ class GLP_Settings {
 			'radius'            => 14,
 			'full_bleed'        => 0,
 
+			// Codice personalizzato valido su tutte le landing.
+			'custom_css'        => '',
+			'custom_js'         => '',
+
 			// Assistente AI (Google Gemini).
 			'ai_enabled'        => 0,
 			'gemini_key'        => '',
@@ -127,6 +131,15 @@ class GLP_Settings {
 		$prefix = isset( $input['url_prefix'] ) ? wp_unslash( $input['url_prefix'] ) : '';
 		$parts  = array_filter( array_map( 'sanitize_title', explode( '/', (string) $prefix ) ) );
 		$out['url_prefix'] = implode( '/', $parts );
+
+		// Codice globale: modificabile solo da chi può pubblicare HTML non filtrato.
+		if ( current_user_can( 'unfiltered_html' ) ) {
+			foreach ( array( 'custom_css', 'custom_js' ) as $chiave ) {
+				if ( isset( $input[ $chiave ] ) ) {
+					$out[ $chiave ] = (string) wp_unslash( $input[ $chiave ] );
+				}
+			}
+		}
 
 		$out['design_enabled'] = empty( $input['design_enabled'] ) ? 0 : 1;
 		$out['full_bleed']     = empty( $input['full_bleed'] ) ? 0 : 1;

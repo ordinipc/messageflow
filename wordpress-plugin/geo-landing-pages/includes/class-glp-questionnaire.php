@@ -446,6 +446,40 @@ class GLP_Questionnaire {
 					),
 				),
 			),
+
+			'codice' => array(
+				'title'  => __( '9. Codice personalizzato', 'geo-landing-pages' ),
+				'intro'  => __( 'Solo per chi sa cosa sta facendo: il codice inserito qui viene stampato nella pagina così com\'è. Un errore di sintassi in JavaScript può bloccare gli script del sito, e script pesanti peggiorano i tempi di caricamento che Google misura. Questi campi sono visibili solo agli amministratori.', 'geo-landing-pages' ),
+				'fields' => array(
+					'codice_html_top' => array(
+						'label'  => __( 'HTML da inserire prima delle sezioni', 'geo-landing-pages' ),
+						'hint'   => __( 'Accetta anche gli shortcode. Utile per banner, slider o blocchi del page builder.', 'geo-landing-pages' ),
+						'type'   => 'code',
+						'cap'    => 'unfiltered_html',
+						'weight' => 0,
+					),
+					'codice_html_bottom' => array(
+						'label'  => __( 'HTML da inserire dopo le sezioni', 'geo-landing-pages' ),
+						'type'   => 'code',
+						'cap'    => 'unfiltered_html',
+						'weight' => 0,
+					),
+					'codice_css' => array(
+						'label'  => __( 'CSS solo per questa pagina', 'geo-landing-pages' ),
+						'hint'   => __( 'Senza i tag <style>. Viene stampato nell\'intestazione della pagina.', 'geo-landing-pages' ),
+						'type'   => 'code',
+						'cap'    => 'unfiltered_html',
+						'weight' => 0,
+					),
+					'codice_js' => array(
+						'label'  => __( 'JavaScript solo per questa pagina', 'geo-landing-pages' ),
+						'hint'   => __( 'Senza i tag <script>. Viene eseguito a fine pagina. Provalo sempre prima su una bozza.', 'geo-landing-pages' ),
+						'type'   => 'code',
+						'cap'    => 'unfiltered_html',
+						'weight' => 0,
+					),
+				),
+			),
 		);
 
 		/**
@@ -510,5 +544,30 @@ class GLP_Questionnaire {
 		);
 
 		return apply_filters( 'glp_faq_suggestions', $suggestions );
+	}
+
+	/**
+	 * Domande per la pagina FAQ generale del sito.
+	 *
+	 * Sono scritte apposta senza riferimenti alla città: togliere i
+	 * segnaposto da quelle locali produrrebbe frasi sgrammaticate.
+	 *
+	 * @return array
+	 */
+	public static function faq_suggestions_site() {
+		$suggestions = array(
+			__( 'Quanto costa il servizio?', 'geo-landing-pages' ),
+			__( 'Quanto tempo ci vuole?', 'geo-landing-pages' ),
+			__( 'In quali città intervenite?', 'geo-landing-pages' ),
+			__( 'Intervenite anche di notte, nei fine settimana e nei giorni festivi?', 'geo-landing-pages' ),
+			__( 'Serve un appuntamento o posso venire direttamente?', 'geo-landing-pages' ),
+			__( 'Il preventivo è gratuito e vincolante?', 'geo-landing-pages' ),
+			__( 'Quali documenti servono?', 'geo-landing-pages' ),
+			__( 'Che garanzia offrite sul lavoro svolto?', 'geo-landing-pages' ),
+			__( 'Quali metodi di pagamento accettate?', 'geo-landing-pages' ),
+			__( 'Come posso contattarvi in caso di urgenza?', 'geo-landing-pages' ),
+		);
+
+		return apply_filters( 'glp_faq_suggestions_site', $suggestions );
 	}
 }

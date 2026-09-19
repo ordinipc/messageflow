@@ -252,3 +252,65 @@
 	background: #fff;
 	cursor: pointer;
 }
+
+/* Campi di codice */
+.glp-field--code {
+	grid-column: 1 / -1;
+}
+
+.glp-code {
+	font-family: Consolas, Monaco, "Courier New", monospace;
+	font-size: 12px;
+	line-height: 1.6;
+	tab-size: 2;
+	background: #1d2327;
+	color: #e8eaed;
+	border-color: #2c3338;
+}
+
+.glp-code:focus {
+	background: #1d2327;
+	color: #fff;
+}
+
+/* Pagine del sito */
+.glp-pages__table .check-column {
+	width: 2.5rem;
+	padding-left: .8rem;
+}
+
+.glp-pages__why {
+	color: #50575e;
+	font-size: 12px;
+	line-height: 1.5;
+	max-width: 42rem;
+}
+
+.glp-badge-legal {
+	display: inline-block;
+	margin-left: .4rem;
+	padding: .05rem .45rem;
+	border-radius: 3px;
+	background: #f0b849;
+	color: #3c2c00;
+	font-size: 11px;
+	font-weight: 600;
+}
+
+/* Avviso di conflitto slug */
+.glp-collision {
+	margin: .8rem 0;
+	padding: .7rem .8rem;
+	background: #fcf0f1;
+	border-left: 4px solid #d63638;
+	font-size: 12px;
+	line-height: 1.5;
+}
+
+.glp-collision p {
+	margin: 0 0 .3rem;
+}
+
+.glp-collision p:last-child {
+	margin-bottom: 0;
+}

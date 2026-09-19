@@ -186,6 +186,13 @@ class GLP_Meta {
 		$submitted = isset( $_POST['glp'] ) && is_array( $_POST['glp'] ) ? wp_unslash( $_POST['glp'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitizzato per campo sotto.
 
 		foreach ( GLP_Questionnaire::fields() as $key => $field ) {
+			// Un campo protetto non viene toccato da chi non ha il permesso:
+			// altrimenti un redattore che salva la pagina cancellerebbe il
+			// codice inserito da un amministratore.
+			if ( ! empty( $field['cap'] ) && ! current_user_can( $field['cap'] ) ) {
+				continue;
+			}
+
 			$type  = isset( $field['type'] ) ? $field['type'] : 'text';
 			$value = isset( $submitted[ $key ] ) ? $submitted[ $key ] : ( 'checkbox' === $type ? '' : null );
 
@@ -279,6 +286,11 @@ class GLP_Meta {
 				$options = isset( $field['options'] ) ? array_keys( $field['options'] ) : array();
 				$value   = sanitize_text_field( (string) $value );
 				return in_array( $value, $options, true ) ? $value : '';
+
+			case 'code':
+				// Volutamente non filtrato: è codice, e può salvarlo solo chi
+				// ha già il permesso di pubblicare HTML non filtrato.
+				return (string) $value;
 
 			case 'date':
 			case 'tel':
