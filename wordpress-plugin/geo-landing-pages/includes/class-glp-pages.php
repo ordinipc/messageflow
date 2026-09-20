@@ -167,6 +167,13 @@ class GLP_Pages {
 		$tel   = GLP_Settings::get( 'telefono', '' );
 		$wa    = GLP_Settings::get( 'whatsapp', '' );
 
+		// Stessa impostazione delle landing: se il tema stampa già il titolo
+		// della pagina, qui non va ripetuto (due H1 sono un problema SEO).
+		$modo = GLP_Settings::get( 'hero_mode', 'h1' );
+		if ( 'off' === $modo ) {
+			return '';
+		}
+
 		$html = '<div class="glp-hero"><div class="glp-hero__inner">';
 
 		if ( '' !== $brand ) {
@@ -175,8 +182,11 @@ class GLP_Pages {
 				. '</div>';
 		}
 
-		$html .= '<div class="glp-hero__main glp-hero__main--solo"><div class="glp-hero__content">'
-			. '<h1 class="glp-hero__title glp-reveal">' . esc_html( $titolo ) . '</h1>';
+		$html .= '<div class="glp-hero__main glp-hero__main--solo"><div class="glp-hero__content">';
+
+		if ( 'h1' === $modo ) {
+			$html .= '<h1 class="glp-hero__title glp-reveal">' . esc_html( $titolo ) . '</h1>';
+		}
 
 		if ( '' !== $testo ) {
 			$html .= '<p class="glp-hero__text glp-reveal">' . esc_html( $testo ) . '</p>';
