@@ -58,6 +58,10 @@ class GLP_Settings {
 			'city_menu_sticky'  => 0,
 			'city_menu_items'   => 'tutto',    // tutto | pagine | servizi
 
+			// Integrazione con il menu del tema.
+			'nav_mode'          => 'off',      // off | aggiungi | sostituisci
+			'nav_location'      => '',         // vuoto = tutte le posizioni
+
 			// Codice personalizzato valido su tutte le landing.
 			'custom_css'        => '',
 			'custom_js'         => '',
@@ -147,6 +151,14 @@ class GLP_Settings {
 		}
 
 		$out['city_menu_sticky'] = empty( $input['city_menu_sticky'] ) ? 0 : 1;
+
+		$modi_nav = array( 'off', 'aggiungi', 'sostituisci' );
+		if ( isset( $input['nav_mode'] ) && in_array( $input['nav_mode'], $modi_nav, true ) ) {
+			$out['nav_mode'] = $input['nav_mode'];
+		}
+		if ( isset( $input['nav_location'] ) ) {
+			$out['nav_location'] = sanitize_key( wp_unslash( $input['nav_location'] ) );
+		}
 
 		$posizioni = array( 'sopra', 'sotto', 'off' );
 		if ( isset( $input['city_menu'] ) && in_array( $input['city_menu'], $posizioni, true ) ) {

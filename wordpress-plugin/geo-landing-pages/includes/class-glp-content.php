@@ -367,7 +367,7 @@ class GLP_Content {
 	 * @param WP_Post $post Post.
 	 * @return string
 	 */
-	private static function menu_label( $post ) {
+	public static function menu_label( $post ) {
 		$citta = GLP_Post_Types::city_post( $post->ID );
 		$testo = $post->post_title;
 

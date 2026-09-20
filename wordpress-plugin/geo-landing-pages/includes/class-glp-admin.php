@@ -692,6 +692,31 @@ class GLP_Admin {
 							<p class="description"><?php esc_html_e( 'Se il tuo tema ha già un\'intestazione fissa, provalo: due barre agganciate rubano spazio sul telefono.', 'geo-landing-pages' ); ?></p>
 						</td>
 					</tr>
+					<tr>
+						<th scope="row"><label for="glp-nav-mode"><?php esc_html_e( 'Menu in alto del tema', 'geo-landing-pages' ); ?></label></th>
+						<td>
+							<select id="glp-nav-mode" name="<?php echo esc_attr( $name ); ?>[nav_mode]">
+								<option value="off" <?php selected( $s['nav_mode'], 'off' ); ?>><?php esc_html_e( 'Lascialo com\'è', 'geo-landing-pages' ); ?></option>
+								<option value="aggiungi" <?php selected( $s['nav_mode'], 'aggiungi' ); ?>><?php esc_html_e( 'Aggiungi la città come voce a tendina', 'geo-landing-pages' ); ?></option>
+								<option value="sostituisci" <?php selected( $s['nav_mode'], 'sostituisci' ); ?>><?php esc_html_e( 'Sostituiscilo con la navigazione della città', 'geo-landing-pages' ); ?></option>
+							</select>
+							<p class="description"><?php esc_html_e( 'Vale solo sulle pagine di una città. "Sostituiscilo" toglie Home, Servizi e Blog da quelle pagine: valutalo, perché chi arriva da Google deve comunque poter girare il sito.', 'geo-landing-pages' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="glp-nav-location"><?php esc_html_e( 'In quale menu', 'geo-landing-pages' ); ?></label></th>
+						<td>
+							<select id="glp-nav-location" name="<?php echo esc_attr( $name ); ?>[nav_location]">
+								<option value=""><?php esc_html_e( '— tutti i menu del tema —', 'geo-landing-pages' ); ?></option>
+								<?php foreach ( GLP_Nav::locations() as $glp_loc => $glp_desc ) : ?>
+									<option value="<?php echo esc_attr( $glp_loc ); ?>" <?php selected( $s['nav_location'], $glp_loc ); ?>>
+										<?php echo esc_html( $glp_desc . ' (' . $glp_loc . ')' ); ?>
+									</option>
+								<?php endforeach; ?>
+							</select>
+							<p class="description"><?php esc_html_e( 'Se il tema ha più menu (principale, mobile, piè di pagina), scegli quello dell\'intestazione: altrimenti le voci compaiono ovunque.', 'geo-landing-pages' ); ?></p>
+						</td>
+					</tr>
 				</table>
 
 				<h2><?php esc_html_e( 'Dati dell\'attività', 'geo-landing-pages' ); ?></h2>

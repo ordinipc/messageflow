@@ -255,6 +255,22 @@ titolo per restare leggibili.
 
 Puoi anche metterlo dove vuoi con lo shortcode `[glp_menu_citta]`.
 
+### Il menu in alto del tema
+
+Sulle pagine di una città il menu dell'intestazione può mostrare anche la navigazione di quella
+zona: **Menu in alto del tema** → *Aggiungi la città come voce a tendina* (oppure
+*Sostituiscilo*, che però toglie Home, Servizi e Blog da quelle pagine).
+
+Se il tema ha più menu (principale, mobile, piè di pagina), scegli la posizione giusta in
+**In quale menu**, altrimenti le voci compaiono ovunque.
+
+### Perché il menu non si vede
+
+Si costruisce con quello che è **pubblicato** sotto la città. Se Trapani non ha ancora né
+pagine né servizi pubblicati, non c'è niente da elencare e il menu non compare — così come non
+compare il pannello "Servizi a Trapani" nell'intestazione. Pubblica almeno un servizio o una
+pagina della città e compaiono entrambi.
+
 Su desktop le voci vanno a capo, così non se ne nasconde nessuna; sul telefono diventano una
 riga sola che scorre, con il nome della città fermo a sinistra.
 
