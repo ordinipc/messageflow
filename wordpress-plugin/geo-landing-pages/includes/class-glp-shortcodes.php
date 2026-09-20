@@ -18,6 +18,7 @@ class GLP_Shortcodes {
 		add_shortcode( 'glp_breadcrumbs', array( __CLASS__, 'breadcrumbs' ) );
 		add_shortcode( 'glp_sezioni', array( __CLASS__, 'sections' ) );
 		add_shortcode( 'glp_sezione', array( __CLASS__, 'section' ) );
+		add_shortcode( 'glp_menu_citta', array( __CLASS__, 'city_menu' ) );
 	}
 
 	/**
@@ -97,6 +98,19 @@ class GLP_Shortcodes {
 		$atts    = shortcode_atts( array( 'id' => 0 ), $atts, 'glp_faq' );
 		$post_id = (int) $atts['id'] ? (int) $atts['id'] : get_the_ID();
 		return $post_id ? GLP_Content::section_faq( $post_id ) : '';
+	}
+
+	/**
+	 * Menu della città: [glp_menu_citta]
+	 *
+	 * @param array $atts Attributi.
+	 * @return string
+	 */
+	public static function city_menu( $atts ) {
+		$atts    = shortcode_atts( array( 'id' => 0 ), $atts, 'glp_menu_citta' );
+		$post_id = (int) $atts['id'] ? (int) $atts['id'] : get_the_ID();
+
+		return $post_id ? GLP_Content::city_menu( $post_id ) : '';
 	}
 
 	/**

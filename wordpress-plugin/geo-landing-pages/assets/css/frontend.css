@@ -1405,6 +1405,211 @@
 
 
 /* =========================================================
+   MENU DELLA CITTÀ
+========================================================= */
+
+.glp-citymenu.glp-citymenu{
+    --glp-accent:#ffd400;
+    --glp-dark:#0d0d0d;
+
+    margin:0 0 clamp(32px,4vw,52px);
+
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:var(--glp-radius,5px);
+
+    background:var(--glp-dark);
+
+    color:#fff;
+}
+
+.glp-citymenu--sticky.glp-citymenu--sticky{
+    position:sticky;
+    top:0;
+    z-index:20;
+
+    border-radius:0;
+}
+
+.glp-citymenu__inner.glp-citymenu__inner{
+    display:flex;
+    align-items:stretch;
+
+    /* Su schermi larghi le voci vanno a capo: lo scorrimento
+       orizzontale nasconderebbe metà menu senza farlo capire. */
+    flex-wrap:wrap;
+}
+
+.glp-citymenu__inner.glp-citymenu__inner::-webkit-scrollbar{
+    display:none;
+}
+
+/* La città: sempre prima, separata dal resto. */
+
+.glp-citymenu__home.glp-citymenu__home{
+    display:flex;
+    align-items:center;
+    gap:9px;
+
+    flex:none;
+
+    padding:15px 20px;
+
+    border-right:1px solid rgba(255,255,255,.14);
+
+    color:#fff;
+
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    white-space:nowrap;
+
+    text-decoration:none;
+}
+
+.glp-citymenu__dot.glp-citymenu__dot{
+    width:6px;
+    height:6px;
+
+    border-radius:50%;
+
+    background:var(--glp-accent);
+}
+
+/* Le voci. */
+
+.glp-citymenu__list.glp-citymenu__list{
+    display:flex;
+    align-items:stretch;
+    flex-wrap:wrap;
+
+    /* base 0: in un contenitore che va a capo, l'elemento viene collocato
+       secondo la sua dimensione naturale, non secondo quella ridotta. Con
+       base auto l'intero elenco scenderebbe sotto il nome della città. */
+    flex:1 1 0;
+    min-width:0;
+
+    list-style:none;
+    margin:0;
+    padding:0;
+}
+
+.glp-citymenu__link.glp-citymenu__link{
+    display:flex;
+    align-items:center;
+
+    position:relative;
+
+    height:100%;
+
+    padding:15px 18px;
+
+    color:rgba(255,255,255,.72);
+
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:.06em;
+    white-space:nowrap;
+
+    text-decoration:none;
+
+    transition:color .3s ease,background .3s ease;
+}
+
+.glp-citymenu__link.glp-citymenu__link::after{
+    content:"";
+
+    position:absolute;
+    left:18px;
+    right:18px;
+    bottom:9px;
+
+    height:2px;
+
+    background:var(--glp-accent);
+
+    opacity:0;
+
+    transition:opacity .3s ease;
+}
+
+.glp-citymenu__link.is-current,
+.glp-citymenu__home.is-current{
+    color:#fff;
+}
+
+/* Quando sei sulla pagina città, anche il nome è marcato. */
+.glp-citymenu__home.glp-citymenu__home{
+    position:relative;
+}
+
+.glp-citymenu__home.is-current::after{
+    content:"";
+
+    position:absolute;
+    left:20px;
+    right:20px;
+    bottom:9px;
+
+    height:2px;
+
+    background:var(--glp-accent);
+}
+
+.glp-citymenu__link.is-current::after{
+    opacity:1;
+}
+
+@media(hover:hover){
+
+    .glp-citymenu__link.glp-citymenu__link:hover{
+        color:#fff;
+
+        background:rgba(255,212,0,.08);
+    }
+
+    .glp-citymenu__link.glp-citymenu__link:hover::after{
+        opacity:.5;
+    }
+}
+
+@media(max-width:767px){
+
+    /* Sul telefono una riga sola che scorre: occupa meno spazio. */
+    .glp-citymenu__inner.glp-citymenu__inner{
+        flex-wrap:nowrap;
+
+        overflow-x:auto;
+
+        -webkit-overflow-scrolling:touch;
+        scrollbar-width:none;
+    }
+
+    .glp-citymenu__inner.glp-citymenu__inner::-webkit-scrollbar{
+        display:none;
+    }
+
+    .glp-citymenu__list.glp-citymenu__list{
+        flex-wrap:nowrap;
+    }
+
+    /* Il nome della città resta fermo mentre si scorre. */
+    .glp-citymenu__home.glp-citymenu__home{
+        position:sticky;
+        left:0;
+        z-index:2;
+
+        background:var(--glp-dark);
+    }
+
+    .glp-citymenu__home.glp-citymenu__home,
+    .glp-citymenu__link.glp-citymenu__link{
+        padding:13px 14px;
+    }
+}
+
+
+/* =========================================================
    BLINDATURA CONTRO I TEMI
 
    Molti temi azzerano liste, intestazioni e link dentro al
@@ -1544,4 +1749,25 @@
 .glp-hours.glp-hours>li strong{
     font-size:15px;
     font-weight:700;
+}
+
+.glp-citymenu.glp-citymenu{
+    background:var(--glp-dark) !important;
+}
+
+.glp-citymenu.glp-citymenu .glp-citymenu__list{
+    list-style:none !important;
+
+    margin:0 !important;
+    padding:0 !important;
+}
+
+.glp-citymenu.glp-citymenu .glp-citymenu__list>li{
+    list-style:none !important;
+
+    margin:0 !important;
+}
+
+.glp-citymenu.glp-citymenu a{
+    text-decoration:none !important;
 }

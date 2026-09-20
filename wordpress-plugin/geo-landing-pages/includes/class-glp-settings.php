@@ -53,6 +53,11 @@ class GLP_Settings {
 			'radius'            => 5,
 			'full_bleed'        => 0,
 
+			// Menu della città.
+			'city_menu'         => 'sotto',    // sopra | sotto | off
+			'city_menu_sticky'  => 0,
+			'city_menu_items'   => 'tutto',    // tutto | pagine | servizi
+
 			// Codice personalizzato valido su tutte le landing.
 			'custom_css'        => '',
 			'custom_js'         => '',
@@ -139,6 +144,18 @@ class GLP_Settings {
 					$out[ $chiave ] = (string) wp_unslash( $input[ $chiave ] );
 				}
 			}
+		}
+
+		$out['city_menu_sticky'] = empty( $input['city_menu_sticky'] ) ? 0 : 1;
+
+		$posizioni = array( 'sopra', 'sotto', 'off' );
+		if ( isset( $input['city_menu'] ) && in_array( $input['city_menu'], $posizioni, true ) ) {
+			$out['city_menu'] = $input['city_menu'];
+		}
+
+		$contenuti = array( 'tutto', 'pagine', 'servizi' );
+		if ( isset( $input['city_menu_items'] ) && in_array( $input['city_menu_items'], $contenuti, true ) ) {
+			$out['city_menu_items'] = $input['city_menu_items'];
 		}
 
 		$out['design_enabled'] = empty( $input['design_enabled'] ) ? 0 : 1;

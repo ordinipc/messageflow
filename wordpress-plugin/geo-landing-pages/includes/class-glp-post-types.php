@@ -319,6 +319,14 @@ class GLP_Post_Types {
 				'post_status'    => 'publish',
 				'posts_per_page' => 100,
 				'orderby'        => array( 'menu_order' => 'ASC', 'title' => 'ASC' ),
+				// Le pagine di città (contatti, chi siamo…) sono figlie come
+				// i servizi, ma non sono servizi: vanno escluse dagli elenchi.
+				'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+					array(
+						'key'     => GLP_CITY_PAGE_META,
+						'compare' => 'NOT EXISTS',
+					),
+				),
 			)
 		);
 	}

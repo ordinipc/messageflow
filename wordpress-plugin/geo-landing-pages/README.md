@@ -234,6 +234,32 @@ Meglio partire da poche città complete che da tutte le pagine per tutte le citt
 
 ---
 
+## Il menu della città
+
+Compare sulla pagina città e su tutte le sue pagine e servizi, e si costruisce da solo con
+quello che pubblichi: prima le pagine della città nell'ordine in cui sono definite, poi i
+servizi. La voce corrente è marcata, e le pagine della città perdono il " a Trapani" dal
+titolo per restare leggibili.
+
+```
+● TRAPANI │ Chi siamo  Contatti  Prezzi  Recensioni  Duplicazione chiavi  Apertura porte
+```
+
+**Landing locali → Impostazioni → Menu della città**
+
+| Impostazione | Cosa fa |
+|---|---|
+| Posizione | sotto l'intestazione (predefinito), sopra, oppure nascosto |
+| Cosa elencare | pagine e servizi, solo le pagine, solo i servizi |
+| Comportamento | resta agganciato in alto durante lo scorrimento |
+
+Puoi anche metterlo dove vuoi con lo shortcode `[glp_menu_citta]`.
+
+Su desktop le voci vanno a capo, così non se ne nasconde nessuna; sul telefono diventano una
+riga sola che scorre, con il nome della città fermo a sinistra.
+
+---
+
 ## Le pagine legali (una per tutto il sito)
 
 Privacy, cookie, termini, note legali e mappa del sito **non** vanno duplicate per città: il

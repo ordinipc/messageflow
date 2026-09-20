@@ -246,11 +246,140 @@ class GLP_Content {
 		$sopra = (string) GLP_Meta::raw( $post_id, 'codice_html_top' );
 		$sotto = (string) GLP_Meta::raw( $post_id, 'codice_html_bottom' );
 
-		return self::hero( $post_id )
+		$posizione = GLP_Settings::get( 'city_menu', 'sotto' );
+		$menu      = 'off' === $posizione ? '' : self::city_menu( $post_id );
+
+		return ( 'sopra' === $posizione ? $menu : '' )
+			. self::hero( $post_id )
+			. ( 'sotto' === $posizione ? $menu : '' )
 			. ( '' !== $sopra ? do_shortcode( $sopra ) : '' )
 			. $content
 			. self::sections( $post_id )
 			. ( '' !== $sotto ? do_shortcode( $sotto ) : '' );
+	}
+
+	/**
+	 * Menu della città: la navigazione interna a quella zona.
+	 *
+	 * Compare sulla pagina città e su tutte le sue pagine e servizi.
+	 * Elenca prima le pagine di città (nell'ordine in cui sono definite),
+	 * poi i servizi.
+	 *
+	 * @param int $post_id ID post.
+	 * @return string
+	 */
+	public static function city_menu( $post_id ) {
+		$post_id = (int) $post_id;
+		$citta   = GLP_Post_Types::city_post( $post_id );
+		if ( ! $citta ) {
+			return '';
+		}
+
+		$cosa = GLP_Settings::get( 'city_menu_items', 'tutto' );
+
+		$figli = get_posts(
+			array(
+				'post_type'      => GLP_POST_TYPE,
+				'post_parent'    => $citta->ID,
+				'post_status'    => 'publish',
+				'posts_per_page' => 100,
+				'orderby'        => array( 'menu_order' => 'ASC', 'title' => 'ASC' ),
+			)
+		);
+
+		// Ordine delle pagine di città, se il generatore è disponibile.
+		$ordine = class_exists( 'GLP_Pages' ) ? array_keys( GLP_Pages::city_definitions() ) : array();
+		$pagine  = array();
+		$servizi = array();
+
+		foreach ( $figli as $figlio ) {
+			$tipo = get_post_meta( $figlio->ID, GLP_CITY_PAGE_META, true );
+			if ( $tipo ) {
+				$posizione = array_search( $tipo, $ordine, true );
+				$pagine[]  = array(
+					'post'      => $figlio,
+					'posizione' => false === $posizione ? 99 : $posizione,
+				);
+			} else {
+				$servizi[] = array( 'post' => $figlio, 'posizione' => 0 );
+			}
+		}
+
+		usort(
+			$pagine,
+			static function ( $a, $b ) {
+				return $a['posizione'] <=> $b['posizione'];
+			}
+		);
+
+		$voci = array();
+		if ( 'servizi' !== $cosa ) {
+			$voci = array_merge( $voci, $pagine );
+		}
+		if ( 'pagine' !== $cosa ) {
+			$voci = array_merge( $voci, $servizi );
+		}
+
+		if ( empty( $voci ) ) {
+			return '';
+		}
+
+		$sticky = GLP_Settings::get( 'city_menu_sticky', 0 ) ? ' glp-citymenu--sticky' : '';
+
+		/* translators: %s: nome della città. */
+		$etichetta = sprintf( __( 'Navigazione di %s', 'geo-landing-pages' ), $citta->post_title );
+
+		$html = '<nav class="glp-citymenu' . $sticky . '" aria-label="' . esc_attr( $etichetta ) . '">'
+			. '<div class="glp-citymenu__inner">';
+
+		// La città stessa è sempre la prima voce.
+		$attiva = (int) $citta->ID === $post_id;
+		$html  .= '<a class="glp-citymenu__home' . ( $attiva ? ' is-current' : '' ) . '" href="' . esc_url( get_permalink( $citta ) ) . '"'
+			. ( $attiva ? ' aria-current="page"' : '' ) . '>'
+			. '<span class="glp-citymenu__dot" aria-hidden="true"></span>'
+			. esc_html( $citta->post_title ) . '</a>';
+
+		$html .= '<ul class="glp-citymenu__list">';
+
+		foreach ( $voci as $voce ) {
+			$figlio  = $voce['post'];
+			$attiva  = (int) $figlio->ID === $post_id;
+			$etich   = self::menu_label( $figlio );
+			$html   .= '<li><a class="glp-citymenu__link' . ( $attiva ? ' is-current' : '' ) . '" href="'
+				. esc_url( get_permalink( $figlio ) ) . '"' . ( $attiva ? ' aria-current="page"' : '' ) . '>'
+				. esc_html( $etich ) . '</a></li>';
+		}
+
+		$html .= '</ul></div></nav>';
+
+		/**
+		 * HTML del menu di città.
+		 *
+		 * @param string $html    HTML.
+		 * @param int    $post_id ID post.
+		 */
+		return apply_filters( 'glp_city_menu_html', $html, $post_id );
+	}
+
+	/**
+	 * Etichetta breve per il menu: toglie il " a Città" dal titolo.
+	 *
+	 * @param WP_Post $post Post.
+	 * @return string
+	 */
+	private static function menu_label( $post ) {
+		$citta = GLP_Post_Types::city_post( $post->ID );
+		$testo = $post->post_title;
+
+		if ( $citta ) {
+			/* translators: %s: nome della città. */
+			$coda = sprintf( __( ' a %s', 'geo-landing-pages' ), $citta->post_title );
+			if ( substr( $testo, -strlen( $coda ) ) === $coda ) {
+				$testo = substr( $testo, 0, -strlen( $coda ) );
+			}
+		}
+
+		return '' !== trim( $testo ) ? $testo : $post->post_title;
 	}
 
 	/**

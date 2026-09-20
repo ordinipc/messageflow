@@ -661,6 +661,39 @@ class GLP_Admin {
 					</tr>
 				</table>
 
+				<h2><?php esc_html_e( 'Menu della città', 'geo-landing-pages' ); ?></h2>
+				<p class="description"><?php esc_html_e( 'Barra di navigazione interna alla città: compare sulla pagina città e su tutte le sue pagine e servizi. Si costruisce da sola con quello che pubblichi.', 'geo-landing-pages' ); ?></p>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th scope="row"><label for="glp-city-menu"><?php esc_html_e( 'Posizione', 'geo-landing-pages' ); ?></label></th>
+						<td>
+							<select id="glp-city-menu" name="<?php echo esc_attr( $name ); ?>[city_menu]">
+								<option value="sotto" <?php selected( $s['city_menu'], 'sotto' ); ?>><?php esc_html_e( 'Sotto l\'intestazione', 'geo-landing-pages' ); ?></option>
+								<option value="sopra" <?php selected( $s['city_menu'], 'sopra' ); ?>><?php esc_html_e( 'Sopra l\'intestazione', 'geo-landing-pages' ); ?></option>
+								<option value="off" <?php selected( $s['city_menu'], 'off' ); ?>><?php esc_html_e( 'Non mostrarlo', 'geo-landing-pages' ); ?></option>
+							</select>
+							<p class="description"><?php esc_html_e( 'Puoi anche inserirlo dove vuoi con lo shortcode [glp_menu_citta].', 'geo-landing-pages' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="glp-city-menu-items"><?php esc_html_e( 'Cosa elencare', 'geo-landing-pages' ); ?></label></th>
+						<td>
+							<select id="glp-city-menu-items" name="<?php echo esc_attr( $name ); ?>[city_menu_items]">
+								<option value="tutto" <?php selected( $s['city_menu_items'], 'tutto' ); ?>><?php esc_html_e( 'Pagine e servizi', 'geo-landing-pages' ); ?></option>
+								<option value="pagine" <?php selected( $s['city_menu_items'], 'pagine' ); ?>><?php esc_html_e( 'Solo le pagine della città', 'geo-landing-pages' ); ?></option>
+								<option value="servizi" <?php selected( $s['city_menu_items'], 'servizi' ); ?>><?php esc_html_e( 'Solo i servizi', 'geo-landing-pages' ); ?></option>
+							</select>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Comportamento', 'geo-landing-pages' ); ?></th>
+						<td>
+							<label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[city_menu_sticky]" value="1" <?php checked( $s['city_menu_sticky'], 1 ); ?> /> <?php esc_html_e( 'Resta agganciato in alto durante lo scorrimento', 'geo-landing-pages' ); ?></label>
+							<p class="description"><?php esc_html_e( 'Se il tuo tema ha già un\'intestazione fissa, provalo: due barre agganciate rubano spazio sul telefono.', 'geo-landing-pages' ); ?></p>
+						</td>
+					</tr>
+				</table>
+
 				<h2><?php esc_html_e( 'Dati dell\'attività', 'geo-landing-pages' ); ?></h2>
 				<table class="form-table" role="presentation">
 					<?php
