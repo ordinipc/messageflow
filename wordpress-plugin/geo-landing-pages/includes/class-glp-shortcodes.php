@@ -17,6 +17,7 @@ class GLP_Shortcodes {
 		add_shortcode( 'glp_faq', array( __CLASS__, 'faq' ) );
 		add_shortcode( 'glp_breadcrumbs', array( __CLASS__, 'breadcrumbs' ) );
 		add_shortcode( 'glp_sezioni', array( __CLASS__, 'sections' ) );
+		add_shortcode( 'glp_sezione', array( __CLASS__, 'section' ) );
 	}
 
 	/**
@@ -106,6 +107,39 @@ class GLP_Shortcodes {
 	public static function breadcrumbs() {
 		$post_id = get_the_ID();
 		return $post_id ? GLP_SEO::breadcrumbs_html( $post_id ) : '';
+	}
+
+	/**
+	 * Una singola sezione: [glp_sezione tipo="contatti"]
+	 *
+	 * @param array $atts Attributi.
+	 * @return string
+	 */
+	public static function section( $atts ) {
+		$atts = shortcode_atts(
+			array(
+				'tipo' => '',
+				'id'   => 0,
+				'da'   => '',
+			),
+			$atts,
+			'glp_sezione'
+		);
+
+		$post_id = (int) $atts['id'] ? (int) $atts['id'] : get_the_ID();
+
+		// da="citta": i dati arrivano dalla pagina città, non da questa.
+		if ( 'citta' === $atts['da'] ) {
+			$citta = GLP_Post_Types::city_post( $post_id );
+			if ( $citta ) {
+				$post_id = $citta->ID;
+			}
+		}
+		if ( ! $post_id || '' === $atts['tipo'] ) {
+			return '';
+		}
+
+		return GLP_Content::section_by_key( $post_id, sanitize_key( $atts['tipo'] ) );
 	}
 
 	/**

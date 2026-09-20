@@ -70,6 +70,10 @@ class GLP_SEO {
 		if ( '' !== $custom ) {
 			return GLP_Content::render( $custom, $post_id );
 		}
+		if ( get_post_meta( $post_id, GLP_Pages::META_CITY_PAGE, true ) ) {
+			return GLP_Content::ucfirst_text( GLP_Content::render( '{titolo}{sep}{brand}', $post_id ) );
+		}
+
 		$template = GLP_Post_Types::is_city( $post_id )
 			? GLP_Settings::get( 'city_title_template', '{servizio_default} a {citta}{sep}{brand}' )
 			: GLP_Settings::get( 'title_template', '{servizio} a {citta}{sep}{brand}' );

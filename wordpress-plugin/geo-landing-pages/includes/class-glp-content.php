@@ -94,7 +94,9 @@ class GLP_Content {
 
 		$servizio = $m['servizio_nome'];
 		if ( '' === $servizio ) {
-			$servizio = $is_city
+			$e_pagina_citta = (bool) get_post_meta( $post_id, GLP_Pages::META_CITY_PAGE, true );
+
+			$servizio = ( $is_city || $e_pagina_citta )
 				? GLP_Settings::get( 'servizio_default', '' )
 				: ( $post ? $post->post_title : '' );
 		}
@@ -215,6 +217,12 @@ class GLP_Content {
 	 * @return string
 	 */
 	public static function h1( $post_id ) {
+		// Una pagina "Contatti a Trapani" ha già la città nel titolo:
+		// applicare il modello darebbe "Contatti a Trapani a Trapani".
+		if ( get_post_meta( $post_id, GLP_Pages::META_CITY_PAGE, true ) ) {
+			return self::ucfirst_text( get_the_title( $post_id ) );
+		}
+
 		$template = GLP_Settings::get( 'h1_template', '{servizio} a {citta}' );
 		$h1       = self::ucfirst_text( self::render( $template, $post_id ) );
 		return '' !== $h1 ? $h1 : get_the_title( $post_id );
@@ -481,6 +489,42 @@ class GLP_Content {
 	}
 
 	/**
+	 * Una singola sezione, richiamata per chiave.
+	 *
+	 * Serve alle pagine di città (contatti, zone, recensioni…): il testo
+	 * resta modificabile, i dati restano sempre aggiornati.
+	 *
+	 * @param int    $post_id ID post.
+	 * @param string $chiave  Chiave della sezione.
+	 * @return string
+	 */
+	public static function section_by_key( $post_id, $chiave ) {
+		$mappa = array(
+			'intro'           => 'section_intro',
+			'approfondimento' => 'section_deep',
+			'servizi'         => 'section_services',
+			'incluso'         => 'section_included',
+			'perche'          => 'section_why',
+			'processo'        => 'section_process',
+			'prezzi'          => 'section_prices',
+			'zone'            => 'section_areas',
+			'recensioni'      => 'section_reviews',
+			'team'            => 'section_team',
+			'dove'            => 'section_directions',
+			'orari'           => 'section_hours',
+			'faq'             => 'section_faq',
+			'cta'             => 'section_cta',
+			'correlate'       => 'section_related',
+		);
+
+		if ( ! isset( $mappa[ $chiave ] ) ) {
+			return '';
+		}
+
+		return (string) call_user_func( array( __CLASS__, $mappa[ $chiave ] ), (int) $post_id );
+	}
+
+	/**
 	 * HTML completo delle sezioni generate.
 	 *
 	 * @param int $post_id ID post.
@@ -488,6 +532,13 @@ class GLP_Content {
 	 */
 	public static function sections( $post_id ) {
 		$post_id = (int) $post_id;
+
+		// Le pagine generate per la città hanno il contenuto già composto:
+		// accodare anche le sezioni automatiche lo duplicherebbe.
+		if ( get_post_meta( $post_id, GLP_Pages::META_CITY_PAGE, true ) ) {
+			return '';
+		}
+
 		$is_city = GLP_Post_Types::is_city( $post_id );
 
 		$parts = array(
@@ -857,6 +908,42 @@ class GLP_Content {
 			$html .= '<div class="glp-map"><iframe src="' . esc_url( $mappa ) . '" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="' . esc_attr__( 'Mappa della sede', 'geo-landing-pages' ) . '" allowfullscreen></iframe></div>';
 		}
 		return $html . '</section>';
+	}
+
+	/** Orari di apertura. */
+	private static function section_hours( $post_id ) {
+		if ( GLP_Meta::get( $post_id, 'h24' ) ) {
+			return self::open( 'orari', __( 'Quando siamo disponibili', 'geo-landing-pages' ), __( 'Orari', 'geo-landing-pages' ) )
+				. '<p class="glp-intro">' . esc_html__( 'Siamo attivi 24 ore su 24, tutti i giorni.', 'geo-landing-pages' ) . '</p></section>';
+		}
+
+		$orari = GLP_Meta::get( $post_id, 'orari' );
+		if ( ! is_array( $orari ) ) {
+			return '';
+		}
+
+		$giorni = GLP_Meta::days();
+		$righe  = array();
+
+		foreach ( $giorni as $chiave => $info ) {
+			$riga = isset( $orari[ $chiave ] ) && is_array( $orari[ $chiave ] ) ? $orari[ $chiave ] : array();
+			if ( ! empty( $riga['closed'] ) ) {
+				$righe[] = array( $info[0], __( 'chiuso', 'geo-landing-pages' ) );
+			} elseif ( ! empty( $riga['open'] ) && ! empty( $riga['close'] ) ) {
+				$righe[] = array( $info[0], $riga['open'] . ' – ' . $riga['close'] );
+			}
+		}
+
+		if ( empty( $righe ) ) {
+			return '';
+		}
+
+		$html = self::open( 'orari', __( 'Orari di apertura', 'geo-landing-pages' ), __( 'Orari', 'geo-landing-pages' ) )
+			. '<ul class="glp-hours">';
+		foreach ( $righe as $riga ) {
+			$html .= '<li><span>' . esc_html( $riga[0] ) . '</span><strong>' . esc_html( $riga[1] ) . '</strong></li>';
+		}
+		return $html . '</ul></section>';
 	}
 
 	/** FAQ. */
