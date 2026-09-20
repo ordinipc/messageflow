@@ -70,7 +70,7 @@ class GLP_SEO {
 		if ( '' !== $custom ) {
 			return GLP_Content::render( $custom, $post_id );
 		}
-		if ( get_post_meta( $post_id, GLP_Pages::META_CITY_PAGE, true ) ) {
+		if ( get_post_meta( $post_id, GLP_CITY_PAGE_META, true ) ) {
 			return GLP_Content::ucfirst_text( GLP_Content::render( '{titolo}{sep}{brand}', $post_id ) );
 		}
 

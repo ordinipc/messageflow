@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class GLP_Pages {
 
 	const META_FLAG = '_glp_generated_page';
-	const META_CITY_PAGE = '_glp_city_page';
+	const META_CITY_PAGE = GLP_CITY_PAGE_META;
 
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ), 11 );

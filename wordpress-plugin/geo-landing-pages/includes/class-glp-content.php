@@ -94,7 +94,7 @@ class GLP_Content {
 
 		$servizio = $m['servizio_nome'];
 		if ( '' === $servizio ) {
-			$e_pagina_citta = (bool) get_post_meta( $post_id, GLP_Pages::META_CITY_PAGE, true );
+			$e_pagina_citta = (bool) get_post_meta( $post_id, GLP_CITY_PAGE_META, true );
 
 			$servizio = ( $is_city || $e_pagina_citta )
 				? GLP_Settings::get( 'servizio_default', '' )
@@ -219,7 +219,7 @@ class GLP_Content {
 	public static function h1( $post_id ) {
 		// Una pagina "Contatti a Trapani" ha già la città nel titolo:
 		// applicare il modello darebbe "Contatti a Trapani a Trapani".
-		if ( get_post_meta( $post_id, GLP_Pages::META_CITY_PAGE, true ) ) {
+		if ( get_post_meta( $post_id, GLP_CITY_PAGE_META, true ) ) {
 			return self::ucfirst_text( get_the_title( $post_id ) );
 		}
 
@@ -535,7 +535,7 @@ class GLP_Content {
 
 		// Le pagine generate per la città hanno il contenuto già composto:
 		// accodare anche le sezioni automatiche lo duplicherebbe.
-		if ( get_post_meta( $post_id, GLP_Pages::META_CITY_PAGE, true ) ) {
+		if ( get_post_meta( $post_id, GLP_CITY_PAGE_META, true ) ) {
 			return '';
 		}
 

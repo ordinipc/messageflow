@@ -3,7 +3,7 @@
  * Plugin Name:       Geo Landing Pages
  * Plugin URI:        https://chiaviitalia.it/
  * Description:       Crea landing page locali per città (es. /trapani/) con questionario guidato, contenuti reali, FAQ e SEO locale completa (meta tag, JSON-LD, sitemap).
- * Version:           1.4.0
+ * Version:           1.4.1
  * Requires at least: 5.9
  * Requires PHP:      7.4
  * Author:            Chiavi Italia
@@ -17,13 +17,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'GLP_VERSION', '1.4.0' );
+define( 'GLP_VERSION', '1.4.1' );
 define( 'GLP_FILE', __FILE__ );
 define( 'GLP_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GLP_URL', plugin_dir_url( __FILE__ ) );
 define( 'GLP_POST_TYPE', 'glp_landing' );
 define( 'GLP_TAXONOMY', 'glp_service' );
 define( 'GLP_META_PREFIX', '_glp_' );
+define( 'GLP_CITY_PAGE_META', '_glp_city_page' );
 
 require_once GLP_PATH . 'includes/class-glp-questionnaire.php';
 require_once GLP_PATH . 'includes/class-glp-settings.php';

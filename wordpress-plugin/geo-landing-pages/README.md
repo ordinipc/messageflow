@@ -187,6 +187,85 @@ Senza JavaScript la pagina è visibile e completa.
 
 Con `prefers-reduced-motion` attivo le animazioni sono disattivate e tutto è visibile subito.
 
+## Le pagine di ogni città
+
+**Landing locali → Pagine del sito**
+
+Ogni città può avere il suo corredo di pagine, create **dentro la città**:
+
+```
+/trapani/chi-siamo/            /marsala/chi-siamo/
+/trapani/servizi/              /marsala/servizi/
+/trapani/contatti/             /marsala/contatti/
+/trapani/zone-servite/         …
+/trapani/prezzi/
+/trapani/recensioni/
+/trapani/domande-frequenti/
+```
+
+Scegli quali pagine e per quali città: vengono create **in bozza** sotto ciascuna. Le pagine
+già esistenti non vengono toccate né duplicate.
+
+### Restano allineate da sole
+
+Il testo di apertura è tuo da scrivere; i blocchi di dati sono shortcode che leggono la
+**scheda della città**:
+
+```
+[glp_sezione tipo="dove" da="citta"]
+[glp_sezione tipo="orari" da="citta"]
+[glp_sezione tipo="recensioni" da="citta"]
+```
+
+Se cambi telefono, orari o zone sulla pagina città, cambiano su tutte le sue pagine senza
+rigenerare niente. Tipi disponibili: `intro`, `approfondimento`, `servizi`, `incluso`,
+`perche`, `processo`, `prezzi`, `zone`, `orari`, `recensioni`, `team`, `dove`, `faq`, `cta`,
+`correlate`.
+
+### Attenzione ai contenuti fotocopia
+
+Sette pagine per città moltiplicate per venti città fanno 140 pagine che nascono quasi
+identiche: sono i tuoi dati locali a renderle diverse. Finché il punteggio di qualità resta
+sotto la soglia restano **noindex** ed escono dalla sitemap. Non è un intralcio, è la
+protezione: decine di "Chi siamo" uguali tranne il nome del comune sono esattamente ciò che
+Google declassa.
+
+Meglio partire da poche città complete che da tutte le pagine per tutte le città.
+
+---
+
+## Le pagine legali (una per tutto il sito)
+
+Privacy, cookie, termini, note legali e mappa del sito **non** vanno duplicate per città: il
+trattamento dei dati e le condizioni di servizio sono unici. Restano pagine WordPress normali,
+in **Pagine**, e si creano dalla seconda sezione della stessa schermata.
+
+Privacy, cookie e termini sono **tracce** con segnaposto `[DA COMPLETARE]`: struttura e dati
+aziendali, non testo legale conforme. Vanno completate con i dati reali del trattamento e
+verificate da chi se ne occupa per te.
+
+---
+
+## Codice personalizzato (HTML, CSS, JavaScript)
+
+Due livelli:
+
+- **Tutte le landing**: Impostazioni → *Codice personalizzato*
+- **Una sola pagina**: sezione 9 del questionario — HTML prima/dopo le sezioni, CSS, JavaScript
+
+| Campo | Dove viene stampato |
+|---|---|
+| HTML prima / dopo | nel contenuto, attorno alle sezioni generate (accetta gli shortcode) |
+| CSS | in `<style>` nell'intestazione della pagina |
+| JavaScript | in `<script>` a fine pagina |
+
+**Sicurezza.** I campi sono visibili e salvabili solo da chi ha il permesso `unfiltered_html`
+(gli amministratori). Un redattore non li vede e, salvando la pagina, non li cancella. Le
+sequenze `</style>` e `</script>` vengono neutralizzate. Il JavaScript gira dentro un
+`try/catch`: un errore finisce nella console invece di bloccare gli altri script del sito.
+
+---
+
 ## Assistente AI (Google Gemini)
 
 Gemini scrive i testi **partendo dalle risposte che hai inserito**. Non è un generatore di
