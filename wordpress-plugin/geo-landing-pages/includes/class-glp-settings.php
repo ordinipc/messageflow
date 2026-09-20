@@ -46,11 +46,11 @@ class GLP_Settings {
 			// Aspetto grafico.
 			'design_enabled'    => 1,
 			'hero_mode'         => 'h1',        // off | h1 | notitle
-			'color_primary'     => '#f5d400',
-			'color_dark'        => '#111111',
-			'color_text'        => '#1d1d1f',
-			'color_soft'        => '#f4f5f7',
-			'radius'            => 14,
+			'color_primary'     => '#ffd400',
+			'color_dark'        => '#0d0d0d',
+			'color_text'        => '#111111',
+			'color_soft'        => '#f5f5f6',
+			'radius'            => 5,
 			'full_bleed'        => 0,
 
 			// Codice personalizzato valido su tutte le landing.

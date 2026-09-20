@@ -17,8 +17,27 @@ class GLP_Content {
 	public static function init() {
 		add_filter( 'the_content', array( __CLASS__, 'append_sections' ), 20 );
 		add_filter( 'template_include', array( __CLASS__, 'template' ) );
+		add_action( 'wp_head', array( __CLASS__, 'reveal_guard' ), 1 );
 		add_action( 'wp_head', array( __CLASS__, 'custom_css' ), 99 );
 		add_action( 'wp_footer', array( __CLASS__, 'custom_js' ), 99 );
+	}
+
+	/**
+	 * Abilita la comparsa progressiva e la sua rete di sicurezza.
+	 *
+	 * La classe glp-js dice al CSS che può nascondere gli elementi; se
+	 * per qualsiasi motivo lo script principale non parte, dopo 2,5
+	 * secondi il contenuto viene mostrato comunque. Senza questo, un
+	 * errore JavaScript altrove nel sito lascerebbe la pagina bianca.
+	 */
+	public static function reveal_guard() {
+		if ( ! is_singular( GLP_POST_TYPE ) && ! GLP_Pages::is_generated_page() ) {
+			return;
+		}
+		echo '<script id="glp-reveal-guard">'
+			. 'document.documentElement.classList.add("glp-js");'
+			. 'setTimeout(function(){document.documentElement.classList.add("glp-reveal-fallback");},2500);'
+			. '</script>' . "\n";
 	}
 
 	/**
@@ -227,7 +246,9 @@ class GLP_Content {
 	}
 
 	/**
-	 * Intestazione grafica in stile brand.
+	 * Intestazione grafica, nel linguaggio visivo del sito:
+	 * occhiello con barra, indicatore di stato, titolo con parola
+	 * evidenziata, indice dei servizi, riga tecnica, angolo.
 	 *
 	 * @param int $post_id ID post.
 	 * @return string
@@ -240,60 +261,79 @@ class GLP_Content {
 
 		$post_id = (int) $post_id;
 		$tokens  = self::tokens( $post_id );
-
-		$occhiello = $tokens['{brand}'];
-		$titolo    = self::h1( $post_id );
-		$testo     = GLP_Meta::get( $post_id, 'seo_description' );
-		if ( '' === $testo ) {
-			$testo = self::render( GLP_Settings::get( 'intro_template', '' ), $post_id );
-		}
-
-		$tel = $tokens['{telefono}'];
-		$wa  = GLP_Meta::get( $post_id, 'whatsapp' );
-		$wa  = '' !== $wa ? $wa : GLP_Settings::get( 'whatsapp', '' );
+		$citta   = $tokens['{citta}'];
+		$brand   = $tokens['{brand}'];
 
 		$sfondo = GLP_Meta::get( $post_id, 'og_image' );
 		if ( '' === $sfondo ) {
 			$sfondo = get_the_post_thumbnail_url( $post_id, 'full' );
 		}
 
-		$stile = $sfondo ? ' style="background-image:url(' . esc_url( $sfondo ) . ')"' : '';
-		$class = 'glp-hero' . ( $sfondo ? ' glp-hero--image' : '' );
+		$classe = 'glp-hero' . ( $sfondo ? ' glp-hero--image' : '' );
+		$stile  = $sfondo ? ' style="background-image:url(' . esc_url( $sfondo ) . ')"' : '';
 
-		// Volutamente un <div> e non un <header>: molti temi applicano regole
-		// aggressive al tag header e spengono lo sfondo dell'intestazione.
-		$html = '<div class="' . $class . '"' . $stile . '><div class="glp-hero__inner">';
+		// Volutamente un <div> e non un <header>: molti temi applicano
+		// regole aggressive al tag header e spengono lo sfondo.
+		$html = '<div class="' . $classe . '"' . $stile . '><div class="glp-hero__inner">';
 
-		if ( '' !== $occhiello ) {
-			$html .= '<p class="glp-hero__eyebrow">' . esc_html( $occhiello ) . '</p>';
+		/* ---- riga alta ---- */
+
+		$occhiello = trim( $brand . ( '' !== $citta ? ' · ' . $citta : '' ), ' ·' );
+		$stato     = self::hero_status( $post_id );
+
+		if ( '' !== $occhiello || '' !== $stato ) {
+			$html .= '<div class="glp-hero__top glp-reveal">';
+			if ( '' !== $occhiello ) {
+				$html .= '<p class="glp-hero__eyebrow">' . esc_html( $occhiello ) . '</p>';
+			}
+			if ( '' !== $stato ) {
+				$html .= '<div class="glp-hero__status"><span class="glp-hero__status-dot" aria-hidden="true"></span>'
+					. esc_html( $stato ) . '</div>';
+			}
+			$html .= '</div>';
 		}
 
-		// Con 'notitle' il titolo lo stampa già il tema: non lo ripetiamo.
-		if ( 'h1' === $modo && '' !== $titolo ) {
-			$html .= '<h1 class="glp-hero__title">' . esc_html( $titolo ) . '</h1>';
+		/* ---- griglia principale ---- */
+
+		$indice = self::hero_index( $post_id );
+
+		$html .= '<div class="glp-hero__main' . ( '' === $indice ? ' glp-hero__main--solo' : '' ) . '">';
+		$html .= '<div class="glp-hero__content">';
+
+		if ( 'h1' === $modo ) {
+			$titolo = self::hero_title_html( $post_id );
+			if ( '' !== $titolo ) {
+				$html .= '<h1 class="glp-hero__title glp-reveal">' . $titolo . '</h1>';
+			}
 		}
 
+		$testo = GLP_Meta::get( $post_id, 'seo_description' );
+		if ( '' === $testo ) {
+			$testo = self::render( GLP_Settings::get( 'intro_template', '' ), $post_id );
+		}
 		if ( '' !== $testo ) {
-			$html .= '<p class="glp-hero__text">' . esc_html( $testo ) . '</p>';
+			$html .= '<p class="glp-hero__text glp-reveal">' . esc_html( $testo ) . '</p>';
 		}
 
-		$bottoni = '';
-		if ( '' !== $tel ) {
-			$bottoni .= '<a class="glp-btn glp-btn--primary" href="tel:' . esc_attr( preg_replace( '/[^0-9+]/', '', $tel ) ) . '">'
-				/* translators: %s: numero di telefono. */
-				. esc_html( sprintf( __( 'Chiama %s', 'geo-landing-pages' ), $tel ) ) . '</a>';
-		}
-		if ( '' !== $wa ) {
-			$messaggio = rawurlencode( self::render( __( 'Salve, vi scrivo da {citta}: avrei bisogno di {servizio}.', 'geo-landing-pages' ), $post_id ) );
-			$bottoni  .= '<a class="glp-btn glp-btn--ghost" rel="nofollow noopener" target="_blank" href="https://wa.me/'
-				. esc_attr( preg_replace( '/[^0-9]/', '', $wa ) ) . '?text=' . $messaggio . '">'
-				. esc_html__( 'Scrivici su WhatsApp', 'geo-landing-pages' ) . '</a>';
-		}
+		$bottoni = self::hero_buttons( $post_id );
 		if ( '' !== $bottoni ) {
-			$html .= '<div class="glp-hero__cta">' . $bottoni . '</div>';
+			$html .= '<div class="glp-hero__cta glp-reveal">' . $bottoni . '</div>';
 		}
 
-		$html .= '</div></div>';
+		$html .= '</div>' . $indice . '</div>';
+
+		/* ---- riga bassa ---- */
+
+		$sinistra = trim( $citta . ( '' !== $tokens['{provincia}'] ? ' · ' . $tokens['{provincia}'] : '' ), ' ·' );
+		if ( '' !== $sinistra || '' !== $brand ) {
+			$html .= '<div class="glp-hero__bottom glp-reveal">'
+				. '<span>' . esc_html( '' !== $sinistra ? $sinistra : $brand ) . '</span>'
+				. '<div class="glp-hero__bottom-line" aria-hidden="true"></div>'
+				. '<span>' . esc_html( $brand ) . '</span>'
+				. '</div>';
+		}
+
+		$html .= '</div><div class="glp-hero__corner" aria-hidden="true"></div></div>';
 
 		/**
 		 * HTML dell'intestazione.
@@ -302,6 +342,142 @@ class GLP_Content {
 		 * @param int    $post_id ID post.
 		 */
 		return apply_filters( 'glp_hero_html', $html, $post_id );
+	}
+
+	/**
+	 * Titolo dell'intestazione, con la città evidenziata in giallo.
+	 *
+	 * @param int $post_id ID post.
+	 * @return string HTML già messo in sicurezza.
+	 */
+	private static function hero_title_html( $post_id ) {
+		$titolo = self::h1( $post_id );
+		if ( '' === $titolo ) {
+			return '';
+		}
+
+		$html  = esc_html( $titolo );
+		$citta = GLP_Meta::get( $post_id, 'citta' );
+
+		if ( '' !== $citta && false !== strpos( $titolo, $citta ) ) {
+			$cercato = esc_html( $citta );
+			$html    = str_replace( $cercato, '<span>' . $cercato . '</span>', $html );
+		}
+
+		return $html;
+	}
+
+	/**
+	 * Testo dell'indicatore di stato, solo se c'è un dato reale.
+	 *
+	 * @param int $post_id ID post.
+	 * @return string
+	 */
+	private static function hero_status( $post_id ) {
+		if ( GLP_Meta::get( $post_id, 'h24' ) ) {
+			return __( 'Attivi 24 ore su 24', 'geo-landing-pages' );
+		}
+
+		$tempo = GLP_Meta::get( $post_id, 'tempo_intervento' );
+		if ( '' !== $tempo ) {
+			return $tempo;
+		}
+
+		$anni = GLP_Meta::get( $post_id, 'anni_attivita' );
+		if ( '' !== $anni ) {
+			/* translators: %s: numero di anni. */
+			return sprintf( __( '%s anni in zona', 'geo-landing-pages' ), $anni );
+		}
+
+		return '';
+	}
+
+	/**
+	 * Pulsanti dell'intestazione.
+	 *
+	 * @param int $post_id ID post.
+	 * @return string
+	 */
+	private static function hero_buttons( $post_id ) {
+		$tokens = self::tokens( $post_id );
+		$tel    = $tokens['{telefono}'];
+
+		$wa = GLP_Meta::get( $post_id, 'whatsapp' );
+		$wa = '' !== $wa ? $wa : GLP_Settings::get( 'whatsapp', '' );
+
+		$cta_testo = GLP_Meta::get( $post_id, 'cta_testo' );
+		$cta_url   = GLP_Meta::get( $post_id, 'cta_url' );
+
+		$html = '';
+
+		if ( '' !== $cta_url ) {
+			$etichetta = '' !== $cta_testo ? $cta_testo : __( 'Richiedi un preventivo', 'geo-landing-pages' );
+			$html     .= '<a class="glp-btn" href="' . esc_url( $cta_url ) . '">' . esc_html( $etichetta ) . '</a>';
+		} elseif ( '' !== $tel ) {
+			/* translators: %s: numero di telefono. */
+			$etichetta = '' !== $cta_testo ? $cta_testo : sprintf( __( 'Chiama %s', 'geo-landing-pages' ), $tel );
+			$html     .= '<a class="glp-btn glp-btn--tel" href="tel:' . esc_attr( preg_replace( '/[^0-9+]/', '', $tel ) ) . '">'
+				. esc_html( $etichetta ) . '</a>';
+		}
+
+		if ( '' !== $wa ) {
+			$messaggio = rawurlencode( self::render( __( 'Salve, vi scrivo da {citta}: avrei bisogno di {servizio}.', 'geo-landing-pages' ), $post_id ) );
+			$html     .= '<a class="glp-btn glp-btn--ghost" rel="nofollow noopener" target="_blank" href="https://wa.me/'
+				. esc_attr( preg_replace( '/[^0-9]/', '', $wa ) ) . '?text=' . $messaggio . '">'
+				. esc_html__( 'Scrivici su WhatsApp', 'geo-landing-pages' ) . '</a>';
+		}
+
+		return $html;
+	}
+
+	/**
+	 * Indice dei servizi nell'intestazione.
+	 *
+	 * Sulla pagina città elenca i suoi servizi; su una pagina servizio
+	 * elenca gli altri servizi della stessa città.
+	 *
+	 * @param int $post_id ID post.
+	 * @return string
+	 */
+	private static function hero_index( $post_id ) {
+		$citta_post = GLP_Post_Types::city_post( $post_id );
+		if ( ! $citta_post ) {
+			return '';
+		}
+
+		$servizi = array();
+		foreach ( GLP_Post_Types::services_of( $citta_post->ID ) as $servizio ) {
+			if ( (int) $servizio->ID === (int) $post_id ) {
+				continue;
+			}
+			$servizi[] = $servizio;
+		}
+
+		if ( empty( $servizi ) ) {
+			return '';
+		}
+
+		$citta = GLP_Meta::get( $post_id, 'citta' );
+		$citta = '' !== $citta ? $citta : $citta_post->post_title;
+
+		/* translators: %s: nome della città. */
+		$etichetta = sprintf( __( 'Servizi a %s', 'geo-landing-pages' ), $citta );
+
+		$html = '<nav class="glp-hero__index glp-reveal" aria-label="' . esc_attr( $etichetta ) . '">'
+			. '<div class="glp-hero__index-title" data-count="' . esc_attr( sprintf( '%02d', count( $servizi ) ) ) . '">'
+			. esc_html( $etichetta ) . '</div>';
+
+		$n = 0;
+		foreach ( $servizi as $servizio ) {
+			$n++;
+			$html .= '<a class="glp-hero__service" href="' . esc_url( get_permalink( $servizio ) ) . '">'
+				. '<span class="glp-hero__service-number">' . esc_html( sprintf( '%02d', $n ) ) . '</span>'
+				. '<span class="glp-hero__service-name">' . esc_html( $servizio->post_title ) . '</span>'
+				. '<span class="glp-hero__service-arrow" aria-hidden="true">→</span>'
+				. '</a>';
+		}
+
+		return $html . '</nav>';
 	}
 
 	/**
@@ -359,11 +535,20 @@ class GLP_Content {
 	 *
 	 * @param string $id    Slug sezione.
 	 * @param string $title Titolo.
+	 * @param string $label Micro-etichetta sopra il titolo.
 	 * @return string
 	 */
-	private static function open( $id, $title ) {
-		return '<section class="glp-section glp-section--' . esc_attr( $id ) . '" id="glp-' . esc_attr( $id ) . '">'
-			. ( '' === $title ? '' : '<h2 class="glp-section__title">' . esc_html( $title ) . '</h2>' );
+	private static function open( $id, $title, $label = '' ) {
+		$html = '<section class="glp-section glp-section--' . esc_attr( $id ) . ' glp-reveal" id="glp-' . esc_attr( $id ) . '">';
+
+		if ( '' !== $label ) {
+			$html .= '<p class="glp-section__label">' . esc_html( $label ) . '</p>';
+		}
+		if ( '' !== $title ) {
+			$html .= '<h2 class="glp-section__title">' . esc_html( $title ) . '</h2>';
+		}
+
+		return $html;
 	}
 
 	/** Introduzione. */
@@ -399,7 +584,7 @@ class GLP_Content {
 			? self::ucfirst_text( trim( sprintf( __( '%1$s a %2$s: cosa sapere', 'geo-landing-pages' ), $tokens['{servizio}'], $citta ), ' :' ) )
 			: __( 'Approfondimento', 'geo-landing-pages' );
 
-		return self::open( 'approfondimento', $title )
+		return self::open( 'approfondimento', $title, __( 'Approfondimento', 'geo-landing-pages' ) )
 			. wpautop( esc_html( $testo ) )
 			. '</section>';
 	}
@@ -414,16 +599,18 @@ class GLP_Content {
 		$citta = '' !== $citta ? $citta : get_the_title( $post_id );
 
 		/* translators: %s: nome della città. */
-		$html = self::open( 'servizi', sprintf( __( 'I nostri servizi a %s', 'geo-landing-pages' ), $citta ) );
+		$html = self::open( 'servizi', sprintf( __( 'I nostri servizi a %s', 'geo-landing-pages' ), $citta ), __( 'Service index', 'geo-landing-pages' ) );
 		$html .= '<ul class="glp-cards">';
 		foreach ( $services as $service ) {
 			$excerpt = GLP_Meta::get( $service->ID, 'seo_description' );
 			$prezzo  = GLP_Meta::get( $service->ID, 'prezzo_da' );
 			$html   .= '<li class="glp-card"><a class="glp-card__link" href="' . esc_url( get_permalink( $service ) ) . '">'
+				. '<span class="glp-card__body">'
 				. '<span class="glp-card__title">' . esc_html( $service->post_title ) . '</span>'
-				. ( '' !== $excerpt ? '<span class="glp-card__text">' . esc_html( wp_trim_words( $excerpt, 22 ) ) . '</span>' : '' )
+				. ( '' !== $excerpt ? '<span class="glp-card__text">' . esc_html( wp_trim_words( $excerpt, 18 ) ) . '</span>' : '' )
+				. '</span>'
 				/* translators: %s: prezzo di partenza. */
-				. ( '' !== $prezzo ? '<span class="glp-card__price">' . esc_html( sprintf( __( 'da %s €', 'geo-landing-pages' ), $prezzo ) ) . '</span>' : '' )
+				. '<span class="glp-card__price">' . ( '' !== $prezzo ? esc_html( sprintf( __( 'da %s €', 'geo-landing-pages' ), $prezzo ) ) : '' ) . '</span>'
 				. '</a></li>';
 		}
 		$html .= '</ul></section>';
@@ -436,7 +623,7 @@ class GLP_Content {
 		if ( ! is_array( $items ) || empty( $items ) ) {
 			return '';
 		}
-		$html = self::open( 'incluso', __( 'Cosa comprende il servizio', 'geo-landing-pages' ) ) . '<ul class="glp-list glp-list--check">';
+		$html = self::open( 'incluso', __( 'Cosa comprende il servizio', 'geo-landing-pages' ), __( 'Incluso', 'geo-landing-pages' ) ) . '<ul class="glp-list glp-list--check">';
 		foreach ( $items as $item ) {
 			$html .= '<li>' . esc_html( $item ) . '</li>';
 		}
@@ -453,7 +640,7 @@ class GLP_Content {
 		/* translators: %s: nome della città. */
 		$title = '' !== $citta ? sprintf( __( 'Perché sceglierci a %s', 'geo-landing-pages' ), $citta ) : __( 'Perché sceglierci', 'geo-landing-pages' );
 
-		$html = self::open( 'perche', $title ) . '<ul class="glp-list glp-list--why">';
+		$html = self::open( 'perche', $title, __( 'Perché noi', 'geo-landing-pages' ) ) . '<ul class="glp-list glp-list--why">';
 		foreach ( $items as $item ) {
 			$html .= '<li>' . esc_html( $item ) . '</li>';
 		}
@@ -494,7 +681,7 @@ class GLP_Content {
 		if ( ! is_array( $steps ) || empty( $steps ) ) {
 			return '';
 		}
-		$html = self::open( 'processo', __( 'Come funziona, passo per passo', 'geo-landing-pages' ) ) . '<ol class="glp-steps">';
+		$html = self::open( 'processo', __( 'Come funziona, passo per passo', 'geo-landing-pages' ), __( 'Processo', 'geo-landing-pages' ) ) . '<ol class="glp-steps">';
 		foreach ( $steps as $step ) {
 			$titolo = self::cell( $step, 'titolo' );
 			$desc   = self::cell( $step, 'descrizione' );
@@ -502,11 +689,13 @@ class GLP_Content {
 			if ( '' === $titolo && '' === $desc ) {
 				continue;
 			}
-			$html .= '<li class="glp-step">'
+			// Tutto il testo in un solo contenitore: la griglia del passaggio
+			// ha due colonne (numero + testo) e i figli devono essere due.
+			$html .= '<li class="glp-step"><div class="glp-step__body">'
 				. ( '' !== $titolo ? '<h3 class="glp-step__title">' . esc_html( $titolo ) . '</h3>' : '' )
 				. ( '' !== $desc ? '<p>' . esc_html( $desc ) . '</p>' : '' )
 				. ( '' !== $durata ? '<p class="glp-step__time">' . esc_html( $durata ) . '</p>' : '' )
-				. '</li>';
+				. '</div></li>';
 		}
 		return $html . '</ol></section>';
 	}
@@ -523,7 +712,7 @@ class GLP_Content {
 			return '';
 		}
 
-		$html = self::open( 'prezzi', __( 'Quanto costa', 'geo-landing-pages' ) );
+		$html = self::open( 'prezzi', __( 'Quanto costa', 'geo-landing-pages' ), __( 'Prezzi', 'geo-landing-pages' ) );
 
 		if ( '' !== $da ) {
 			$prezzo = '' !== $a
@@ -559,7 +748,7 @@ class GLP_Content {
 		/* translators: %s: nome della città. */
 		$title = '' !== $citta ? sprintf( __( 'Zone servite a %s e dintorni', 'geo-landing-pages' ), $citta ) : __( 'Zone servite', 'geo-landing-pages' );
 
-		$html = self::open( 'zone', $title );
+		$html = self::open( 'zone', $title, __( 'Copertura', 'geo-landing-pages' ) );
 		if ( ! empty( $zone ) ) {
 			$html .= '<p class="glp-areas__label">' . esc_html__( 'Quartieri e zone della città:', 'geo-landing-pages' ) . '</p>';
 			$html .= '<ul class="glp-tags">';
@@ -589,7 +778,7 @@ class GLP_Content {
 		/* translators: %s: nome della città. */
 		$title = '' !== $citta ? sprintf( __( 'Cosa dicono i clienti di %s', 'geo-landing-pages' ), $citta ) : __( 'Cosa dicono i clienti', 'geo-landing-pages' );
 
-		$html = self::open( 'recensioni', $title ) . '<ul class="glp-reviews">';
+		$html = self::open( 'recensioni', $title, __( 'Recensioni', 'geo-landing-pages' ) ) . '<ul class="glp-reviews">';
 		foreach ( $reviews as $r ) {
 			$testo = self::cell( $r, 'testo' );
 			if ( '' === $testo ) {
@@ -618,7 +807,7 @@ class GLP_Content {
 			return '';
 		}
 
-		$html = self::open( 'team', __( 'Chi si occupa del servizio', 'geo-landing-pages' ) );
+		$html = self::open( 'team', __( 'Chi si occupa del servizio', 'geo-landing-pages' ), __( 'Team', 'geo-landing-pages' ) );
 		if ( '' !== $nome ) {
 			$ruolo      = GLP_Meta::get( $post_id, 'referente_ruolo' );
 			$qualifiche = GLP_Meta::get( $post_id, 'referente_qualifiche' );
@@ -653,7 +842,7 @@ class GLP_Content {
 			return '';
 		}
 
-		$html = self::open( 'dove', __( 'Dove siamo e come raggiungerci', 'geo-landing-pages' ) );
+		$html = self::open( 'dove', __( 'Dove siamo e come raggiungerci', 'geo-landing-pages' ), __( 'Sede', 'geo-landing-pages' ) );
 		if ( '' !== $ind ) {
 			$citta = GLP_Meta::get( $post_id, 'citta' );
 			$cap   = GLP_Meta::get( $post_id, 'cap' );
@@ -676,7 +865,7 @@ class GLP_Content {
 		if ( ! is_array( $faq ) || empty( $faq ) ) {
 			return '';
 		}
-		$html = self::open( 'faq', __( 'Domande frequenti', 'geo-landing-pages' ) ) . '<div class="glp-faq">';
+		$html = self::open( 'faq', __( 'Domande frequenti', 'geo-landing-pages' ), __( 'FAQ', 'geo-landing-pages' ) ) . '<div class="glp-faq">';
 		$i = 0;
 		foreach ( $faq as $row ) {
 			$domanda = self::cell( $row, 'domanda' );
@@ -710,7 +899,7 @@ class GLP_Content {
 		/* translators: %s: nome della città. */
 		$title = '' !== $citta ? sprintf( __( 'Richiedi un intervento a %s', 'geo-landing-pages' ), $citta ) : __( 'Contattaci', 'geo-landing-pages' );
 
-		$html = self::open( 'cta', $title ) . '<div class="glp-cta">';
+		$html = self::open( 'cta', $title, __( 'Contatti', 'geo-landing-pages' ) ) . '<div class="glp-cta">';
 
 		if ( '' !== $cta_url ) {
 			$label = '' !== $cta_testo ? $cta_testo : __( 'Richiedi un preventivo', 'geo-landing-pages' );
@@ -743,7 +932,7 @@ class GLP_Content {
 			? __( 'Operiamo anche in queste città', 'geo-landing-pages' )
 			: __( 'Lo stesso servizio in altre città', 'geo-landing-pages' );
 
-		$html = self::open( 'correlate', $title ) . '<ul class="glp-tags glp-tags--links">';
+		$html = self::open( 'correlate', $title, __( 'Altre zone', 'geo-landing-pages' ) ) . '<ul class="glp-tags glp-tags--links">';
 		foreach ( $links as $link ) {
 			$html .= '<li><a href="' . esc_url( $link['url'] ) . '">' . esc_html( $link['label'] ) . '</a></li>';
 		}

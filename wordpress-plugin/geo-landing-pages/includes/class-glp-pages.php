@@ -165,22 +165,47 @@ class GLP_Pages {
 	private static function hero( $titolo, $testo, $con_cta = true ) {
 		$brand = GLP_Settings::get( 'brand', get_bloginfo( 'name' ) );
 		$tel   = GLP_Settings::get( 'telefono', '' );
+		$wa    = GLP_Settings::get( 'whatsapp', '' );
 
 		$html = '<div class="glp-hero"><div class="glp-hero__inner">';
+
 		if ( '' !== $brand ) {
-			$html .= '<p class="glp-hero__eyebrow">' . esc_html( $brand ) . '</p>';
+			$html .= '<div class="glp-hero__top glp-reveal">'
+				. '<p class="glp-hero__eyebrow">' . esc_html( $brand ) . '</p>'
+				. '</div>';
 		}
-		$html .= '<h1 class="glp-hero__title">' . esc_html( $titolo ) . '</h1>';
+
+		$html .= '<div class="glp-hero__main glp-hero__main--solo"><div class="glp-hero__content">'
+			. '<h1 class="glp-hero__title glp-reveal">' . esc_html( $titolo ) . '</h1>';
+
 		if ( '' !== $testo ) {
-			$html .= '<p class="glp-hero__text">' . esc_html( $testo ) . '</p>';
+			$html .= '<p class="glp-hero__text glp-reveal">' . esc_html( $testo ) . '</p>';
 		}
-		if ( $con_cta && '' !== $tel ) {
-			$html .= '<div class="glp-hero__cta"><a class="glp-btn glp-btn--primary" href="tel:'
-				. esc_attr( preg_replace( '/[^0-9+]/', '', $tel ) ) . '">'
-				/* translators: %s: numero di telefono. */
-				. esc_html( sprintf( __( 'Chiama %s', 'geo-landing-pages' ), $tel ) ) . '</a></div>';
+
+		if ( $con_cta && ( '' !== $tel || '' !== $wa ) ) {
+			$html .= '<div class="glp-hero__cta glp-reveal">';
+			if ( '' !== $tel ) {
+				$html .= '<a class="glp-btn glp-btn--tel" href="tel:' . esc_attr( preg_replace( '/[^0-9+]/', '', $tel ) ) . '">'
+					/* translators: %s: numero di telefono. */
+					. esc_html( sprintf( __( 'Chiama %s', 'geo-landing-pages' ), $tel ) ) . '</a>';
+			}
+			if ( '' !== $wa ) {
+				$html .= '<a class="glp-btn glp-btn--ghost" rel="nofollow noopener" target="_blank" href="https://wa.me/'
+					. esc_attr( preg_replace( '/[^0-9]/', '', $wa ) ) . '">'
+					. esc_html__( 'Scrivici su WhatsApp', 'geo-landing-pages' ) . '</a>';
+			}
+			$html .= '</div>';
 		}
-		return $html . '</div></div>';
+
+		$html .= '</div></div>';
+
+		$html .= '<div class="glp-hero__bottom glp-reveal">'
+			. '<span>' . esc_html( $titolo ) . '</span>'
+			. '<div class="glp-hero__bottom-line" aria-hidden="true"></div>'
+			. '<span>' . esc_html( $brand ) . '</span>'
+			. '</div>';
+
+		return $html . '</div><div class="glp-hero__corner" aria-hidden="true"></div></div>';
 	}
 
 	/**
@@ -189,8 +214,12 @@ class GLP_Pages {
 	 * @param string $titolo Titolo.
 	 * @return string
 	 */
-	private static function sezione( $titolo ) {
-		return '<section class="glp-section"><h2 class="glp-section__title">' . esc_html( $titolo ) . '</h2>';
+	private static function sezione( $titolo, $etichetta = '' ) {
+		$html = '<section class="glp-section glp-reveal">';
+		if ( '' !== $etichetta ) {
+			$html .= '<p class="glp-section__label">' . esc_html( $etichetta ) . '</p>';
+		}
+		return $html . '<h2 class="glp-section__title">' . esc_html( $titolo ) . '</h2>';
 	}
 
 	/**

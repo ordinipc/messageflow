@@ -145,98 +145,47 @@ Se un segnaposto resta vuoto, il plugin ripulisce il testo (niente `a  | ` o par
 
 ## Aspetto grafico
 
-Le landing usano uno stile proprio allineato al brand: intestazione scura come la home,
-accenti colorati, pulsanti a pillola, schede, FAQ a fisarmonica e riquadro finale di contatto.
+Le landing e le pagine generate usano lo **stesso linguaggio visivo dell'hero Servizi**:
+giallo `#ffd400` su nero, angoli a 5 px, micro-etichette maiuscole con barra gialla, linee
+sottili, numerazioni `01` e frecce, punto di stato pulsante, riga tecnica con punto scanner e
+angolo decorativo.
 
 **Landing locali → Impostazioni → Aspetto grafico**
 
 | Impostazione | Cosa fa |
 |---|---|
 | Stile del plugin | togli la spunta per ereditare solo lo stile del tema |
-| Intestazione della pagina | blocco scuro con occhiello, titolo, testo e pulsanti |
+| Intestazione della pagina | con titolo H1, senza titolo, oppure nessuna |
 | Colori | accento, sfondo scuro, testo, sfondo chiaro |
-| Arrotondamento angoli | da 0 (squadrato) a 40 px |
+| Arrotondamento angoli | 5 px di serie, come i pulsanti del sito |
 | Larghezza delle bande | intestazione e CTA a tutto schermo |
 
-I colori dei testi sopra l'accento e sopra lo sfondo scuro sono calcolati in automatico
-(formula di contrasto WCAG): se cambi il giallo con un colore scuro, le scritte diventano
+Il **font non viene forzato**: i titoli ereditano quello del tema, così le pagine restano
+coerenti col resto del sito. I colori dei testi sopra l'accento e sopra lo sfondo scuro sono
+calcolati dal contrasto (WCAG): cambiando il giallo con un colore scuro le scritte diventano
 bianche da sole.
 
-### Se vedi il titolo due volte
+### L'intestazione
 
-Alcuni temi stampano già il titolo della pagina. In quel caso imposta **Intestazione della
-pagina → Intestazione grafica senza titolo**: resta il blocco scuro con testo e pulsanti, ma
-l'H1 lo gestisce il tema. È importante per la SEO che l'H1 sia uno solo.
+Riproduce la struttura dell'hero Servizi, riempita con i dati del questionario:
 
-### Se compare una barra di scorrimento orizzontale
+- **occhiello** `Chiavi Italia · Trapani`
+- **stato** con punto pulsante: orario 24/24, tempo di intervento o anni di attività
+- **titolo** con la città evidenziata in giallo
+- **pulsanti** preventivo/telefono e WhatsApp
+- **indice dei servizi**: sulla pagina città i suoi servizi, su una pagina servizio gli altri
+  servizi della stessa città, numerati con il totale in alto a destra
+- **riga tecnica** in basso e angolo decorativo
 
-Togli la spunta da **Larghezza delle bande**: alcuni temi a larghezza fissa non gradiscono le
-sezioni a tutto schermo.
+### Le animazioni non possono far sparire il contenuto
 
-Il font non viene forzato: i titoli ereditano quello del tema, così le pagine restano coerenti
-col resto del sito anche se cambi tema.
+La comparsa progressiva parte da `opacity:0`, quindi un JavaScript che non gira lascerebbe la
+pagina vuota. Per questo il contenuto viene nascosto **solo dopo** che uno script
+nell'intestazione conferma che JavaScript è attivo, e una rete di sicurezza lo mostra comunque
+dopo 2,5 secondi se lo script principale non parte (cache aggressive, errori di altri plugin).
+Senza JavaScript la pagina è visibile e completa.
 
----
-
-## Le altre pagine del sito
-
-**Landing locali → Pagine del sito**
-
-Elenca le pagine che un sito di servizi locali dovrebbe avere, dice **perché** servono e crea
-quelle mancanti **in bozza**, già con lo stile delle landing e i dati aziendali inseriti.
-
-| Pagina | Perché |
-|---|---|
-| Chi siamo | è il segnale più diretto su chi c'è dietro al sito (E-E-A-T) |
-| I nostri servizi | raccoglie i servizi e distribuisce link verso le città |
-| Dove operiamo | l'indice delle città: senza, le landing restano isolate |
-| Contatti | recapiti verificabili, coerenti con Google Business |
-| Domande frequenti | intercetta le ricerche in forma di domanda |
-| Recensioni | prova di affidabilità (solo recensioni reali) |
-| Note legali e dati aziendali | in Italia P. IVA e sede vanno indicate sul sito |
-| Privacy Policy | obbligatoria col GDPR se raccogli dati |
-| Cookie Policy | richiesta se usi cookie non tecnici |
-| Termini e condizioni | cosa comprende il servizio, tempi, garanzie |
-| Mappa del sito | indice leggibile, utile quando le città sono molte |
-
-Le pagine già esistenti sul sito vengono riconosciute dallo slug e **non** vengono toccate.
-
-### Le pagine legali sono tracce, non testi conformi
-
-Privacy, cookie e termini vengono generate come **scaletta con segnaposto `[DA COMPLETARE]`**:
-struttura dei capitoli e dati aziendali, non il testo legale. Una privacy policy richiede i
-dati reali del trattamento (finalità, basi giuridiche, conservazione, destinatari) e va
-verificata da chi se ne occupa per te. Pubblicarne una incompleta è un problema legale, non
-un dettaglio SEO.
-
----
-
-## Codice personalizzato (HTML, CSS, JavaScript)
-
-Due livelli:
-
-- **Tutte le landing**: Impostazioni → *Codice personalizzato*
-- **Una sola pagina**: sezione 9 del questionario — HTML prima/dopo le sezioni, CSS, JavaScript
-
-Dove finisce il codice:
-
-| Campo | Dove viene stampato |
-|---|---|
-| HTML prima / dopo | nel contenuto, attorno alle sezioni generate (accetta gli shortcode) |
-| CSS | in `<style>` nell'intestazione della pagina |
-| JavaScript | in `<script>` a fine pagina |
-
-**Sicurezza.** I campi sono visibili e salvabili solo da chi ha il permesso `unfiltered_html`
-(gli amministratori). Un redattore non li vede e, salvando la pagina, non li cancella. Le
-sequenze `</style>` e `</script>` vengono neutralizzate, così il codice non può chiudere in
-anticipo il proprio blocco.
-
-**Il JavaScript gira dentro un `try/catch`**: un errore nel tuo codice viene scritto nella
-console del browser invece di bloccare gli altri script del sito. Restano due cose che il
-plugin non può evitare: script pesanti peggiorano i tempi di caricamento che Google misura, e
-codice di terze parti può installare cookie che vanno dichiarati nella cookie policy.
-
----
+Con `prefers-reduced-motion` attivo le animazioni sono disattivate e tutto è visibile subito.
 
 ## Assistente AI (Google Gemini)
 

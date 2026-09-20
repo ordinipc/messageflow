@@ -3,7 +3,7 @@
  * Plugin Name:       Geo Landing Pages
  * Plugin URI:        https://chiaviitalia.it/
  * Description:       Crea landing page locali per città (es. /trapani/) con questionario guidato, contenuti reali, FAQ e SEO locale completa (meta tag, JSON-LD, sitemap).
- * Version:           1.2.0
+ * Version:           1.3.0
  * Requires at least: 5.9
  * Requires PHP:      7.4
  * Author:            Chiavi Italia
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'GLP_VERSION', '1.2.0' );
+define( 'GLP_VERSION', '1.3.0' );
 define( 'GLP_FILE', __FILE__ );
 define( 'GLP_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GLP_URL', plugin_dir_url( __FILE__ ) );
@@ -64,7 +64,47 @@ final class GLP_Plugin {
 		GLP_Pages::init();
 
 		add_action( 'init', array( $this, 'load_textdomain' ) );
+		add_action( 'admin_init', array( __CLASS__, 'migrate_design' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_front_assets' ), 100 );
+	}
+
+	/**
+	 * Allinea allo stile nuovo le impostazioni mai modificate.
+	 *
+	 * Tocca solo i valori ancora identici ai vecchi predefiniti: una
+	 * palette scelta dall'utente non viene sovrascritta.
+	 */
+	public static function migrate_design() {
+		if ( get_option( 'glp_design_migrated' ) ) {
+			return;
+		}
+		update_option( 'glp_design_migrated', 1 );
+
+		$salvate = get_option( GLP_Settings::OPTION, array() );
+		if ( ! is_array( $salvate ) || empty( $salvate ) ) {
+			return;
+		}
+
+		$vecchi = array(
+			'color_primary' => '#f5d400',
+			'color_dark'    => '#111111',
+			'color_text'    => '#1d1d1f',
+			'color_soft'    => '#f4f5f7',
+			'radius'        => 14,
+		);
+		$nuovi = GLP_Settings::defaults();
+
+		$cambiato = false;
+		foreach ( $vecchi as $chiave => $vecchio ) {
+			if ( isset( $salvate[ $chiave ] ) && (string) $salvate[ $chiave ] === (string) $vecchio ) {
+				$salvate[ $chiave ] = $nuovi[ $chiave ];
+				$cambiato           = true;
+			}
+		}
+
+		if ( $cambiato ) {
+			update_option( GLP_Settings::OPTION, $salvate );
+		}
 	}
 
 	public function load_textdomain() {
