@@ -252,6 +252,15 @@ function sitemap_indice() {
 	return $xml;
 }
 
+/**
+ * La sottocartella in cui vive il portale, o '' se sta nella radice.
+ * Esempio: con https://sito.it/zone restituisce '/zone'.
+ */
+function sottocartella() {
+	$percorso = parse_url( base_url(), PHP_URL_PATH );
+	return null === $percorso ? '' : rtrim( $percorso, '/' );
+}
+
 /** Contenuto di robots.txt. */
 function robots_txt() {
 	$righe = array( 'User-agent: *' );

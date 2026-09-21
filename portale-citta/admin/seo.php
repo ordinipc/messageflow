@@ -51,6 +51,18 @@ foreach ( pagine_tutte() as $p ) {
 	<div class="pc-numero"><strong><?php echo count( $vuote ); ?></strong><span>Pagine senza testo</span></div>
 </div>
 
+<?php if ( '' !== sottocartella() ) : ?>
+<div class="pc-avviso pc-avviso--errore">
+	<strong>Il portale sta nella sottocartella <code><?php echo e( sottocartella() ); ?>/</code>.</strong><br>
+	Google legge <code>robots.txt</code> soltanto nella radice del dominio: quello qui sotto
+	(<code><?php echo e( sottocartella() ); ?>/robots.txt</code>) viene ignorato.
+	Apri il <code>robots.txt</code> del sito principale e aggiungi questa riga:
+	<pre style="user-select:all">Sitemap: <?php echo e( base_url() ); ?>/sitemap.xml</pre>
+	Su WordPress: Yoast → Strumenti → Modifica file, oppure Rank Math → Impostazioni generali → Modifica robots.txt.
+	La sitemap resta comunque da aggiungere a mano in Search Console, ed è la strada che conta di più.
+</div>
+<?php endif; ?>
+
 <div class="pc-scheda">
 	<h2>Indirizzi da dare a Google</h2>
 	<p class="pc-scheda__nota">Aggiungi la sitemap in Search Console: Indicizzazione → Sitemap.</p>

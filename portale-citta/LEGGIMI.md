@@ -27,16 +27,45 @@ Non è un plugin: gira da solo, con il suo database e la sua amministrazione.
 
 ---
 
+## Dove metterlo e come chiamare la cartella
+
+Il nome della cartella entra in **ogni** indirizzo:
+
+```
+chiaviitalia.it/NOMECARTELLA/trapani/duplicazione-chiavi-auto/
+```
+
+Cambiarlo dopo la pubblicazione significa reindirizzare tutte le pagine, quindi
+si sceglie una volta sola.
+
+**Regole:** minuscolo, senza accenti, senza spazi, senza underscore. Una parola
+sola, corta. Con il trattino se servono due parole (`zone-servite`).
+
+**Nomi da evitare:** `admin`, `wp-admin`, `wp-content`, `wp-includes`, `blog`,
+`shop`, `feed`, `page`, `category`, `tag`, `author` — sono riservati o già usati
+da WordPress. Ed evita qualsiasi nome che coincida con lo slug di una pagina
+WordPress esistente: la cartella fisica vince e quella pagina diventa
+irraggiungibile.
+
+**Se nella radice c'è WordPress** non serve toccare niente: il suo `.htaccess`
+lascia passare le cartelle reali (`RewriteCond %{REQUEST_FILENAME} !-d`), quindi
+una cartella fisica non viene intercettata.
+
+---
+
 ## Installazione
 
-1. Carica la cartella `portale-citta` sul tuo hosting.
-   Può stare nella radice o in una sottocartella (per esempio `/citta/`).
+1. Carica il contenuto sul tuo hosting, dentro la cartella che hai scelto.
 2. Dai il permesso di scrittura (755) alle cartelle `dati/` e `media/`.
 3. Apri `install.php` nel browser e segui i tre passi:
    - **Database** — MySQL (consigliato) oppure SQLite se non puoi creare un database
    - **Il tuo sito** — nome dell'attività, indirizzo del portale, password
    - **Fine**
 4. **Cancella `install.php` dal server.** L'amministrazione te lo ricorda.
+5. Se il portale sta in una sottocartella, apri il `robots.txt` del **sito
+   principale** e aggiungi la riga che trovi in SEO e sitemap. Google legge
+   `robots.txt` solo dalla radice del dominio: quello dentro la sottocartella
+   viene ignorato.
 
 L'amministrazione è su `tuosito.it/admin.php`.
 
