@@ -150,9 +150,23 @@ In WordPress: Strumenti → Esporta → Articoli. Poi qui, in **Importa**:
 3. Scegli le città, quanti per volta, e se pubblicarli subito o lasciarli in bozza
 
 Lo smistamento legge il titolo e lo confronta con i nomi delle tue città: un
-articolo su Marsala va a Marsala, se quella città esiste. Vince il nome che
-compare più avanti nel titolo, perché la geolocalizzazione sta di solito in
-fondo. Quelli che non nominano nessuna città vanno nella città di riserva.
+articolo su Marsala va a Marsala, **se quella città esiste nel portale**. Vince
+il nome che compare più avanti nel titolo, perché la geolocalizzazione sta di
+solito in fondo. Quelli che non nominano nessuna città vanno nella riserva.
+
+### Le località che non hai ancora
+
+Qui sta il punto: se il portale ha una città sola, *tutto* finisce lì — anche
+gli articoli che parlano di altri comuni.
+
+Per questo l'analisi elenca anche le **località nominate nei titoli** che non
+sono ancora città del portale, con quanti articoli le nominano. Quelle che
+meritano una città si spuntano e si creano in un colpo solo (nascono in bozza);
+poi si rianalizza il file e gli articoli si smistano da soli.
+
+Su un'esportazione reale di 1750 articoli con la sola Trapani: 1567 riconosciuti
+e 183 alla riserva. Create le 16 località nominate da almeno tre articoli:
+1731 riconosciuti e 19 alla riserva.
 
 Il file si legge in streaming: un'esportazione da 40 MB con 1750 articoli
 si importa in pochi secondi senza superare i 6 MB di memoria.

@@ -56,18 +56,25 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['azione'] ) && '' !=
 		$per_citta = array();
 		$totale    = 0;
 		$gia       = 0;
+		$riconosciuti = 0;
+		$di_riserva   = 0;
 		$esempi    = array();
 
-		import_scorri( $xml, function ( $a ) use ( &$per_citta, &$totale, &$gia, &$esempi, $elenco, $riserva ) {
+		import_scorri( $xml, function ( $a ) use ( &$per_citta, &$totale, &$gia, &$esempi, &$riconosciuti, &$di_riserva, $elenco, $riserva ) {
 			$totale++;
 			if ( articolo_gia_importato( $a['origine'] ) ) {
 				$gia++;
 				return true;
 			}
-			$id = import_citta_di( $a['titolo'], $elenco, $riserva );
-			if ( '' === $id ) {
-				$id = '(nessuna)';
+			// Senza riserva si vede chi viene riconosciuto davvero.
+			$vero = import_citta_di( $a['titolo'], $elenco, '' );
+			if ( '' === $vero ) {
+				$di_riserva++;
+			} else {
+				$riconosciuti++;
 			}
+
+			$id = '' !== $vero ? $vero : ( '' !== $riserva ? $riserva : '(nessuna)' );
 			if ( ! isset( $per_citta[ $id ] ) ) {
 				$per_citta[ $id ] = 0;
 				$esempi[ $id ]    = $a['titolo'];
@@ -78,13 +85,16 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['azione'] ) && '' !=
 
 		arsort( $per_citta );
 		$analisi = array(
-			'file'      => basename( $scelto ),
-			'xml'       => basename( $xml ),
-			'totale'    => $totale,
-			'gia'       => $gia,
-			'per_citta' => $per_citta,
-			'esempi'    => $esempi,
-			'riserva'   => $riserva,
+			'file'         => basename( $scelto ),
+			'xml'          => basename( $xml ),
+			'totale'       => $totale,
+			'gia'          => $gia,
+			'riconosciuti' => $riconosciuti,
+			'di_riserva'   => $di_riserva,
+			'per_citta'    => $per_citta,
+			'esempi'       => $esempi,
+			'riserva'      => $riserva,
+			'luoghi'       => import_luoghi( $xml, $elenco ),
 		);
 	}
 
@@ -157,6 +167,32 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['azione'] ) && '' !=
 		);
 		vai_a( 'admin.php?p=importa&file=' . rawurlencode( basename( $scelto ) ) );
 	}
+}
+
+/* --- Creazione delle città trovate nei titoli ---------------------------- */
+if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['crea_citta'] ) ) {
+	verifica_token();
+	$create = array();
+	foreach ( (array) ( $_POST['luogo'] ?? array() ) as $nome ) {
+		$nome = trim( (string) $nome );
+		if ( vuoto( $nome ) || citta_per_slug( slugifica( $nome ) ) ) {
+			continue;
+		}
+		$c = citta_predefinita();
+		$c['id']        = nuovo_id();
+		$c['nome']      = $nome;
+		$c['slug']      = citta_slug_libero( $nome );
+		$c['provincia'] = strtoupper( trim( (string) ( $_POST['provincia'] ?? '' ) ) );
+		$c['stato']     = 'bozza';
+		citta_salva( $c );
+		$create[] = $nome;
+	}
+	avviso( empty( $create )
+		? 'Nessuna città creata.'
+		: count( $create ) . ' città create in bozza (' . implode( ', ', $create ) . '). '
+			. 'Compila i loro dati, poi torna qui e rianalizza il file: gli articoli si smisteranno da soli.',
+		empty( $create ) ? 'errore' : 'ok' );
+	vai_a( 'admin.php?p=importa&file=' . rawurlencode( basename( $scelto ) ) );
 }
 
 /* --- Riscrittura dei link interni --------------------------------------- */
@@ -264,15 +300,80 @@ $limite_upload   = ini_get( 'upload_max_filesize' );
 <?php if ( $analisi ) : ?>
 <div class="pc-scheda">
 	<h2>3. Risultato dell'analisi</h2>
-	<p class="pc-scheda__nota">
+	<p class="pc-scheda__nota" id="esito-analisi">
 		<?php echo (int) $analisi['totale']; ?> articoli nel file<?php echo $analisi['gia'] > 0 ? ', di cui ' . (int) $analisi['gia'] . ' già importati (verranno saltati)' : ''; ?>.
+		<?php echo (int) $analisi['riconosciuti']; ?> nominano una delle tue città,
+		<?php echo (int) $analisi['di_riserva']; ?> no.
 	</p>
+
+	<?php
+	$mancanti = array_filter( $analisi['luoghi'], function ( $l ) {
+		return '' === $l['citta_id'];
+	} );
+	?>
+
+	<?php if ( ! empty( $mancanti ) ) : ?>
+		<div class="pc-avviso pc-avviso--errore">
+			<strong>I titoli nominano <?php echo count( $mancanti ); ?> località che non sono ancora città del portale.</strong><br>
+			<?php echo (int) $analisi['di_riserva']; ?> articoli su <?php echo (int) $analisi['totale']; ?>
+			non nominano nessuna delle tue città e finirebbero tutti nella città di riserva,
+            anche quando parlano di un altro comune.
+		</div>
+
+		<form method="post" class="pc-scheda">
+			<?php echo campo_token(); ?>
+			<input type="hidden" name="file" value="<?php echo e( $analisi['file'] ); ?>">
+
+			<h2>Località nominate nei titoli</h2>
+			<p class="pc-scheda__nota">
+				Crea come città quelle che meritano pagine proprie: gli articoli ci finiranno da soli
+				alla prossima analisi. Nascono in bozza, poi ci metti dati e testi.
+			</p>
+
+			<label style="max-width:200px">Provincia da assegnare
+				<input type="text" name="provincia" maxlength="4" placeholder="TP" value="TP">
+				<small>La stessa per tutte: la cambi poi una per una.</small>
+			</label>
+
+			<table class="pc-tabella">
+				<thead><tr><th style="width:28px"></th><th>Località</th><th>Articoli che la nominano</th><th>Nel portale</th></tr></thead>
+				<tbody>
+				<?php foreach ( $analisi['luoghi'] as $l ) : ?>
+					<tr>
+						<td>
+							<?php if ( '' === $l['citta_id'] ) : ?>
+								<input type="checkbox" name="luogo[]" value="<?php echo e( $l['nome'] ); ?>" <?php checked_pc( $l['quante'] >= 3 ); ?>>
+							<?php endif; ?>
+						</td>
+						<td><strong><?php echo e( $l['nome'] ); ?></strong></td>
+						<td><?php echo (int) $l['quante']; ?></td>
+						<td>
+							<?php if ( '' === $l['citta_id'] ) : ?>
+								<span class="pc-stato pc-stato--bozza">da creare</span>
+							<?php else : ?>
+								<span class="pc-stato pc-stato--pubblicata">c'è</span>
+							<?php endif; ?>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+
+			<p class="pc-nota" style="margin-top:12px">
+				Sono già spuntate quelle nominate da almeno tre articoli. Sotto quella soglia
+				una città a sé serve a poco: meglio lasciare quegli articoli alla riserva.
+			</p>
+
+			<button class="pc-btn" type="submit" name="crea_citta" value="1">Crea le città selezionate</button>
+		</form>
+	<?php endif; ?>
 
 	<form method="post">
 		<?php echo campo_token(); ?>
 		<input type="hidden" name="file" value="<?php echo e( $analisi['file'] ); ?>">
 		<input type="hidden" name="riserva" value="<?php echo e( $analisi['riserva'] ); ?>">
 
+		<h3 style="font-size:14px;margin:18px 0 10px">Come verrebbero smistati adesso</h3>
 		<table class="pc-tabella">
 			<thead><tr><th style="width:28px"></th><th>Città</th><th>Articoli</th><th>Esempio di titolo</th></tr></thead>
 			<tbody>

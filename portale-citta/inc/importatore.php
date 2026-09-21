@@ -306,3 +306,100 @@ function import_estratto( $estratto, $corpo, $max = 200 ) {
 	$spazio = mb_strrpos( $corto, ' ' );
 	return rtrim( false === $spazio ? $corto : mb_substr( $corto, 0, $spazio ), ' ,;:' ) . '…';
 }
+
+/* ---------------------------------------------------------------------------
+ * Quali località nominano i titoli
+ * ------------------------------------------------------------------------- */
+
+/** Parole che sembrano nomi di luogo ma non lo sono. */
+function import_non_luoghi() {
+	return array( 'sant', 'santa', 'san', 'via', 'viale', 'piazza', 'piazzale', 'corso',
+		'zona', 'casa', 'villa', 'lido', 'porto', 'stazione', 'aeroporto', 'centro',
+		'riserva', 'laguna', 'baia', 'lungomare', 'citta', 'città', 'provincia', 'comune',
+		'noi', 'te', 'voi', 'casa tua', 'domicilio', 'casa mia' );
+}
+
+/**
+ * Estrae dai titoli i nomi di località, con quante volte compaiono.
+ *
+ * Serve prima di importare: se il portale ha una sola città, tutto finisce
+ * lì e non si capisce che nel file ci sono anche gli altri comuni. Qui si
+ * vedono, e si possono creare prima di importare.
+ *
+ * @return array Elenco ordinato per frequenza:
+ *               array( 'nome', 'quante', 'citta_id' ) — citta_id '' se manca.
+ */
+function import_luoghi( $file, $citta ) {
+	$conteggio = array();
+
+	import_scorri( $file, function ( $a ) use ( &$conteggio ) {
+		$titolo = (string) $a['titolo'];
+
+		// Un nome proprio dopo "a", "ad", "in", "di", "zona", "presso".
+		// Le preposizioni articolate no: "della chiave" non è un luogo.
+		if ( ! preg_match_all(
+			'/\b(?:a|ad|in|zona|presso|verso)\s+((?:\p{Lu}[\p{L}\'’]+)(?:\s+(?:del|della|dei|di|lo|la|le|Lo|La|Le|Del|Della|Di)\s+\p{Lu}[\p{L}\'’]+|\s+\p{Lu}[\p{L}\'’]+)*)/u',
+			$titolo,
+			$trovati
+		) ) {
+			return true;
+		}
+
+		foreach ( $trovati[1] as $grezzo ) {
+			$nome = trim( preg_replace( '/\s+/u', ' ', $grezzo ) );
+			if ( mb_strlen( $nome ) < 4 ) {
+				continue;
+			}
+			if ( in_array( mb_strtolower( $nome ), import_non_luoghi(), true ) ) {
+				continue;
+			}
+			$conteggio[ $nome ] = ( $conteggio[ $nome ] ?? 0 ) + 1;
+		}
+		return true;
+	} );
+
+	// I nomi delle città già note: servono a scartare le varianti che le contengono.
+	$noti = array();
+	foreach ( $citta as $c ) {
+		$noti[] = mb_strtolower( $c['nome'] );
+	}
+
+	$out = array();
+	foreach ( $conteggio as $nome => $quante ) {
+		$basso = mb_strtolower( $nome );
+
+		// "Villa Rosina Trapani" o "Trapani Marausa": è una zona, non un comune.
+		$variante = false;
+		foreach ( $noti as $n ) {
+			if ( $basso !== $n && false !== mb_strpos( $basso, $n ) ) {
+				$variante = true;
+				break;
+			}
+		}
+		if ( $variante ) {
+			continue;
+		}
+
+		// Comincia con una parola che non è un luogo ("Casa Santa", "Via Fardella").
+		$prima = mb_strtolower( (string) strtok( $nome, ' ' ) );
+		if ( in_array( $prima, import_non_luoghi(), true ) ) {
+			continue;
+		}
+
+		$id = '';
+		foreach ( $citta as $c ) {
+			if ( mb_strtolower( $c['nome'] ) === $basso ) {
+				$id = $c['id'];
+				break;
+			}
+		}
+
+		$out[] = array( 'nome' => $nome, 'quante' => $quante, 'citta_id' => $id );
+	}
+
+	usort( $out, function ( $a, $b ) {
+		return $b['quante'] <=> $a['quante'];
+	} );
+
+	return $out;
+}
