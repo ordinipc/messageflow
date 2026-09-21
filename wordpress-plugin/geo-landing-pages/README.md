@@ -119,6 +119,38 @@ scrivi tu**: sono la parte che rende il contenuto originale.
 
 ---
 
+## Parole chiave: una ricerca per pagina
+
+**Landing locali → Parole chiave** elenca tutte le pagine con la ricerca che intercettano, i
+controlli superati, le parole di contenuto e se sono indicizzate.
+
+Nell'editor, il riquadro **Parola chiave** verifica dove la ricerca compare davvero:
+
+| Controllo | Perché |
+|---|---|
+| Title del motore di ricerca | il fattore più diretto, meglio all'inizio |
+| Titolo H1 | il titolo grande in cima alla pagina |
+| Indirizzo della pagina | lo slug e la città nel percorso |
+| Meta description | non posiziona, ma viene evidenziata nei risultati e fa cliccare |
+| Almeno una domanda frequente | intercetta le ricerche in forma di domanda |
+| Ricorrenze nel testo | tre o quattro naturali bastano; venti peggiorano la lettura |
+| Contenuto sufficiente | sotto le 300 parole è difficile battere chi ti precede |
+
+Il confronto non è letterale: *"duplicazione chiavi auto Trapani"* viene riconosciuta anche in
+*"Duplicazione chiavi auto **a** Trapani"*, perché in italiano le preposizioni si infilano
+sempre. E nell'indirizzo l'ordine non conta, visto che la città sta all'inizio del percorso.
+
+### Il controllo che conta di più
+
+Se due pagine puntano alla stessa ricerca, il riquadro lo dice in rosso con il link all'altra.
+È l'errore che affossa i progetti multi-città: venti pagine sulla stessa frase si tolgono forza
+a vicenda e Google ne sceglie una, spesso non quella giusta.
+
+Una ricerca per pagina: `duplicazione chiavi auto Trapani` sulla pagina di Trapani,
+`duplicazione chiavi auto Marsala` su quella di Marsala.
+
+---
+
 ## Il punteggio di completezza (protezione anti-penalizzazione)
 
 Ogni pagina ha un punteggio 0-100 nel riquadro laterale, con l'elenco delle risposte mancanti.
