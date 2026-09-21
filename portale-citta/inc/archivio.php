@@ -78,7 +78,61 @@ function impostazioni_predefinite() {
 		'privacy_url'     => '',
 		'cookie_url'      => '',
 		'sito_principale' => '',
+
+		// Home del portale: l'elenco delle città.
+		'home_soprattitolo'  => '',
+		'home_titolo'        => 'Dove *operiamo*',
+		'home_intro'         => 'Scegli la città più vicina a te: trovi contatti, orari, zone servite e i servizi disponibili.',
+		'home_immagine'      => '',
+		'home_testo'         => '',
+		'home_html'          => '',
+		'home_elenco_titolo' => 'Le nostre città',
+		'home_elenco_occhio' => 'Copertura',
+		'home_sotto_elenco'  => '',
+		'home_seo_titolo'    => '',
+		'home_seo_desc'      => '',
+
+		// Piè di pagina.
+		'piede_testo'        => '',
+		'piede_citta_titolo' => 'Dove operiamo',
+		'piede_link_titolo'  => 'Sito',
+		'piede_link'         => '',
+		'piede_copy'         => '',
 	);
+}
+
+/**
+ * Titolo con una parte evidenziata.
+ *
+ * Fra asterischi si scrive la parola in giallo: "Dove *operiamo*". Senza
+ * asterischi il titolo esce tutto dello stesso colore.
+ */
+function titolo_evidenziato( $testo ) {
+	$pezzi = preg_split( '/\*([^*]+)\*/u', (string) $testo, -1, PREG_SPLIT_DELIM_CAPTURE );
+	$fuori = '';
+	foreach ( $pezzi as $i => $pezzo ) {
+		$fuori .= ( 1 === $i % 2 ) ? '<span>' . e( $pezzo ) . '</span>' : e( $pezzo );
+	}
+	return $fuori;
+}
+
+/**
+ * Righe "Etichetta | indirizzo" trasformate in collegamenti.
+ *
+ * Senza la barra verticale si prende la riga intera come etichetta e come
+ * indirizzo: così un indirizzo scritto da solo funziona lo stesso.
+ */
+function link_da_righe( $testo ) {
+	$voci = array();
+	foreach ( righe( $testo ) as $riga ) {
+		$parti = array_map( 'trim', explode( '|', $riga, 2 ) );
+		$url   = isset( $parti[1] ) && '' !== $parti[1] ? $parti[1] : $parti[0];
+		if ( '' === $parti[0] || '' === $url ) {
+			continue;
+		}
+		$voci[] = array( 'nome' => $parti[0], 'url' => $url );
+	}
+	return $voci;
 }
 
 function impostazioni() {

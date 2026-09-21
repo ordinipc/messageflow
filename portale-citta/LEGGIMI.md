@@ -23,6 +23,7 @@ Non è un plugin: gira da solo, con il suo database e la sua amministrazione.
 | **Assistente Gemini** | Propone introduzione, testo, descrizione e FAQ dai dati della città |
 | **Blog per città** | Articoli con elenco paginato, schema BlogPosting, importazione da WordPress |
 | **Modulo di contatto** | Con recapiti completi, anti-spam senza captcha |
+| **Home del portale** | La pagina d'ingresso e il piè di pagina si scrivono dal pannello |
 | **Sezioni per pagina** | Ogni pagina sceglie cosa mostrare **e in che ordine**: non escono tutte uguali |
 | **Sezioni a card** | Ogni sezione si disegna a riquadri o a elenco, con effetti dinamici |
 | **CSS/HTML/JS** | Tre livelli: globale, per città, per pagina |
@@ -242,6 +243,41 @@ la fascia di prezzo.
 
 La schermata **SEO e sitemap** ti dice quando due testi sono troppo simili.
 Sopra l'88% di somiglianza hai un problema.
+
+---
+
+## La home del portale e il piè di pagina
+
+Sono i due pezzi che non appartengono a nessuna città, e si scrivono da
+**Home del portale** nel menu.
+
+**Pagina principale** — è quella che si apre sull'indirizzo del portale
+(`tuosito.it/zone/`) e serve a chi arriva senza sapere ancora quale città gli
+interessa. Si cambiano soprattitolo, titolo, testo di presentazione, immagine
+di sfondo, il testo sopra e sotto l'elenco, un blocco di HTML libero, e titolo
+e descrizione per Google.
+
+Nel titolo, quello che scrivi **fra asterischi** esce in giallo:
+
+```
+Un fabbro *a Trapani*   →   Un fabbro a Trapani
+```
+
+L'elenco delle città si costruisce da solo con le città pubblicate.
+
+**Piè di pagina** — è lo stesso su tutte le pagine del portale. Si cambiano la
+riga di presentazione sotto il nome, i titoli delle due colonne, il testo del
+copyright e i tuoi collegamenti, uno per riga:
+
+```
+Preventivi | https://www.tuosito.it/preventivi/
+Blog | https://www.tuosito.it/blog/
+```
+
+Senza la barra verticale la riga vale sia come etichetta sia come indirizzo.
+Sito principale, privacy e cookie si mettono nelle impostazioni e compaiono
+lì da soli; indirizzo, telefono, email e P. IVA vengono dalla città che si sta
+guardando.
 
 ---
 

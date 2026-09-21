@@ -25,6 +25,7 @@ $pagine_admin = array(
 	'login'           => 'Accesso',
 	'esci'            => 'Esci',
 	'pannello'        => 'Pannello',
+	'home'            => 'Home del portale',
 	'citta'           => 'Città',
 	'citta-modifica'  => 'Modifica città',
 	'pagine'          => 'Pagine',

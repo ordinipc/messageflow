@@ -5,6 +5,7 @@ $imp  = impostazioni();
 $msg  = avviso();
 $voci = array(
 	'pannello'     => array( 'Pannello', '▦' ),
+	'home'         => array( 'Home del portale', '⌂' ),
 	'citta'        => array( 'Città', '◉' ),
 	'pagine'       => array( 'Pagine', '▤' ),
 	'menu'         => array( 'Menu', '≡' ),

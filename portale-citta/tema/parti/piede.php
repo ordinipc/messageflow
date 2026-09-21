@@ -11,6 +11,9 @@ $js_extra = isset( $js_extra ) ? $js_extra : '';
 	<div class="glp-bottombar__inner">
 		<div class="glp-bottombar__col">
 			<p class="glp-bottombar__name"><?php echo e( $imp['brand'] ); ?></p>
+			<?php if ( ! vuoto( $imp['piede_testo'] ) ) : ?>
+				<p class="glp-bottombar__intro"><?php echo e( $imp['piede_testo'] ); ?></p>
+			<?php endif; ?>
 			<?php if ( ! empty( $citta ) && ! vuoto( $citta['indirizzo'] ) ) : ?>
 				<p><?php echo e( $citta['indirizzo'] . ', ' . trim( $citta['cap'] . ' ' . $citta['nome'] ) ); ?></p>
 			<?php endif; ?>
@@ -27,7 +30,7 @@ $js_extra = isset( $js_extra ) ? $js_extra : '';
 
 		<?php if ( ! empty( $altre ) ) : ?>
 			<div class="glp-bottombar__col">
-				<p class="glp-bottombar__label">Dove operiamo</p>
+				<p class="glp-bottombar__label"><?php echo e( impostazione( 'piede_citta_titolo', 'Dove operiamo' ) ); ?></p>
 				<ul>
 					<?php foreach ( array_slice( $altre, 0, 12 ) as $a ) : ?>
 						<li><a href="<?php echo e_url( $a['url'] ); ?>"><?php echo e( $a['nome'] ); ?></a></li>
@@ -37,12 +40,15 @@ $js_extra = isset( $js_extra ) ? $js_extra : '';
 		<?php endif; ?>
 
 		<div class="glp-bottombar__col">
-			<p class="glp-bottombar__label">Sito</p>
+			<p class="glp-bottombar__label"><?php echo e( impostazione( 'piede_link_titolo', 'Sito' ) ); ?></p>
 			<ul>
 				<?php if ( ! vuoto( $imp['sito_principale'] ) ) : ?>
 					<li><a href="<?php echo e_url( $imp['sito_principale'] ); ?>">Torna al sito principale</a></li>
 				<?php endif; ?>
 				<li><a href="<?php echo e( base_url() ); ?>/">Tutte le città</a></li>
+				<?php foreach ( link_da_righe( $imp['piede_link'] ) as $l ) : ?>
+					<li><a href="<?php echo e_url( $l['url'] ); ?>"><?php echo e( $l['nome'] ); ?></a></li>
+				<?php endforeach; ?>
 				<?php if ( ! vuoto( $imp['privacy_url'] ) ) : ?>
 					<li><a href="<?php echo e_url( $imp['privacy_url'] ); ?>">Privacy Policy</a></li>
 				<?php endif; ?>
@@ -53,7 +59,9 @@ $js_extra = isset( $js_extra ) ? $js_extra : '';
 		</div>
 	</div>
 
-	<p class="glp-bottombar__copy">© <?php echo e( date( 'Y' ) ); ?> <?php echo e( $imp['brand'] ); ?></p>
+	<p class="glp-bottombar__copy">
+		<?php echo e( vuoto( $imp['piede_copy'] ) ? '© ' . date( 'Y' ) . ' ' . $imp['brand'] : $imp['piede_copy'] ); ?>
+	</p>
 </footer>
 
 <script src="<?php echo e( base_url() ); ?>/tema/script.js?v=<?php echo e( versione_asset( 'script.js' ) ); ?>"></script>
