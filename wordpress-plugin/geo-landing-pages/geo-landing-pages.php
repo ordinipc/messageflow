@@ -3,7 +3,7 @@
  * Plugin Name:       Geo Landing Pages
  * Plugin URI:        https://chiaviitalia.it/
  * Description:       Crea landing page locali per città (es. /trapani/) con questionario guidato, contenuti reali, FAQ e SEO locale completa (meta tag, JSON-LD, sitemap).
- * Version:           1.10.0
+ * Version:           1.11.0
  * Requires at least: 5.9
  * Requires PHP:      7.4
  * Author:            Chiavi Italia
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'GLP_VERSION', '1.10.0' );
+define( 'GLP_VERSION', '1.11.0' );
 define( 'GLP_FILE', __FILE__ );
 define( 'GLP_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GLP_URL', plugin_dir_url( __FILE__ ) );
@@ -41,6 +41,7 @@ require_once GLP_PATH . 'includes/class-glp-nav.php';
 require_once GLP_PATH . 'includes/class-glp-services.php';
 require_once GLP_PATH . 'includes/class-glp-health.php';
 require_once GLP_PATH . 'includes/class-glp-keywords.php';
+require_once GLP_PATH . 'includes/class-glp-sitemap.php';
 
 /**
  * Bootstrap del plugin.
@@ -71,6 +72,7 @@ final class GLP_Plugin {
 		GLP_Services::init();
 		GLP_Health::init();
 		GLP_Keywords::init();
+		GLP_Sitemap::init();
 
 		add_action( 'init', array( $this, 'load_textdomain' ) );
 		add_action( 'admin_init', array( __CLASS__, 'migrate_design' ) );
@@ -179,6 +181,7 @@ final class GLP_Plugin {
 		GLP_Post_Types::register_post_type();
 		GLP_Post_Types::register_taxonomy();
 		GLP_Post_Types::register_rewrite_rules();
+		GLP_Sitemap::rules();
 		flush_rewrite_rules();
 	}
 

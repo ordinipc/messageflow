@@ -194,6 +194,37 @@ Se un segnaposto resta vuoto, il plugin ripulisce il testo (niente `a  | ` o par
 
 ---
 
+## Sitemap dedicata a ogni città
+
+Il plugin pubblica una sitemap per ogni città più un indice che le raccoglie:
+
+```
+/sitemap-citta.xml              indice
+/sitemap-citta-trapani.xml      Trapani e i suoi servizi
+/sitemap-citta-marsala.xml      Marsala e i suoi servizi
+```
+
+L'indice è dichiarato automaticamente nel `robots.txt` del sito. Contengono **solo le pagine
+indicizzabili**: una città sotto la soglia di qualità non viene nemmeno elencata, così non
+chiedi a Google di scansionare pagine che hai marcato noindex.
+
+Le trovi in **Landing locali → Diagnostica**, con il numero di indirizzi per città.
+
+### Misurare ogni città separatamente
+
+In Search Console aggiungi una proprietà **"Prefisso URL"** per ciascuna città:
+
+```
+https://chiaviitalia.it/trapani/
+https://chiaviitalia.it/marsala/
+```
+
+Ottieni posizionamenti, clic, impressioni e copertura **separati per zona** — gli stessi dati
+che avresti con siti distinti — **senza staccare le pagine dal dominio principale** e senza
+rinunciare alla sua autorevolezza. Poi invii la sitemap della città dentro la sua proprietà.
+
+---
+
 ## Pagina autonoma: l'aspetto di un sito a parte, sullo stesso dominio
 
 **Impostazioni → Aspetto grafico → Rendering → Pagina autonoma**

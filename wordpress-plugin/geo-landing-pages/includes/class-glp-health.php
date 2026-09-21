@@ -201,7 +201,29 @@ class GLP_Health {
 				: __( 'Le città non risultano nelle regole degli indirizzi: vai in Impostazioni → Permalink e premi Salva.', 'geo-landing-pages' ),
 		);
 
-		// 8. Assistente AI: non usarlo è una scelta, non un errore.
+		// 8. Sitemap delle città.
+		$citta_pubbl = GLP_Post_Types::cities( 500 );
+		$con_voci    = 0;
+		foreach ( $citta_pubbl as $c ) {
+			if ( ! empty( GLP_Sitemap::city_entries( $c ) ) ) {
+				$con_voci++;
+			}
+		}
+
+		$esiti[] = array(
+			'ok'    => $con_voci > 0,
+			'nome'  => __( 'Sitemap delle città', 'geo-landing-pages' ),
+			'testo' => $con_voci > 0
+				? sprintf(
+					/* translators: 1: città nella sitemap, 2: totale città. */
+					__( '%1$d città su %2$d hanno pagine indicizzabili e compaiono nell\'indice delle sitemap.', 'geo-landing-pages' ),
+					$con_voci,
+					count( $citta_pubbl )
+				)
+				: __( 'Nessuna città ha pagine indicizzabili: l\'indice delle sitemap è vuoto. Completa le risposte fino a superare la soglia di qualità.', 'geo-landing-pages' ),
+		);
+
+		// 9. Assistente AI: non usarlo è una scelta, non un errore.
 		$esiti[] = array(
 			'ok'    => true,
 			'info'  => ! GLP_AI::is_enabled(),
@@ -269,6 +291,51 @@ class GLP_Health {
 					<?php endforeach; ?>
 				</tbody>
 			</table>
+
+			<h2><?php esc_html_e( 'Sitemap delle città', 'geo-landing-pages' ); ?></h2>
+			<p>
+				<?php esc_html_e( 'Ogni città ha la sua sitemap, più un indice che le raccoglie. È dichiarato nel robots.txt del sito.', 'geo-landing-pages' ); ?>
+			</p>
+			<p>
+				<strong><?php esc_html_e( 'Indice:', 'geo-landing-pages' ); ?></strong>
+				<a href="<?php echo esc_url( GLP_Sitemap::index_url() ); ?>" target="_blank" rel="noopener"><code><?php echo esc_html( GLP_Sitemap::index_url() ); ?></code></a>
+			</p>
+
+			<?php if ( ! empty( $citta ) ) : ?>
+				<table class="widefat striped">
+					<thead>
+						<tr>
+							<th><?php esc_html_e( 'Città', 'geo-landing-pages' ); ?></th>
+							<th><?php esc_html_e( 'Indirizzi indicizzabili', 'geo-landing-pages' ); ?></th>
+							<th><?php esc_html_e( 'Sitemap', 'geo-landing-pages' ); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php foreach ( $citta as $c ) : ?>
+							<?php $voci = GLP_Sitemap::city_entries( $c ); ?>
+							<tr>
+								<td><strong><?php echo esc_html( $c->post_title ); ?></strong></td>
+								<td>
+									<span class="glp-badge <?php echo empty( $voci ) ? 'is-low' : 'is-ok'; ?>"><?php echo esc_html( (string) count( $voci ) ); ?></span>
+								</td>
+								<td>
+									<?php if ( empty( $voci ) ) : ?>
+										<span class="glp-hint"><?php esc_html_e( 'nessuna pagina indicizzabile: non compare nell\'indice', 'geo-landing-pages' ); ?></span>
+									<?php else : ?>
+										<a href="<?php echo esc_url( GLP_Sitemap::city_url( $c ) ); ?>" target="_blank" rel="noopener"><code><?php echo esc_html( wp_make_link_relative( GLP_Sitemap::city_url( $c ) ) ); ?></code></a>
+									<?php endif; ?>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+
+				<div class="notice notice-info inline"><p>
+					<?php esc_html_e( 'In Search Console puoi aggiungere una proprietà "Prefisso URL" per ogni città, per esempio', 'geo-landing-pages' ); ?>
+					<code><?php echo esc_html( home_url( '/trapani/' ) ); ?></code>:
+					<?php esc_html_e( 'ottieni posizionamenti, clic e copertura separati per zona, senza staccare le pagine dal dominio principale.', 'geo-landing-pages' ); ?>
+				</p></div>
+			<?php endif; ?>
 
 			<?php if ( ! empty( $orfani ) && ! empty( $citta ) ) : ?>
 				<h2><?php esc_html_e( 'Assegna i servizi a una città', 'geo-landing-pages' ); ?></h2>
