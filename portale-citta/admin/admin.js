@@ -169,3 +169,72 @@
 		aggiorna();
 	});
 })();
+
+/* Caricamento dei modelli Gemini disponibili per la chiave inserita. */
+(function () {
+	'use strict';
+
+	var bottone = document.getElementById('carica-modelli');
+	if (!bottone) { return; }
+
+	var esito = document.getElementById('esito-modelli');
+	var campo = document.getElementById('campo-modello');
+	var elenco = document.getElementById('elenco-modelli');
+
+	function messaggio(testo, colore) {
+		esito.textContent = testo;
+		esito.style.color = colore;
+	}
+
+	bottone.addEventListener('click', function () {
+		var etichetta = bottone.textContent;
+		bottone.disabled = true;
+		bottone.textContent = 'Chiedo a Google…';
+		messaggio('', '');
+
+		var corpo = new FormData();
+		corpo.append('compito', 'modelli');
+		corpo.append('token', bottone.getAttribute('data-token') || '');
+
+		fetch('admin.php?p=ai', { method: 'POST', body: corpo })
+			.then(function (r) { return r.json(); })
+			.then(function (d) {
+				bottone.disabled = false;
+				bottone.textContent = etichetta;
+
+				if (!d.ok) {
+					messaggio('✗ ' + (d.errore || 'errore sconosciuto'), '#b3261e');
+					return;
+				}
+				if (!d.modelli || !d.modelli.length) {
+					messaggio('La chiave funziona, ma non risulta nessun modello utilizzabile.', '#b3261e');
+					return;
+				}
+
+				elenco.innerHTML = '';
+				d.modelli.forEach(function (m) {
+					var o = document.createElement('option');
+					o.value = m.nome;
+					o.label = m.etichetta;
+					elenco.appendChild(o);
+				});
+
+				// Se il modello impostato non è fra quelli validi, si propone il primo.
+				var validi = d.modelli.map(function (m) { return m.nome; });
+				if (validi.indexOf(campo.value.trim()) === -1) {
+					var primo = validi[0];
+					campo.value = primo;
+					messaggio('✓ ' + validi.length + ' modelli disponibili. Quello impostato non era più valido: ho messo "'
+						+ primo + '". Salva per confermare.', '#b3261e');
+				} else {
+					messaggio('✓ Chiave valida, ' + validi.length
+						+ ' modelli disponibili. Il campo ora li suggerisce mentre scrivi.', '#0f7b3f');
+				}
+			})
+			.catch(function (err) {
+				bottone.disabled = false;
+				bottone.textContent = etichetta;
+				messaggio('✗ Non sono riuscito a contattare il server: ' + err.message, '#b3261e');
+			});
+	});
+})();

@@ -27,7 +27,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		'seo_suffisso'    => trim( (string) ( $_POST['seo_suffisso'] ?? '' ) ),
 		'ga_id'           => trim( (string) ( $_POST['ga_id'] ?? '' ) ),
 		'gemini_key'      => trim( (string) ( $_POST['gemini_key'] ?? '' ) ),
-		'gemini_modello'  => trim( (string) ( $_POST['gemini_modello'] ?? 'gemini-2.5-flash' ) ),
+		'gemini_modello'  => trim( (string) ( $_POST['gemini_modello'] ?? 'gemini-3.6-flash' ) ),
 		'indicizza'       => isset( $_POST['indicizza'] ) ? '1' : '0',
 		'privacy_url'     => trim( (string) ( $_POST['privacy_url'] ?? '' ) ),
 		'cookie_url'      => trim( (string) ( $_POST['cookie_url'] ?? '' ) ),
@@ -209,12 +209,18 @@ $cfg      = db_config();
 			<small>Si ottiene da Google AI Studio. Resta sul tuo server, nel database.</small>
 		</label>
 		<label>Modello
-			<select name="gemini_modello">
-				<?php foreach ( array( 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash' ) as $m ) : ?>
-					<option value="<?php echo e( $m ); ?>" <?php selected_pc( $m, $imp['gemini_modello'] ); ?>><?php echo e( $m ); ?></option>
-				<?php endforeach; ?>
-			</select>
+			<input type="text" name="gemini_modello" id="campo-modello" list="elenco-modelli"
+				value="<?php echo e( $imp['gemini_modello'] ); ?>" placeholder="gemini-3.6-flash" spellcheck="false">
+			<datalist id="elenco-modelli"></datalist>
+			<small>
+				Google ritira i modelli senza preavviso: il campo è libero, così puoi sempre
+				scrivere quello nuovo senza toccare il codice.
+			</small>
 		</label>
+
+		<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo" id="carica-modelli"
+			data-token="<?php echo e( token() ); ?>">Verifica la chiave e carica i modelli</button>
+		<p class="pc-nota" id="esito-modelli" style="margin-top:10px"></p>
 		<p class="pc-nota">
 			<strong>Da sapere.</strong> Il testo generato va sempre riletto e corretto: il modello non conosce la tua
 			attività e inventa volentieri dettagli. Pubblicare testi AI non rivisti, uguali in venti città, è il modo

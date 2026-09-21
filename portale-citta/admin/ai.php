@@ -18,6 +18,18 @@ if ( ! hash_equals( token(), $inviato ) ) {
 	ai_risposta( array( 'ok' => false, 'errore' => 'Sessione scaduta: ricarica la pagina.' ) );
 }
 
+$compito = (string) ( $_POST['compito'] ?? '' );
+
+// L'elenco dei modelli non ha bisogno né di città né di pagina.
+if ( 'modelli' === $compito ) {
+	$esito = ai_modelli();
+	ai_risposta( array(
+		'ok'      => (bool) $esito['ok'],
+		'modelli' => $esito['modelli'],
+		'errore'  => $esito['errore'],
+	) );
+}
+
 if ( ! ai_attiva() ) {
 	ai_risposta( array( 'ok' => false, 'errore' => 'Chiave Gemini non impostata.' ) );
 }
@@ -40,8 +52,6 @@ foreach ( array( 'titolo', 'intro', 'corpo', 'inclusi', 'prezzo_da', 'prezzo_a',
 		$pagina[ $campo ] = trim( (string) $modulo[ $campo ] );
 	}
 }
-
-$compito = (string) ( $_POST['compito'] ?? '' );
 
 switch ( $compito ) {
 	case 'intro':

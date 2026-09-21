@@ -11,6 +11,111 @@ function ai_attiva() {
 }
 
 /**
+ * Indirizzo di base dell'API.
+ *
+ * La variabile d'ambiente PC_AI_BASE esiste solo per poter collaudare
+ * l'assistente contro un finto endpoint, senza consumare la quota vera.
+ * In produzione non va impostata: il valore giusto è quello di riserva.
+ */
+function ai_base() {
+	$prova = getenv( 'PC_AI_BASE' );
+	return ( is_string( $prova ) && '' !== $prova ) ? $prova : 'https://generativelanguage.googleapis.com/v1beta';
+}
+
+/**
+ * Chiede a Google quali modelli accetta questa chiave.
+ *
+ * Meglio di un elenco scritto nel codice: Google ritira i modelli senza
+ * preavviso e un elenco fisso invecchia. Qui si vede sempre la verità.
+ *
+ * @return array( 'ok' => bool, 'modelli' => array, 'errore' => string )
+ */
+function ai_modelli() {
+	$chiave = impostazione( 'gemini_key', '' );
+	if ( vuoto( $chiave ) ) {
+		return array( 'ok' => false, 'modelli' => array(), 'errore' => 'Chiave Gemini non impostata.' );
+	}
+	if ( ! function_exists( 'curl_init' ) ) {
+		return array( 'ok' => false, 'modelli' => array(), 'errore' => 'Estensione cURL non disponibile sul server.' );
+	}
+
+	$ch = curl_init( ai_base() . '/models?pageSize=200' );
+	curl_setopt_array( $ch, array(
+		CURLOPT_RETURNTRANSFER => true,
+		CURLOPT_TIMEOUT        => 25,
+		CURLOPT_HTTPHEADER     => array( 'x-goog-api-key: ' . $chiave ),
+	) );
+	$risposta = curl_exec( $ch );
+	$stato    = (int) curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+	$errcurl  = curl_error( $ch );
+	curl_close( $ch );
+
+	if ( false === $risposta ) {
+		return array( 'ok' => false, 'modelli' => array(), 'errore' => 'Connessione fallita: ' . $errcurl );
+	}
+	$dati = json_decode( (string) $risposta, true );
+	if ( 200 !== $stato ) {
+		$messaggio = pesca( is_array( $dati ) ? $dati : array(), 'error.message', 'Errore HTTP ' . $stato );
+		return array( 'ok' => false, 'modelli' => array(), 'errore' => ai_traduci( $messaggio, $stato ) );
+	}
+
+	$modelli = array();
+	foreach ( (array) pesca( is_array( $dati ) ? $dati : array(), 'models', array() ) as $m ) {
+		$metodi = isset( $m['supportedGenerationMethods'] ) ? (array) $m['supportedGenerationMethods'] : array();
+		if ( ! in_array( 'generateContent', $metodi, true ) ) {
+			continue;
+		}
+		$nome = isset( $m['name'] ) ? (string) $m['name'] : '';
+		// Arriva come "models/gemini-3.6-flash": teniamo solo l'ultima parte.
+		$nome = preg_replace( '#^models/#', '', $nome );
+		if ( '' === $nome ) {
+			continue;
+		}
+		$modelli[] = array(
+			'nome'      => $nome,
+			'etichetta' => isset( $m['displayName'] ) ? (string) $m['displayName'] : $nome,
+		);
+	}
+
+	usort( $modelli, function ( $a, $b ) {
+		return strcmp( $b['nome'], $a['nome'] );
+	} );
+
+	return array( 'ok' => true, 'modelli' => $modelli, 'errore' => '' );
+}
+
+/**
+ * Traduce in italiano gli errori più frequenti dell'API, con il rimedio.
+ * Il testo originale di Google resta in coda: serve per cercare aiuto.
+ */
+function ai_traduci( $messaggio, $stato = 0 ) {
+	$m = (string) $messaggio;
+
+	if ( false !== stripos( $m, 'no longer available' ) || false !== stripos( $m, 'is not found' ) || false !== stripos( $m, 'not supported' ) ) {
+		$rimedio = 'Il modello impostato non esiste più.';
+		// Google di solito nomina il sostituto nel messaggio: l'ultimo
+		// "models/…" citato è quello consigliato, non quello ritirato.
+		if ( preg_match_all( '#models/([a-z0-9.\-]+)#i', $m, $citati ) && count( $citati[1] ) > 1 ) {
+			$rimedio .= ' Google suggerisce "' . end( $citati[1] ) . '".';
+		}
+		return $rimedio . ' Vai in Impostazioni → Assistente e premi "Carica i modelli disponibili". — ' . $m;
+	}
+	if ( 400 === $stato && false !== stripos( $m, 'API key not valid' ) ) {
+		return 'Chiave non valida: ricontrolla di averla copiata per intero da Google AI Studio. — ' . $m;
+	}
+	if ( 403 === $stato ) {
+		return 'Chiave rifiutata: potrebbe non avere accesso all\'API Generative Language, o essere limitata a certi indirizzi IP. — ' . $m;
+	}
+	if ( 429 === $stato ) {
+		return 'Hai superato il limite di richieste. Aspetta qualche minuto e riprova. — ' . $m;
+	}
+	if ( $stato >= 500 ) {
+		return 'Google ha risposto con un errore temporaneo. Riprova fra poco. — ' . $m;
+	}
+	return $m;
+}
+
+/**
  * Chiama Gemini e restituisce il testo generato.
  * Ritorna array( 'ok' => bool, 'testo' => string, 'errore' => string ).
  */
@@ -23,8 +128,8 @@ function ai_chiedi( $istruzione, $schema = null ) {
 		return array( 'ok' => false, 'testo' => '', 'errore' => 'Estensione cURL non disponibile sul server.' );
 	}
 
-	$modello = impostazione( 'gemini_modello', 'gemini-2.5-flash' );
-	$url     = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode( $modello ) . ':generateContent';
+	$modello = impostazione( 'gemini_modello', 'gemini-3.6-flash' );
+	$url     = ai_base() . '/models/' . rawurlencode( $modello ) . ':generateContent';
 
 	$corpo = array(
 		'contents'         => array(
@@ -62,7 +167,7 @@ function ai_chiedi( $istruzione, $schema = null ) {
 	$dati = json_decode( (string) $risposta, true );
 	if ( 200 !== $stato ) {
 		$messaggio = pesca( is_array( $dati ) ? $dati : array(), 'error.message', 'Errore HTTP ' . $stato );
-		return array( 'ok' => false, 'testo' => '', 'errore' => $messaggio );
+		return array( 'ok' => false, 'testo' => '', 'errore' => ai_traduci( $messaggio, $stato ) );
 	}
 	$testo = pesca( is_array( $dati ) ? $dati : array(), 'candidates.0.content.parts.0.text', '' );
 	if ( vuoto( $testo ) ) {

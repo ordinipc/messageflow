@@ -189,6 +189,20 @@ forza — e propone il testo. **Va sempre riletto**: il modello non conosce la t
 attività e inventa dettagli. Pubblicare testo generato e non rivisto è il modo
 più rapido per farsi ignorare.
 
+### Quando Google ritira un modello
+
+Succede, e senza preavviso: un giorno l'assistente risponde *"questo modello non
+è più disponibile"*. Per questo il campo **Modello** è libero, non un elenco
+chiuso scritto nel codice.
+
+Premi **Verifica la chiave e carica i modelli**: il portale chiede a Google quali
+modelli accetta la *tua* chiave e riempie i suggerimenti. Se quello impostato non
+è più valido lo sostituisce con il più recente, poi salvi.
+
+Gli errori dell'API arrivano tradotti, con il rimedio: chiave non valida, chiave
+senza permessi, limite di richieste superato, modello ritirato (con il nome del
+sostituto che Google stesso indica).
+
 ---
 
 ## Struttura dei file

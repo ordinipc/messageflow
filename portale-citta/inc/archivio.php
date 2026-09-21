@@ -69,7 +69,7 @@ function impostazioni_predefinite() {
 		'seo_suffisso'    => '',
 		'ga_id'           => '',
 		'gemini_key'      => '',
-		'gemini_modello'  => 'gemini-2.5-flash',
+		'gemini_modello'  => 'gemini-3.6-flash',
 		'indicizza'       => '1',
 		'css_globale'     => '',
 		'js_globale'      => '',
