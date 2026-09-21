@@ -63,12 +63,12 @@ function puo_amministrare() {
  * un ostacolo senza guadagno.
  */
 function accedi( $password, $nome = '' ) {
-	$nome = utente_nome_pulito( $nome );
+	$nome = trim( (string) $nome );
 	if ( '' === $nome ) {
 		$attivi = db_righe( 'SELECT * FROM ' . db_tab( 'utenti' ) . " WHERE stato = 'attivo'" );
 		$u      = ( 1 === count( $attivi ) ) ? $attivi[0] : null;
 	} else {
-		$u = utente_per_nome( $nome );
+		$u = utente_per_accesso( $nome );
 	}
 	if ( ! $u || 'attivo' !== $u['stato'] || vuoto( $u['password_hash'] ) ) {
 		// Si verifica comunque un hash finto: senza, il tempo di risposta

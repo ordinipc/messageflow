@@ -2,9 +2,12 @@
 /** Schermata di accesso. */
 defined( 'PC_AVVIO' ) || exit;
 
+// Con un utente solo il nome non serve e il campo non si mostra: i gestori
+// di password lo riempirebbero da soli con la mail salvata, e chi entra si
+// vedrebbe rifiutare una password giusta.
 $uno    = 1 === utenti_conta( true );
 $errore = '';
-$nome   = trim( (string) ( $_POST['nome'] ?? '' ) );
+$nome   = $uno ? '' : trim( (string) ( $_POST['nome'] ?? '' ) );
 
 if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	if ( accedi( (string) ( $_POST['password'] ?? '' ), $nome ) ) {
@@ -32,13 +35,11 @@ $imp = impostazioni();
 		<div class="pc-avviso pc-avviso--errore"><?php echo e( $errore ); ?></div>
 	<?php endif; ?>
 	<form method="post">
-		<label>Nome utente
-			<input type="text" name="nome" value="<?php echo e( $nome ); ?>" autocomplete="username"
-				<?php echo $uno ? '' : 'required autofocus'; ?>>
-			<?php if ( $uno ) : ?>
-				<small>C'è un solo utente: puoi lasciarlo vuoto.</small>
-			<?php endif; ?>
-		</label>
+		<?php if ( ! $uno ) : ?>
+			<label>Nome utente o email
+				<input type="text" name="nome" value="<?php echo e( $nome ); ?>" autocomplete="username" required autofocus>
+			</label>
+		<?php endif; ?>
 		<label>Password
 			<input type="password" name="password" autocomplete="current-password" required <?php echo $uno ? 'autofocus' : ''; ?>>
 		</label>

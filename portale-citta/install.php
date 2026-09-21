@@ -68,6 +68,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['azione'] ) && 'avvi
 	$url      = rtrim( trim( (string) ( $_POST['sito_url'] ?? '' ) ), '/' );
 	$password = (string) ( $_POST['password'] ?? '' );
 	$utente   = utente_nome_pulito( $_POST['utente'] ?? 'admin' );
+	$email    = trim( (string) ( $_POST['email'] ?? '' ) );
 	if ( '' === $utente ) {
 		$utente = 'admin';
 	}
@@ -80,10 +81,12 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['azione'] ) && 'avvi
 			impostazioni_salva( array(
 				'brand'    => '' === $brand ? 'Il mio sito' : $brand,
 				'sito_url' => $url,
+				'email'    => $email,
 			) );
 			utente_salva( array(
 				'nome'          => $utente,
 				'etichetta'     => 'Amministratore',
+				'email'         => $email,
 				'password_hash' => password_hash( $password, PASSWORD_DEFAULT ),
 				'ruolo'         => 'amministratore',
 				'stato'         => 'attivo',
@@ -155,6 +158,11 @@ $cfg = db_config();
 			<label>Nome utente
 				<input type="text" name="utente" value="admin" autocomplete="off">
 				<small>Il nome con cui entrerai. Minuscolo, senza spazi. Altri utenti si aggiungono dopo.</small>
+			</label>
+			<label>La tua email
+				<input type="email" name="email" placeholder="tu@tuosito.it">
+				<small>Serve per ricevere i messaggi dal modulo contatti e per entrare
+					anche scrivendo l'email al posto del nome utente.</small>
 			</label>
 			<label>Password di amministrazione
 				<input type="password" name="password" minlength="8" required>

@@ -90,6 +90,28 @@ function utente_per_nome( $nome ) {
 	return db_riga( 'SELECT * FROM ' . db_tab( 'utenti' ) . ' WHERE nome = ?', array( $nome ) );
 }
 
+/**
+ * Trova l'utente da quello che ha scritto nel campo: il nome, oppure
+ * l'email. Chi entra due volte l'anno il nome se lo dimentica, l'email no.
+ */
+function utente_per_accesso( $scritto ) {
+	$scritto = trim( (string) $scritto );
+	if ( '' === $scritto ) {
+		return null;
+	}
+	$u = utente_per_nome( $scritto );
+	if ( $u ) {
+		return $u;
+	}
+	if ( false === strpos( $scritto, '@' ) ) {
+		return null;
+	}
+	return db_riga(
+		'SELECT * FROM ' . db_tab( 'utenti' ) . ' WHERE LOWER(email) = ?',
+		array( strtolower( $scritto ) )
+	);
+}
+
 /** True se il nome è libero (escluso l'utente che si sta modificando). */
 function utente_nome_libero( $nome, $escludi = '' ) {
 	$altro = utente_per_nome( $nome );

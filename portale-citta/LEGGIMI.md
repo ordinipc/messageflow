@@ -62,7 +62,8 @@ una cartella fisica non viene intercettata.
 2. Dai il permesso di scrittura (755) alle cartelle `dati/` e `media/`.
 3. Apri `install.php` nel browser e segui i tre passi:
    - **Database** — MySQL (consigliato) oppure SQLite se non puoi creare un database
-   - **Il tuo sito** — nome dell'attività, indirizzo del portale, nome utente e password
+   - **Il tuo sito** — nome dell'attività, indirizzo del portale, nome utente,
+     email e password
    - **Fine**
 4. **Cancella `install.php` dal server.** L'amministrazione te lo ricorda.
 5. Se il portale sta in una sottocartella, apri il `robots.txt` del **sito
@@ -91,7 +92,12 @@ entra più, e se in quel momento era collegato viene rimandato al login.
 Il portale non si lascia chiudere fuori: l'ultimo amministratore attivo non si
 può declassare, sospendere o eliminare, e nessuno può eliminare sé stesso.
 
-Finché c'è un solo utente, al login il nome si può lasciare vuoto.
+Finché c'è un solo utente **la schermata di accesso chiede solo la password**:
+il campo del nome non compare nemmeno, così i gestori di password del browser
+non possono riempirlo per conto loro e far rifiutare una password giusta.
+
+Dal secondo utente in poi il campo torna, e accetta sia il nome utente sia
+l'email della persona.
 
 > **Aggiorni da una versione precedente?** La password che usavi continua a
 > funzionare: diventa l'utente `admin`. Il primo accesso al pannello fa tutto
