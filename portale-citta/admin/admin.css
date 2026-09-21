@@ -128,7 +128,10 @@ input[type=checkbox]{width:auto;margin:0 6px 0 0;}
 }
 .pc-tabella tr:last-child td{border-bottom:0;}
 .pc-tabella td strong{font-size:14px;}
-.pc-tabella__azioni{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;}
+/* display:flex su un <td> lo toglie dalla tabella: le righe alte
+   finivano con i bordi sfasati. Qui restano celle, i pulsanti no. */
+.pc-tabella__azioni{text-align:right;white-space:nowrap;}
+.pc-tabella__azioni .pc-btn{margin:2px 0 2px 6px;}
 .pc-tabella code{font-size:12px;color:var(--pc-grigio);}
 
 /* --- Etichette di stato ------------------------------------------------ */
@@ -228,7 +231,13 @@ input[type=checkbox]{width:auto;margin:0 6px 0 0;}
 }
 @media (max-width:720px){
 	.pc-corpo{flex-direction:column;}
-	.pc-menu{width:100%;flex:none;position:static;max-height:none;display:flex;overflow-x:auto;padding:0;border-right:0;border-bottom:1px solid var(--pc-bordo);}
+	/* Senza azzerare min-height la barra laterale resta alta quanto lo
+	   schermo e spinge tutto il pannello sotto la piega. */
+	.pc-menu{
+		width:100%;flex:none;position:static;display:flex;overflow-x:auto;
+		min-height:0;max-height:none;align-self:auto;
+		padding:0;border-right:0;border-bottom:1px solid var(--pc-bordo);
+	}
 	.pc-menu__voce{border-left:0;border-bottom:3px solid transparent;white-space:nowrap;padding:12px 14px;}
 	.pc-menu__voce.is-attiva{border-left-color:transparent;border-bottom-color:var(--pc-accento);}
 	.pc-contenuto{padding:18px 16px 50px;}
@@ -237,7 +246,8 @@ input[type=checkbox]{width:auto;margin:0 6px 0 0;}
 	.pc-tabella,.pc-tabella tbody,.pc-tabella tr,.pc-tabella td{display:block;width:100%;}
 	.pc-tabella tr{border-bottom:1px solid var(--pc-bordo);padding:8px 0;}
 	.pc-tabella td{border-bottom:0;padding:5px 14px;}
-	.pc-tabella__azioni{justify-content:flex-start;}
+	.pc-tabella__azioni{text-align:left;}
+	.pc-tabella__azioni .pc-btn{margin:2px 6px 2px 0;}
 }
 
 /* =========================================================
