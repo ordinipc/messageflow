@@ -149,11 +149,15 @@ class GLP_Services {
 	public static function edit_fields( $term ) {
 		$page_id = (int) get_term_meta( $term->term_id, self::META_PAGE, true );
 		$image   = (string) get_term_meta( $term->term_id, self::META_IMAGE, true );
-		wp_nonce_field( 'glp_service_fields', 'glp_service_nonce' );
 		?>
 		<tr class="form-field">
 			<th scope="row"><label for="glp_page"><?php esc_html_e( 'Pagina del servizio', 'geo-landing-pages' ); ?></label></th>
 			<td>
+				<?php
+				// Dentro la cella: fuori dalle righe il browser lo sposta
+				// altrove e il campo rischia di non arrivare al salvataggio.
+				wp_nonce_field( 'glp_service_fields', 'glp_service_nonce' );
+				?>
 				<?php
 				wp_dropdown_pages(
 					array(
@@ -181,10 +185,26 @@ class GLP_Services {
 	 * @param int $term_id ID termine.
 	 */
 	public static function save_fields( $term_id ) {
-		if ( ! isset( $_POST['glp_service_nonce'] ) || ! wp_verify_nonce( sanitize_key( wp_unslash( $_POST['glp_service_nonce'] ) ), 'glp_service_fields' ) ) {
+		if ( ! current_user_can( 'manage_categories' ) ) {
 			return;
 		}
-		if ( ! current_user_can( 'manage_categories' ) ) {
+
+		// Il nostro controllo di sicurezza, oppure quello che WordPress
+		// usa già per il modulo del termine: basta uno dei due.
+		$verificato = false;
+
+		if ( isset( $_POST['glp_service_nonce'] )
+			&& wp_verify_nonce( sanitize_key( wp_unslash( $_POST['glp_service_nonce'] ) ), 'glp_service_fields' ) ) {
+			$verificato = true;
+		} elseif ( isset( $_POST['_wpnonce'] )
+			&& wp_verify_nonce( sanitize_key( wp_unslash( $_POST['_wpnonce'] ) ), 'update-tag_' . (int) $term_id ) ) {
+			$verificato = true;
+		} elseif ( isset( $_POST['_wpnonce_add-tag'] )
+			&& wp_verify_nonce( sanitize_key( wp_unslash( $_POST['_wpnonce_add-tag'] ) ), 'add-tag' ) ) {
+			$verificato = true;
+		}
+
+		if ( ! $verificato ) {
 			return;
 		}
 

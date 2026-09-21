@@ -241,6 +241,7 @@ class GLP_Content {
 		if ( 'filter' !== GLP_Settings::get( 'template_mode', 'filter' ) ) {
 			return $content;
 		}
+
 		$post_id = get_the_ID();
 
 		$sopra = (string) GLP_Meta::raw( $post_id, 'codice_html_top' );
@@ -1243,15 +1244,22 @@ class GLP_Content {
 		if ( ! is_singular( GLP_POST_TYPE ) ) {
 			return $template;
 		}
-		if ( 'template' !== GLP_Settings::get( 'template_mode', 'filter' ) ) {
+		$modo = GLP_Settings::get( 'template_mode', 'filter' );
+		if ( 'template' !== $modo && 'standalone' !== $modo ) {
 			return $template;
 		}
+
+		$file = 'standalone' === $modo
+			? 'standalone-' . GLP_POST_TYPE . '.php'
+			: 'single-' . GLP_POST_TYPE . '.php';
+
 		// Il tema può sovrascrivere il template del plugin.
-		$theme = locate_template( array( 'geo-landing-pages/single-' . GLP_POST_TYPE . '.php' ) );
+		$theme = locate_template( array( 'geo-landing-pages/' . $file ) );
 		if ( $theme ) {
 			return $theme;
 		}
-		$plugin = GLP_PATH . 'templates/single-' . GLP_POST_TYPE . '.php';
+
+		$plugin = GLP_PATH . 'templates/' . $file;
 		return file_exists( $plugin ) ? $plugin : $template;
 	}
 }

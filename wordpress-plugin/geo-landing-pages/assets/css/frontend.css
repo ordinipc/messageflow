@@ -34,7 +34,15 @@
 .glp-hero.glp-hero *::after,
 .glp-sections.glp-sections *,
 .glp-sections.glp-sections *::before,
-.glp-sections.glp-sections *::after{
+.glp-sections.glp-sections *::after,
+.glp-citymenu.glp-citymenu,
+.glp-citymenu.glp-citymenu *,
+.glp-topbar.glp-topbar,
+.glp-topbar.glp-topbar *,
+.glp-bottombar.glp-bottombar,
+.glp-bottombar.glp-bottombar *,
+.glp-grid.glp-grid,
+.glp-grid.glp-grid *{
     box-sizing:border-box;
 }
 
@@ -1500,8 +1508,6 @@
 
     position:relative;
 
-    height:100%;
-
     padding:15px 18px;
 
     color:rgba(255,255,255,.72);
@@ -1910,5 +1916,213 @@
 
     .glp-grid.glp-grid{
         grid-template-columns:1fr;
+    }
+}
+
+
+/* =========================================================
+   PAGINA AUTONOMA
+   Intestazione e piè di pagina disegnati dal plugin, senza
+   dipendere dal tema.
+========================================================= */
+
+body.glp-standalone{
+    margin:0 !important;
+
+    background:#fff;
+
+    color:var(--glp-text,#111);
+}
+
+.glp-topbar.glp-topbar{
+    position:sticky;
+    top:0;
+    z-index:30;
+
+    background:var(--glp-dark,#0d0d0d);
+
+    border-bottom:1px solid rgba(255,255,255,.12);
+}
+
+.glp-topbar__inner.glp-topbar__inner{
+    display:flex;
+    align-items:center;
+
+    gap:18px;
+
+    width:min(1240px,calc(100% - 40px));
+    margin:0 auto;
+
+    padding:14px 0;
+}
+
+.glp-topbar__brand.glp-topbar__brand{
+    display:flex;
+    align-items:center;
+
+    color:#fff;
+
+    text-decoration:none !important;
+}
+
+.glp-topbar__brand img{
+    max-height:42px;
+    width:auto;
+
+    display:block;
+}
+
+.glp-topbar__name.glp-topbar__name{
+    font-size:15px;
+    font-weight:800;
+    letter-spacing:-.01em;
+}
+
+.glp-topbar__city.glp-topbar__city{
+    display:flex;
+    align-items:center;
+    gap:9px;
+
+    padding:8px 14px;
+
+    border:1px solid rgba(255,255,255,.2);
+    border-radius:var(--glp-radius,5px);
+
+    color:#fff;
+
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+
+    text-decoration:none !important;
+}
+
+.glp-topbar__cta.glp-topbar__cta{
+    margin-left:auto;
+
+    min-height:44px;
+
+    padding:0 18px;
+
+    font-size:12px;
+}
+
+.glp-main__inner.glp-main__inner{
+    width:min(1240px,calc(100% - 40px));
+    margin:0 auto;
+
+    padding:28px 0 10px;
+}
+
+.glp-standalone .glp-content{
+    max-width:820px;
+
+    font-size:16px;
+    line-height:1.75;
+}
+
+/* Piè di pagina */
+
+.glp-bottombar.glp-bottombar{
+    margin-top:clamp(40px,6vw,80px);
+
+    background:var(--glp-dark,#0d0d0d);
+
+    color:rgba(255,255,255,.72);
+}
+
+.glp-bottombar__inner.glp-bottombar__inner{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+
+    gap:32px;
+
+    width:min(1240px,calc(100% - 40px));
+    margin:0 auto;
+
+    padding:clamp(32px,4vw,56px) 0;
+}
+
+.glp-bottombar__name.glp-bottombar__name{
+    margin:0 0 10px;
+
+    color:#fff;
+
+    font-size:15px;
+    font-weight:800;
+}
+
+.glp-bottombar__label.glp-bottombar__label{
+    margin:0 0 12px;
+
+    color:var(--glp-accent,#ffd400);
+
+    font-size:9px;
+    font-weight:700;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+}
+
+.glp-bottombar p{
+    margin:0 0 6px;
+
+    font-size:14px;
+    line-height:1.6;
+}
+
+.glp-bottombar ul{
+    list-style:none !important;
+
+    margin:0 !important;
+    padding:0 !important;
+
+    display:grid;
+    gap:7px;
+}
+
+.glp-bottombar li{
+    list-style:none !important;
+
+    font-size:14px;
+}
+
+.glp-bottombar a{
+    color:rgba(255,255,255,.72);
+
+    text-decoration:none !important;
+}
+
+.glp-bottombar a:hover{
+    color:var(--glp-accent,#ffd400);
+}
+
+.glp-bottombar__copy.glp-bottombar__copy{
+    margin:0;
+
+    padding:16px 0 24px;
+
+    border-top:1px solid rgba(255,255,255,.12);
+
+    text-align:center;
+
+    font-size:9px;
+    font-weight:700;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+
+    color:rgba(255,255,255,.4);
+}
+
+@media(max-width:767px){
+
+    .glp-topbar__inner.glp-topbar__inner{
+        flex-wrap:wrap;
+        gap:10px;
+    }
+
+    .glp-topbar__cta.glp-topbar__cta{
+        margin-left:0;
+        width:100%;
     }
 }

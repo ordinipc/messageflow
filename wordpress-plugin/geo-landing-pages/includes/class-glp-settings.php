@@ -134,7 +134,10 @@ class GLP_Settings {
 			}
 		}
 
-		$out['template_mode'] = isset( $input['template_mode'] ) && 'template' === $input['template_mode'] ? 'template' : 'filter';
+		$modi_template = array( 'filter', 'template', 'standalone' );
+		if ( isset( $input['template_mode'] ) && in_array( $input['template_mode'], $modi_template, true ) ) {
+			$out['template_mode'] = $input['template_mode'];
+		}
 
 		// Il prefisso può contenere più segmenti: sanitizzo ogni pezzo.
 		$prefix = isset( $input['url_prefix'] ) ? wp_unslash( $input['url_prefix'] ) : '';

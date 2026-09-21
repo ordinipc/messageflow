@@ -674,7 +674,9 @@ class GLP_Admin {
 						<th scope="row"><?php esc_html_e( 'Rendering', 'geo-landing-pages' ); ?></th>
 						<td>
 							<label><input type="radio" name="<?php echo esc_attr( $name ); ?>[template_mode]" value="filter" <?php checked( $s['template_mode'], 'filter' ); ?> /> <?php esc_html_e( 'Usa il template del tema e aggiungi le sezioni al contenuto (consigliato)', 'geo-landing-pages' ); ?></label><br />
-							<label><input type="radio" name="<?php echo esc_attr( $name ); ?>[template_mode]" value="template" <?php checked( $s['template_mode'], 'template' ); ?> /> <?php esc_html_e( 'Usa il template del plugin', 'geo-landing-pages' ); ?></label>
+							<label><input type="radio" name="<?php echo esc_attr( $name ); ?>[template_mode]" value="template" <?php checked( $s['template_mode'], 'template' ); ?> /> <?php esc_html_e( 'Usa il template del plugin, dentro l\'intestazione del tema', 'geo-landing-pages' ); ?></label><br />
+							<label><input type="radio" name="<?php echo esc_attr( $name ); ?>[template_mode]" value="standalone" <?php checked( $s['template_mode'], 'standalone' ); ?> /> <?php esc_html_e( 'Pagina autonoma: il plugin disegna tutta la pagina, intestazione e piè di pagina compresi', 'geo-landing-pages' ); ?></label>
+							<p class="description"><?php esc_html_e( 'La pagina autonoma non usa il tema: niente conflitti con Blocksy o Elementor, colori e struttura decisi dal plugin. L\'indirizzo resta quello del sito, quindi il vantaggio di posizionamento non si perde.', 'geo-landing-pages' ); ?></p>
 						</td>
 					</tr>
 				</table>

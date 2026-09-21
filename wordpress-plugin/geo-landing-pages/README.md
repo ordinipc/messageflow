@@ -194,6 +194,33 @@ Se un segnaposto resta vuoto, il plugin ripulisce il testo (niente `a  | ` o par
 
 ---
 
+## Pagina autonoma: l'aspetto di un sito a parte, sullo stesso dominio
+
+**Impostazioni → Aspetto grafico → Rendering → Pagina autonoma**
+
+Il plugin disegna **tutta** la pagina: barra in alto con logo, città e pulsante di chiamata,
+contenuto, piè di pagina con dati aziendali, elenco delle città e link legali. Non usa
+l'intestazione né il piè di pagina del tema, quindi non c'è niente che possa entrare in
+conflitto con Blocksy o Elementor.
+
+### Perché l'indirizzo resta sul sito principale
+
+Sembrerebbe più pulito mettere le città su un sito separato o su file HTML a parte. Per il
+posizionamento è il contrario:
+
+- `chiaviitalia.it/trapani/` **eredita l'autorevolezza** del dominio principale, la sua
+  anzianità e i link che il sito ha già.
+- Un sito separato **parte da zero** e deve guadagnarsi da solo fiducia e link. Per Google è
+  un'altra entità, non una sezione della tua.
+- Servire `/trapani/` da un file PHP statico **non separa niente**: Google vede indirizzi su
+  un dominio, non sa né gli importa chi genera la pagina. Si perderebbero editor, sitemap e
+  plugin SEO senza guadagnare nulla in cambio.
+
+La struttura "sito centrale + pagine città" è già quella che Google premia. La modalità
+autonoma ti dà l'aspetto di un sito dedicato mantenendo il vantaggio del dominio.
+
+---
+
 ## Aspetto grafico
 
 Le landing e le pagine generate usano lo **stesso linguaggio visivo dell'hero Servizi**:
