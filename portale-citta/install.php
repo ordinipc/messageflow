@@ -15,7 +15,8 @@ $config   = PC_RADICE . '/config.php';
 if ( db_configurato() ) {
 	try {
 		db();
-		$passo = db_installato() && '' !== impostazione( 'password_hash', '' ) ? 3 : 2;
+		// Installato vuol dire: tabelle create e almeno un utente che può entrare.
+		$passo = ( db_installato() && ( utenti_conta() > 0 || '' !== impostazione( 'password_hash', '' ) ) ) ? 3 : 2;
 	} catch ( PDOException $ex ) {
 		$errore = 'Connessione fallita: ' . $ex->getMessage();
 		$passo  = 1;
@@ -66,6 +67,10 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['azione'] ) && 'avvi
 	$brand    = trim( (string) ( $_POST['brand'] ?? '' ) );
 	$url      = rtrim( trim( (string) ( $_POST['sito_url'] ?? '' ) ), '/' );
 	$password = (string) ( $_POST['password'] ?? '' );
+	$utente   = utente_nome_pulito( $_POST['utente'] ?? 'admin' );
+	if ( '' === $utente ) {
+		$utente = 'admin';
+	}
 	if ( mb_strlen( $password ) < 8 ) {
 		$errore = 'La password deve avere almeno 8 caratteri.';
 		$passo  = 2;
@@ -73,9 +78,15 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['azione'] ) && 'avvi
 		try {
 			db_installa();
 			impostazioni_salva( array(
-				'brand'         => '' === $brand ? 'Il mio sito' : $brand,
-				'sito_url'      => $url,
+				'brand'    => '' === $brand ? 'Il mio sito' : $brand,
+				'sito_url' => $url,
+			) );
+			utente_salva( array(
+				'nome'          => $utente,
+				'etichetta'     => 'Amministratore',
 				'password_hash' => password_hash( $password, PASSWORD_DEFAULT ),
+				'ruolo'         => 'amministratore',
+				'stato'         => 'attivo',
 			) );
 			$fatto = true;
 			$passo = 3;
@@ -140,6 +151,10 @@ $cfg = db_config();
 			<label>Indirizzo del portale
 				<input type="url" name="sito_url" placeholder="https://www.tuosito.it/citta" value="<?php echo e( base_url() ); ?>">
 				<small>Senza barra finale. È l'indirizzo da cui si raggiungono le pagine città.</small>
+			</label>
+			<label>Nome utente
+				<input type="text" name="utente" value="admin" autocomplete="off">
+				<small>Il nome con cui entrerai. Minuscolo, senza spazi. Altri utenti si aggiungono dopo.</small>
 			</label>
 			<label>Password di amministrazione
 				<input type="password" name="password" minlength="8" required>

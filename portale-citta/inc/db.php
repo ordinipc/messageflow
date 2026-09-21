@@ -269,6 +269,19 @@ function db_installa() {
 		PRIMARY KEY (id)
 	)' . $coda;
 
+	$sql[] = 'CREATE TABLE IF NOT EXISTS ' . db_tab( 'utenti' ) . ' (
+		id ' . $t( 'VARCHAR(16)' ) . ' NOT NULL,
+		nome ' . $t( 'VARCHAR(60)' ) . ' NOT NULL,
+		etichetta ' . $t( 'VARCHAR(190)' ) . ' NULL,
+		email ' . $t( 'VARCHAR(190)' ) . ' NULL,
+		password_hash ' . $t( 'VARCHAR(255)' ) . ' NOT NULL,
+		ruolo ' . $t( 'VARCHAR(20)' ) . ' NOT NULL DEFAULT \'redattore\',
+		stato ' . $t( 'VARCHAR(20)' ) . ' NOT NULL DEFAULT \'attivo\',
+		creato ' . $t( 'VARCHAR(20)' ) . ' NULL,
+		ultimo_accesso ' . $t( 'VARCHAR(20)' ) . ' NULL,
+		PRIMARY KEY (id)
+	)' . $coda;
+
 	$sql[] = 'CREATE TABLE IF NOT EXISTS ' . db_tab( 'media' ) . ' (
 		id ' . $t( 'VARCHAR(16)' ) . ' NOT NULL,
 		file ' . $t( 'VARCHAR(255)' ) . ' NOT NULL,
@@ -294,6 +307,7 @@ function db_installa() {
 		'CREATE INDEX pc_idx_articoli_citta ON ' . db_tab( 'articoli' ) . ' (citta_id)',
 		'CREATE UNIQUE INDEX pc_idx_articoli_slug ON ' . db_tab( 'articoli' ) . ' (citta_id, slug)',
 		'CREATE INDEX pc_idx_articoli_origine ON ' . db_tab( 'articoli' ) . ' (origine)',
+		'CREATE UNIQUE INDEX pc_idx_utenti_nome ON ' . db_tab( 'utenti' ) . ' (nome)',
 	);
 	foreach ( $indici as $q ) {
 		try {
@@ -335,6 +349,9 @@ function db_colonne_attese() {
 		'articoli' => array(),
 		'servizi'  => array(
 			'ordine' => 'INT NOT NULL DEFAULT 10',
+		),
+		'utenti'   => array(
+			'ultimo_accesso' => 'VARCHAR(20) NULL',
 		),
 	);
 }

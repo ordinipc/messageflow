@@ -36,12 +36,13 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		'js_globale'      => (string) ( $_POST['js_globale'] ?? '' ),
 	);
 
+	// La password non è più del portale ma della persona collegata.
 	$password = (string) ( $_POST['password_nuova'] ?? '' );
-	if ( '' !== $password ) {
-		if ( mb_strlen( $password ) < 8 ) {
-			avviso( 'La nuova password deve avere almeno 8 caratteri: non è stata cambiata.', 'errore' );
-		} else {
-			$nuove['password_hash'] = password_hash( $password, PASSWORD_DEFAULT );
+	$io       = utente_corrente();
+	if ( '' !== $password && $io ) {
+		$guaio = utente_password( $io['id'], $password );
+		if ( '' !== $guaio ) {
+			avviso( $guaio . ' Non è stata cambiata.', 'errore' );
 		}
 	}
 
@@ -239,11 +240,16 @@ $cfg      = db_config();
 
 <div class="pc-pannello" id="i-sistema">
 	<div class="pc-scheda">
-		<h2>Accesso</h2>
+		<h2>Il tuo accesso</h2>
+		<?php $io = utente_corrente(); ?>
+		<p class="pc-scheda__nota">Sei collegato come <strong><?php echo e( $io ? $io['nome'] : '' ); ?></strong>.</p>
 		<label>Nuova password
 			<input type="password" name="password_nuova" autocomplete="new-password" minlength="8">
-			<small>Lascia vuoto per non cambiarla. Minimo 8 caratteri.</small>
+			<small>Cambia solo la tua. Lascia vuoto per non cambiarla. Minimo 8 caratteri.</small>
 		</label>
+		<p class="pc-scheda__nota" style="margin-bottom:0">
+			Gli altri accessi si gestiscono da <a href="admin.php?p=utenti">Utenti</a>.
+		</p>
 	</div>
 
 	<div class="pc-scheda">

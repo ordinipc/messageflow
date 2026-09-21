@@ -62,7 +62,7 @@ una cartella fisica non viene intercettata.
 2. Dai il permesso di scrittura (755) alle cartelle `dati/` e `media/`.
 3. Apri `install.php` nel browser e segui i tre passi:
    - **Database** — MySQL (consigliato) oppure SQLite se non puoi creare un database
-   - **Il tuo sito** — nome dell'attività, indirizzo del portale, password
+   - **Il tuo sito** — nome dell'attività, indirizzo del portale, nome utente e password
    - **Fine**
 4. **Cancella `install.php` dal server.** L'amministrazione te lo ricorda.
 5. Se il portale sta in una sottocartella, apri il `robots.txt` del **sito
@@ -71,6 +71,31 @@ una cartella fisica non viene intercettata.
    viene ignorato.
 
 L'amministrazione è su `tuosito.it/admin.php`.
+
+### Chi entra nel pannello
+
+Gli accessi si gestiscono da **Utenti**. Ogni persona ha il suo nome e la sua
+password, così dal pannello si vede sempre chi è collegato e quando è entrato
+l'ultima volta.
+
+Ci sono due ruoli:
+
+| Ruolo | Cosa può fare |
+|---|---|
+| **Amministratore** | tutto, comprese le Impostazioni e la gestione degli Utenti |
+| **Redattore** | città, pagine, menu, articoli, immagini, SEO — ma non Impostazioni né Utenti |
+
+Un utente si può **sospendere** invece di eliminarlo: l'account resta ma non
+entra più, e se in quel momento era collegato viene rimandato al login.
+
+Il portale non si lascia chiudere fuori: l'ultimo amministratore attivo non si
+può declassare, sospendere o eliminare, e nessuno può eliminare sé stesso.
+
+Finché c'è un solo utente, al login il nome si può lasciare vuoto.
+
+> **Aggiorni da una versione precedente?** La password che usavi continua a
+> funzionare: diventa l'utente `admin`. Il primo accesso al pannello fa tutto
+> da solo, non devi toccare niente.
 
 ### Se il server usa nginx
 
@@ -411,7 +436,8 @@ portale-citta/
 │   ├── core.php       funzioni di base
 │   ├── db.php         connessione e creazione delle tabelle
 │   ├── archivio.php   lettura/scrittura di città, pagine, servizi
-│   ├── auth.php       accesso e token anti-CSRF
+│   ├── auth.php       accesso, ruoli e token anti-CSRF
+│   ├── utenti.php     gli utenti del pannello
 │   ├── media.php      immagini
 │   ├── seo.php        titoli, descrizioni, punteggio, sitemap, robots
 │   ├── schema.php     dati strutturati JSON-LD
@@ -459,6 +485,12 @@ colonne nuove aggiunte a quelle esistenti: non devi toccare il database.
 ## Sicurezza
 
 - Password con `password_hash`, sessione con cookie HttpOnly e SameSite
+- Utenti separati con due ruoli: le Impostazioni e la gestione degli Utenti
+  sono chiuse ai redattori sia nel menu sia scrivendo l'indirizzo a mano
+- L'utente della sessione si rilegge a ogni richiesta: sospenderlo o
+  eliminarlo chiude subito le sessioni già aperte
+- Il nome utente sbagliato e la password sbagliata impiegano lo stesso tempo,
+  così non si scopre quali nomi esistono
 - Token anti-CSRF su ogni azione che modifica dati
 - Ogni valore in uscita passa da `htmlspecialchars`; i dati strutturati usano
   i flag `JSON_HEX_*`, così nessun testo può chiudere il tag `<script>`

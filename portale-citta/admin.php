@@ -15,6 +15,8 @@ try {
 	// Chi aggiorna il portale trova le tabelle vecchie: qui si allineano.
 	db_installa();
 	db_aggiorna();
+	// La vecchia password unica diventa il primo utente.
+	utenti_migra();
 } catch ( PDOException $ex ) {
 	exit( '<h1>Database non raggiungibile</h1><p>' . e( $ex->getMessage() ) . '</p>' );
 }
@@ -35,6 +37,7 @@ $pagine_admin = array(
 	'media'           => 'Immagini',
 	'seo'             => 'SEO e sitemap',
 	'impostazioni'    => 'Impostazioni',
+	'utenti'          => 'Utenti',
 	'ai'              => 'Assistente',
 );
 
@@ -48,8 +51,15 @@ if ( 'esci' === $schermata ) {
 	vai_a( 'admin.php?p=login' );
 }
 
+// Impostazioni e utenti restano in mano agli amministratori.
+$solo_amministratori = array( 'impostazioni', 'utenti' );
+
 if ( 'login' !== $schermata ) {
-	richiedi_accesso();
+	if ( in_array( $schermata, $solo_amministratori, true ) ) {
+		richiedi_amministratore();
+	} else {
+		richiedi_accesso();
+	}
 }
 
 $file = __DIR__ . '/admin/' . $schermata . '.php';

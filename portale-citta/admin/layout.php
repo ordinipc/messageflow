@@ -13,7 +13,13 @@ $voci = array(
 	'media'        => array( 'Immagini', '▣' ),
 	'seo'          => array( 'SEO e sitemap', '↗' ),
 	'impostazioni' => array( 'Impostazioni', '☰' ),
+	'utenti'       => array( 'Utenti', '☺' ),
 );
+// Le due schermate di sistema non si mostrano a chi non può aprirle.
+if ( ! puo_amministrare() ) {
+	unset( $voci['impostazioni'], $voci['utenti'] );
+}
+$io = utente_corrente();
 $attiva = $schermata;
 if ( 'citta-modifica' === $attiva ) { $attiva = 'citta'; }
 if ( 'pagina-modifica' === $attiva ) { $attiva = 'pagine'; }
@@ -33,6 +39,9 @@ if ( 'articolo-modifica' === $attiva || 'importa' === $attiva ) { $attiva = 'art
 <header class="pc-top">
 	<a class="pc-top__logo" href="admin.php"><?php echo e( $imp['brand'] ); ?><span>portale città</span></a>
 	<div class="pc-top__azioni">
+		<?php if ( $io ) : ?>
+			<span class="pc-top__chi"><?php echo e( vuoto( $io['etichetta'] ) ? $io['nome'] : $io['etichetta'] ); ?></span>
+		<?php endif; ?>
 		<a class="pc-btn pc-btn--ghost" href="<?php echo e( base_url() ); ?>/" target="_blank" rel="noopener">Vedi il sito ↗</a>
 		<a class="pc-btn pc-btn--ghost" href="admin.php?p=esci">Esci</a>
 	</div>

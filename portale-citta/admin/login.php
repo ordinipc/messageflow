@@ -2,12 +2,15 @@
 /** Schermata di accesso. */
 defined( 'PC_AVVIO' ) || exit;
 
+$uno    = 1 === utenti_conta( true );
 $errore = '';
+$nome   = trim( (string) ( $_POST['nome'] ?? '' ) );
+
 if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
-	if ( accedi( (string) ( $_POST['password'] ?? '' ) ) ) {
+	if ( accedi( (string) ( $_POST['password'] ?? '' ), $nome ) ) {
 		vai_a( 'admin.php' );
 	}
-	$errore = 'Password non corretta.';
+	$errore = $uno ? 'Password non corretta.' : 'Nome utente o password non corretti.';
 	usleep( 400000 );
 }
 $imp = impostazioni();
@@ -29,7 +32,16 @@ $imp = impostazioni();
 		<div class="pc-avviso pc-avviso--errore"><?php echo e( $errore ); ?></div>
 	<?php endif; ?>
 	<form method="post">
-		<label>Password <input type="password" name="password" autofocus required></label>
+		<label>Nome utente
+			<input type="text" name="nome" value="<?php echo e( $nome ); ?>" autocomplete="username"
+				<?php echo $uno ? '' : 'required autofocus'; ?>>
+			<?php if ( $uno ) : ?>
+				<small>C'è un solo utente: puoi lasciarlo vuoto.</small>
+			<?php endif; ?>
+		</label>
+		<label>Password
+			<input type="password" name="password" autocomplete="current-password" required <?php echo $uno ? 'autofocus' : ''; ?>>
+		</label>
 		<button class="pc-btn" type="submit">Entra</button>
 	</form>
 </div>

@@ -38,6 +38,7 @@ set_exception_handler( function ( $errore ) {
 } );
 
 require_once __DIR__ . '/archivio.php';
+require_once __DIR__ . '/utenti.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/media.php';
 require_once __DIR__ . '/seo.php';

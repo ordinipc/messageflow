@@ -39,7 +39,12 @@ img{max-width:100%;height:auto;display:block;}
 	font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
 	color:var(--pc-accento);margin-top:2px;
 }
-.pc-top__azioni{display:flex;gap:8px;}
+.pc-top__azioni{display:flex;gap:8px;align-items:center;}
+.pc-top__chi{
+	font-size:13px;color:#555;padding:0 8px 0 0;white-space:nowrap;
+	max-width:180px;overflow:hidden;text-overflow:ellipsis;
+}
+@media (max-width:720px){.pc-top__chi{display:none;}}
 
 /* --- Impianto ---------------------------------------------------------- */
 .pc-corpo{display:flex;align-items:flex-start;min-height:calc(100vh - 58px);}
