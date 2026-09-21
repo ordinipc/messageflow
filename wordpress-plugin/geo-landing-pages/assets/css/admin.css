@@ -314,3 +314,22 @@
 .glp-collision p:last-child {
 	margin-bottom: 0;
 }
+
+/* Diagnostica */
+.glp-health__table td {
+	vertical-align: middle;
+	line-height: 1.5;
+}
+
+.glp-health__icon {
+	width: 3.5rem;
+	text-align: center;
+}
+
+.glp-health__name {
+	width: 17rem;
+}
+
+.glp-badge.is-info {
+	background: #646970;
+}

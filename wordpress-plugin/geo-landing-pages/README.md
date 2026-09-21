@@ -234,6 +234,24 @@ Meglio partire da poche città complete che da tutte le pagine per tutte le citt
 
 ---
 
+## Diagnostica
+
+**Landing locali → Diagnostica**
+
+Dice lo stato reale del sito invece di lasciartelo indovinare: permalink, città senza
+contenuti, servizi senza città, tipi non collegati a una pagina, stato dei due menu, regole
+degli indirizzi.
+
+Il controllo più utile è **"Servizi collegati a una città"**. Una pagina di primo livello
+dovrebbe essere una città; se ha un tipo di servizio assegnato, quasi certamente è un servizio
+a cui manca la città genitore — e risponde su `/duplicazione-chiavi-auto/` invece che su
+`/trapani/duplicazione-chiavi-auto/`. È il motivo più frequente per cui una città resta vuota,
+il menu non compare e le schede contano zero.
+
+Dalla stessa schermata le sposti sotto la città giusta, senza aprirle una per una.
+
+---
+
 ## I tipi di servizio e le schede
 
 **Landing locali → Tipi di servizio**
