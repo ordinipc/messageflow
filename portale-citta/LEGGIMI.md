@@ -218,6 +218,17 @@ Il prompt dell'immagine chiede esplicitamente niente testo, niente volti
 riconoscibili, niente marchi e niente luoghi reali: un'immagine generica, non
 una finta foto della tua città.
 
+### Se il modello risponde male
+
+Capita che un modello consegni i propri appunti invece del risultato — per
+esempio il conteggio dei caratteri al posto del titolo. Il portale se ne
+accorge e **non scrive niente nel campo**: te lo dice e riprovi.
+
+I testi brevi vengono anche accorciati da soli se il modello esagera, tagliando
+sull'ultimo spazio utile e togliendo eventuali preposizioni rimaste appese.
+Il limite lo impone il codice, non l'istruzione al modello: chiedergli di
+contare i caratteri è proprio ciò che lo fa sbagliare.
+
 Riceve i dati che hai inserito — città, quartieri, servizio, prezzi, punti di
 forza — e propone il testo. **Va sempre riletto**: il modello non conosce la tua
 attività e inventa dettagli. Pubblicare testo generato e non rivisto è il modo

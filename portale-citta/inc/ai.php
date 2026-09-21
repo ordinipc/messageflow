@@ -176,6 +176,116 @@ function ai_chiedi( $istruzione, $schema = null ) {
 	return array( 'ok' => true, 'testo' => ai_ripulisci( $testo ), 'errore' => '' );
 }
 
+/**
+ * Chiede un singolo testo facendolo restituire dentro un campo JSON.
+ *
+ * Serve a impedire che il modello "pensi ad alta voce": senza una forma
+ * imposta capita che consegni i propri appunti invece del risultato.
+ *
+ * @param string $istruzione Istruzione completa.
+ * @param string $campo      Nome del campo da leggere.
+ * @param int    $max        Taglio di sicurezza in caratteri, 0 per nessuno.
+ */
+function ai_chiedi_testo( $istruzione, $campo = 'testo', $max = 0 ) {
+	$schema = array(
+		'type'       => 'OBJECT',
+		'properties' => array( $campo => array( 'type' => 'STRING' ) ),
+		'required'   => array( $campo ),
+	);
+
+	$esito = ai_chiedi( $istruzione, $schema );
+	if ( ! $esito['ok'] ) {
+		return $esito;
+	}
+
+	$dati  = json_decode( $esito['testo'], true );
+	$testo = is_array( $dati ) && isset( $dati[ $campo ] ) ? (string) $dati[ $campo ] : '';
+
+	// Se il JSON non arriva, si prova comunque con il testo grezzo.
+	if ( '' === trim( $testo ) ) {
+		$testo = $esito['testo'];
+	}
+
+	$testo = ai_ripulisci( $testo );
+	$testo = trim( $testo, " \t\n\r\0\x0B\"'«»" );
+
+	if ( ai_testo_sospetto( $testo ) ) {
+		return array(
+			'ok'     => false,
+			'testo'  => '',
+			'errore' => 'Il modello ha risposto con qualcosa che non è un testo utilizzabile. Riprova: capita, ed è quasi sempre una volta sola.',
+		);
+	}
+
+	if ( $max > 0 ) {
+		$testo = ai_taglia( $testo, $max );
+	}
+
+	return array( 'ok' => true, 'testo' => $testo, 'errore' => '' );
+}
+
+/**
+ * Riconosce le risposte degenerate.
+ *
+ * Il caso visto dal vivo: il modello conta i caratteri per rispettare un
+ * limite e consegna il conteggio ("30:n 31:i 32: 33:|") invece della frase.
+ */
+function ai_testo_sospetto( $testo ) {
+	$testo = trim( (string) $testo );
+	if ( '' === $testo ) {
+		return true;
+	}
+	// Tre o più gruppi "numero:carattere" sono appunti, non prosa.
+	if ( preg_match_all( '/\b\d{1,3}\s*:\s*\S?/u', $testo ) >= 3 ) {
+		return true;
+	}
+	// Una risposta fatta quasi solo di cifre e due punti.
+	$lettere = preg_match_all( '/\p{L}/u', $testo );
+	if ( $lettere > 0 && preg_match_all( '/[\d:]/u', $testo ) > $lettere ) {
+		return true;
+	}
+	return false;
+}
+
+/** Taglia a una lunghezza massima senza spezzare le parole. */
+function ai_taglia( $testo, $max ) {
+	$testo = trim( (string) $testo );
+	if ( mb_strlen( $testo ) <= $max ) {
+		return $testo;
+	}
+	$corto  = mb_substr( $testo, 0, $max );
+	$spazio = mb_strrpos( $corto, ' ' );
+	if ( false !== $spazio && $spazio > $max * 0.6 ) {
+		$corto = mb_substr( $corto, 0, $spazio );
+	}
+	$corto = rtrim( $corto, " ,;:-–—|" );
+
+	// Un titolo non finisce con una preposizione o un articolo appesi.
+	$appese = array(
+		'a', 'e', 'o', 'di', 'da', 'in', 'con', 'su', 'per', 'tra', 'fra',
+		'il', 'lo', 'la', 'i', 'gli', 'le', 'un', 'uno', 'una',
+		'del', 'dello', 'della', 'dei', 'degli', 'delle',
+		'al', 'allo', 'alla', 'ai', 'agli', 'alle',
+		'dal', 'dallo', 'dalla', 'dai', 'dagli', 'dalle',
+		'nel', 'nello', 'nella', 'nei', 'negli', 'nelle',
+		'sul', 'sullo', 'sulla', 'sui', 'sugli', 'sulle',
+		'col', 'coi',
+	);
+	while ( true ) {
+		$spazio = mb_strrpos( $corto, ' ' );
+		if ( false === $spazio ) {
+			break;
+		}
+		$ultima = mb_strtolower( mb_substr( $corto, $spazio + 1 ) );
+		if ( ! in_array( $ultima, $appese, true ) ) {
+			break;
+		}
+		$corto = rtrim( mb_substr( $corto, 0, $spazio ), " ,;:-–—|" );
+	}
+
+	return $corto;
+}
+
 /** Toglie il markdown che il modello aggiunge di sua iniziativa. */
 function ai_ripulisci( $testo ) {
 	$testo = trim( (string) $testo );
@@ -382,16 +492,17 @@ function ai_corpo( $citta, $pagina ) {
 		. "Lunghezza: 300-400 parole, divise in 3 o 4 paragrafi separati da una riga vuota.\n"
 		. "Spiega quando serve il servizio, come si svolge, cosa deve sapere il cliente e cosa lo distingue in questa città.\n\n"
 		. ai_regole();
-	return ai_chiedi( $istruzione );
+	return ai_chiedi_testo( $istruzione, 'testo' );
 }
 
 /** Genera la meta description. */
 function ai_descrizione( $citta, $pagina ) {
 	$istruzione = "Scrivi la meta description per Google di questa pagina.\n\n"
 		. ai_contesto( $citta, $pagina ) . "\n\n"
-		. "Massimo 155 caratteri, una sola frase, deve contenere il nome della città e invitare al contatto.\n\n"
+		. "Una frase sola, breve, che contenga il nome della città e inviti al contatto.\n"
+		. "Tienila corta: deve stare in una riga di risultato di Google.\n\n"
 		. ai_regole();
-	return ai_chiedi( $istruzione );
+	return ai_chiedi_testo( $istruzione, 'descrizione', 158 );
 }
 
 /** Genera un elenco di FAQ. */
@@ -436,22 +547,35 @@ function ai_faq( $citta, $pagina, $quante = 6 ) {
 
 /** Genera il titolo per Google. */
 function ai_titolo( $citta, $pagina ) {
-	$istruzione = "Scrivi il tag title di questa pagina, quello che compare come riga blu nei risultati di Google.\n\n"
-		. ai_contesto( $citta, $pagina ) . "\n\n"
-		. "Vincoli rigidi:\n"
-		. "- Da 45 a 60 caratteri, spazi compresi. Oltre i 60 Google lo taglia.\n"
-		. "- Deve contenere il nome della città.\n"
-		. "- Deve iniziare con il servizio, non con il nome dell'attività.\n"
-		. "- Niente virgolette, niente punto finale, nessun marchio inventato.\n"
-		. "- Questo testo viene usato esattamente com'è: se avanza spazio entro i 60\n"
-		. "  caratteri puoi chiudere con \" | " . impostazione( 'brand', '' ) . "\", altrimenti lascialo fuori.\n\n"
-		. ai_regole();
+	$brand = impostazione( 'brand', '' );
 
-	$esito = ai_chiedi( $istruzione );
-	if ( $esito['ok'] ) {
-		// Il modello a volte incornicia il titolo: si toglie.
-		$esito['testo'] = trim( $esito['testo'], " \t\n\r\0\x0B\"'«»" );
+	// Nessuna richiesta di contare i caratteri: il modello proverebbe a
+	// farlo davvero e a volte consegna il conteggio al posto del titolo.
+	// La misura la impone il codice, qui sotto.
+	$istruzione = "Scrivi il tag title di questa pagina, la riga blu che compare nei risultati di Google.\n\n"
+		. ai_contesto( $citta, $pagina ) . "\n\n"
+		. "Come deve essere:\n"
+		. "- breve, una riga sola, molto meno di una frase intera\n"
+		. "- deve iniziare dal servizio e contenere il nome della città\n"
+		. "- niente virgolette, niente punto finale, nessun marchio inventato\n"
+		. ( vuoto( $brand ) ? '' : "- non aggiungere \"" . $brand . "\": lo mette il portale se ci sta\n" )
+		. "\n" . ai_regole();
+
+	$esito = ai_chiedi_testo( $istruzione, 'titolo' );
+	if ( ! $esito['ok'] ) {
+		return $esito;
 	}
+
+	// Il nome dell'attività si aggiunge solo se il risultato resta corto.
+	$titolo = $esito['testo'];
+	if ( ! vuoto( $brand ) && false === mb_stripos( $titolo, $brand ) ) {
+		$completo = $titolo . ' | ' . $brand;
+		if ( mb_strlen( $completo ) <= 60 ) {
+			$titolo = $completo;
+		}
+	}
+
+	$esito['testo'] = ai_taglia( $titolo, 60 );
 	return $esito;
 }
 
@@ -459,7 +583,7 @@ function ai_titolo( $citta, $pagina ) {
 function ai_intro( $citta, $pagina ) {
 	$istruzione = "Scrivi l'introduzione che compare sotto il titolo principale della pagina.\n\n"
 		. ai_contesto( $citta, $pagina ) . "\n\n"
-		. "Una o due frasi, massimo 40 parole, che dicano subito cosa fate e dove.\n\n"
+		. "Una o due frasi che dicano subito cosa fate e dove. Breve.\n\n"
 		. ai_regole();
-	return ai_chiedi( $istruzione );
+	return ai_chiedi_testo( $istruzione, 'introduzione', 220 );
 }
