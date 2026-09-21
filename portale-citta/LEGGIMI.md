@@ -154,19 +154,25 @@ articolo su Marsala va a Marsala, **se quella città esiste nel portale**. Vince
 il nome che compare più avanti nel titolo, perché la geolocalizzazione sta di
 solito in fondo. Quelli che non nominano nessuna città vanno nella riserva.
 
-### Le località che non hai ancora
+### Se vuoi una città sola
 
-Qui sta il punto: se il portale ha una città sola, *tutto* finisce lì — anche
-gli articoli che parlano di altri comuni.
+Va benissimo: imposti la **città di riserva** e importi. Tutti gli articoli
+finiscono lì, compresi quelli che nominano altri comuni. Non devi fare
+nient'altro.
 
-Per questo l'analisi elenca anche le **località nominate nei titoli** che non
-sono ancora città del portale, con quanti articoli le nominano. Quelle che
-meritano una città si spuntano e si creano in un colpo solo (nascono in bozza);
-poi si rianalizza il file e gli articoli si smistano da soli.
+L'analisi elenca comunque, in un blocco richiudibile, le **località nominate
+nei titoli** che non sono ancora città del portale. È solo un'informazione:
+niente è spuntato e niente viene creato se non lo chiedi tu.
+
+### Se invece vuoi una città per comune
+
+Nello stesso blocco spunti le località che meritano pagine proprie e le crei
+in un colpo solo (nascono in bozza). Poi rianalizzi il file: gli articoli si
+smistano da soli.
 
 Su un'esportazione reale di 1750 articoli con la sola Trapani: 1567 riconosciuti
-e 183 alla riserva. Create le 16 località nominate da almeno tre articoli:
-1731 riconosciuti e 19 alla riserva.
+e 183 alla riserva. Creando le 16 località nominate da almeno tre articoli:
+1731 riconosciuti e 19 alla riserva, divisi fra 17 città.
 
 Il file si legge in streaming: un'esportazione da 40 MB con 1750 articoli
 si importa in pochi secondi senza superare i 6 MB di memoria.

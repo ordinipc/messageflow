@@ -302,8 +302,13 @@ $limite_upload   = ini_get( 'upload_max_filesize' );
 	<h2>3. Risultato dell'analisi</h2>
 	<p class="pc-scheda__nota" id="esito-analisi">
 		<?php echo (int) $analisi['totale']; ?> articoli nel file<?php echo $analisi['gia'] > 0 ? ', di cui ' . (int) $analisi['gia'] . ' già importati (verranno saltati)' : ''; ?>.
-		<?php echo (int) $analisi['riconosciuti']; ?> nominano una delle tue città,
-		<?php echo (int) $analisi['di_riserva']; ?> no.
+		<?php echo (int) $analisi['riconosciuti']; ?> nominano una delle tue città;
+		gli altri <?php echo (int) $analisi['di_riserva']; ?>
+		<?php if ( vuoto( $analisi['riserva'] ) ) : ?>
+			verrebbero scartati: scegli una città di riserva.
+		<?php else : ?>
+			vanno alla città di riserva.
+		<?php endif; ?>
 	</p>
 
 	<?php
@@ -313,59 +318,60 @@ $limite_upload   = ini_get( 'upload_max_filesize' );
 	?>
 
 	<?php if ( ! empty( $mancanti ) ) : ?>
-		<div class="pc-avviso pc-avviso--errore">
-			<strong>I titoli nominano <?php echo count( $mancanti ); ?> località che non sono ancora città del portale.</strong><br>
-			<?php echo (int) $analisi['di_riserva']; ?> articoli su <?php echo (int) $analisi['totale']; ?>
-			non nominano nessuna delle tue città e finirebbero tutti nella città di riserva,
-            anche quando parlano di un altro comune.
-		</div>
+		<?php if ( vuoto( $analisi['riserva'] ) ) : ?>
+			<div class="pc-avviso pc-avviso--errore">
+				<strong><?php echo (int) $analisi['di_riserva']; ?> articoli non nominano nessuna delle tue città e verrebbero scartati.</strong><br>
+				Scegli una città di riserva qui sopra, oppure creane altre dall'elenco qui sotto.
+			</div>
+		<?php endif; ?>
 
-		<form method="post" class="pc-scheda">
-			<?php echo campo_token(); ?>
-			<input type="hidden" name="file" value="<?php echo e( $analisi['file'] ); ?>">
+		<details class="pc-scheda" <?php echo vuoto( $analisi['riserva'] ) ? 'open' : ''; ?>>
+			<summary style="cursor:pointer;font-weight:700;font-size:15px">
+				I titoli nominano altre <?php echo count( $mancanti ); ?> località
+				<span class="pc-nota" style="font-weight:400">— apri solo se vuoi pagine dedicate anche a quei comuni</span>
+			</summary>
 
-			<h2>Località nominate nei titoli</h2>
-			<p class="pc-scheda__nota">
-				Crea come città quelle che meritano pagine proprie: gli articoli ci finiranno da soli
-				alla prossima analisi. Nascono in bozza, poi ci metti dati e testi.
+			<p class="pc-scheda__nota" style="margin-top:14px">
+				Non serve fare niente: senza una città loro, questi articoli finiscono nella città
+				di riserva, ed è giusto così se vuoi un blog solo. Crea una città soltanto se quel
+				comune merita pagine e indirizzi suoi.
 			</p>
 
-			<label style="max-width:200px">Provincia da assegnare
-				<input type="text" name="provincia" maxlength="4" placeholder="TP" value="TP">
-				<small>La stessa per tutte: la cambi poi una per una.</small>
-			</label>
+			<form method="post">
+				<?php echo campo_token(); ?>
+				<input type="hidden" name="file" value="<?php echo e( $analisi['file'] ); ?>">
 
-			<table class="pc-tabella">
-				<thead><tr><th style="width:28px"></th><th>Località</th><th>Articoli che la nominano</th><th>Nel portale</th></tr></thead>
-				<tbody>
-				<?php foreach ( $analisi['luoghi'] as $l ) : ?>
-					<tr>
-						<td>
-							<?php if ( '' === $l['citta_id'] ) : ?>
-								<input type="checkbox" name="luogo[]" value="<?php echo e( $l['nome'] ); ?>" <?php checked_pc( $l['quante'] >= 3 ); ?>>
-							<?php endif; ?>
-						</td>
-						<td><strong><?php echo e( $l['nome'] ); ?></strong></td>
-						<td><?php echo (int) $l['quante']; ?></td>
-						<td>
-							<?php if ( '' === $l['citta_id'] ) : ?>
-								<span class="pc-stato pc-stato--bozza">da creare</span>
-							<?php else : ?>
-								<span class="pc-stato pc-stato--pubblicata">c'è</span>
-							<?php endif; ?>
-						</td>
-					</tr>
-				<?php endforeach; ?>
-				</tbody>
-			</table>
+				<label style="max-width:200px">Provincia da assegnare
+					<input type="text" name="provincia" maxlength="4" placeholder="TP" value="TP">
+				</label>
 
-			<p class="pc-nota" style="margin-top:12px">
-				Sono già spuntate quelle nominate da almeno tre articoli. Sotto quella soglia
-				una città a sé serve a poco: meglio lasciare quegli articoli alla riserva.
-			</p>
+				<table class="pc-tabella">
+					<thead><tr><th style="width:28px"></th><th>Località</th><th>Articoli che la nominano</th><th>Nel portale</th></tr></thead>
+					<tbody>
+					<?php foreach ( $analisi['luoghi'] as $l ) : ?>
+						<tr>
+							<td>
+								<?php if ( '' === $l['citta_id'] ) : ?>
+									<input type="checkbox" name="luogo[]" value="<?php echo e( $l['nome'] ); ?>">
+								<?php endif; ?>
+							</td>
+							<td><strong><?php echo e( $l['nome'] ); ?></strong></td>
+							<td><?php echo (int) $l['quante']; ?></td>
+							<td>
+								<?php if ( '' === $l['citta_id'] ) : ?>
+									<span class="pc-stato pc-stato--bozza">non è una città</span>
+								<?php else : ?>
+									<span class="pc-stato pc-stato--pubblicata">c'è</span>
+								<?php endif; ?>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+					</tbody>
+				</table>
 
-			<button class="pc-btn" type="submit" name="crea_citta" value="1">Crea le città selezionate</button>
-		</form>
+				<button class="pc-btn pc-btn--ghost" type="submit" name="crea_citta" value="1">Crea le località selezionate</button>
+			</form>
+		</details>
 	<?php endif; ?>
 
 	<form method="post">
@@ -374,7 +380,7 @@ $limite_upload   = ini_get( 'upload_max_filesize' );
 		<input type="hidden" name="riserva" value="<?php echo e( $analisi['riserva'] ); ?>">
 
 		<h3 style="font-size:14px;margin:18px 0 10px">Come verrebbero smistati adesso</h3>
-		<table class="pc-tabella">
+		<table class="pc-tabella" id="tabella-smistamento">
 			<thead><tr><th style="width:28px"></th><th>Città</th><th>Articoli</th><th>Esempio di titolo</th></tr></thead>
 			<tbody>
 			<?php foreach ( $analisi['per_citta'] as $id => $n ) : ?>
