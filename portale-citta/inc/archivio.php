@@ -478,24 +478,42 @@ function pagina_blog( $citta_id ) {
  * ------------------------------------------------------------------------- */
 
 /** Tutte le sezioni attivabili, con etichetta e spiegazione. */
-function sezioni_disponibili() {
-	return array(
+function sezioni_disponibili( $tipo = '' ) {
+	// L'ordine di questo elenco è quello con cui le sezioni uscivano prima
+	// che si potessero spostare: serve da ordine di riferimento.
+	$blocchi = array(
+		'testo' => array( 'Testo di approfondimento', 'Il testo lungo scritto in questa pagina' ),
+		'html'  => array( 'HTML libero', 'Il codice scritto nella scheda "Codice"' ),
+	);
+	if ( 'servizi' === $tipo ) {
+		$blocchi['elenco'] = array( 'Elenco dei servizi', 'Tutte le pagine servizio della città' );
+	}
+	if ( 'blog' === $tipo ) {
+		$blocchi['elenco'] = array( 'Elenco degli articoli', 'Gli articoli del blog di questa città' );
+	}
+
+	return $blocchi + array(
 		'inclusi'   => array( 'Cosa comprende', 'Le voci scritte in questa pagina' ),
+		'perche'    => array( 'Perché sceglierci + numeri', 'Dai dati della città' ),
 		'processo'  => array( 'Come funziona', 'I passi scritti in questa pagina' ),
 		'prezzi'    => array( 'Prezzi', 'Il prezzo scritto in questa pagina' ),
-		'faq'       => array( 'Domande frequenti', 'Le FAQ di questa pagina' ),
-		'perche'    => array( 'Perché sceglierci + numeri', 'Dai dati della città' ),
 		'zone'      => array( 'Zone servite', 'Dai dati della città' ),
 		'recensioni'=> array( 'Recensioni', 'Dai dati della città' ),
 		'team'      => array( 'Team e certificazioni', 'Dai dati della città' ),
 		'dove'      => array( 'Dove siamo e mappa', 'Dai dati della città' ),
 		'orari'     => array( 'Orari di apertura', 'Dai dati della città' ),
+		'faq'       => array( 'Domande frequenti', 'Le FAQ di questa pagina' ),
 		'recapiti'  => array( 'Recapiti completi', 'Telefono, WhatsApp, email, indirizzo, P. IVA' ),
 		'modulo'    => array( 'Modulo di contatto', 'Il visitatore scrive e tu ricevi una email' ),
 		'cta'       => array( 'Chiamata all\'azione', 'Il riquadro nero con i pulsanti' ),
 		'servizi'   => array( 'Altri servizi', 'Le altre pagine servizio della città' ),
 		'correlate' => array( 'Altre città', 'I collegamenti alle altre città' ),
 	);
+}
+
+/** I blocchi che ci sono sempre, a meno che non li si tolga apposta. */
+function sezioni_di_base() {
+	return array( 'testo', 'html', 'elenco' );
 }
 
 /**
@@ -537,11 +555,89 @@ function sezioni_predefinite( $tipo, $slug = '' ) {
 }
 
 /** True se la pagina deve mostrare quella sezione. */
-function pagina_mostra( $pagina, $chiave ) {
+/**
+ * Le sezioni di una pagina, nell'ordine in cui vanno stampate.
+ *
+ * L'ordine è quello in cui sono salvate: la prima della lista è la prima
+ * che si vede. Chi non ha mai toccato l'ordine ritrova quello di sempre,
+ * perché i blocchi di testo vengono rimessi in testa.
+ */
+function pagina_sezioni( $pagina ) {
+	$tipo   = isset( $pagina['tipo'] ) ? (string) $pagina['tipo'] : '';
 	$scelte = isset( $pagina['sezioni'] ) ? (array) $pagina['sezioni'] : array();
+
+	// Il segnaposto dice che l'ordine l'ha deciso qualcuno: senza di lui la
+	// pagina è stata salvata prima che l'ordine si potesse cambiare.
+	$deciso = in_array( PC_ORDINE_DECISO, $scelte, true );
+
 	if ( empty( $scelte ) ) {
 		// Pagina mai salvata con le nuove opzioni: si usa il criterio del tipo.
-		$scelte = sezioni_predefinite( $pagina['tipo'], $pagina['slug'] );
+		$scelte = sezioni_predefinite( $tipo, isset( $pagina['slug'] ) ? $pagina['slug'] : '' );
 	}
-	return in_array( $chiave, $scelte, true );
+
+	// array_intersect tiene l'ordine del primo argomento: è quello che serve.
+	$ammesse = array_keys( sezioni_disponibili( $tipo ) );
+	$scelte  = array_values( array_intersect( $scelte, $ammesse ) );
+
+	if ( ! $deciso ) {
+		// Nessuno ha mai toccato l'ordine: si usa quello di riferimento, che
+		// è come la pagina usciva prima. Così aggiornare il portale non
+		// rimescola le pagine già online, e i blocchi di testo restano.
+		$attive = array_flip( $scelte );
+		$base   = sezioni_di_base();
+		$scelte = array();
+		foreach ( $ammesse as $chiave ) {
+			if ( isset( $attive[ $chiave ] ) || in_array( $chiave, $base, true ) ) {
+				$scelte[] = $chiave;
+			}
+		}
+	}
+
+	return $scelte;
+}
+
+/**
+ * Applica uno spostamento all'elenco delle sezioni.
+ *
+ * Il comando arriva dai pulsanti della schermata ed è nella forma
+ * "su:faq", "giu:faq", "fuori:faq", "dentro:faq". Serve a far funzionare
+ * la schermata anche senza JavaScript.
+ */
+function sezioni_sposta( $scelte, $comando, $ammesse ) {
+	$scelte = array_values( (array) $scelte );
+	list( $cosa, $chiave ) = array_pad( explode( ':', (string) $comando, 2 ), 2, '' );
+
+	if ( ! in_array( $chiave, (array) $ammesse, true ) ) {
+		return $scelte;
+	}
+	$posizione = array_search( $chiave, $scelte, true );
+
+	if ( 'dentro' === $cosa ) {
+		if ( false === $posizione ) {
+			$scelte[] = $chiave;
+		}
+		return $scelte;
+	}
+	if ( 'fuori' === $cosa ) {
+		if ( false !== $posizione ) {
+			array_splice( $scelte, (int) $posizione, 1 );
+		}
+		return $scelte;
+	}
+	if ( false === $posizione ) {
+		return $scelte;
+	}
+
+	$vicina = 'su' === $cosa ? (int) $posizione - 1 : (int) $posizione + 1;
+	if ( isset( $scelte[ $vicina ] ) ) {
+		$appoggio            = $scelte[ $vicina ];
+		$scelte[ $vicina ]   = $scelte[ $posizione ];
+		$scelte[ $posizione ] = $appoggio;
+	}
+	return $scelte;
+}
+
+/** True se la pagina mostra una certa sezione. */
+function pagina_mostra( $pagina, $chiave ) {
+	return in_array( $chiave, pagina_sezioni( $pagina ), true );
 }

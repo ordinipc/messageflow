@@ -199,8 +199,12 @@ input[type=checkbox]{width:auto;margin:0 6px 0 0;}
 	font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;color:var(--pc-grigio);
 }
 .pc-linguetta.is-attiva{color:var(--pc-testo);border-bottom-color:var(--pc-accento);}
-.pc-pannello{display:none;}
-.pc-pannello.is-attivo{display:block;}
+/* Le schede si aprono con JavaScript. Se JavaScript non c'è, le linguette
+   non servono a niente: meglio mostrare tutto, una scheda sotto l'altra,
+   che lasciare metà pannello irraggiungibile. */
+.pc-admin.pc-js .pc-pannello{display:none;}
+.pc-admin.pc-js .pc-pannello.is-attivo{display:block;}
+.pc-admin:not(.pc-js) .pc-linguette{display:none;}
 
 /* --- Barra di salvataggio fissa ------------------------------------------ */
 .pc-salva{
@@ -368,7 +372,9 @@ input[type=checkbox]{width:auto;margin:0 6px 0 0;}
 	font-size:11.5px;
 	font-weight:400;
 	color:var(--pc-grigio);
-	word-break:break-all;
+	/* break-all spezzava le parole a metà: anywhere va a capo normalmente
+	   e taglia solo quando una parola sola non ci sta (gli slug lunghi). */
+	overflow-wrap:anywhere;
 }
 
 .pc-voce__azioni{

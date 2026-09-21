@@ -55,14 +55,20 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	$pagina['html']        = (string) ( $_POST['html'] ?? '' );
 	$pagina['css']         = (string) ( $_POST['css'] ?? '' );
 	$pagina['js']          = (string) ( $_POST['js'] ?? '' );
-	$ammesse = array_keys( sezioni_disponibili() );
-	$pagina['sezioni'] = array_values( array_intersect( $ammesse, (array) ( $_POST['sezioni'] ?? array() ) ) );
-	// Nessuna spunta significa "nessuna sezione", non "tutte": si segna
-	// con un valore che non è una sezione, altrimenti tornerebbero i valori
-	// predefiniti del tipo di pagina.
-	if ( empty( $pagina['sezioni'] ) ) {
-		$pagina['sezioni'] = array( 'nessuna' );
+	// L'ordine è quello in cui arrivano i campi: array_intersect con le
+	// scelte per primo argomento lo conserva. Il segnaposto in testa dice
+	// che l'ordine l'ha deciso qualcuno, e va rispettato anche se vuoto.
+	$ammesse = array_keys( sezioni_disponibili( $pagina['tipo'] ) );
+	$scelte  = array_values( array_intersect( (array) ( $_POST['sezioni'] ?? array() ), $ammesse ) );
+
+	// Un pulsante di spostamento: si applica prima di salvare, così chi non
+	// ha JavaScript sposta lo stesso e non perde quello che stava scrivendo.
+	if ( isset( $_POST['muovi_sezione'] ) ) {
+		$scelte = sezioni_sposta( $scelte, (string) $_POST['muovi_sezione'], $ammesse );
 	}
+
+	array_unshift( $scelte, PC_ORDINE_DECISO );
+	$pagina['sezioni'] = $scelte;
 
 	$pagina['menu_mostra'] = isset( $_POST['menu_mostra'] ) ? 1 : 0;
 	$pagina['menu_ordine'] = (int) ( $_POST['menu_ordine'] ?? 10 );
@@ -347,34 +353,78 @@ $lista_s  = servizi();
 
 	<!-- SEZIONI -->
 	<div class="pc-pannello" id="q-sezioni">
-		<div class="pc-scheda">
-			<h2>Cosa mostra questa pagina</h2>
-			<p class="pc-scheda__nota">
-				Senza questa scelta tutte le pagine della città finirebbero per assomigliarsi:
-				stessi orari, stesse recensioni, stesse zone. Spunta solo ciò che ha senso qui.
-			</p>
-
-			<?php
-			$attive = isset( $pagina['sezioni'] ) ? (array) $pagina['sezioni'] : array();
-			if ( empty( $attive ) ) {
-				$attive = sezioni_predefinite( $pagina['tipo'], $pagina['slug'] );
+		<?php
+		$catalogo = sezioni_disponibili( $pagina['tipo'] );
+		$attive   = pagina_sezioni( $pagina );
+		$spente   = array();
+		foreach ( $catalogo as $chiave => $info ) {
+			if ( ! in_array( $chiave, $attive, true ) ) {
+				$spente[] = $chiave;
 			}
-			foreach ( sezioni_disponibili() as $chiave => $info ) :
-				?>
-				<p class="pc-inline">
-					<input type="checkbox" name="sezioni[]" value="<?php echo e( $chiave ); ?>"
-						id="sez-<?php echo e( $chiave ); ?>" <?php checked_pc( in_array( $chiave, $attive, true ) ); ?>>
-					<label for="sez-<?php echo e( $chiave ); ?>" style="margin:0;font-weight:600">
-						<?php echo e( $info[0] ); ?>
-						<span class="pc-nota" style="font-weight:400">— <?php echo e( $info[1] ); ?></span>
-					</label>
-				</p>
-			<?php endforeach; ?>
+		}
+		?>
 
-			<p class="pc-nota" style="margin-top:14px">
-				Le sezioni marcate "dai dati della città" prendono il contenuto dalla scheda della
-				città: mostrarle ovunque non aggiunge niente, mostrarle dove servono sì.
-			</p>
+		<div class="pc-griglia-2" id="modulo-sezioni">
+			<div class="pc-scheda">
+				<h2>Nella pagina <span class="pc-nota" id="conta-sez-dentro">(<?php echo count( $attive ); ?>)</span></h2>
+				<p class="pc-scheda__nota">Dall'alto in basso = l'ordine in cui si leggono scorrendo la pagina.</p>
+
+				<ul class="pc-lista-menu" id="lista-sez-dentro">
+					<?php foreach ( $attive as $i => $chiave ) : ?>
+						<?php $info = $catalogo[ $chiave ]; ?>
+						<li class="pc-voce" data-titolo="<?php echo e( $info[0] ); ?>">
+							<input type="hidden" name="sezioni[]" value="<?php echo e( $chiave ); ?>">
+							<span class="pc-voce__num"><?php echo (int) $i + 1; ?></span>
+							<span class="pc-voce__nome">
+								<?php echo e( $info[0] ); ?>
+								<small><?php echo e( $info[1] ); ?></small>
+							</span>
+							<span class="pc-voce__azioni">
+								<button type="submit" name="muovi_sezione" value="su:<?php echo e( $chiave ); ?>" class="pc-tondo" title="Sposta su" aria-label="Sposta su">↑</button>
+								<button type="submit" name="muovi_sezione" value="giu:<?php echo e( $chiave ); ?>" class="pc-tondo" title="Sposta giù" aria-label="Sposta giù">↓</button>
+								<button type="submit" name="muovi_sezione" value="fuori:<?php echo e( $chiave ); ?>" class="pc-tondo pc-tondo--rosso" title="Togli dalla pagina" aria-label="Togli dalla pagina">×</button>
+							</span>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+
+				<p class="pc-nota" id="vuoto-sez-dentro" <?php echo empty( $attive ) ? '' : 'style="display:none"'; ?>>
+					La pagina mostrerà solo l'intestazione con il titolo.
+				</p>
+			</div>
+
+			<div class="pc-scheda">
+				<h2>Non mostrate <span class="pc-nota" id="conta-sez-fuori">(<?php echo count( $spente ); ?>)</span></h2>
+				<p class="pc-scheda__nota">
+					Senza questa scelta tutte le pagine della città finirebbero per assomigliarsi:
+					stessi orari, stesse recensioni, stesse zone.
+				</p>
+
+				<ul class="pc-lista-menu" id="lista-sez-fuori">
+					<?php foreach ( $spente as $chiave ) : ?>
+						<?php $info = $catalogo[ $chiave ]; ?>
+						<li class="pc-voce" data-titolo="<?php echo e( $info[0] ); ?>">
+							<span class="pc-voce__nome">
+								<?php echo e( $info[0] ); ?>
+								<small><?php echo e( $info[1] ); ?></small>
+							</span>
+							<span class="pc-voce__azioni">
+								<button type="submit" name="muovi_sezione" value="dentro:<?php echo e( $chiave ); ?>" class="pc-tondo pc-tondo--verde" title="Metti nella pagina" aria-label="Metti nella pagina">+</button>
+							</span>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+
+				<p class="pc-nota" id="vuoto-sez-fuori" <?php echo empty( $spente ) ? '' : 'style="display:none"'; ?>>
+					Questa pagina mostra tutto quello che può mostrare.
+				</p>
+
+				<p class="pc-nota" style="margin-top:14px">
+					Le sezioni marcate "dai dati della città" prendono il contenuto dalla scheda della
+					città: mostrarle ovunque non aggiunge niente, mostrarle dove servono sì. Una sezione
+					senza contenuto non lascia un buco: semplicemente non esce.
+				</p>
+			</div>
 		</div>
 
 		<?php if ( in_array( 'modulo', $attive, true ) ) : ?>

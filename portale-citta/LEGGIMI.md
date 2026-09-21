@@ -23,7 +23,7 @@ Non è un plugin: gira da solo, con il suo database e la sua amministrazione.
 | **Assistente Gemini** | Propone introduzione, testo, descrizione e FAQ dai dati della città |
 | **Blog per città** | Articoli con elenco paginato, schema BlogPosting, importazione da WordPress |
 | **Modulo di contatto** | Con recapiti completi, anti-spam senza captcha |
-| **Sezioni per pagina** | Ogni pagina sceglie cosa mostrare: non escono tutte uguali |
+| **Sezioni per pagina** | Ogni pagina sceglie cosa mostrare **e in che ordine**: non escono tutte uguali |
 | **Sezioni a card** | Ogni sezione si disegna a riquadri o a elenco, con effetti dinamici |
 | **CSS/HTML/JS** | Tre livelli: globale, per città, per pagina |
 | **Bozze** | Le pagine non pubblicate sono 404 per tutti, tranne per chi è collegato |
@@ -251,8 +251,20 @@ Molte sezioni (orari, recensioni, zone, team, mappa) vengono dai dati della
 **città**: se le mostrassero tutte le pagine, ogni pagina della stessa città
 sarebbe identica alle altre, e Google ne indicizzerebbe una sola.
 
-Per questo ogni pagina ha la scheda **Sezioni** nel suo editor, con le caselle
-di ciò che vuole mostrare. Le proposte di partenza:
+Per questo ogni pagina ha la scheda **Sezioni** nel suo editor, con due
+colonne: a sinistra **Nella pagina**, nell'ordine in cui si leggono scorrendo;
+a destra **Non mostrate**.
+
+- `↑` `↓` spostano una sezione su e giù
+- `×` la toglie dalla pagina, `+` la rimette
+- dall'alto in basso = dall'inizio alla fine della pagina
+
+Si sposta anche il **testo di approfondimento**: se su Contatti vuoi il modulo
+per primo e il testo sotto, basta portare *Modulo di contatto* in cima.
+
+Una sezione senza contenuto non lascia un buco: semplicemente non esce.
+
+Le proposte di partenza:
 
 | Tipo di pagina | Sezioni proposte |
 |---|---|
@@ -263,14 +275,16 @@ di ciò che vuole mostrare. Le proposte di partenza:
 | Chi siamo | team, perché, CTA |
 | Blog | CTA |
 
-Sono proposte, non regole: spunta e togli come vuoi.
+Sono proposte, non regole: togli, aggiungi e riordina come vuoi. Le pagine
+già scritte non si muovono da sole — restano come sono finché non sei tu a
+spostare qualcosa.
 
 ---
 
 ## Il modulo di contatto
 
-Si attiva dalla scheda **Sezioni** di una pagina, spuntando *Modulo di contatto*
-(e di solito anche *Recapiti completi*).
+Si attiva dalla scheda **Sezioni** di una pagina, portando *Modulo di contatto*
+fra quelle mostrate (e di solito anche *Recapiti completi*).
 
 Le richieste arrivano via email all'indirizzo della città; se non c'è, a quello
 delle impostazioni. L'editor ti dice a quale indirizzo andranno, e ti avvisa se

@@ -9,6 +9,9 @@ if ( ! defined( 'PC_AVVIO' ) ) {
 }
 
 define( 'PC_VERSIONE', '1.0.0' );
+// Segnaposto salvato fra le sezioni di una pagina: dice che l'ordine è
+// stato deciso a mano, e non va più corretto dai valori di una volta.
+define( 'PC_ORDINE_DECISO', '--ordine--' );
 define( 'PC_RADICE', dirname( __DIR__ ) );
 define( 'PC_DATI', PC_RADICE . '/dati' );
 define( 'PC_MEDIA', PC_RADICE . '/media' );

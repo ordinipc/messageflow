@@ -30,7 +30,10 @@ $js_extra    = $citta['js'] . "\n" . $pagina['js'];
 $schemi      = array(
 	schema_attivita( $citta ),
 	schema_servizio( $citta, $pagina ),
-	schema_faq( $pagina['faq'] ),
+	// Le FAQ nei dati strutturati solo se sono anche sulla pagina: dichiarare
+	// a Google domande che il visitatore non vede è un modo per prendersi
+	// una penalizzazione.
+	schema_faq( pagina_mostra( $pagina, 'faq' ) ? $pagina['faq'] : array() ),
 	schema_elenco_servizi( $citta, $pagina, $servizi ),
 	schema_breadcrumb( $citta, $pagina ),
 );
@@ -127,120 +130,22 @@ $sfondo = vuoto( $pagina['immagine'] ) ? '' : url_media( $pagina['immagine'] );
 
 <div class="glp-sections">
 <?php
-/* --- Testo principale --------------------------------------------------- */
-if ( ! vuoto( $pagina['corpo'] ) ) {
-	echo sezione_apri( 'approfondimento', seo_h1( $citta, $pagina ) . ': cosa sapere', 'Approfondimento' );
-	echo paragrafi( $pagina['corpo'] );
-	echo '</section>';
-}
-
-/* --- HTML libero della pagina ------------------------------------------- */
-if ( ! vuoto( $pagina['html'] ) ) {
-	echo '<section class="glp-section glp-section--libero glp-reveal">' . $pagina['html'] . '</section>';
-}
-
-/* --- Elenco dei servizi: è il corpo della pagina, non una coda --------- */
-if ( 'servizi' === $pagina['tipo'] ) {
-	echo sezione_elenco_servizi( $citta, $servizi );
-}
-
-/* --- Blog: idem, l'elenco degli articoli è il contenuto --------------- */
-if ( 'blog' === $pagina['tipo'] ) {
-	echo sezione_blog( $citta, $pagina );
-}
-
-/* --- Sezioni a riquadri o a elenco (tema/sezioni.php) -------------------- */
-if ( pagina_mostra( $pagina, 'inclusi' ) )    { echo sezione_inclusi( $pagina ); }
-if ( pagina_mostra( $pagina, 'perche' ) )     { echo sezione_perche( $citta ); }
-if ( pagina_mostra( $pagina, 'processo' ) )   { echo sezione_processo( $pagina ); }
-
-/* --- Prezzi -------------------------------------------------------------- */
-if ( pagina_mostra( $pagina, 'prezzi' ) && ! vuoto( $pagina['prezzo_da'] ) ) {
-	echo sezione_apri( 'prezzi', 'Quanto costa', 'Prezzi' );
-	$valuta = '€';
-	$testo  = vuoto( $pagina['prezzo_a'] )
-		? 'a partire da ' . $pagina['prezzo_da'] . ' ' . $valuta
-		: 'da ' . $pagina['prezzo_da'] . ' ' . $valuta . ' a ' . $pagina['prezzo_a'] . ' ' . $valuta;
-	echo '<p class="glp-price">' . e( $testo ) . '</p>';
-	if ( ! vuoto( $pagina['prezzo_note'] ) ) {
-		echo paragrafi( $pagina['prezzo_note'] );
-	}
-	echo '</section>';
-}
-
-if ( pagina_mostra( $pagina, 'zone' ) )       { echo sezione_zone( $citta ); }
-if ( pagina_mostra( $pagina, 'recensioni' ) ) { echo sezione_recensioni( $citta ); }
-if ( pagina_mostra( $pagina, 'team' ) )       { echo sezione_team( $citta ); }
-
-/* --- Dove siamo ---------------------------------------------------------- */
-if ( pagina_mostra( $pagina, 'dove' ) && ( ! vuoto( $citta['indirizzo'] ) || ! vuoto( $citta['mappa'] ) || ! vuoto( $citta['raggiungerci'] ) ) ) {
-	echo sezione_apri( 'dove', 'Dove siamo e come raggiungerci', 'Sede' );
-	if ( ! vuoto( $citta['indirizzo'] ) ) {
-		$completo = $citta['indirizzo'] . ', ' . trim( $citta['cap'] . ' ' . $citta['nome'] );
-		if ( ! vuoto( $citta['provincia'] ) ) {
-			$completo .= ' (' . $citta['provincia'] . ')';
-		}
-		echo '<p class="glp-address">' . e( $completo ) . '</p>';
-	}
-	if ( ! vuoto( $citta['raggiungerci'] ) ) {
-		echo paragrafi( $citta['raggiungerci'] );
-	}
-	if ( ! vuoto( $citta['mappa'] ) ) {
-		echo '<div class="glp-map"><iframe src="' . e_url( $citta['mappa'] ) . '" loading="lazy" title="Mappa della sede a ' . e( $citta['nome'] ) . '" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe></div>';
-	}
-	echo '</section>';
-}
-
-
-if ( pagina_mostra( $pagina, 'orari' ) )      { echo sezione_orari( $citta ); }
-
-/* --- FAQ ----------------------------------------------------------------- */
-$faq = pagina_mostra( $pagina, 'faq' ) ? (array) $pagina['faq'] : array();
-if ( ! empty( $faq ) ) {
-	echo sezione_apri( 'faq', 'Domande frequenti', 'FAQ' );
-	echo '<div class="glp-faq">';
-	$i = 0;
-	foreach ( $faq as $riga ) {
-		$d = isset( $riga['domanda'] ) ? $riga['domanda'] : '';
-		if ( vuoto( $d ) ) {
-			continue;
-		}
-		echo '<details class="glp-faq__item"' . ( 0 === $i ? ' open' : '' ) . '>';
-		echo '<summary class="glp-faq__q">' . e( $d ) . '</summary>';
-		echo '<div class="glp-faq__a">' . paragrafi( isset( $riga['risposta'] ) ? $riga['risposta'] : '' ) . '</div>';
-		echo '</details>';
-		$i++;
-	}
-	echo '</div></section>';
-}
-
-/* --- Recapiti e modulo di contatto ---------------------------------------- */
-if ( pagina_mostra( $pagina, 'recapiti' ) ) {
-	echo sezione_recapiti( $citta );
-}
-if ( pagina_mostra( $pagina, 'modulo' ) ) {
-	echo sezione_modulo( $citta, $pagina, $servizi, $esito_modulo );
-}
-
-/* --- Chiamata all'azione -------------------------------------------------- */
-if ( pagina_mostra( $pagina, 'cta' ) && ( ! vuoto( $telefono ) || ! vuoto( $whatsapp ) ) ) {
-	echo sezione_apri( 'cta', 'Richiedi un intervento a ' . $citta['nome'], 'Contatti' );
-	echo '<div class="glp-cta">';
-	if ( ! vuoto( $cta_url ) ) {
-		echo '<a class="glp-btn" href="' . e( $cta_url ) . '">' . e( $cta_testo ) . '</a>';
-	}
-	if ( ! vuoto( $whatsapp ) ) {
-		echo '<a class="glp-btn glp-btn--ghost" rel="nofollow noopener" target="_blank" href="' . e( url_whatsapp( $whatsapp ) ) . '">Scrivici su WhatsApp</a>';
-	}
-	echo '</div></section>';
-}
-
-// Su una pagina che già elenca i servizi non si ripete l'elenco in fondo.
-if ( 'servizi' !== $pagina['tipo'] && pagina_mostra( $pagina, 'servizi' ) ) {
-	echo sezione_servizi( $citta, $servizi, url_pagina( $citta, $pagina ) );
-}
-if ( pagina_mostra( $pagina, 'correlate' ) ) {
-	echo sezione_correlate( $altre );
+/**
+ * Le sezioni escono nell'ordine deciso nella scheda "Sezioni" della pagina.
+ * Ognuna sa dire da sola se ha qualcosa da mostrare: se il contenuto manca
+ * restituisce stringa vuota e non lascia un buco.
+ */
+$contesto = array(
+	'citta'        => $citta,
+	'pagina'       => $pagina,
+	'servizi'      => $servizi,
+	'altre'        => $altre,
+	'esito_modulo' => $esito_modulo,
+	'telefono'     => $telefono,
+	'whatsapp'     => $whatsapp,
+);
+foreach ( pagina_sezioni( $pagina ) as $chiave ) {
+	echo rendi_sezione( $chiave, $contesto );
 }
 ?>
 </div><!-- .glp-sections -->

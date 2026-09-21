@@ -7,6 +7,10 @@
 	// pagina riparte sempre dalla prima, non dall'ultima usata altrove.
 	var chiaveLinguetta = 'pc-linguetta:' + window.location.search;
 
+	// Da qui in poi le schede si aprono una per volta: senza JavaScript
+	// restano tutte aperte, così nessuna resta irraggiungibile.
+	document.body.classList.add('pc-js');
+
 	document.querySelectorAll('[data-linguette]').forEach(function (gruppo) {
 		var bottoni = gruppo.querySelectorAll('.pc-linguetta');
 		bottoni.forEach(function (b) {
@@ -342,129 +346,157 @@
 	});
 })();
 
-/* Gestione del menu: sposta le voci senza ricaricare. I pulsanti restano
-   invii veri, quindi senza JavaScript la schermata funziona lo stesso. */
+/* Liste spostabili: le voci del menu di una città e le sezioni di una
+   pagina. I pulsanti restano invii veri, quindi senza JavaScript le due
+   schermate funzionano lo stesso — solo con un ricaricamento in mezzo. */
 (function () {
 	'use strict';
 
-	var modulo = document.getElementById('modulo-menu');
-	if (!modulo) { return; }
+	function collega(cfg) {
+		var zona = document.getElementById(cfg.zona);
+		var dentro = document.getElementById(cfg.dentro);
+		var fuori = document.getElementById(cfg.fuori);
+		if (!zona || !dentro || !fuori) { return; }
 
-	var dentro = document.getElementById('lista-dentro');
-	var fuori = document.getElementById('lista-fuori');
-	var anteprima = document.getElementById('anteprima-menu');
-	if (!dentro || !fuori) { return; }
+		var anteprima = cfg.anteprima ? document.getElementById(cfg.anteprima) : null;
 
-	function aggiorna() {
-		// Numeri progressivi, campi nascosti e frecce ai capi.
-		var voci = dentro.querySelectorAll('.pc-voce');
-		voci.forEach(function (v, i) {
-			var num = v.querySelector('.pc-voce__num');
-            if (num) { num.textContent = i + 1; }
-			var su = v.querySelector('[value^="su:"]');
-			var giu = v.querySelector('[value^="giu:"]');
-			if (su) { su.disabled = i === 0; }
-			if (giu) { giu.disabled = i === voci.length - 1; }
+		function conta(id, n) {
+			var e = document.getElementById(id);
+			if (e) { e.textContent = '(' + n + ')'; }
+		}
+
+		function aggiorna() {
+			var voci = dentro.querySelectorAll('.pc-voce');
+			var quanteFuori = fuori.querySelectorAll('.pc-voce').length;
+
+			// Numeri progressivi e frecce spente ai due capi.
+			voci.forEach(function (v, i) {
+				var num = v.querySelector('.pc-voce__num');
+				if (num) { num.textContent = i + 1; }
+				var su = v.querySelector('[value^="su:"]');
+				var giu = v.querySelector('[value^="giu:"]');
+				if (su) { su.disabled = i === 0; }
+				if (giu) { giu.disabled = i === voci.length - 1; }
+			});
+
+			conta(cfg.contaDentro, voci.length);
+			conta(cfg.contaFuori, quanteFuori);
+
+			var vd = document.getElementById(cfg.vuotoDentro);
+			var vf = document.getElementById(cfg.vuotoFuori);
+			if (vd) { vd.style.display = voci.length ? 'none' : ''; }
+			if (vf) { vf.style.display = quanteFuori ? 'none' : ''; }
+
+			// Anteprima della barra: solo il menu ce l'ha.
+			if (anteprima) {
+				anteprima.innerHTML = '';
+				var larghezza = 0;
+				voci.forEach(function (v) {
+					var t = v.getAttribute('data-titolo') || '';
+					var s = document.createElement('span');
+					s.className = 'pc-barra-finta__voce';
+					s.textContent = t;
+					anteprima.appendChild(s);
+					larghezza += t.length * 7 + 26;
+				});
+				var avviso = document.getElementById('avviso-larghezza');
+				if (avviso) { avviso.style.display = larghezza > 820 ? '' : 'none'; }
+			}
+		}
+
+		function campo(voce, id) {
+			var h = voce.querySelector('input[name="' + cfg.campo + '"]');
+			if (!h) {
+				h = document.createElement('input');
+				h.type = 'hidden';
+				h.name = cfg.campo;
+				h.value = id;
+				voce.insertBefore(h, voce.firstChild);
+			}
+			return h;
+		}
+
+		function bottoni(voce, id, verso) {
+			var azioni = voce.querySelector('.pc-voce__azioni');
+			if (!azioni) { return; }
+			azioni.innerHTML = '';
+
+			function crea(valore, classe, segno, titolo) {
+				var b = document.createElement('button');
+				b.type = 'submit';
+				b.name = cfg.bottone;
+				b.value = valore + ':' + id;
+				b.className = 'pc-tondo' + (classe ? ' ' + classe : '');
+				b.textContent = segno;
+				b.title = titolo;
+				b.setAttribute('aria-label', titolo);
+				azioni.appendChild(b);
+			}
+
+			if ('dentro' === verso) {
+				crea('su', '', '↑', 'Sposta su');
+				crea('giu', '', '↓', 'Sposta giù');
+				crea('fuori', 'pc-tondo--rosso', '×', cfg.togli);
+			} else {
+				crea('dentro', 'pc-tondo--verde', '+', cfg.metti);
+			}
+		}
+
+		zona.addEventListener('click', function (ev) {
+			var b = ev.target.closest('[name="' + cfg.bottone + '"]');
+			if (!b) { return; }
+			ev.preventDefault();
+
+			var parti = b.value.split(':');
+			var cosa = parti[0];
+			var id = parti[1];
+			var voce = b.closest('.pc-voce');
+			if (!voce) { return; }
+
+			if ('su' === cosa && voce.previousElementSibling) {
+				dentro.insertBefore(voce, voce.previousElementSibling);
+			} else if ('giu' === cosa && voce.nextElementSibling) {
+				dentro.insertBefore(voce.nextElementSibling, voce);
+			} else if ('fuori' === cosa) {
+				var h = voce.querySelector('input[name="' + cfg.campo + '"]');
+				if (h) { h.remove(); }
+				var num = voce.querySelector('.pc-voce__num');
+				if (num) { num.remove(); }
+				bottoni(voce, id, 'fuori');
+				fuori.appendChild(voce);
+			} else if ('dentro' === cosa) {
+				if (!voce.querySelector('.pc-voce__num')) {
+					var n = document.createElement('span');
+					n.className = 'pc-voce__num';
+					voce.insertBefore(n, voce.firstChild);
+				}
+				campo(voce, id);
+				bottoni(voce, id, 'dentro');
+				dentro.appendChild(voce);
+			}
+
+			aggiorna();
 		});
 
-		document.getElementById('conta-dentro').textContent = '(' + voci.length + ')';
-		document.getElementById('conta-fuori').textContent = '(' + fuori.querySelectorAll('.pc-voce').length + ')';
-
-		var vuotoDentro = document.getElementById('vuoto-dentro');
-		var vuotoFuori = document.getElementById('vuoto-fuori');
-		if (vuotoDentro) { vuotoDentro.style.display = voci.length ? 'none' : ''; }
-		if (vuotoFuori) { vuotoFuori.style.display = fuori.querySelectorAll('.pc-voce').length ? 'none' : ''; }
-
-		// Anteprima della barra.
-		if (anteprima) {
-			anteprima.innerHTML = '';
-			var larghezza = 0;
-			voci.forEach(function (v) {
-				var t = v.getAttribute('data-titolo') || '';
-				var s = document.createElement('span');
-				s.className = 'pc-barra-finta__voce';
-				s.textContent = t;
-				anteprima.appendChild(s);
-				larghezza += t.length * 7 + 26;
-			});
-			var avviso = document.getElementById('avviso-larghezza');
-			if (avviso) { avviso.style.display = larghezza > 820 ? '' : 'none'; }
-		}
-	}
-
-	function campo(voce, id) {
-		var h = voce.querySelector('input[name="dentro[]"]');
-		if (!h) {
-			h = document.createElement('input');
-			h.type = 'hidden';
-			h.name = 'dentro[]';
-			h.value = id;
-			voce.insertBefore(h, voce.firstChild);
-		}
-		return h;
-	}
-
-	function bottoni(voce, id, verso) {
-		var azioni = voce.querySelector('.pc-voce__azioni');
-		if (!azioni) { return; }
-		azioni.innerHTML = '';
-
-		function crea(valore, classe, segno, titolo) {
-			var b = document.createElement('button');
-			b.type = 'submit';
-			b.name = 'muovi';
-			b.value = valore + ':' + id;
-			b.className = 'pc-tondo' + (classe ? ' ' + classe : '');
-			b.textContent = segno;
-			b.title = titolo;
-			b.setAttribute('aria-label', titolo);
-			azioni.appendChild(b);
-		}
-
-		if ('dentro' === verso) {
-			crea('su', '', '↑', 'Sposta su');
-			crea('giu', '', '↓', 'Sposta giù');
-			crea('fuori', 'pc-tondo--rosso', '×', 'Togli dal menu');
-		} else {
-			crea('dentro', 'pc-tondo--verde', '+', 'Metti nel menu');
-		}
-	}
-
-	modulo.addEventListener('click', function (ev) {
-		var b = ev.target.closest('[name="muovi"]');
-		if (!b) { return; }
-		ev.preventDefault();
-
-		var parti = b.value.split(':');
-		var cosa = parti[0];
-		var id = parti[1];
-		var voce = b.closest('.pc-voce');
-		if (!voce) { return; }
-
-		if ('su' === cosa && voce.previousElementSibling) {
-			dentro.insertBefore(voce, voce.previousElementSibling);
-		} else if ('giu' === cosa && voce.nextElementSibling) {
-			dentro.insertBefore(voce.nextElementSibling, voce);
-		} else if ('fuori' === cosa) {
-			var h = voce.querySelector('input[name="dentro[]"]');
-			if (h) { h.remove(); }
-			var num = voce.querySelector('.pc-voce__num');
-			if (num) { num.remove(); }
-			bottoni(voce, id, 'fuori');
-			fuori.appendChild(voce);
-		} else if ('dentro' === cosa) {
-			if (!voce.querySelector('.pc-voce__num')) {
-				var n = document.createElement('span');
-				n.className = 'pc-voce__num';
-				voce.insertBefore(n, voce.firstChild);
-			}
-			campo(voce, id);
-			bottoni(voce, id, 'dentro');
-			dentro.appendChild(voce);
-		}
-
 		aggiorna();
+	}
+
+	collega({
+		zona: 'modulo-menu',
+		dentro: 'lista-dentro', fuori: 'lista-fuori',
+		campo: 'dentro[]', bottone: 'muovi',
+		contaDentro: 'conta-dentro', contaFuori: 'conta-fuori',
+		vuotoDentro: 'vuoto-dentro', vuotoFuori: 'vuoto-fuori',
+		anteprima: 'anteprima-menu',
+		togli: 'Togli dal menu', metti: 'Metti nel menu'
 	});
 
-	aggiorna();
+	collega({
+		zona: 'modulo-sezioni',
+		dentro: 'lista-sez-dentro', fuori: 'lista-sez-fuori',
+		campo: 'sezioni[]', bottone: 'muovi_sezione',
+		contaDentro: 'conta-sez-dentro', contaFuori: 'conta-sez-fuori',
+		vuotoDentro: 'vuoto-sez-dentro', vuotoFuori: 'vuoto-sez-fuori',
+		togli: 'Togli dalla pagina', metti: 'Metti nella pagina'
+	});
 })();

@@ -662,3 +662,170 @@ function sezione_modulo( $citta, $pagina, $servizi, $esito = null ) {
 
 	return $html . '</section>';
 }
+
+/* ---------------------------------------------------------------------------
+ * Le sezioni che prima stavano scritte dentro pagina.php.
+ *
+ * Servivano solo lì, ma da quando l'ordine lo decide chi scrive la pagina
+ * devono essere richiamabili una per una, come tutte le altre.
+ * ------------------------------------------------------------------------- */
+
+/** Il testo lungo della pagina. */
+function sezione_testo( $citta, $pagina ) {
+	if ( vuoto( $pagina['corpo'] ) ) {
+		return '';
+	}
+	return sezione_apri( 'approfondimento', seo_h1( $citta, $pagina ) . ': cosa sapere', 'Approfondimento' )
+		. paragrafi( $pagina['corpo'] )
+		. '</section>';
+}
+
+/** L'HTML scritto a mano nella scheda "Codice". */
+function sezione_html( $pagina ) {
+	if ( vuoto( $pagina['html'] ) ) {
+		return '';
+	}
+	return '<section class="glp-section glp-section--libero glp-reveal">' . $pagina['html'] . '</section>';
+}
+
+/** Prezzi della pagina servizio. */
+function sezione_prezzi( $pagina ) {
+	if ( vuoto( $pagina['prezzo_da'] ) ) {
+		return '';
+	}
+	$valuta = '€';
+	$testo  = vuoto( $pagina['prezzo_a'] )
+		? 'a partire da ' . $pagina['prezzo_da'] . ' ' . $valuta
+		: 'da ' . $pagina['prezzo_da'] . ' ' . $valuta . ' a ' . $pagina['prezzo_a'] . ' ' . $valuta;
+
+	$html = sezione_apri( 'prezzi', 'Quanto costa', 'Prezzi' )
+		. '<p class="glp-price">' . e( $testo ) . '</p>';
+	if ( ! vuoto( $pagina['prezzo_note'] ) ) {
+		$html .= paragrafi( $pagina['prezzo_note'] );
+	}
+	return $html . '</section>';
+}
+
+/** Indirizzo, indicazioni e mappa della città. */
+function sezione_dove( $citta ) {
+	if ( vuoto( $citta['indirizzo'] ) && vuoto( $citta['mappa'] ) && vuoto( $citta['raggiungerci'] ) ) {
+		return '';
+	}
+	$html = sezione_apri( 'dove', 'Dove siamo e come raggiungerci', 'Sede' );
+
+	if ( ! vuoto( $citta['indirizzo'] ) ) {
+		$completo = $citta['indirizzo'] . ', ' . trim( $citta['cap'] . ' ' . $citta['nome'] );
+		if ( ! vuoto( $citta['provincia'] ) ) {
+			$completo .= ' (' . $citta['provincia'] . ')';
+		}
+		$html .= '<p class="glp-address">' . e( $completo ) . '</p>';
+	}
+	if ( ! vuoto( $citta['raggiungerci'] ) ) {
+		$html .= paragrafi( $citta['raggiungerci'] );
+	}
+	if ( ! vuoto( $citta['mappa'] ) ) {
+		$html .= '<div class="glp-map"><iframe src="' . e_url( $citta['mappa'] ) . '" loading="lazy" title="Mappa della sede a '
+			. e( $citta['nome'] ) . '" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe></div>';
+	}
+	return $html . '</section>';
+}
+
+/** Le domande frequenti della pagina. */
+function sezione_faq( $pagina ) {
+	$faq = (array) $pagina['faq'];
+	if ( empty( $faq ) ) {
+		return '';
+	}
+	$voci = '';
+	$i    = 0;
+	foreach ( $faq as $riga ) {
+		$d = isset( $riga['domanda'] ) ? $riga['domanda'] : '';
+		if ( vuoto( $d ) ) {
+			continue;
+		}
+		$voci .= '<details class="glp-faq__item"' . ( 0 === $i ? ' open' : '' ) . '>'
+			. '<summary class="glp-faq__q">' . e( $d ) . '</summary>'
+			. '<div class="glp-faq__a">' . paragrafi( isset( $riga['risposta'] ) ? $riga['risposta'] : '' ) . '</div>'
+			. '</details>';
+		$i++;
+	}
+	if ( '' === $voci ) {
+		return '';
+	}
+	return sezione_apri( 'faq', 'Domande frequenti', 'FAQ' )
+		. '<div class="glp-faq">' . $voci . '</div></section>';
+}
+
+/** Il riquadro con i pulsanti per chiamare o scrivere. */
+function sezione_cta( $citta, $telefono, $whatsapp ) {
+	if ( vuoto( $telefono ) && vuoto( $whatsapp ) ) {
+		return '';
+	}
+	$html = sezione_apri( 'cta', 'Richiedi un intervento a ' . $citta['nome'], 'Contatti' ) . '<div class="glp-cta">';
+	if ( ! vuoto( $telefono ) ) {
+		$html .= '<a class="glp-btn" href="tel:' . e( tel( $telefono ) ) . '">' . e( 'Chiama ' . $telefono ) . '</a>';
+	}
+	if ( ! vuoto( $whatsapp ) ) {
+		$html .= '<a class="glp-btn glp-btn--ghost" rel="nofollow noopener" target="_blank" href="'
+			. e( url_whatsapp( $whatsapp ) ) . '">Scrivici su WhatsApp</a>';
+	}
+	return $html . '</div></section>';
+}
+
+/**
+ * Stampa una sezione a partire dalla sua chiave.
+ *
+ * $ctx porta quello che serve a tutte: città, pagina, servizi, altre città
+ * e l'esito del modulo di contatto.
+ */
+function rendi_sezione( $chiave, $ctx ) {
+	$citta  = $ctx['citta'];
+	$pagina = $ctx['pagina'];
+
+	switch ( $chiave ) {
+		case 'testo':
+			return sezione_testo( $citta, $pagina );
+		case 'html':
+			return sezione_html( $pagina );
+		case 'elenco':
+			if ( 'blog' === $pagina['tipo'] ) {
+				return sezione_blog( $citta, $pagina );
+			}
+			return sezione_elenco_servizi( $citta, $ctx['servizi'] );
+		case 'inclusi':
+			return sezione_inclusi( $pagina );
+		case 'processo':
+			return sezione_processo( $pagina );
+		case 'prezzi':
+			return sezione_prezzi( $pagina );
+		case 'faq':
+			return sezione_faq( $pagina );
+		case 'perche':
+			return sezione_perche( $citta );
+		case 'zone':
+			return sezione_zone( $citta );
+		case 'recensioni':
+			return sezione_recensioni( $citta );
+		case 'team':
+			return sezione_team( $citta );
+		case 'dove':
+			return sezione_dove( $citta );
+		case 'orari':
+			return sezione_orari( $citta );
+		case 'recapiti':
+			return sezione_recapiti( $citta );
+		case 'modulo':
+			return sezione_modulo( $citta, $pagina, $ctx['servizi'], $ctx['esito_modulo'] );
+		case 'cta':
+			return sezione_cta( $citta, $ctx['telefono'], $ctx['whatsapp'] );
+		case 'servizi':
+			// Su una pagina che già elenca i servizi non si ripete l'elenco.
+			if ( 'servizi' === $pagina['tipo'] ) {
+				return '';
+			}
+			return sezione_servizi( $citta, $ctx['servizi'], url_pagina( $citta, $pagina ) );
+		case 'correlate':
+			return sezione_correlate( $ctx['altre'] );
+	}
+	return '';
+}
