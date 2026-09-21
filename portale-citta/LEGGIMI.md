@@ -13,7 +13,7 @@ Non è un plugin: gira da solo, con il suo database e la sua amministrazione.
 |---|---|
 | **Città illimitate** | Ognuna con slug, provincia, CAP, coordinate, contatti, orari, zone servite |
 | **Pagine per città** | Principale, servizi, chi siamo, contatti, FAQ… Ogni città ha le sue |
-| **Menu automatico** | Costruito dalle pagine della città, con ordine e visibilità per pagina |
+| **Menu nell'intestazione** | Costruito dalle pagine della città, sempre in alto, con ordine e visibilità per pagina |
 | **Sitemap** | Indice `/sitemap.xml` + una sitemap per città, aggiornate da sole |
 | **robots.txt** | Generato, con l'indirizzo della sitemap |
 | **SEO per pagina** | Title, description, canonical, Open Graph, meta geo, punteggio 0-100 |
@@ -92,6 +92,34 @@ la fascia di prezzo.
 
 La schermata **SEO e sitemap** ti dice quando due testi sono troppo simili.
 Sopra l'88% di somiglianza hai un problema.
+
+---
+
+## Il menu della città
+
+Sta **dentro l'intestazione**, in alto, accanto a logo e numero di telefono.
+L'intestazione resta attaccata al bordo superiore mentre si scorre, quindi il
+menu è sempre a un clic.
+
+Si costruisce da solo dalle pagine della città. Per ogni pagina decidi se
+mostrarla e in che ordine (editor della pagina → SEO → Posizione nel menu).
+
+Si adatta da solo allo spazio, misurando le voci:
+
+| Situazione | Come si presenta |
+|---|---|
+| Le voci ci stanno in riga | Una riga sola accanto a logo e telefono |
+| Non ci stanno, schermo ≥ 900 px | Seconda riga dentro l'intestazione, **tutte le voci visibili** |
+| Schermo < 900 px | Pulsante a tre righe, pannello a discesa con tutte le voci |
+| JavaScript disattivato | Menu sempre aperto e impilato, nessun pulsante inerte |
+
+La seconda riga è preferita al pulsante su schermo largo per un motivo
+concreto: i collegamenti visibili nel codice sono collegamenti interni che
+Google segue e pesa. Nasconderli dietro un pulsante quando c'è spazio è
+sprecarli.
+
+Il pannello si chiude con Esc, con un tocco fuori, e si richiude da solo
+tornando a schermo largo.
 
 ---
 

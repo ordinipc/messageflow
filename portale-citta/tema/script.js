@@ -199,7 +199,110 @@
 		} );
 	}
 
+	/**
+	 * Menu dell'intestazione.
+	 *
+	 * Prima misura: se le voci non stanno in riga accanto a logo e
+	 * telefono, l'intestazione passa alla forma compatta e il menu si
+	 * chiude dietro il pulsante a tre righe. Vale a qualsiasi larghezza,
+	 * non solo sul telefono: con otto servizi anche un desktop è stretto.
+	 *
+	 * Finché questo codice non gira il menu resta visibile, quindi chi
+	 * non ha JavaScript trova comunque tutte le voci.
+	 */
+	function menuIntestazione() {
+		var barra = document.querySelector( '.glp-topbar' );
+		var bottone = document.querySelector( '.glp-topbar__toggle' );
+		var pannello = document.getElementById( 'glp-menu' );
+		var elenco = pannello ? pannello.querySelector( '.glp-topbar__list' ) : null;
+
+		if ( ! barra || ! bottone || ! pannello || ! elenco ) {
+			return;
+		}
+
+		function apri() {
+			pannello.classList.add( 'is-aperto' );
+			bottone.setAttribute( 'aria-expanded', 'true' );
+			bottone.setAttribute( 'aria-label', 'Chiudi il menu' );
+		}
+
+		function chiudi() {
+			pannello.classList.remove( 'is-aperto' );
+			bottone.setAttribute( 'aria-expanded', 'false' );
+			bottone.setAttribute( 'aria-label', 'Apri il menu' );
+		}
+
+		function aperto() {
+			return 'true' === bottone.getAttribute( 'aria-expanded' );
+		}
+
+		/**
+		 * Il menu ci sta in riga? Si misura sempre in forma distesa,
+		 * altrimenti si misurerebbe il pannello già chiuso.
+		 */
+		function adatta() {
+			// Si misura sempre in forma distesa, altrimenti si misurerebbe
+			// il pannello già chiuso o la seconda riga già aperta.
+			barra.classList.remove( 'glp-topbar--compatto', 'glp-topbar--due-righe' );
+			chiudi();
+
+			// Due pixel di margine: gli arrotondamenti non devono far scattare la misura.
+			if ( elenco.scrollWidth <= pannello.clientWidth + 2 ) {
+				return;
+			}
+
+			// Non ci sta in riga. Su schermo largo il menu va a capo dentro
+			// l'intestazione: i collegamenti restano tutti visibili, che è
+			// meglio sia per chi legge sia per chi indicizza. Solo quando lo
+			// schermo è davvero stretto conviene chiuderlo dietro il pulsante.
+			if ( window.innerWidth >= 900 ) {
+				barra.classList.add( 'glp-topbar--due-righe' );
+			} else {
+				barra.classList.add( 'glp-topbar--compatto' );
+			}
+		}
+
+		bottone.addEventListener( 'click', function ( ev ) {
+			ev.stopPropagation();
+			if ( aperto() ) {
+				chiudi();
+			} else {
+				apri();
+			}
+		} );
+
+		// Un clic fuori chiude.
+		document.addEventListener( 'click', function ( ev ) {
+			if ( aperto() && ! pannello.contains( ev.target ) && ! bottone.contains( ev.target ) ) {
+				chiudi();
+			}
+		} );
+
+		// Esc chiude e riporta il fuoco al pulsante.
+		document.addEventListener( 'keydown', function ( ev ) {
+			if ( 'Escape' === ev.key && aperto() ) {
+				chiudi();
+				bottone.focus();
+			}
+		} );
+
+		// Alla prima apertura e a ogni cambio di larghezza.
+		var attesa = null;
+		window.addEventListener( 'resize', function () {
+			window.clearTimeout( attesa );
+			attesa = window.setTimeout( adatta, 160 );
+		} );
+
+		adatta();
+
+		// I caratteri caricati dopo cambiano la larghezza delle voci.
+		if ( document.fonts && document.fonts.ready ) {
+			document.fonts.ready.then( adatta );
+		}
+	}
+
 	document.addEventListener( 'DOMContentLoaded', function () {
+		menuIntestazione();
 		faqSingola();
 
 		// Nell'editor Elementor il contenuto deve essere sempre visibile.

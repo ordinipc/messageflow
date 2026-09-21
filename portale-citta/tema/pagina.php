@@ -114,23 +114,6 @@ include __DIR__ . '/parti/barra.php';
 	<div class="glp-hero__corner" aria-hidden="true"></div>
 </div>
 
-<!-- MENU DELLA CITTÀ -->
-<?php if ( ! empty( $menu ) ) : ?>
-	<nav class="glp-citymenu" aria-label="Navigazione di <?php echo e( $citta['nome'] ); ?>">
-		<div class="glp-citymenu__inner">
-			<a class="glp-citymenu__home<?php echo 'home' === $pagina['tipo'] ? ' is-current' : ''; ?>" href="<?php echo e( url_citta( $citta ) ); ?>"<?php echo 'home' === $pagina['tipo'] ? ' aria-current="page"' : ''; ?>>
-				<span class="glp-citymenu__dot" aria-hidden="true"></span>
-				<?php echo e( $citta['nome'] ); ?>
-			</a>
-			<ul class="glp-citymenu__list">
-				<?php foreach ( $menu as $v ) : ?>
-					<li><a class="glp-citymenu__link<?php echo $v['attiva'] ? ' is-current' : ''; ?>" href="<?php echo e_url( $v['url'] ); ?>"<?php echo $v['attiva'] ? ' aria-current="page"' : ''; ?>><?php echo e( $v['nome'] ); ?></a></li>
-				<?php endforeach; ?>
-			</ul>
-		</div>
-	</nav>
-<?php endif; ?>
-
 <div class="glp-sections">
 <?php
 /* --- Testo principale --------------------------------------------------- */
