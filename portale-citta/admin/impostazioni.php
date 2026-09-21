@@ -16,6 +16,8 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		'colore_testo'    => trim( (string) ( $_POST['colore_testo'] ?? '#111111' ) ),
 		'colore_chiaro'   => trim( (string) ( $_POST['colore_chiaro'] ?? '#f6f6f6' ) ),
 		'raggio'          => trim( (string) ( $_POST['raggio'] ?? '10px' ) ),
+		'stile_sezioni'   => 'elenco' === ( $_POST['stile_sezioni'] ?? '' ) ? 'elenco' : 'card',
+		'effetti'         => isset( $_POST['effetti'] ) ? '1' : '0',
 		'telefono'        => trim( (string) ( $_POST['telefono'] ?? '' ) ),
 		'whatsapp'        => trim( (string) ( $_POST['whatsapp'] ?? '' ) ),
 		'email'           => trim( (string) ( $_POST['email'] ?? '' ) ),
@@ -101,6 +103,30 @@ $cfg      = db_config();
 			<label>Colore chiaro <input type="text" name="colore_chiaro" value="<?php echo e( $imp['colore_chiaro'] ); ?>"></label>
 		</div>
 		<label style="max-width:200px">Arrotondamento angoli <input type="text" name="raggio" value="<?php echo e( $imp['raggio'] ); ?>" placeholder="10px"></label>
+	</div>
+
+	<div class="pc-scheda">
+		<h2>Sezioni ed effetti</h2>
+		<p class="pc-scheda__nota">Come si presentano i contenuti dentro le sezioni delle pagine.</p>
+
+		<label>Stile delle sezioni
+			<select name="stile_sezioni">
+				<option value="card" <?php selected_pc( 'card', $imp['stile_sezioni'] ); ?>>Riquadri (card) — consigliato</option>
+				<option value="elenco" <?php selected_pc( 'elenco', $imp['stile_sezioni'] ); ?>>Elenco — righe sottili, più compatto</option>
+			</select>
+			<small>Vale per: cosa comprende, perché sceglierci, numeri, processo, zone, recensioni, team, orari, FAQ, servizi e altre città.</small>
+		</label>
+
+		<label class="pc-inline">
+			<input type="checkbox" name="effetti" value="1" <?php checked_pc( '1' === (string) $imp['effetti'] ); ?>>
+			Effetti dinamici
+		</label>
+		<p class="pc-nota">
+			Comparsa a scalare quando la sezione entra nello schermo, sollevamento e alone che segue
+			il cursore sui riquadri, numeri che salgono fino al valore. Si spengono da soli su chi ha
+			chiesto meno animazioni nel sistema, e non servono a niente per il posizionamento: sono
+            solo per chi legge.
+		</p>
 	</div>
 
 	<div class="pc-scheda">

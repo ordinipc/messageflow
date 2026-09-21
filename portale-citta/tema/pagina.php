@@ -6,6 +6,7 @@
 
 defined( 'PC_AVVIO' ) || exit;
 require_once __DIR__ . '/funzioni-tema.php';
+require_once __DIR__ . '/sezioni.php';
 
 $imp      = impostazioni();
 $telefono = contatto( $citta, 'telefono' );
@@ -144,79 +145,18 @@ if ( ! vuoto( $pagina['html'] ) ) {
 	echo '<section class="glp-section glp-section--libero glp-reveal">' . $pagina['html'] . '</section>';
 }
 
-/* --- Cosa comprende ------------------------------------------------------ */
-$inclusi = righe( $pagina['inclusi'] );
-if ( ! empty( $inclusi ) ) {
-	echo sezione_apri( 'incluso', 'Cosa comprende il servizio', 'Incluso' );
-	echo '<ul class="glp-list glp-list--check">';
-	foreach ( $inclusi as $voce ) {
-		echo '<li>' . e( $voce ) . '</li>';
-	}
-	echo '</ul></section>';
-}
-
-/* --- Perché noi + numeri ------------------------------------------------- */
-$perche = righe( $citta['perche'] );
-$numeri = (array) $citta['numeri'];
-if ( ! empty( $perche ) || ! empty( $numeri ) ) {
-	echo sezione_apri( 'perche', 'Perché sceglierci a ' . $citta['nome'], 'Perché noi' );
-	if ( ! empty( $perche ) ) {
-		echo '<ul class="glp-list glp-list--why">';
-		foreach ( $perche as $voce ) {
-			echo '<li>' . e( $voce ) . '</li>';
-		}
-		echo '</ul>';
-	}
-	if ( ! empty( $numeri ) ) {
-		echo '<ul class="glp-stats">';
-		foreach ( $numeri as $n ) {
-			$valore = isset( $n['valore'] ) ? $n['valore'] : '';
-			if ( vuoto( $valore ) ) {
-				continue;
-			}
-			$numerico = is_numeric( str_replace( array( '.', ',', ' ' ), '', $valore ) );
-			echo '<li class="' . ( $numerico ? 'glp-stat--num' : 'glp-stat--text' ) . '">'
-				. '<strong>' . e( $valore ) . '</strong>'
-				. '<span>' . e( isset( $n['etichetta'] ) ? $n['etichetta'] : '' ) . '</span></li>';
-		}
-		echo '</ul>';
-	}
-	echo '</section>';
-}
-
-/* --- Come funziona ------------------------------------------------------- */
-$processo = (array) $pagina['processo'];
-if ( ! empty( $processo ) ) {
-	echo sezione_apri( 'processo', 'Come funziona, passo per passo', 'Processo' );
-	echo '<ol class="glp-steps">';
-	foreach ( $processo as $passo ) {
-		$t = isset( $passo['titolo'] ) ? $passo['titolo'] : '';
-		$x = isset( $passo['testo'] ) ? $passo['testo'] : '';
-		$d = isset( $passo['durata'] ) ? $passo['durata'] : '';
-		if ( vuoto( $t ) && vuoto( $x ) ) {
-			continue;
-		}
-		echo '<li class="glp-step"><div class="glp-step__body">';
-		if ( ! vuoto( $t ) ) {
-			echo '<h3 class="glp-step__title">' . e( $t ) . '</h3>';
-		}
-		if ( ! vuoto( $x ) ) {
-			echo '<p>' . e( $x ) . '</p>';
-		}
-		if ( ! vuoto( $d ) ) {
-			echo '<p class="glp-step__time">' . e( $d ) . '</p>';
-		}
-		echo '</div></li>';
-	}
-	echo '</ol></section>';
-}
+/* --- Sezioni a riquadri o a elenco (tema/sezioni.php) -------------------- */
+echo sezione_inclusi( $pagina );
+echo sezione_perche( $citta );
+echo sezione_processo( $pagina );
 
 /* --- Prezzi -------------------------------------------------------------- */
 if ( ! vuoto( $pagina['prezzo_da'] ) ) {
 	echo sezione_apri( 'prezzi', 'Quanto costa', 'Prezzi' );
-	$testo = vuoto( $pagina['prezzo_a'] )
-		? 'a partire da ' . $pagina['prezzo_da'] . ' €'
-		: 'da ' . $pagina['prezzo_da'] . ' € a ' . $pagina['prezzo_a'] . ' €';
+	$valuta = '€';
+	$testo  = vuoto( $pagina['prezzo_a'] )
+		? 'a partire da ' . $pagina['prezzo_da'] . ' ' . $valuta
+		: 'da ' . $pagina['prezzo_da'] . ' ' . $valuta . ' a ' . $pagina['prezzo_a'] . ' ' . $valuta;
 	echo '<p class="glp-price">' . e( $testo ) . '</p>';
 	if ( ! vuoto( $pagina['prezzo_note'] ) ) {
 		echo paragrafi( $pagina['prezzo_note'] );
@@ -224,78 +164,9 @@ if ( ! vuoto( $pagina['prezzo_da'] ) ) {
 	echo '</section>';
 }
 
-/* --- Zone servite -------------------------------------------------------- */
-$zone   = righe( $citta['zone'] );
-$comuni = righe( $citta['comuni'] );
-if ( ! empty( $zone ) || ! empty( $comuni ) ) {
-	echo sezione_apri( 'zone', 'Zone servite a ' . $citta['nome'] . ' e dintorni', 'Copertura' );
-	if ( ! empty( $zone ) ) {
-		echo '<p class="glp-areas__label">Quartieri e zone della città:</p><ul class="glp-tags">';
-		foreach ( $zone as $z ) {
-			echo '<li>' . e( $z ) . '</li>';
-		}
-		echo '</ul>';
-	}
-	if ( ! empty( $comuni ) ) {
-		echo '<p class="glp-areas__label">Comuni limitrofi:</p><ul class="glp-tags">';
-		foreach ( $comuni as $z ) {
-			echo '<li>' . e( $z ) . '</li>';
-		}
-		echo '</ul>';
-	}
-	echo '</section>';
-}
-
-/* --- Recensioni ---------------------------------------------------------- */
-$recensioni = (array) $citta['recensioni'];
-if ( ! empty( $recensioni ) ) {
-	echo sezione_apri( 'recensioni', 'Cosa dicono i clienti di ' . $citta['nome'], 'Recensioni' );
-	echo '<ul class="glp-reviews">';
-	foreach ( $recensioni as $r ) {
-		$testo = isset( $r['testo'] ) ? $r['testo'] : '';
-		if ( vuoto( $testo ) ) {
-			continue;
-		}
-		$voto = isset( $r['voto'] ) ? (int) $r['voto'] : 0;
-		echo '<li class="glp-review">';
-		if ( $voto > 0 ) {
-			echo '<span class="glp-review__rating" aria-label="' . e( $voto ) . ' su 5">' . str_repeat( '★', min( 5, $voto ) ) . '</span>';
-		}
-		echo '<blockquote>' . e( $testo ) . '</blockquote>';
-		$firma = trim( ( isset( $r['nome'] ) ? $r['nome'] : '' ) . ( vuoto( isset( $r['zona'] ) ? $r['zona'] : '' ) ? '' : ' — ' . $r['zona'] ) );
-		if ( '' !== $firma ) {
-			echo '<cite>' . e( $firma ) . '</cite>';
-		}
-		echo '</li>';
-	}
-	echo '</ul></section>';
-}
-
-/* --- Team e certificazioni ----------------------------------------------- */
-$team           = (array) $citta['team'];
-$certificazioni = righe( $citta['certificazioni'] );
-if ( ! empty( $team ) || ! empty( $certificazioni ) ) {
-	echo sezione_apri( 'team', 'Chi si occupa del servizio', 'Team' );
-	foreach ( $team as $persona ) {
-		$nome = isset( $persona['nome'] ) ? $persona['nome'] : '';
-		if ( vuoto( $nome ) ) {
-			continue;
-		}
-		$ruolo = isset( $persona['ruolo'] ) ? $persona['ruolo'] : '';
-		echo '<p class="glp-person"><strong>' . e( $nome ) . '</strong>' . ( vuoto( $ruolo ) ? '' : ' — ' . e( $ruolo ) ) . '</p>';
-		if ( ! vuoto( isset( $persona['qualifiche'] ) ? $persona['qualifiche'] : '' ) ) {
-			echo '<p class="glp-person__creds">' . e( $persona['qualifiche'] ) . '</p>';
-		}
-	}
-	if ( ! empty( $certificazioni ) ) {
-		echo '<ul class="glp-list glp-list--certs">';
-		foreach ( $certificazioni as $voce ) {
-			echo '<li>' . e( $voce ) . '</li>';
-		}
-		echo '</ul>';
-	}
-	echo '</section>';
-}
+echo sezione_zone( $citta );
+echo sezione_recensioni( $citta );
+echo sezione_team( $citta );
 
 /* --- Dove siamo ---------------------------------------------------------- */
 if ( ! vuoto( $citta['indirizzo'] ) || ! vuoto( $citta['mappa'] ) || ! vuoto( $citta['raggiungerci'] ) ) {
@@ -316,16 +187,8 @@ if ( ! vuoto( $citta['indirizzo'] ) || ! vuoto( $citta['mappa'] ) || ! vuoto( $c
 	echo '</section>';
 }
 
-/* --- Orari --------------------------------------------------------------- */
-$orari = array_filter( (array) $citta['orari'], function ( $v ) { return ! vuoto( $v ); } );
-if ( ! empty( $orari ) ) {
-	echo sezione_apri( 'orari', 'Orari di apertura', 'Orari' );
-	echo '<ul class="glp-hours">';
-	foreach ( $orari as $giorno => $fascia ) {
-		echo '<li><span>' . e( maiuscola( $giorno ) ) . '</span><strong>' . e( $fascia ) . '</strong></li>';
-	}
-	echo '</ul></section>';
-}
+
+echo sezione_orari( $citta );
 
 /* --- FAQ ----------------------------------------------------------------- */
 $faq = (array) $pagina['faq'];
@@ -360,15 +223,8 @@ if ( ! vuoto( $telefono ) || ! vuoto( $whatsapp ) ) {
 	echo '</div></section>';
 }
 
-/* --- Altre città ---------------------------------------------------------- */
-if ( ! empty( $altre ) ) {
-	echo sezione_apri( 'correlate', 'Operiamo anche in queste città', 'Altre zone' );
-	echo '<ul class="glp-tags glp-tags--links">';
-	foreach ( $altre as $a ) {
-		echo '<li><a href="' . e_url( $a['url'] ) . '">' . e( $a['nome'] ) . '</a></li>';
-	}
-	echo '</ul></section>';
-}
+echo sezione_servizi( $citta, $servizi, url_pagina( $citta, $pagina ) );
+echo sezione_correlate( $altre );
 ?>
 </div><!-- .glp-sections -->
 </div><!-- .glp-main__inner -->

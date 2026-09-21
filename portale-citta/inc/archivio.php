@@ -58,6 +58,8 @@ function impostazioni_predefinite() {
 		'colore_testo'    => '#111111',
 		'colore_chiaro'   => '#f6f6f6',
 		'raggio'          => '10px',
+		'stile_sezioni'   => 'card',
+		'effetti'         => '1',
 		'telefono'        => '',
 		'whatsapp'        => '',
 		'email'           => '',

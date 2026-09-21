@@ -2150,3 +2150,480 @@ body.glp-standalone{
         width:100%;
     }
 }
+
+
+/* =========================================================
+   CARD DELLE SEZIONI
+
+   Ogni sezione può mostrare i suoi contenuti come riquadri
+   invece che come elenco. Si sceglie da Impostazioni → Aspetto.
+
+   Gli effetti (comparsa a scalare, sollevamento al passaggio
+   del mouse, alone che segue il cursore, numeri che salgono)
+   si attivano con la classe .glp-effetti sul body e si
+   spengono da soli se il sistema chiede meno animazioni.
+========================================================= */
+
+.glp-boxes.glp-boxes{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(248px,1fr));
+    gap:14px;
+
+    list-style:none;
+    margin:22px 0 0;
+    padding:0;
+}
+
+.glp-boxes--larghe.glp-boxes--larghe{
+    grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+}
+
+.glp-boxes--strette.glp-boxes--strette{
+    grid-template-columns:repeat(auto-fit,minmax(178px,1fr));
+}
+
+.glp-box.glp-box{
+    position:relative;
+    isolation:isolate;
+    overflow:hidden;
+
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+
+    min-width:0;
+
+    padding:20px;
+
+    background:#fff;
+    border:1px solid var(--glp-line);
+    border-radius:var(--glp-radius);
+
+    transition:
+        transform .4s cubic-bezier(.16,1,.3,1),
+        border-color .3s ease,
+        box-shadow .4s ease;
+}
+
+/* L'alone che segue il cursore. Le due variabili le imposta il JS. */
+.glp-box.glp-box::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    z-index:-1;
+
+    opacity:0;
+
+    background:radial-gradient(
+        280px circle at var(--glp-x,50%) var(--glp-y,50%),
+        rgba(255,212,0,.16),
+        transparent 62%
+    );
+
+    transition:opacity .35s ease;
+}
+
+/* La riga d'accento che cresce in alto. */
+.glp-box.glp-box::after{
+    content:"";
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    height:2px;
+
+    transform:scaleX(0);
+    transform-origin:left;
+
+    background:var(--glp-accent);
+
+    transition:transform .45s cubic-bezier(.16,1,.3,1);
+}
+
+@media(hover:hover){
+
+    .glp-effetti .glp-box.glp-box:hover{
+        transform:translateY(-4px);
+
+        border-color:rgba(0,0,0,.14);
+        box-shadow:0 14px 34px rgba(0,0,0,.09);
+    }
+
+    .glp-effetti .glp-box.glp-box:hover::before{
+        opacity:1;
+    }
+
+    .glp-effetti .glp-box.glp-box:hover::after{
+        transform:scaleX(1);
+    }
+}
+
+/* ---------- intestazione del riquadro ---------- */
+
+.glp-box__num.glp-box__num{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+
+    width:30px;
+    height:30px;
+
+    background:var(--glp-dark);
+    border-radius:6px;
+
+    color:var(--glp-accent);
+
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.06em;
+
+    transition:transform .4s cubic-bezier(.16,1,.3,1),background .3s ease;
+}
+
+@media(hover:hover){
+
+    .glp-effetti .glp-box:hover .glp-box__num.glp-box__num{
+        transform:rotate(-6deg) scale(1.08);
+    }
+}
+
+.glp-box__segno.glp-box__segno{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+
+    width:24px;
+    height:24px;
+    flex:0 0 24px;
+
+    background:var(--glp-accent);
+    border-radius:50%;
+
+    color:#111;
+
+    font-size:13px;
+    font-weight:700;
+    line-height:1;
+}
+
+.glp-box__titolo.glp-box__titolo{
+    margin:0;
+
+    font-size:15.5px;
+    font-weight:700;
+    line-height:1.3;
+    letter-spacing:-.005em;
+    color:var(--glp-text);
+}
+
+.glp-box__testo.glp-box__testo{
+    margin:0;
+
+    color:var(--glp-muted);
+
+    font-size:13.5px;
+    line-height:1.6;
+}
+
+.glp-box__nota.glp-box__nota{
+    margin:auto 0 0;
+    padding-top:6px;
+
+    color:var(--glp-text);
+
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:.11em;
+    text-transform:uppercase;
+}
+
+.glp-box__riga.glp-box__riga{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+/* ---------- riquadri "cosa comprende" ---------- */
+
+.glp-box--check.glp-box--check{
+    flex-direction:row;
+    align-items:flex-start;
+    gap:11px;
+
+    padding:16px 18px;
+}
+
+.glp-box--check .glp-box__titolo{
+    font-size:14px;
+    font-weight:600;
+    line-height:1.45;
+}
+
+/* ---------- numeri ---------- */
+
+.glp-box--stat.glp-box--stat{
+    gap:4px;
+
+    padding:22px 20px;
+
+    text-align:left;
+}
+
+.glp-box--stat strong{
+    font-size:34px;
+    font-weight:800;
+    line-height:1;
+    letter-spacing:-.03em;
+
+    font-variant-numeric:tabular-nums;
+}
+
+.glp-box--stat span{
+    color:var(--glp-muted);
+
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+}
+
+/* ---------- passi del processo ---------- */
+
+.glp-boxes--processo.glp-boxes--processo{
+    counter-reset:glp-passo;
+}
+
+.glp-box--step.glp-box--step{
+    counter-increment:glp-passo;
+}
+
+.glp-box--step .glp-box__num::before{
+    content:counter(glp-passo,decimal-leading-zero);
+}
+
+/* ---------- recensioni ---------- */
+
+.glp-box--review.glp-box--review blockquote{
+    margin:0;
+
+    font-size:14.5px;
+    font-style:normal;
+    line-height:1.6;
+    color:var(--glp-text);
+}
+
+.glp-box--review cite{
+    margin-top:auto;
+    padding-top:10px;
+
+    color:var(--glp-muted);
+
+    font-size:10.5px;
+    font-style:normal;
+    font-weight:700;
+    letter-spacing:.11em;
+    text-transform:uppercase;
+}
+
+.glp-box--review .glp-review__rating{
+    color:var(--glp-accent);
+
+    font-size:14px;
+    letter-spacing:.14em;
+}
+
+/* ---------- persone ---------- */
+
+.glp-box--person .glp-box__ruolo{
+    margin:0;
+
+    color:var(--glp-muted);
+
+    font-size:12.5px;
+}
+
+/* ---------- zone ---------- */
+
+.glp-box--zona.glp-box--zona{
+    gap:6px;
+
+    padding:14px 16px;
+}
+
+.glp-box--zona .glp-box__titolo{
+    font-size:13.5px;
+    font-weight:700;
+}
+
+.glp-box--zona .glp-box__testo{
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+}
+
+/* ---------- orari ---------- */
+
+.glp-boxes--orari.glp-boxes--orari{
+    grid-template-columns:repeat(auto-fit,minmax(214px,1fr));
+}
+
+.glp-box--orario.glp-box--orario{
+    flex-direction:row;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:10px;
+
+    padding:13px 16px;
+}
+
+.glp-box--orario span{
+    color:var(--glp-muted);
+
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:.11em;
+    text-transform:uppercase;
+}
+
+.glp-box--orario strong{
+    font-size:14px;
+    font-variant-numeric:tabular-nums;
+}
+
+.glp-box--orario.is-chiuso strong{
+    color:var(--glp-muted);
+    font-weight:500;
+}
+
+/* ---------- collegamenti (servizi, altre città) ---------- */
+
+.glp-box--link.glp-box--link{
+    padding:0;
+}
+
+.glp-box--link a{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+
+    height:100%;
+    padding:20px;
+
+    color:inherit;
+    text-decoration:none;
+}
+
+.glp-box--link a::after{
+    content:"→";
+
+    margin-top:auto;
+    padding-top:10px;
+
+    color:var(--glp-accent);
+
+    font-size:16px;
+
+    transition:transform .35s cubic-bezier(.16,1,.3,1);
+}
+
+@media(hover:hover){
+
+    .glp-effetti .glp-box--link:hover a::after{
+        transform:translateX(5px);
+    }
+}
+
+/* ---------- FAQ come riquadri ---------- */
+
+.glp-stile-card .glp-faq.glp-faq{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+    gap:12px;
+
+    border-top:0;
+}
+
+.glp-stile-card .glp-faq__item.glp-faq__item{
+    padding:4px 18px;
+
+    background:#fff;
+    border:1px solid var(--glp-line);
+    border-radius:var(--glp-radius);
+
+    transition:border-color .3s ease,box-shadow .4s ease;
+}
+
+@media(hover:hover){
+
+    .glp-effetti .glp-stile-card .glp-faq__item:hover{
+        border-color:rgba(0,0,0,.14);
+        box-shadow:0 10px 26px rgba(0,0,0,.07);
+    }
+}
+
+.glp-stile-card .glp-faq__item[open]{
+    border-color:rgba(0,0,0,.16);
+}
+
+/* ---------- comparsa a scalare ---------- */
+
+.glp-js.glp-effetti .glp-reveal .glp-box,
+.glp-js.glp-effetti .glp-reveal .glp-faq__item{
+    opacity:0;
+    transform:translateY(14px);
+}
+
+.glp-js.glp-effetti .glp-reveal.is-visible .glp-box,
+.glp-js.glp-effetti .glp-reveal.is-visible .glp-faq__item,
+.glp-reveal-fallback.glp-reveal-fallback .glp-box,
+.glp-reveal-fallback.glp-reveal-fallback .glp-faq__item{
+    opacity:1;
+    transform:none;
+
+    transition:
+        opacity .5s ease var(--glp-ritardo,0ms),
+        transform .55s cubic-bezier(.16,1,.3,1) var(--glp-ritardo,0ms);
+}
+
+/* ---------- schermi piccoli ---------- */
+
+@media(max-width:640px){
+
+    .glp-boxes.glp-boxes,
+    .glp-boxes--larghe.glp-boxes--larghe,
+    .glp-stile-card .glp-faq.glp-faq{
+        grid-template-columns:1fr;
+        gap:10px;
+    }
+
+    .glp-boxes--strette.glp-boxes--strette{
+        grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    }
+
+    .glp-box.glp-box{
+        padding:16px;
+    }
+
+    .glp-box--stat strong{
+        font-size:28px;
+    }
+}
+
+/* ---------- chi preferisce meno animazioni ---------- */
+
+@media(prefers-reduced-motion:reduce){
+
+    .glp-box.glp-box,
+    .glp-box.glp-box::before,
+    .glp-box.glp-box::after,
+    .glp-box__num.glp-box__num{
+        transition:none !important;
+        transform:none !important;
+    }
+
+    .glp-js.glp-effetti .glp-reveal .glp-box,
+    .glp-js.glp-effetti .glp-reveal .glp-faq__item{
+        opacity:1;
+        transform:none;
+    }
+}

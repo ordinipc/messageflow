@@ -21,6 +21,7 @@ Non è un plugin: gira da solo, con il suo database e la sua amministrazione.
 | **Controllo duplicati** | Confronta i testi fra città e segnala quelli troppo simili |
 | **Libreria immagini** | Caricamento multiplo, ridimensionamento automatico a 1800 px |
 | **Assistente Gemini** | Propone introduzione, testo, descrizione e FAQ dai dati della città |
+| **Sezioni a card** | Ogni sezione si disegna a riquadri o a elenco, con effetti dinamici |
 | **CSS/HTML/JS** | Tre livelli: globale, per città, per pagina |
 | **Bozze** | Le pagine non pubblicate sono 404 per tutti, tranne per chi è collegato |
 
@@ -94,6 +95,33 @@ Sopra l'88% di somiglianza hai un problema.
 
 ---
 
+## Sezioni a riquadri ed effetti
+
+Impostazioni → Aspetto → **Sezioni ed effetti**.
+
+**Stile delle sezioni**
+
+- **Riquadri (card)** — cosa comprende, perché sceglierci, numeri, processo,
+  zone, recensioni, team, orari, FAQ, altri servizi e altre città diventano
+  griglie di riquadri che si adattano da sole alla larghezza
+- **Elenco** — righe sottili, più compatto, come prima
+
+**Effetti dinamici** (interruttore separato)
+
+- comparsa a scalare quando la sezione entra nello schermo
+- sollevamento e riga d'accento al passaggio del mouse
+- alone che segue il cursore dentro il riquadro
+- numeri che salgono da zero fino al valore, una volta sola
+
+Gli effetti si spengono da soli in tre casi: se il visitatore ha chiesto meno
+animazioni nelle impostazioni del suo sistema, se il JavaScript è disattivato,
+e ovviamente se togli la spunta. In tutti e tre i casi la pagina resta completa
+e leggibile: niente contenuti nascosti in attesa di un'animazione che non parte.
+
+Non servono al posizionamento. Servono a chi legge.
+
+---
+
 ## L'assistente Gemini
 
 Con una chiave API (Impostazioni → Assistente) compaiono i pulsanti
@@ -125,7 +153,12 @@ portale-citta/
 │   ├── schema.php     dati strutturati JSON-LD
 │   └── ai.php         assistente Gemini
 ├── admin/             schermate dell'amministrazione + admin.css/js
-├── tema/              modelli pubblici, style.css, script.js
+├── tema/
+│   ├── pagina.php     modello della pagina città
+│   ├── sezioni.php    costruttori delle sezioni (riquadri o elenco)
+│   ├── parti/         testa, barra, piè di pagina
+│   ├── style.css      stile pubblico
+│   └── script.js      comparsa, FAQ, alone del cursore, numeri
 ├── dati/              database SQLite (se usato) — non accessibile dal web
 └── media/             immagini caricate
 ```

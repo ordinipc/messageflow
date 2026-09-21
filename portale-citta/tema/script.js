@@ -1,6 +1,12 @@
 /* =========================================================
-   GEO LANDING PAGES — front-end
-   Comparsa progressiva e apertura delle FAQ.
+   PORTALE CITTÀ — front-end
+
+   Comparsa progressiva, apertura delle FAQ e, se gli effetti
+   sono attivi, alone che segue il cursore sui riquadri e
+   numeri che salgono fino al valore.
+
+   Tutto è facoltativo: senza JavaScript la pagina resta
+   completa e leggibile.
 ========================================================= */
 
 ( function () {
@@ -101,6 +107,98 @@
 		} );
 	}
 
+	/**
+	 * Alone che segue il cursore dentro i riquadri.
+	 * Aggiorna due variabili CSS; il disegno lo fa il foglio di stile.
+	 */
+	function aloneCursore() {
+		if ( ! window.matchMedia || ! window.matchMedia( '(hover: hover)' ).matches ) {
+			return;
+		}
+
+		var riquadri = document.querySelectorAll( '.glp-box' );
+		if ( ! riquadri.length ) {
+			return;
+		}
+
+		Array.prototype.forEach.call( riquadri, function ( box ) {
+			var attesa = false;
+
+			box.addEventListener( 'pointermove', function ( ev ) {
+				if ( attesa ) {
+					return;
+				}
+				attesa = true;
+
+				// Un aggiornamento per fotogramma: il resto è sprecato.
+				window.requestAnimationFrame( function () {
+					var r = box.getBoundingClientRect();
+					box.style.setProperty( '--glp-x', ( ev.clientX - r.left ) + 'px' );
+					box.style.setProperty( '--glp-y', ( ev.clientY - r.top ) + 'px' );
+					attesa = false;
+				} );
+			} );
+
+			box.addEventListener( 'pointerleave', function () {
+				box.style.removeProperty( '--glp-x' );
+				box.style.removeProperty( '--glp-y' );
+			} );
+		} );
+	}
+
+	/**
+	 * I numeri salgono da zero al valore, una volta sola,
+	 * quando il riquadro entra nello schermo.
+	 */
+	function numeriCheSalgono() {
+		var numeri = document.querySelectorAll( '[data-conta-fino]' );
+		if ( ! numeri.length || ! window.IntersectionObserver ) {
+			return;
+		}
+
+		function sali( el ) {
+			var fine = parseInt( el.getAttribute( 'data-conta-fino' ), 10 );
+			if ( isNaN( fine ) || fine <= 0 ) {
+				return;
+			}
+
+			var durata = 900;
+			var avvio = null;
+
+			function passo( ora ) {
+				if ( null === avvio ) {
+					avvio = ora;
+				}
+				var quota = Math.min( ( ora - avvio ) / durata, 1 );
+				// Frenata dolce verso il valore finale.
+				var dolce = 1 - Math.pow( 1 - quota, 3 );
+				el.textContent = String( Math.round( fine * dolce ) );
+
+				if ( quota < 1 ) {
+					window.requestAnimationFrame( passo );
+				} else {
+					el.textContent = String( fine );
+				}
+			}
+
+			window.requestAnimationFrame( passo );
+		}
+
+		var osservatore = new IntersectionObserver( function ( voci ) {
+			voci.forEach( function ( v ) {
+				if ( ! v.isIntersecting ) {
+					return;
+				}
+				osservatore.unobserve( v.target );
+				sali( v.target );
+			} );
+		}, { threshold: 0.6 } );
+
+		Array.prototype.forEach.call( numeri, function ( el ) {
+			osservatore.observe( el );
+		} );
+	}
+
 	document.addEventListener( 'DOMContentLoaded', function () {
 		faqSingola();
 
@@ -112,5 +210,10 @@
 
 		rivelaHero();
 		rivelaSezioni();
+
+		if ( document.body.classList.contains( 'glp-effetti' ) ) {
+			aloneCursore();
+			numeriCheSalgono();
+		}
 	} );
 } )();
