@@ -390,6 +390,25 @@ modo per accorgersene.
 
 ---
 
+## Se qualcosa non si vede
+
+Tre cause, in ordine di frequenza:
+
+**1. Le pagine sono in bozza.** Il generatore le crea così apposta. In bozza non compaiono nel
+menu, né nelle sitemap, né sul sito. La Diagnostica te le conta.
+
+**2. I tipi di servizio non compaiono in Aspetto → Menu.** È corretto: sono etichette senza un
+indirizzo proprio, quindi non c'è niente da linkare. Se vuoi un menu con la città e sotto le
+sue pagine, usa **Diagnostica → Crea il menu di questa città**: costruisce un menu WordPress
+vero, che poi gestisci a mano e assegni a una posizione del tema.
+
+**3. Il titolo compare due volte, o finisce dietro l'intestazione.** Il tema stampa il titolo
+della pagina e il plugin ne stampa un altro nella sua intestazione. Due rimedi:
+*Aspetto grafico → Titolo del tema → Nascondi*, oppure *Rendering → Pagina autonoma*, che non
+usa affatto l'intestazione del tema.
+
+---
+
 ## Il menu della città
 
 Compare sulla pagina città e su tutte le sue pagine e servizi, e si costruisce da solo con

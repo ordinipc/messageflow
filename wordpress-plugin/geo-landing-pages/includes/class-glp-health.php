@@ -201,7 +201,29 @@ class GLP_Health {
 				: __( 'Le città non risultano nelle regole degli indirizzi: vai in Impostazioni → Permalink e premi Salva.', 'geo-landing-pages' ),
 		);
 
-		// 8. Sitemap delle città.
+		// 8. Pagine rimaste in bozza: il motivo più comune di "non si vede".
+		$bozze = get_posts(
+			array(
+				'post_type'      => GLP_POST_TYPE,
+				'post_status'    => array( 'draft', 'pending' ),
+				'posts_per_page' => 200,
+				'fields'         => 'ids',
+			)
+		);
+
+		$esiti[] = array(
+			'ok'    => empty( $bozze ),
+			'nome'  => __( 'Pagine ancora in bozza', 'geo-landing-pages' ),
+			'testo' => empty( $bozze )
+				? __( 'Nessuna bozza in sospeso.', 'geo-landing-pages' )
+				: sprintf(
+					/* translators: %d: numero di bozze. */
+					__( '%d pagine sono in bozza: non compaiono nel menu, né nelle sitemap, né sul sito. Il generatore le crea così apposta, ma vanno pubblicate dopo averle completate.', 'geo-landing-pages' ),
+					count( $bozze )
+				),
+		);
+
+		// 9. Sitemap delle città.
 		$citta_pubbl = GLP_Post_Types::cities( 500 );
 		$con_voci    = 0;
 		foreach ( $citta_pubbl as $c ) {
@@ -223,7 +245,7 @@ class GLP_Health {
 				: __( 'Nessuna città ha pagine indicizzabili: l\'indice delle sitemap è vuoto. Completa le risposte fino a superare la soglia di qualità.', 'geo-landing-pages' ),
 		);
 
-		// 9. Assistente AI: non usarlo è una scelta, non un errore.
+		// 10. Assistente AI: non usarlo è una scelta, non un errore.
 		$esiti[] = array(
 			'ok'    => true,
 			'info'  => ! GLP_AI::is_enabled(),
@@ -291,6 +313,37 @@ class GLP_Health {
 					<?php endforeach; ?>
 				</tbody>
 			</table>
+
+			<?php if ( ! empty( $citta ) && current_user_can( 'edit_theme_options' ) ) : ?>
+				<h2><?php esc_html_e( 'Menu della città in Aspetto → Menu', 'geo-landing-pages' ); ?></h2>
+				<p>
+					<?php esc_html_e( 'I tipi di servizio non compaiono in Aspetto → Menu perché sono etichette senza un indirizzo proprio. Quello che serve è un menu con la città e sotto le sue pagine: il pulsante lo crea come menu WordPress vero, che poi gestisci a mano e assegni a una posizione del tema.', 'geo-landing-pages' ); ?>
+				</p>
+
+				<?php if ( isset( $_GET['glp_menu'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+					<?php $glp_menu_id = sanitize_text_field( wp_unslash( $_GET['glp_menu'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+					<div class="notice notice-<?php echo 'errore' === $glp_menu_id ? 'error' : 'success'; ?>"><p>
+						<?php if ( 'errore' === $glp_menu_id ) : ?>
+							<?php esc_html_e( 'Non è stato possibile creare il menu.', 'geo-landing-pages' ); ?>
+						<?php else : ?>
+							<?php esc_html_e( 'Menu creato.', 'geo-landing-pages' ); ?>
+							<a href="<?php echo esc_url( admin_url( 'nav-menus.php?menu=' . (int) $glp_menu_id ) ); ?>"><?php esc_html_e( 'Aprilo in Aspetto → Menu', 'geo-landing-pages' ); ?></a>
+						<?php endif; ?>
+					</p></div>
+				<?php endif; ?>
+
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<input type="hidden" name="action" value="glp_build_menu" />
+					<?php wp_nonce_field( 'glp_build_menu' ); ?>
+					<select name="citta">
+						<?php foreach ( $citta as $c ) : ?>
+							<option value="<?php echo esc_attr( $c->ID ); ?>"><?php echo esc_html( $c->post_title ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<?php submit_button( __( 'Crea il menu di questa città', 'geo-landing-pages' ), 'secondary', 'submit', false ); ?>
+					<p class="description"><?php esc_html_e( 'Rigenerandolo, le voci vengono ricostruite da zero: le modifiche fatte a mano su quel menu vanno perse.', 'geo-landing-pages' ); ?></p>
+				</form>
+			<?php endif; ?>
 
 			<h2><?php esc_html_e( 'Sitemap delle città', 'geo-landing-pages' ); ?></h2>
 			<p>

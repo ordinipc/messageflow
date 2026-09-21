@@ -52,6 +52,7 @@ class GLP_Settings {
 			'color_soft'        => '#f5f5f6',
 			'radius'            => 5,
 			'full_bleed'        => 0,
+			'hide_theme_title'  => 0,
 
 			// Menu della città.
 			'city_menu'         => 'sotto',    // sopra | sotto | off
@@ -174,7 +175,8 @@ class GLP_Settings {
 		}
 
 		$out['design_enabled'] = empty( $input['design_enabled'] ) ? 0 : 1;
-		$out['full_bleed']     = empty( $input['full_bleed'] ) ? 0 : 1;
+		$out['full_bleed']       = empty( $input['full_bleed'] ) ? 0 : 1;
+		$out['hide_theme_title'] = empty( $input['hide_theme_title'] ) ? 0 : 1;
 		$out['ai_enabled']     = empty( $input['ai_enabled'] ) ? 0 : 1;
 
 		$modi = array( 'off', 'h1', 'notitle' );
@@ -245,6 +247,11 @@ class GLP_Settings {
 			$out .= $nome . ':' . $valore . ';';
 		}
 		$css = ':root{' . $out . '}';
+
+		// Titolo del tema nascosto: resta solo l'H1 dell'intestazione del plugin.
+		if ( ! empty( $s['hide_theme_title'] ) ) {
+			$css .= '.entry-title,.page-title,.post-title,.entry-header .elementor-heading-title{display:none !important;}';
+		}
 
 		// Bande a tutta larghezza: l'intestazione e la CTA escono dal contenitore.
 		if ( ! empty( $s['full_bleed'] ) ) {

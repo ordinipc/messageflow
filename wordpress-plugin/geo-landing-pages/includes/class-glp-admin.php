@@ -728,6 +728,13 @@ class GLP_Admin {
 						</td>
 					</tr>
 					<tr>
+						<th scope="row"><?php esc_html_e( 'Titolo del tema', 'geo-landing-pages' ); ?></th>
+						<td>
+							<label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[hide_theme_title]" value="1" <?php checked( $s['hide_theme_title'], 1 ); ?> /> <?php esc_html_e( 'Nascondi il titolo stampato dal tema sulle pagine locali', 'geo-landing-pages' ); ?></label>
+							<p class="description"><?php esc_html_e( 'Da usare se il titolo compare due volte, o se finisce dietro un\'intestazione sovrapposta. Nasconde i contenitori più comuni (.entry-title, .page-title); se il tuo tema ne usa un altro, serve una riga di CSS personalizzato.', 'geo-landing-pages' ); ?></p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><?php esc_html_e( 'Larghezza delle bande', 'geo-landing-pages' ); ?></th>
 						<td>
 							<label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[full_bleed]" value="1" <?php checked( $s['full_bleed'], 1 ); ?> /> <?php esc_html_e( 'Intestazione e riquadro finale a tutta larghezza schermo', 'geo-landing-pages' ); ?></label>
