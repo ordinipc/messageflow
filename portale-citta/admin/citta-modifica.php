@@ -107,58 +107,6 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	}
 }
 
-/** Modelli delle pagine standard che Google si aspetta. */
-function pagine_base() {
-	return array(
-		'home'               => array( 'Principale', '', 'home', 0, 'La pagina raggiungibile da /citta/.' ),
-		'chi-siamo'          => array( 'Chi siamo', 'chi-siamo', 'fissa', 20, 'Chi siete, da quanto lavorate, perché fidarsi.' ),
-		'servizi'            => array( 'Servizi', 'servizi', 'servizi', 30, 'Elenca da sola tutte le pagine servizio della città.' ),
-		'contatti'           => array( 'Contatti', 'contatti', 'fissa', 40, 'Telefono, indirizzo, orari e mappa.' ),
-		'domande-frequenti'  => array( 'Domande frequenti', 'domande-frequenti', 'fissa', 50, 'Le FAQ della città.' ),
-		'zone-servite'       => array( 'Zone servite', 'zone-servite', 'fissa', 60, 'Quartieri e comuni coperti.' ),
-		'recensioni'         => array( 'Recensioni', 'recensioni', 'fissa', 70, 'Cosa dicono i clienti.' ),
-	);
-}
-
-function genera_pagina_base( $citta, $chiave ) {
-	$modelli = pagine_base();
-	if ( ! isset( $modelli[ $chiave ] ) ) {
-		return false;
-	}
-	list( $titolo, $slug, $tipo, $ordine ) = $modelli[ $chiave ];
-	if ( 'home' === $tipo && pagina_home( $citta['id'] ) ) {
-		return false;
-	}
-	$pagina             = pagina_predefinita();
-	$pagina['id']       = nuovo_id();
-	$pagina['citta_id'] = $citta['id'];
-	$pagina['tipo']     = $tipo;
-	$pagina['titolo']   = 'home' === $tipo ? $citta['nome'] : $titolo;
-	$pagina['slug']     = 'home' === $tipo ? 'home' : pagina_slug_libero( $slug, $citta['id'] );
-	$pagina['menu_ordine'] = $ordine;
-	$pagina['menu_mostra'] = 'home' === $tipo ? 0 : 1;
-	if ( 'home' === $tipo ) {
-		$pagina['h1'] = 'Servizi a ' . $citta['nome'];
-	}
-	return pagina_salva( $pagina );
-}
-
-function genera_pagina_servizio( $citta, $servizio_id ) {
-	$s = servizio( $servizio_id );
-	if ( ! $s ) {
-		return false;
-	}
-	$pagina                = pagina_predefinita();
-	$pagina['id']          = nuovo_id();
-	$pagina['citta_id']    = $citta['id'];
-	$pagina['servizio_id'] = $s['id'];
-	$pagina['tipo']        = 'servizio';
-	$pagina['titolo']      = $s['nome'];
-	$pagina['slug']        = pagina_slug_libero( $s['slug'], $citta['id'] );
-	$pagina['menu_ordine'] = 10;
-	return pagina_salva( $pagina );
-}
-
 $lista_servizi = servizi();
 $immagini      = media_tutti();
 ?>

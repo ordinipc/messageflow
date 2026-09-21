@@ -385,8 +385,16 @@ function sezione_orari( $citta ) {
  */
 function sezione_elenco_servizi( $citta, $servizi ) {
 	if ( empty( $servizi ) ) {
+		// Al pubblico non si mostra una sezione vuota: meglio niente che
+		// un vicolo cieco. Chi è collegato vede invece cosa manca e dove.
+		if ( ! connesso() ) {
+			return '';
+		}
 		return sezione_apri( 'servizi', 'Servizi a ' . $citta['nome'], 'Servizi' )
-			. '<p>Nessuna pagina servizio pubblicata per ' . e( $citta['nome'] ) . '.</p>'
+			. '<p>Questa pagina elenca le pagine di tipo <strong>Servizio</strong> pubblicate a '
+			. e( $citta['nome'] ) . ', e al momento non ce ne sono: i visitatori non vedono questa sezione.</p>'
+			. '<p><a href="' . e( base_url() ) . '/admin.php?p=pagine&citta=' . e( $citta['id'] )
+			. '">Crea le pagine servizio →</a></p>'
 			. '</section>';
 	}
 

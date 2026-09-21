@@ -46,6 +46,24 @@ if ( isset( $_GET['azione'] ) ) {
 	vai_a( 'admin.php?p=pagine&citta=' . rawurlencode( $citta_id ) );
 }
 
+/* Creazione delle pagine servizio mancanti. */
+if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['genera_servizi'] ) ) {
+	verifica_token();
+	$create = 0;
+	foreach ( (array) ( $_POST['servizi'] ?? array() ) as $servizio_id ) {
+		if ( genera_pagina_servizio( $citta, (string) $servizio_id ) ) {
+			$create++;
+		}
+	}
+	if ( $create > 0 ) {
+		avviso( $create . ( 1 === $create ? ' pagina creata' : ' pagine create' )
+			. ' in bozza. Apri ognuna, scrivi il testo e pubblicala: finché sono in bozza l\'elenco dei servizi non le mostra.' );
+	} else {
+		avviso( 'Non è stata creata nessuna pagina: seleziona almeno un servizio.', 'errore' );
+	}
+	vai_a( 'admin.php?p=pagine&citta=' . rawurlencode( $citta_id ) );
+}
+
 /* Pubblicazione in blocco. */
 if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['massa'] ) ) {
 	verifica_token();
@@ -94,6 +112,56 @@ $tok    = '&token=' . rawurlencode( token() );
 		<a class="pc-btn" href="admin.php?p=pagina-modifica&citta=<?php echo e( $citta_id ); ?>">+ Nuova pagina</a>
 	</div>
 </div>
+
+<?php
+$mancanti = servizi_senza_pagina( $citta_id );
+$servizio_pubblicate = 0;
+foreach ( $pagine as $p ) {
+	if ( 'servizio' === $p['tipo'] && 'pubblicata' === $p['stato'] ) {
+		$servizio_pubblicate++;
+	}
+}
+$ha_elenco = false;
+foreach ( $pagine as $p ) {
+	if ( 'servizi' === $p['tipo'] ) {
+		$ha_elenco = true;
+		break;
+	}
+}
+?>
+
+<?php if ( $ha_elenco && 0 === $servizio_pubblicate ) : ?>
+	<div class="pc-avviso pc-avviso--errore">
+		<strong><?php echo e( $citta['nome'] ); ?> ha una pagina "Elenco servizi" ma nessuna pagina servizio pubblicata.</strong><br>
+		L'elenco mostra le <em>pagine</em>, non i tipi di servizio del catalogo: finché non esistono
+		pagine di tipo <strong>Servizio</strong> pubblicate, quella pagina resta vuota.
+	</div>
+<?php endif; ?>
+
+<?php if ( ! empty( $mancanti ) ) : ?>
+	<div class="pc-scheda">
+		<h2>Servizi del catalogo senza una pagina a <?php echo e( $citta['nome'] ); ?></h2>
+		<p class="pc-scheda__nota">
+			Spunta quelli che vuoi offrire qui: il portale crea le pagine in bozza,
+			già collegate al tipo di servizio. I testi li scrivi tu.
+		</p>
+		<form method="post">
+			<?php echo campo_token(); ?>
+			<?php foreach ( $mancanti as $s ) : ?>
+				<p class="pc-inline">
+					<input type="checkbox" name="servizi[]" value="<?php echo e( $s['id'] ); ?>" id="gen-<?php echo e( $s['id'] ); ?>" checked>
+					<label for="gen-<?php echo e( $s['id'] ); ?>" style="margin:0;font-weight:600">
+						<?php echo e( $s['nome'] ); ?>
+						<code class="pc-nota">/<?php echo e( $citta['slug'] ); ?>/<?php echo e( $s['slug'] ); ?>/</code>
+					</label>
+				</p>
+			<?php endforeach; ?>
+			<button class="pc-btn" type="submit" name="genera_servizi" value="1">
+				Crea le pagine selezionate
+			</button>
+		</form>
+	</div>
+<?php endif; ?>
 
 <?php if ( empty( $pagine ) ) : ?>
 	<div class="pc-scheda pc-vuoto">

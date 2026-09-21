@@ -42,6 +42,32 @@ foreach ( $citta as $c ) {
 			'admin.php?p=pagine&citta=' . $c['id'],
 		);
 	}
+	$servizio_pubblicate = 0;
+	$ha_elenco           = false;
+	foreach ( $pagine as $p ) {
+		if ( 'servizio' === $p['tipo'] && 'pubblicata' === $p['stato'] ) {
+			$servizio_pubblicate++;
+		}
+		if ( 'servizi' === $p['tipo'] ) {
+			$ha_elenco = true;
+		}
+	}
+	if ( $ha_elenco && 0 === $servizio_pubblicate ) {
+		$problemi[] = array(
+			$c['nome'] . ': l\'elenco servizi è vuoto',
+			'C\'è una pagina "Elenco servizi" ma nessuna pagina di tipo Servizio pubblicata.',
+			'admin.php?p=pagine&citta=' . $c['id'],
+		);
+	}
+	$mancanti = servizi_senza_pagina( $c['id'] );
+	if ( ! empty( $mancanti ) && $servizio_pubblicate > 0 ) {
+		$problemi[] = array(
+			$c['nome'] . ': ' . count( $mancanti ) . ' servizi del catalogo senza pagina',
+			'Sono definiti come tipo ma qui non hanno una pagina: ' . implode( ', ', array_column( $mancanti, 'nome' ) ) . '.',
+			'admin.php?p=pagine&citta=' . $c['id'],
+		);
+	}
+
 	if ( vuoto( $c['telefono'] ) && vuoto( $imp['telefono'] ) ) {
 		$problemi[] = array( $c['nome'] . ': manca il telefono', 'Senza telefono lo schema LocalBusiness è incompleto.', 'admin.php?p=citta-modifica&id=' . $c['id'] );
 	}

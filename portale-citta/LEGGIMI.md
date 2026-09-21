@@ -89,7 +89,17 @@ php -S localhost:8000 router-dev.php
 ## Come si lavora
 
 **1. Tipi di servizio** → definisci una volta sola il catalogo
-("Duplicazione chiavi auto", "Apertura porte"…). Non sono pagine: sono modelli.
+("Duplicazione chiavi auto", "Apertura porte"…).
+
+⚠️ **Un tipo di servizio non è una pagina: è un modello.** Finché non generi
+la pagina, quel servizio non compare da nessuna parte sul sito — né nel menu,
+né nell'elenco dei servizi. Nella colonna "Pagine collegate" leggi quante
+città hanno già la pagina di quel servizio.
+
+Le pagine si creano in due momenti:
+- alla creazione della città, spuntando i servizi
+- **dopo**, da Pagine → riquadro *"Servizi del catalogo senza una pagina"*, che
+  compare da solo quando un tipo di servizio non ha ancora la sua pagina lì
 
 **2. Nuova città** → compili i dati e spunti le pagine da creare.
 Il portale genera tutto in bozza, vuoto.

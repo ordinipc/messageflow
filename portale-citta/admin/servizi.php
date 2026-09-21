@@ -62,7 +62,12 @@ $tok      = '&token=' . rawurlencode( token() );
 						<?php if ( ! vuoto( $s['descrizione'] ) ) : ?><br><span class="pc-nota"><?php echo e( $s['descrizione'] ); ?></span><?php endif; ?>
 					</td>
 					<td><code>/<?php echo e( $s['slug'] ); ?>/</code></td>
-					<td><?php echo $collegate; ?> su <?php echo count( $citta ); ?> città</td>
+					<td>
+						<?php echo $collegate; ?> su <?php echo count( $citta ); ?> città
+						<?php if ( 0 === $collegate && ! empty( $citta ) ) : ?>
+							<br><span class="pc-nota">nessuna pagina: creala da <a href="admin.php?p=pagine&citta=<?php echo e( $citta[0]['id'] ); ?>">Pagine</a></span>
+						<?php endif; ?>
+					</td>
 					<td class="pc-tabella__azioni">
 						<a class="pc-btn pc-btn--ghost pc-btn--piccolo" href="admin.php?p=servizi&id=<?php echo e( $s['id'] ); ?>">Modifica</a>
 						<a class="pc-btn pc-btn--rosso pc-btn--piccolo" href="admin.php?p=servizi&azione=elimina&id=<?php echo e( $s['id'] ) . $tok; ?>"
@@ -76,9 +81,11 @@ $tok      = '&token=' . rawurlencode( token() );
 		<div class="pc-scheda" style="margin-top:18px">
 			<h2>A cosa servono</h2>
 			<p class="pc-scheda__nota" style="margin:0">
-				Un tipo di servizio non è una pagina. È un modello: quando crei una città puoi spuntarlo e il portale
-				genera la pagina <code>/citta/nome-servizio/</code> già pronta. Le pagine esistenti restano indipendenti:
-				puoi modificare il testo di una città senza toccare le altre.
+				Un tipo di servizio <strong>non è una pagina</strong>: è un modello. Finché non generi la pagina,
+				quel servizio non compare da nessuna parte sul sito — né nel menu, né nell'elenco dei servizi.<br><br>
+				Le pagine si creano in due momenti: quando crei una città (spuntando i servizi), oppure dopo,
+				da <strong>Pagine</strong> → riquadro "Servizi del catalogo senza una pagina".
+				Una volta create sono indipendenti: cambi il testo di una città senza toccare le altre.
 			</p>
 		</div>
 	<?php endif; ?>

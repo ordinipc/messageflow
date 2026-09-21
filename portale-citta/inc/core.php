@@ -43,6 +43,7 @@ require_once __DIR__ . '/media.php';
 require_once __DIR__ . '/seo.php';
 require_once __DIR__ . '/schema.php';
 require_once __DIR__ . '/ai.php';
+require_once __DIR__ . '/generatore.php';
 
 /** Escape HTML. */
 function e( $testo ) {
