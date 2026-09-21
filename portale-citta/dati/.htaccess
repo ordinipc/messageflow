@@ -1,0 +1,8 @@
+# Nessun accesso dal web ai dati.
+Require all denied
+
+# Server Apache più vecchi.
+<IfModule !mod_authz_core.c>
+	Order allow,deny
+	Deny from all
+</IfModule>

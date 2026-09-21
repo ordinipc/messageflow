@@ -1,1 +1,9 @@
 wordpress-plugin/*.zip
+
+# Portale Città: file generati dall'installazione, non vanno in versione.
+portale-citta/config.php
+portale-citta/dati/*.sqlite*
+portale-citta/media/*
+!portale-citta/media/.htaccess
+!portale-citta/media/index.html
+portale-citta.zip

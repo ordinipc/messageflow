@@ -1,0 +1,36 @@
+# Portale Città — riscrittura degli indirizzi.
+# Se il server usa nginx, chiedi all'hosting la regola equivalente:
+#   try_files $uri $uri/ /index.php?$query_string;
+
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+
+	# Base: se il portale sta in una sottocartella, scrivila qui.
+	# Esempio per /citta/ :  RewriteBase /citta/
+	# RewriteBase /
+
+	# File e cartelle reali vengono serviti così come sono.
+	RewriteCond %{REQUEST_FILENAME} -f [OR]
+	RewriteCond %{REQUEST_FILENAME} -d
+	RewriteRule ^ - [L]
+
+	# Tutto il resto passa dal front controller.
+	RewriteRule ^ index.php [L]
+</IfModule>
+
+# Nessun elenco dei file nelle cartelle.
+Options -Indexes
+
+# Il file di configurazione non deve essere leggibile dal web.
+<Files "config.php">
+	Require all denied
+</Files>
+
+<IfModule mod_expires.c>
+	ExpiresActive On
+	ExpiresByType text/css "access plus 7 days"
+	ExpiresByType application/javascript "access plus 7 days"
+	ExpiresByType image/jpeg "access plus 30 days"
+	ExpiresByType image/png "access plus 30 days"
+	ExpiresByType image/webp "access plus 30 days"
+</IfModule>
