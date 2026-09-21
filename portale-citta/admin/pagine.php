@@ -64,6 +64,26 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['genera_servizi'] ) 
 	vai_a( 'admin.php?p=pagine&citta=' . rawurlencode( $citta_id ) );
 }
 
+/* Tutti i servizi fuori dal menu, in un colpo. */
+if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['servizi_fuori_menu'] ) ) {
+	verifica_token();
+	$tolte = 0;
+	foreach ( pagine_di_citta( $citta_id ) as $p ) {
+		if ( 'servizio' !== $p['tipo'] || ! (int) $p['menu_mostra'] ) {
+			continue;
+		}
+		$p['menu_mostra'] = 0;
+		pagina_salva( $p );
+		$tolte++;
+	}
+	avviso( $tolte > 0
+		? $tolte . ( 1 === $tolte ? ' pagina servizio tolta' : ' pagine servizio tolte' ) . ' dal menu. '
+			. 'Restano raggiungibili dall\'indice nell\'intestazione e dalla pagina "Elenco servizi".'
+		: 'Nessuna pagina servizio era nel menu.',
+		$tolte > 0 ? 'ok' : 'errore' );
+	vai_a( 'admin.php?p=pagine&citta=' . rawurlencode( $citta_id ) );
+}
+
 /* Pubblicazione in blocco. */
 if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['massa'] ) ) {
 	verifica_token();
@@ -133,6 +153,30 @@ foreach ( $pagine as $p ) {
 	}
 }
 ?>
+
+<?php
+$servizi_nel_menu = 0;
+foreach ( $pagine as $p ) {
+	if ( 'servizio' === $p['tipo'] && (int) $p['menu_mostra'] ) {
+		$servizi_nel_menu++;
+	}
+}
+?>
+
+<?php if ( $servizi_nel_menu >= 3 ) : ?>
+	<form method="post" class="pc-scheda" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+		<?php echo campo_token(); ?>
+		<p class="pc-nota" style="margin:0">
+			<strong><?php echo (int) $servizi_nel_menu; ?> pagine servizio sono nel menu.</strong>
+			Con tante voci la barra va a capo e diventa difficile da leggere: di solito conviene
+			lasciarci solo le pagine fisse, visto che i servizi si raggiungono già dall'indice
+			nell'intestazione e dalla pagina "Elenco servizi".
+		</p>
+		<button class="pc-btn" type="submit" name="servizi_fuori_menu" value="1">
+			Togli i servizi dal menu
+		</button>
+	</form>
+<?php endif; ?>
 
 <?php if ( $ha_elenco && 0 === $servizio_pubblicate ) : ?>
 	<div class="pc-avviso pc-avviso--errore">

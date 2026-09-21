@@ -265,6 +265,14 @@ menu è sempre a un clic.
 Si costruisce da solo dalle pagine della città. Per ogni pagina decidi se
 mostrarla e in che ordine (editor della pagina → SEO → Posizione nel menu).
 
+**Le pagine servizio nascono fuori dal menu**, perché con sei o sette servizi la
+barra va a capo e diventa difficile da leggere. Restano raggiungibili
+dall'indice nell'intestazione e dalla pagina "Elenco servizi".
+
+Se hai pagine servizio create prima e vuoi toglierle, in **Pagine** compare un
+pulsante *Togli i servizi dal menu* quando ce ne sono almeno tre. Oppure le
+selezioni e usi i comandi *Metti nel menu* / *Togli dal menu*.
+
 Si adatta da solo allo spazio, misurando le voci:
 
 | Situazione | Come si presenta |
