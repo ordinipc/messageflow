@@ -63,6 +63,19 @@ switch ( $compito ) {
 	case 'descrizione':
 		$esito = ai_descrizione( $citta, $pagina );
 		break;
+	case 'titolo':
+		$esito = ai_titolo( $citta, $pagina );
+		break;
+	case 'immagine':
+		$esito = ai_immagine( $citta, $pagina, (string) ( $_POST['richiesta'] ?? '' ) );
+		ai_risposta( array(
+			'ok'     => (bool) $esito['ok'],
+			'file'   => $esito['file'],
+			'alt'    => $esito['alt'],
+			'url'    => '' === $esito['file'] ? '' : url_media( $esito['file'] ),
+			'errore' => $esito['errore'],
+		) );
+		break;
 	case 'faq':
 		$esito = ai_faq( $citta, $pagina );
 		ai_risposta( array(

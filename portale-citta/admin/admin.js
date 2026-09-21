@@ -211,29 +211,132 @@
 					return;
 				}
 
+				var campoImg = document.getElementById('campo-modello-immagini');
+				var elencoImg = document.getElementById('elenco-modelli-immagini');
 				elenco.innerHTML = '';
-				d.modelli.forEach(function (m) {
-					var o = document.createElement('option');
-					o.value = m.nome;
-					o.label = m.etichetta;
-					elenco.appendChild(o);
-				});
+				if (elencoImg) { elencoImg.innerHTML = ''; }
 
-				// Se il modello impostato non è fra quelli validi, si propone il primo.
-				var validi = d.modelli.map(function (m) { return m.nome; });
-				if (validi.indexOf(campo.value.trim()) === -1) {
-					var primo = validi[0];
-					campo.value = primo;
-					messaggio('✓ ' + validi.length + ' modelli disponibili. Quello impostato non era più valido: ho messo "'
-						+ primo + '". Salva per confermare.', '#b3261e');
+				// I modelli che sanno disegnare hanno "image" nel nome.
+				var disegnano = d.modelli.filter(function (m) { return m.nome.toLowerCase().indexOf('image') !== -1; });
+				var scrivono = d.modelli.filter(function (m) { return m.nome.toLowerCase().indexOf('image') === -1; });
+
+				function riempi(lista, dove) {
+					if (!dove) { return; }
+					lista.forEach(function (m) {
+						var o = document.createElement('option');
+						o.value = m.nome;
+						o.label = m.etichetta;
+						dove.appendChild(o);
+					});
+				}
+				riempi(scrivono, elenco);
+				riempi(disegnano, elencoImg);
+
+				// Ogni campo si corregge con un modello del suo tipo, mai dell'altro.
+				var corretti = [];
+
+				function sistema(input, lista, tipo) {
+					if (!input || !lista.length) { return; }
+					var nomi = lista.map(function (m) { return m.nome; });
+					if (nomi.indexOf(input.value.trim()) === -1) {
+						input.value = nomi[0];
+						corretti.push(tipo + ' → ' + nomi[0]);
+					}
+				}
+				sistema(campo, scrivono, 'testo');
+				sistema(campoImg, disegnano, 'immagini');
+
+				var quanti = scrivono.length + ' per il testo, ' + disegnano.length + ' per le immagini';
+
+				if (corretti.length) {
+					messaggio('✓ Chiave valida: ' + quanti + '. Ho corretto ciò che non era più valido ('
+						+ corretti.join('; ') + '). Salva per confermare.', '#b3261e');
 				} else {
-					messaggio('✓ Chiave valida, ' + validi.length
-						+ ' modelli disponibili. Il campo ora li suggerisce mentre scrivi.', '#0f7b3f');
+					messaggio('✓ Chiave valida: ' + quanti
+						+ '. I campi ora li suggeriscono mentre scrivi.', '#0f7b3f');
 				}
 			})
 			.catch(function (err) {
 				bottone.disabled = false;
 				bottone.textContent = etichetta;
+				messaggio('✗ Non sono riuscito a contattare il server: ' + err.message, '#b3261e');
+			});
+	});
+})();
+
+/* Generazione dell'immagine di anteprima. */
+(function () {
+	'use strict';
+
+	var bottone = document.getElementById('genera-immagine');
+	if (!bottone) { return; }
+
+	var esito = document.getElementById('esito-immagine');
+	var campo = document.getElementById('campo-immagine');
+	var richiesta = document.getElementById('campo-richiesta-immagine');
+	var anteprima = document.getElementById('anteprima-immagine');
+	var anteprimaImg = document.getElementById('anteprima-immagine-img');
+
+	function messaggio(testo, colore) {
+		esito.textContent = testo;
+		esito.style.color = colore;
+	}
+
+	bottone.addEventListener('click', function () {
+		var etichetta = bottone.textContent;
+		bottone.disabled = true;
+		messaggio('Sto disegnando… può volerci mezzo minuto.', '#6b6b6b');
+
+		// Un contatore, altrimenti sembra bloccato.
+		var secondi = 0;
+		var tic = window.setInterval(function () {
+			secondi++;
+			bottone.textContent = 'Disegno… ' + secondi + 's';
+		}, 1000);
+
+		function finito() {
+			window.clearInterval(tic);
+			bottone.disabled = false;
+			bottone.textContent = etichetta;
+		}
+
+		var corpo = new FormData();
+		corpo.append('compito', 'immagine');
+		corpo.append('pagina', bottone.getAttribute('data-ai-pagina') || '');
+		corpo.append('citta', bottone.getAttribute('data-ai-citta') || '');
+		corpo.append('richiesta', richiesta ? richiesta.value : '');
+		corpo.append('token', document.body.getAttribute('data-token') || '');
+
+		fetch('admin.php?p=ai', { method: 'POST', body: corpo })
+			.then(function (r) { return r.json(); })
+			.then(function (d) {
+				finito();
+				if (!d.ok) {
+					messaggio('✗ ' + (d.errore || 'errore sconosciuto'), '#b3261e');
+					return;
+				}
+
+				// L'immagine è già salvata nella libreria: la si aggiunge all'elenco.
+				var esistente = Array.prototype.slice.call(campo.options)
+					.some(function (o) { return o.value === d.file; });
+				if (!esistente) {
+					var o = document.createElement('option');
+					o.value = d.file;
+					o.textContent = d.file;
+					campo.appendChild(o);
+				}
+				campo.value = d.file;
+
+				if (anteprimaImg) {
+					anteprimaImg.src = d.url;
+					anteprimaImg.alt = d.alt || '';
+				}
+				if (anteprima) { anteprima.style.display = ''; }
+
+				messaggio('✓ Immagine creata e selezionata (' + d.file + '). Salva la pagina per confermare.', '#0f7b3f');
+			})
+			.catch(function (err) {
+				finito();
 				messaggio('✗ Non sono riuscito a contattare il server: ' + err.message, '#b3261e');
 			});
 	});

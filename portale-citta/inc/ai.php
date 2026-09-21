@@ -189,6 +189,152 @@ function ai_ripulisci( $testo ) {
 	return trim( $testo );
 }
 
+/* ---------------------------------------------------------------------------
+ * Immagini
+ * ------------------------------------------------------------------------- */
+
+/** Il modello scelto per le immagini. */
+function ai_modello_immagini() {
+	return impostazione( 'gemini_modello_immagini', 'gemini-3.1-flash-image' );
+}
+
+/** True se il nome del modello lascia pensare che sappia disegnare. */
+function ai_modello_e_immagini( $nome ) {
+	return false !== stripos( (string) $nome, 'image' );
+}
+
+/**
+ * Genera un'immagine e la salva nella libreria.
+ *
+ * @param array  $citta      Città.
+ * @param array  $pagina     Pagina.
+ * @param string $richiesta  Descrizione libera; se vuota se ne costruisce una.
+ * @return array( 'ok' => bool, 'file' => string, 'alt' => string, 'errore' => string )
+ */
+function ai_immagine( $citta, $pagina, $richiesta = '' ) {
+	$chiave = impostazione( 'gemini_key', '' );
+	if ( vuoto( $chiave ) ) {
+		return array( 'ok' => false, 'file' => '', 'alt' => '', 'errore' => 'Chiave Gemini non impostata.' );
+	}
+	if ( ! function_exists( 'curl_init' ) ) {
+		return array( 'ok' => false, 'file' => '', 'alt' => '', 'errore' => 'Estensione cURL non disponibile sul server.' );
+	}
+
+	$soggetto = vuoto( $richiesta ) ? ai_soggetto_immagine( $citta, $pagina ) : trim( $richiesta );
+	$imp      = impostazioni();
+
+	$istruzione = "Crea un'immagine fotografica orizzontale, formato 16:9, per l'anteprima di una pagina web.\n\n"
+		. "Soggetto: " . $soggetto . "\n\n"
+		. "Stile: fotografia professionale, luce naturale, messa a fuoco sul soggetto, sfondo sobrio.\n"
+		. "Tonalità coerenti con il giallo " . $imp['colore_accento'] . " e il nero, senza esagerare.\n\n"
+		. "Da evitare in modo assoluto:\n"
+		. "- qualsiasi testo, scritta, logo, insegna o filigrana nell'immagine\n"
+		. "- volti riconoscibili di persone\n"
+		. "- marchi, loghi di automobili o insegne commerciali esistenti\n"
+		. "- luoghi reali riconoscibili: deve essere una scena generica, non " . $citta['nome'] . "\n"
+		. "- numeri di targa, documenti o dati leggibili";
+
+	$url = ai_base() . '/models/' . rawurlencode( ai_modello_immagini() ) . ':generateContent';
+
+	$corpo = array(
+		'contents'         => array(
+			array( 'parts' => array( array( 'text' => $istruzione ) ) ),
+		),
+		'generationConfig' => array(
+			'responseModalities' => array( 'IMAGE' ),
+		),
+	);
+
+	$ch = curl_init( $url );
+	curl_setopt_array( $ch, array(
+		CURLOPT_POST           => true,
+		CURLOPT_RETURNTRANSFER => true,
+		CURLOPT_TIMEOUT        => 120,
+		CURLOPT_HTTPHEADER     => array(
+			'Content-Type: application/json',
+			'x-goog-api-key: ' . $chiave,
+		),
+		CURLOPT_POSTFIELDS     => json_encode( $corpo, JSON_UNESCAPED_UNICODE ),
+	) );
+	$risposta = curl_exec( $ch );
+	$stato    = (int) curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+	$errcurl  = curl_error( $ch );
+	curl_close( $ch );
+
+	if ( false === $risposta ) {
+		return array( 'ok' => false, 'file' => '', 'alt' => '', 'errore' => 'Connessione fallita: ' . $errcurl );
+	}
+	$dati = json_decode( (string) $risposta, true );
+	if ( 200 !== $stato ) {
+		$messaggio = pesca( is_array( $dati ) ? $dati : array(), 'error.message', 'Errore HTTP ' . $stato );
+		return array( 'ok' => false, 'file' => '', 'alt' => '', 'errore' => ai_traduci( $messaggio, $stato ) );
+	}
+
+	$immagine = ai_estrai_immagine( is_array( $dati ) ? $dati : array() );
+	if ( null === $immagine ) {
+		$motivo = pesca( is_array( $dati ) ? $dati : array(), 'candidates.0.finishReason', '' );
+		$extra  = vuoto( $motivo ) ? '' : ' (motivo: ' . $motivo . ')';
+		return array(
+			'ok'     => false,
+			'file'   => '',
+			'alt'    => '',
+			'errore' => 'Il modello non ha restituito nessuna immagine' . $extra
+				. '. Controlla che "' . ai_modello_immagini() . '" sia un modello capace di generarle.',
+		);
+	}
+
+	$alt  = ai_alt_immagine( $citta, $pagina );
+	$base = $pagina['slug'] . '-' . $citta['slug'];
+
+	$salvata = media_salva_dati( $immagine['dati'], $immagine['mime'], $base, $alt );
+	if ( ! $salvata['ok'] ) {
+		return array( 'ok' => false, 'file' => '', 'alt' => '', 'errore' => $salvata['messaggio'] );
+	}
+
+	return array( 'ok' => true, 'file' => $salvata['file'], 'alt' => $alt, 'errore' => '' );
+}
+
+/** Pesca i byte dell'immagine dalla risposta, qualunque forma abbia. */
+function ai_estrai_immagine( $dati ) {
+	$parti = pesca( $dati, 'candidates.0.content.parts', array() );
+	foreach ( (array) $parti as $parte ) {
+		// L'API usa inlineData, alcune librerie inline_data: accettiamo entrambe.
+		$blocco = null;
+		if ( isset( $parte['inlineData'] ) && is_array( $parte['inlineData'] ) ) {
+			$blocco = $parte['inlineData'];
+		} elseif ( isset( $parte['inline_data'] ) && is_array( $parte['inline_data'] ) ) {
+			$blocco = $parte['inline_data'];
+		}
+		if ( null === $blocco || empty( $blocco['data'] ) ) {
+			continue;
+		}
+		$binario = base64_decode( (string) $blocco['data'], true );
+		if ( false === $binario || '' === $binario ) {
+			continue;
+		}
+		$mime = isset( $blocco['mimeType'] ) ? $blocco['mimeType'] : ( isset( $blocco['mime_type'] ) ? $blocco['mime_type'] : 'image/png' );
+		return array( 'dati' => $binario, 'mime' => $mime );
+	}
+	return null;
+}
+
+/** Soggetto predefinito dell'immagine, dedotto dalla pagina. */
+function ai_soggetto_immagine( $citta, $pagina ) {
+	$titolo = trim( (string) $pagina['titolo'] );
+	if ( 'home' === $pagina['tipo'] || '' === $titolo ) {
+		return 'il mestiere di ' . impostazione( 'brand', 'questa attività' ) . ', attrezzi e banco di lavoro ordinati';
+	}
+	return 'una scena che rappresenta il servizio "' . $titolo . '": attrezzi, mani al lavoro, dettaglio ravvicinato';
+}
+
+/** Testo alternativo dell'immagine. */
+function ai_alt_immagine( $citta, $pagina ) {
+	if ( 'home' === $pagina['tipo'] ) {
+		return impostazione( 'brand', '' ) . ' a ' . $citta['nome'];
+	}
+	return $pagina['titolo'] . ' a ' . $citta['nome'];
+}
+
 /** Contesto testuale della città, da passare al modello. */
 function ai_contesto( $citta, $pagina = null ) {
 	$imp   = impostazioni();
@@ -286,6 +432,27 @@ function ai_faq( $citta, $pagina, $quante = 6 ) {
 		);
 	}
 	return array( 'ok' => true, 'voci' => $pulite, 'errore' => '' );
+}
+
+/** Genera il titolo per Google. */
+function ai_titolo( $citta, $pagina ) {
+	$istruzione = "Scrivi il tag title di questa pagina, quello che compare come riga blu nei risultati di Google.\n\n"
+		. ai_contesto( $citta, $pagina ) . "\n\n"
+		. "Vincoli rigidi:\n"
+		. "- Da 45 a 60 caratteri, spazi compresi. Oltre i 60 Google lo taglia.\n"
+		. "- Deve contenere il nome della città.\n"
+		. "- Deve iniziare con il servizio, non con il nome dell'attività.\n"
+		. "- Niente virgolette, niente punto finale, nessun marchio inventato.\n"
+		. "- Questo testo viene usato esattamente com'è: se avanza spazio entro i 60\n"
+		. "  caratteri puoi chiudere con \" | " . impostazione( 'brand', '' ) . "\", altrimenti lascialo fuori.\n\n"
+		. ai_regole();
+
+	$esito = ai_chiedi( $istruzione );
+	if ( $esito['ok'] ) {
+		// Il modello a volte incornicia il titolo: si toglie.
+		$esito['testo'] = trim( $esito['testo'], " \t\n\r\0\x0B\"'«»" );
+	}
+	return $esito;
 }
 
 /** Genera l'introduzione breve. */

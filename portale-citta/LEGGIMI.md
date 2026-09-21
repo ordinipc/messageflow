@@ -181,8 +181,28 @@ Non servono al posizionamento. Servono a chi legge.
 
 ## L'assistente Gemini
 
-Con una chiave API (Impostazioni → Assistente) compaiono i pulsanti
-"✦ Scrivi con l'assistente" nell'editor.
+Con una chiave API (Impostazioni → Assistente) compaiono i pulsanti ✦ nell'editor:
+
+| Pulsante | Dove | Cosa fa |
+|---|---|---|
+| Scrivi con l'assistente | Testi | Introduzione e testo di approfondimento |
+| Scrivi la descrizione | SEO | La meta description, entro 155 caratteri |
+| **Scrivi il titolo** | SEO | Il tag title, 45-60 caratteri, con la città dentro |
+| Proponi 6 FAQ | FAQ | Domande e risposte, pronte per lo schema FAQPage |
+| **Genera immagine** | SEO | Crea l'immagine di anteprima e la salva nella libreria |
+
+Servono due modelli diversi: uno per il testo, uno per le immagini (di solito
+ha "image" nel nome). Il pulsante "Carica i modelli disponibili" li divide da
+solo fra i due campi.
+
+**L'immagine generata è decorativa.** Va bene come anteprima per la
+condivisione social; non spacciarla per una foto del tuo lavoro o della tua
+sede. Per un'attività locale una foto vera vale molto di più, ed è uno dei
+segnali che Google guarda.
+
+Il prompt dell'immagine chiede esplicitamente niente testo, niente volti
+riconoscibili, niente marchi e niente luoghi reali: un'immagine generica, non
+una finta foto della tua città.
 
 Riceve i dati che hai inserito — città, quartieri, servizio, prezzi, punti di
 forza — e propone il testo. **Va sempre riletto**: il modello non conosce la tua

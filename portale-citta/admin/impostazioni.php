@@ -28,6 +28,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		'ga_id'           => trim( (string) ( $_POST['ga_id'] ?? '' ) ),
 		'gemini_key'      => trim( (string) ( $_POST['gemini_key'] ?? '' ) ),
 		'gemini_modello'  => trim( (string) ( $_POST['gemini_modello'] ?? 'gemini-3.6-flash' ) ),
+		'gemini_modello_immagini' => trim( (string) ( $_POST['gemini_modello_immagini'] ?? 'gemini-3.1-flash-image' ) ),
 		'indicizza'       => isset( $_POST['indicizza'] ) ? '1' : '0',
 		'privacy_url'     => trim( (string) ( $_POST['privacy_url'] ?? '' ) ),
 		'cookie_url'      => trim( (string) ( $_POST['cookie_url'] ?? '' ) ),
@@ -216,6 +217,13 @@ $cfg      = db_config();
 				Google ritira i modelli senza preavviso: il campo è libero, così puoi sempre
 				scrivere quello nuovo senza toccare il codice.
 			</small>
+		</label>
+
+		<label>Modello per le immagini
+			<input type="text" name="gemini_modello_immagini" id="campo-modello-immagini" list="elenco-modelli-immagini"
+				value="<?php echo e( $imp['gemini_modello_immagini'] ); ?>" placeholder="gemini-3.1-flash-image" spellcheck="false">
+			<datalist id="elenco-modelli-immagini"></datalist>
+			<small>Serve un modello che sappia disegnare: di solito ha "image" nel nome.</small>
 		</label>
 
 		<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo" id="carica-modelli"

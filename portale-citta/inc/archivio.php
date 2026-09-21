@@ -70,6 +70,7 @@ function impostazioni_predefinite() {
 		'ga_id'           => '',
 		'gemini_key'      => '',
 		'gemini_modello'  => 'gemini-3.6-flash',
+		'gemini_modello_immagini' => 'gemini-3.1-flash-image',
 		'indicizza'       => '1',
 		'css_globale'     => '',
 		'js_globale'      => '',

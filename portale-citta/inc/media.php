@@ -99,6 +99,87 @@ function media_carica( $file ) {
 	return array( 'ok' => true, 'messaggio' => 'Immagine caricata.', 'file' => $nome );
 }
 
+/**
+ * Salva nella libreria un'immagine già in memoria (per esempio generata
+ * dall'assistente), applicando gli stessi controlli di un caricamento.
+ *
+ * @param string $binario   Byte dell'immagine.
+ * @param string $mime      Tipo dichiarato; viene comunque riverificato.
+ * @param string $nome_base Nome del file senza estensione.
+ * @param string $alt       Testo alternativo.
+ * @return array( 'ok' => bool, 'messaggio' => string, 'file' => string )
+ */
+function media_salva_dati( $binario, $mime, $nome_base, $alt = '' ) {
+	if ( '' === (string) $binario ) {
+		return array( 'ok' => false, 'messaggio' => 'Immagine vuota.' );
+	}
+	$limite = 8 * 1024 * 1024;
+	if ( strlen( $binario ) > $limite ) {
+		return array( 'ok' => false, 'messaggio' => 'Immagine troppo grande: massimo 8 MB.' );
+	}
+
+	// Il tipo si verifica dai byte, non da quello che dichiara chi la manda.
+	$finfo = new finfo( FILEINFO_MIME_TYPE );
+	$vero  = (string) $finfo->buffer( $binario );
+	$tipi  = media_tipi_ammessi();
+	if ( ! isset( $tipi[ $vero ] ) || 'svg' === $tipi[ $vero ] ) {
+		return array( 'ok' => false, 'messaggio' => 'Formato non ammesso: ' . $vero );
+	}
+	$estensione = $tipi[ $vero ];
+	unset( $mime );
+
+	if ( ! is_dir( PC_MEDIA ) ) {
+		@mkdir( PC_MEDIA, 0755, true );
+	}
+
+	$nome_base = slugifica( $nome_base );
+	if ( '' === $nome_base ) {
+		$nome_base = 'immagine';
+	}
+	$nome = $nome_base . '.' . $estensione;
+	$n    = 1;
+	while ( file_exists( PC_MEDIA . '/' . $nome ) ) {
+		$n++;
+		$nome = $nome_base . '-' . $n . '.' . $estensione;
+	}
+	$destinazione = PC_MEDIA . '/' . $nome;
+
+	if ( false === file_put_contents( $destinazione, $binario ) ) {
+		return array( 'ok' => false, 'messaggio' => 'Impossibile scrivere nella cartella media/. Controlla i permessi (755).' );
+	}
+	@chmod( $destinazione, 0644 );
+
+	$larghezza  = 0;
+	$altezza    = 0;
+	$dimensioni = @getimagesize( $destinazione );
+	if ( is_array( $dimensioni ) ) {
+		$larghezza = (int) $dimensioni[0];
+		$altezza   = (int) $dimensioni[1];
+	}
+	if ( $larghezza > 1800 && function_exists( 'imagecreatetruecolor' ) ) {
+		media_ridimensiona( $destinazione, $vero, 1800 );
+		$dimensioni = @getimagesize( $destinazione );
+		if ( is_array( $dimensioni ) ) {
+			$larghezza = (int) $dimensioni[0];
+			$altezza   = (int) $dimensioni[1];
+		}
+	}
+
+	db_salva( 'media', array(
+		'id'        => nuovo_id(),
+		'file'      => $nome,
+		'nome'      => $nome,
+		'alt'       => '' === $alt ? str_replace( '-', ' ', $nome_base ) : $alt,
+		'mime'      => $vero,
+		'larghezza' => $larghezza,
+		'altezza'   => $altezza,
+		'peso'      => (int) filesize( $destinazione ),
+		'caricata'  => date( 'Y-m-d H:i:s' ),
+	) );
+
+	return array( 'ok' => true, 'messaggio' => 'Immagine salvata.', 'file' => $nome );
+}
+
 /** Riduce la larghezza massima di un'immagine. */
 function media_ridimensiona( $percorso, $mime, $larghezza_max ) {
 	switch ( $mime ) {

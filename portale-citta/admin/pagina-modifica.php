@@ -267,10 +267,14 @@ $lista_s  = servizi();
 		<div class="pc-scheda">
 			<h2>Come appare su Google</h2>
 			<label>Titolo per Google (title)
-				<input type="text" name="seo_titolo" value="<?php echo e( $pagina['seo_titolo'] ); ?>" data-conta data-conta-min="30" data-conta-max="65"
+				<input type="text" name="seo_titolo" id="campo-seo-titolo" value="<?php echo e( $pagina['seo_titolo'] ); ?>" data-conta data-conta-min="30" data-conta-max="65"
 					placeholder="<?php echo e( seo_titolo( $citta, $pagina ) ); ?>">
 				<small>Lascia vuoto per generarlo da titolo + città + nome dell'attività.</small>
 			</label>
+			<?php if ( ai_attiva() ) : ?>
+				<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo" style="margin-bottom:14px"
+					data-ai="titolo" data-ai-campo="campo-seo-titolo" data-ai-pagina="<?php echo e( $pagina['id'] ); ?>" data-ai-citta="<?php echo e( $citta['id'] ); ?>">✦ Scrivi il titolo</button>
+			<?php endif; ?>
 			<label>Descrizione per Google (meta description)
 				<textarea name="seo_desc" id="campo-desc" style="min-height:80px" data-conta data-conta-min="70" data-conta-max="160"
 					placeholder="<?php echo e( seo_descrizione( $citta, $pagina ) ); ?>"><?php echo e( $pagina['seo_desc'] ); ?></textarea>
@@ -285,16 +289,32 @@ $lista_s  = servizi();
 			<h2>Immagine di anteprima</h2>
 			<p class="pc-scheda__nota">Usata da Open Graph quando la pagina viene condivisa.</p>
 			<label>
-				<select name="immagine">
+				<select name="immagine" id="campo-immagine">
 					<option value="">— nessuna —</option>
 					<?php foreach ( $immagini as $m ) : ?>
 						<option value="<?php echo e( $m['file'] ); ?>" <?php selected_pc( $m['file'], $pagina['immagine'] ); ?>><?php echo e( $m['file'] ); ?></option>
 					<?php endforeach; ?>
 				</select>
 			</label>
-			<?php if ( ! vuoto( $pagina['immagine'] ) ) : ?>
-				<div class="pc-anteprima"><img src="<?php echo e( url_media( $pagina['immagine'] ) ); ?>" alt=""></div>
+			<div class="pc-anteprima" id="anteprima-immagine" <?php echo vuoto( $pagina['immagine'] ) ? 'style="display:none"' : ''; ?>>
+				<img id="anteprima-immagine-img" src="<?php echo e( vuoto( $pagina['immagine'] ) ? '' : url_media( $pagina['immagine'] ) ); ?>" alt="">
+			</div>
+
+			<?php if ( ai_attiva() ) : ?>
+				<label style="margin-top:14px">Cosa deve mostrare
+					<input type="text" id="campo-richiesta-immagine" placeholder="<?php echo e( ai_soggetto_immagine( $citta, $pagina ) ); ?>">
+					<small>Lascia vuoto per usare la descrizione suggerita qui sopra.</small>
+				</label>
+				<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo" id="genera-immagine"
+					data-ai-pagina="<?php echo e( $pagina['id'] ); ?>" data-ai-citta="<?php echo e( $citta['id'] ); ?>">✦ Genera immagine</button>
+				<p class="pc-nota" id="esito-immagine" style="margin-top:10px"></p>
+				<p class="pc-nota">
+					<strong>Occhio.</strong> Un'immagine generata è decorativa: va bene per l'anteprima
+					social, non spacciarla per una foto del tuo lavoro o della tua sede. Per il locale
+					una foto vera vale molto di più.
+				</p>
 			<?php endif; ?>
+
 			<p class="pc-nota"><a href="admin.php?p=media">Carica altre immagini →</a></p>
 		</div>
 
