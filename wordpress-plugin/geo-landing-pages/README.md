@@ -78,6 +78,25 @@ Crea le pagine **in bozza**. Pubblicale solo dopo aver risposto al questionario.
 
 ---
 
+## Non si riscrive niente due volte
+
+I dati della città si compilano **una volta sola**, sulla pagina città. Tutte le sue pagine e
+i suoi servizi li ereditano: **29 campi**, fra cui telefono, indirizzo, orari, zone servite,
+comuni limitrofi, coordinate, mappa, recensioni, referente, qualifiche, certificazioni,
+partita IVA, anni di attività e tempo di intervento.
+
+Aprendo una pagina servizio vedi quei campi vuoti, ma **vuoti significa "usa il valore della
+città"**: sotto ogni campo compare in grigio il valore ereditato, e in alto a destra un
+riquadro verde dice quante risposte arrivano dalla città e quali.
+
+Su una pagina servizio servono solo le risposte sue: nome del servizio, prezzo, cosa comprende,
+processo, garanzia, FAQ e i testi SEO. Il punteggio di qualità conta anche l'eredità: un
+servizio con due soli campi compilati sotto una città completa parte già sopra il 50.
+
+Se cambi il telefono sulla pagina città, cambia ovunque.
+
+---
+
 ## Il questionario: perché queste domande
 
 Le 8 sezioni corrispondono ai segnali che Google valuta su una pagina locale.

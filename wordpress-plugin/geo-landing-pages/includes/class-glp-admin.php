@@ -140,6 +140,43 @@ class GLP_Admin {
 		}
 		echo '</div>';
 
+		// Su una pagina figlia: dire subito cosa NON va riscritto.
+		if ( ! GLP_Post_Types::is_city( $post ) && (int) $post->post_parent ) {
+			$citta_post = GLP_Post_Types::city_post( $post );
+			if ( $citta_post ) {
+				$ereditati = array();
+				foreach ( GLP_Questionnaire::fields() as $chiave => $campo ) {
+					if ( empty( $campo['inherit'] ) ) {
+						continue;
+					}
+					if ( GLP_Meta::is_empty( GLP_Meta::raw( $post->ID, $chiave ) )
+						&& ! GLP_Meta::is_empty( GLP_Meta::raw( $citta_post->ID, $chiave ) ) ) {
+						$ereditati[ $chiave ] = rtrim( $campo['label'], '?:' );
+					}
+				}
+
+				if ( ! empty( $ereditati ) ) {
+					echo '<div class="glp-inherit-box"><p><strong>';
+					printf(
+						/* translators: 1: numero di risposte, 2: nome della città. */
+						esc_html__( '%1$d risposte arrivano da %2$s', 'geo-landing-pages' ),
+						count( $ereditati ),
+						esc_html( $citta_post->post_title )
+					);
+					echo '</strong></p>';
+					echo '<p>' . esc_html__( 'Non riscriverle: i campi vuoti qui sotto usano automaticamente il valore della pagina città. Qui servono solo le risposte specifiche di questo servizio.', 'geo-landing-pages' ) . '</p>';
+					echo '<details><summary>' . esc_html__( 'Vedi quali', 'geo-landing-pages' ) . '</summary><ul>';
+					foreach ( $ereditati as $etichetta ) {
+						echo '<li>' . esc_html( wp_html_excerpt( $etichetta, 44, '…' ) ) . '</li>';
+					}
+					echo '</ul></details>';
+					echo '<p><a href="' . esc_url( (string) get_edit_post_link( $citta_post->ID ) ) . '">'
+						. esc_html__( 'Modifica i dati della città', 'geo-landing-pages' ) . '</a></p>';
+					echo '</div>';
+				}
+			}
+		}
+
 		$pending = GLP_AI::pending_fields( $post->ID );
 		if ( ! empty( $pending ) ) {
 			$fields = GLP_Questionnaire::fields();
@@ -245,8 +282,8 @@ class GLP_Admin {
 		$inherited = '';
 		if ( ! empty( $field['inherit'] ) && (int) $post->post_parent ) {
 			$parent_value = GLP_Meta::raw( (int) $post->post_parent, $key );
-			if ( ! GLP_Meta::is_empty( $parent_value ) && ! is_array( $parent_value ) ) {
-				$inherited = (string) $parent_value;
+			if ( ! GLP_Meta::is_empty( $parent_value ) ) {
+				$inherited = self::summarize( $parent_value, $type );
 			}
 		}
 
@@ -347,7 +384,7 @@ class GLP_Admin {
 				break;
 		}
 
-		if ( '' !== $inherited && ! in_array( $type, array( 'repeater', 'hours', 'checkbox' ), true ) ) {
+		if ( '' !== $inherited ) {
 			echo '<p class="glp-field__inherit">' . sprintf(
 				/* translators: %s: valore ereditato. */
 				esc_html__( 'Se lasci vuoto viene usato il valore della pagina città: %s', 'geo-landing-pages' ),
@@ -373,6 +410,42 @@ class GLP_Admin {
 		}
 
 		echo '</div>';
+	}
+
+	/**
+	 * Riassunto breve di un valore, per mostrare cosa si eredita.
+	 *
+	 * @param mixed  $value Valore.
+	 * @param string $type  Tipo di campo.
+	 * @return string
+	 */
+	private static function summarize( $value, $type ) {
+		if ( 'hours' === $type ) {
+			$giorni = 0;
+			foreach ( (array) $value as $riga ) {
+				if ( is_array( $riga ) && ( ! empty( $riga['open'] ) || ! empty( $riga['closed'] ) ) ) {
+					$giorni++;
+				}
+			}
+			/* translators: %d: numero di giorni compilati. */
+			return $giorni ? sprintf( __( 'orari compilati su %d giorni', 'geo-landing-pages' ), $giorni ) : '';
+		}
+
+		if ( 'repeater' === $type ) {
+			$n = is_array( $value ) ? count( $value ) : 0;
+			/* translators: %d: numero di voci. */
+			return $n ? sprintf( _n( '%d voce', '%d voci', $n, 'geo-landing-pages' ), $n ) : '';
+		}
+
+		if ( is_array( $value ) ) {
+			return implode( ', ', array_map( 'strval', $value ) );
+		}
+
+		if ( 'checkbox' === $type ) {
+			return $value ? __( 'sì', 'geo-landing-pages' ) : '';
+		}
+
+		return (string) $value;
 	}
 
 	/**

@@ -333,3 +333,34 @@
 .glp-badge.is-info {
 	background: #646970;
 }
+
+/* Riquadro dell'eredità */
+.glp-inherit-box {
+	margin: 0 0 1rem;
+	padding: .8rem .9rem;
+	background: #edf7ed;
+	border-left: 4px solid #00a32a;
+	font-size: 12px;
+	line-height: 1.55;
+}
+
+.glp-inherit-box p {
+	margin: 0 0 .4rem;
+}
+
+.glp-inherit-box p:last-child {
+	margin-bottom: 0;
+}
+
+.glp-inherit-box summary {
+	cursor: pointer;
+	color: #2271b1;
+}
+
+.glp-inherit-box ul {
+	margin: .4rem 0 .5rem;
+	padding-left: 1.1rem;
+	color: #50575e;
+	columns: 2;
+	column-gap: 1rem;
+}
