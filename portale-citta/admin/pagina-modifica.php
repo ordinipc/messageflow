@@ -28,7 +28,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	verifica_token();
 
 	$pagina['titolo'] = trim( (string) ( $_POST['titolo'] ?? '' ) );
-	$pagina['tipo']   = in_array( $_POST['tipo'] ?? '', array( 'home', 'servizio', 'fissa' ), true ) ? $_POST['tipo'] : 'fissa';
+	$pagina['tipo']   = in_array( $_POST['tipo'] ?? '', array( 'home', 'servizio', 'servizi', 'fissa' ), true ) ? $_POST['tipo'] : 'fissa';
 
 	// Una sola pagina principale per città.
 	$nota = '';
@@ -139,18 +139,24 @@ $lista_s  = servizi();
 				<label>Tipo di pagina
 					<select name="tipo">
 						<option value="home" <?php selected_pc( 'home', $pagina['tipo'] ); ?>>Principale (è /<?php echo e( $citta['slug'] ); ?>/)</option>
-						<option value="servizio" <?php selected_pc( 'servizio', $pagina['tipo'] ); ?>>Servizio (genera lo schema Service)</option>
+						<option value="servizio" <?php selected_pc( 'servizio', $pagina['tipo'] ); ?>>Servizio — una pagina per un servizio solo</option>
+						<option value="servizi" <?php selected_pc( 'servizi', $pagina['tipo'] ); ?>>Elenco servizi — mostra tutti i servizi della città</option>
 						<option value="fissa" <?php selected_pc( 'fissa', $pagina['tipo'] ); ?>>Pagina fissa (chi siamo, contatti…)</option>
 					</select>
 				</label>
 				<label>Tipo di servizio collegato
-					<select name="servizio_id">
+					<select name="servizio_id" id="campo-servizio-id">
 						<option value="">— nessuno —</option>
 						<?php foreach ( $lista_s as $s ) : ?>
 							<option value="<?php echo e( $s['id'] ); ?>" <?php selected_pc( $s['id'], $pagina['servizio_id'] ); ?>><?php echo e( $s['nome'] ); ?></option>
 						<?php endforeach; ?>
 					</select>
-					<small>Serve solo per raggruppare le pagine dello stesso servizio fra città diverse.</small>
+					<small>
+						Serve solo a raggruppare la <strong>stessa</strong> pagina fra città diverse
+						(la "Duplicazione chiavi auto" di Trapani con quella di Marsala).
+						Per fare la pagina che li elenca tutti scegli <strong>Elenco servizi</strong>
+						qui a sinistra e lascia questo su "nessuno".
+					</small>
 				</label>
 			</div>
 			<label>Titolo H1 personalizzato

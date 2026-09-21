@@ -106,12 +106,21 @@ function seo_analisi( $citta, $pagina ) {
 		'peso' => 5,
 	);
 
-	$testo   = strip_tags( (string) $pagina['intro'] . ' ' . $pagina['corpo'] . ' ' . $pagina['inclusi'] );
-	$parole  = str_word_count( $testo, 0, 'àáâäèéêëìíîïòóôöùúûüçñÀÈÉÌÒÙ0123456789' );
+	$testo = strip_tags( (string) $pagina['intro'] . ' ' . $pagina['corpo'] . ' ' . $pagina['inclusi'] );
+
+	// Una pagina "elenco servizi" ha per contenuto le schede che mostra:
+	// contarle è più onesto che chiederle 300 parole scritte a mano.
+	$minimo = 300;
+	if ( 'servizi' === $pagina['tipo'] ) {
+		$testo .= ' ' . seo_testo_dei_servizi( $pagina['citta_id'] );
+		$minimo = 150;
+	}
+
+	$parole = str_word_count( $testo, 0, 'àáâäèéêëìíîïòóôöùúûüçñÀÈÉÌÒÙ0123456789' );
 	$controlli[] = array(
 		'nome' => 'Quantità di testo',
-		'ok'   => $parole >= 300,
-		'nota' => $parole . ' parole (minimo consigliato 300)',
+		'ok'   => $parole >= $minimo,
+		'nota' => $parole . ' parole (minimo consigliato ' . $minimo . ')',
 		'peso' => 20,
 	);
 
@@ -161,6 +170,20 @@ function seo_analisi( $citta, $pagina ) {
 	$punteggio = $totale > 0 ? (int) round( $ottenuto / $totale * 100 ) : 0;
 
 	return array( 'punteggio' => $punteggio, 'controlli' => $controlli );
+}
+
+/** Titoli e introduzioni delle pagine servizio di una città. */
+function seo_testo_dei_servizi( $citta_id ) {
+	$righe = db_righe(
+		'SELECT titolo, intro, seo_desc FROM ' . db_tab( 'pagine' )
+		. " WHERE citta_id = ? AND tipo = 'servizio'",
+		array( (string) $citta_id )
+	);
+	$pezzi = array();
+	foreach ( $righe as $r ) {
+		$pezzi[] = $r['titolo'] . ' ' . $r['intro'] . ' ' . $r['seo_desc'];
+	}
+	return strip_tags( implode( ' ', $pezzi ) );
 }
 
 /** Confronta il corpo con quello delle altre pagine: true se è abbastanza diverso. */

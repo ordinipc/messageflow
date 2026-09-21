@@ -112,7 +112,7 @@ function pagine_base() {
 	return array(
 		'home'               => array( 'Principale', '', 'home', 0, 'La pagina raggiungibile da /citta/.' ),
 		'chi-siamo'          => array( 'Chi siamo', 'chi-siamo', 'fissa', 20, 'Chi siete, da quanto lavorate, perché fidarsi.' ),
-		'servizi'            => array( 'Servizi', 'servizi', 'fissa', 30, 'Elenco dei servizi disponibili in questa città.' ),
+		'servizi'            => array( 'Servizi', 'servizi', 'servizi', 30, 'Elenca da sola tutte le pagine servizio della città.' ),
 		'contatti'           => array( 'Contatti', 'contatti', 'fissa', 40, 'Telefono, indirizzo, orari e mappa.' ),
 		'domande-frequenti'  => array( 'Domande frequenti', 'domande-frequenti', 'fissa', 50, 'Le FAQ della città.' ),
 		'zone-servite'       => array( 'Zone servite', 'zone-servite', 'fissa', 60, 'Quartieri e comuni coperti.' ),

@@ -27,6 +27,7 @@ $schemi      = array(
 	schema_attivita( $citta ),
 	schema_servizio( $citta, $pagina ),
 	schema_faq( $pagina['faq'] ),
+	schema_elenco_servizi( $citta, $pagina, $servizi ),
 	schema_breadcrumb( $citta, $pagina ),
 );
 
@@ -128,6 +129,11 @@ if ( ! vuoto( $pagina['html'] ) ) {
 	echo '<section class="glp-section glp-section--libero glp-reveal">' . $pagina['html'] . '</section>';
 }
 
+/* --- Elenco dei servizi: è il corpo della pagina, non una coda --------- */
+if ( 'servizi' === $pagina['tipo'] ) {
+	echo sezione_elenco_servizi( $citta, $servizi );
+}
+
 /* --- Sezioni a riquadri o a elenco (tema/sezioni.php) -------------------- */
 echo sezione_inclusi( $pagina );
 echo sezione_perche( $citta );
@@ -206,7 +212,10 @@ if ( ! vuoto( $telefono ) || ! vuoto( $whatsapp ) ) {
 	echo '</div></section>';
 }
 
-echo sezione_servizi( $citta, $servizi, url_pagina( $citta, $pagina ) );
+// Su una pagina che già elenca i servizi non si ripete l'elenco in fondo.
+if ( 'servizi' !== $pagina['tipo'] ) {
+	echo sezione_servizi( $citta, $servizi, url_pagina( $citta, $pagina ) );
+}
 echo sezione_correlate( $altre );
 ?>
 </div><!-- .glp-sections -->

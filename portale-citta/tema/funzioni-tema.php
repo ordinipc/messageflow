@@ -41,14 +41,41 @@ function menu_citta( $citta, $escludi_id = '' ) {
 	return $voci;
 }
 
-/** Pagine servizio della città, per l'indice nell'intestazione. */
+/**
+ * Pagine servizio della città: servono all'indice nell'intestazione e
+ * alla pagina che elenca i servizi. Portano anche una riga di testo e il
+ * prezzo, così le card dicono qualcosa invece del solo titolo.
+ */
 function servizi_citta( $citta ) {
 	$voci = array();
 	foreach ( pagine_di_citta( $citta['id'], ! connesso() ) as $p ) {
 		if ( 'servizio' !== $p['tipo'] ) {
 			continue;
 		}
-		$voci[] = array( 'nome' => $p['titolo'], 'url' => url_pagina( $citta, $p ) );
+
+		$testo = trim( strip_tags( (string) $p['intro'] ) );
+		if ( '' === $testo ) {
+			$testo = trim( strip_tags( (string) $p['seo_desc'] ) );
+		}
+		if ( '' === $testo ) {
+			$testo = trim( strip_tags( (string) $p['corpo'] ) );
+		}
+		$testo = preg_replace( '/\s+/u', ' ', $testo );
+		if ( mb_strlen( $testo ) > 130 ) {
+			$testo = mb_substr( $testo, 0, 127 ) . '…';
+		}
+
+		$prezzo = '';
+		if ( ! vuoto( $p['prezzo_da'] ) ) {
+			$prezzo = 'da ' . $p['prezzo_da'] . ' €';
+		}
+
+		$voci[] = array(
+			'nome'   => $p['titolo'],
+			'url'    => url_pagina( $citta, $p ),
+			'testo'  => $testo,
+			'prezzo' => $prezzo,
+		);
 	}
 	return $voci;
 }

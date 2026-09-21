@@ -379,6 +379,56 @@ function sezione_orari( $citta ) {
  * Altri servizi della città
  * ------------------------------------------------------------------------- */
 
+/**
+ * Elenco completo dei servizi della città: è il corpo della pagina
+ * di tipo "Elenco servizi", non una sezione di coda.
+ */
+function sezione_elenco_servizi( $citta, $servizi ) {
+	if ( empty( $servizi ) ) {
+		return sezione_apri( 'servizi', 'Servizi a ' . $citta['nome'], 'Servizi' )
+			. '<p>Nessuna pagina servizio pubblicata per ' . e( $citta['nome'] ) . '.</p>'
+			. '</section>';
+	}
+
+	$html = sezione_apri( 'servizi', 'Tutti i servizi a ' . $citta['nome'], 'Servizi' );
+
+	if ( stile_card() ) {
+		$html .= '<ul class="glp-boxes glp-boxes--larghe">';
+		foreach ( $servizi as $i => $s ) {
+			$html .= box_apri( 'link', $i )
+				. '<a href="' . e_url( $s['url'] ) . '">'
+				. '<span class="glp-box__num" aria-hidden="true">' . e( sprintf( '%02d', $i + 1 ) ) . '</span>'
+				. '<span class="glp-box__titolo">' . e( $s['nome'] ) . '</span>';
+			if ( ! vuoto( isset( $s['testo'] ) ? $s['testo'] : '' ) ) {
+				$html .= '<span class="glp-box__testo">' . e( $s['testo'] ) . '</span>';
+			}
+			if ( ! vuoto( isset( $s['prezzo'] ) ? $s['prezzo'] : '' ) ) {
+				$html .= '<span class="glp-box__nota">' . e( $s['prezzo'] ) . '</span>';
+			}
+			$html .= '</a></li>';
+		}
+		$html .= '</ul>';
+	} else {
+		$html .= '<ul class="glp-cards">';
+		foreach ( $servizi as $s ) {
+			$html .= '<li class="glp-card"><a class="glp-card__link" href="' . e_url( $s['url'] ) . '">'
+				. '<span class="glp-card__body">'
+				. '<span class="glp-card__title">' . e( $s['nome'] ) . '</span>';
+			if ( ! vuoto( isset( $s['testo'] ) ? $s['testo'] : '' ) ) {
+				$html .= '<span class="glp-card__text">' . e( $s['testo'] ) . '</span>';
+			}
+			$html .= '</span>';
+			if ( ! vuoto( isset( $s['prezzo'] ) ? $s['prezzo'] : '' ) ) {
+				$html .= '<span class="glp-card__price">' . e( $s['prezzo'] ) . '</span>';
+			}
+			$html .= '</a></li>';
+		}
+		$html .= '</ul>';
+	}
+
+	return $html . '</section>';
+}
+
 function sezione_servizi( $citta, $servizi, $escludi_url = '' ) {
 	$lista = array();
 	foreach ( $servizi as $s ) {

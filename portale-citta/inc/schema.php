@@ -211,6 +211,32 @@ function schema_faq( $faq ) {
 	);
 }
 
+/**
+ * Elenco dei servizi come ItemList: dice a Google che questa pagina
+ * è un indice, e quali pagine indicizza.
+ */
+function schema_elenco_servizi( $citta, $pagina, $servizi ) {
+	if ( 'servizi' !== $pagina['tipo'] || empty( $servizi ) ) {
+		return null;
+	}
+	$voci = array();
+	foreach ( $servizi as $i => $s ) {
+		$voci[] = array(
+			'@type'    => 'ListItem',
+			'position' => $i + 1,
+			'name'     => $s['nome'],
+			'url'      => $s['url'],
+		);
+	}
+	return array(
+		'@context'        => 'https://schema.org',
+		'@type'           => 'ItemList',
+		'name'            => 'Servizi a ' . $citta['nome'],
+		'numberOfItems'   => count( $voci ),
+		'itemListElement' => $voci,
+	);
+}
+
 /** Briciole di pane. */
 function schema_breadcrumb( $citta, $pagina ) {
 	$voci = array(

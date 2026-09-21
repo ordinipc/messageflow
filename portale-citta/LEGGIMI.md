@@ -94,6 +94,20 @@ php -S localhost:8000 router-dev.php
 **2. Nuova città** → compili i dati e spunti le pagine da creare.
 Il portale genera tutto in bozza, vuoto.
 
+**2b. I quattro tipi di pagina** — la scelta più importante dell'editor:
+
+| Tipo | A cosa serve |
+|---|---|
+| **Principale** | È l'indirizzo `/citta/`. Una sola per città |
+| **Servizio** | Una pagina per **un** servizio. Genera lo schema `Service` |
+| **Elenco servizi** | Mostra da sola **tutte** le pagine servizio della città, come schede con descrizione e prezzo. Genera lo schema `ItemList` |
+| **Pagina fissa** | Chi siamo, contatti, recensioni… |
+
+Il campo **Tipo di servizio collegato** non c'entra con l'elenco: serve solo a
+legare fra loro la *stessa* pagina in città diverse (la "Duplicazione chiavi
+auto" di Trapani con quella di Marsala), per ritrovarle insieme. Su una pagina
+di tipo Elenco servizi va lasciato su "nessuno".
+
 **3. Pagine** → apri ogni pagina e scrivi il testo. La colonna di destra mostra
 il punteggio SEO e l'anteprima del risultato su Google.
 

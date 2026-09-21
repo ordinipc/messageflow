@@ -168,7 +168,9 @@ function url_citta( $citta ) {
 
 /** URL pubblico di una pagina. */
 function url_pagina( $citta, $pagina ) {
-	if ( 'home' === $pagina['tipo'] ) {
+	// Una pagina principale, o una appena creata che non ha ancora
+	// uno slug, vale l'indirizzo della città: mai "/citta//".
+	if ( 'home' === $pagina['tipo'] || vuoto( $pagina['slug'] ) ) {
 		return url_citta( $citta );
 	}
 	return base_url() . '/' . $citta['slug'] . '/' . $pagina['slug'] . '/';
