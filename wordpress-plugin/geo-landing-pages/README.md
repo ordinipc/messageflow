@@ -234,6 +234,35 @@ Meglio partire da poche città complete che da tutte le pagine per tutte le citt
 
 ---
 
+## I tipi di servizio e le schede
+
+**Landing locali → Tipi di servizio**
+
+Ogni tipo ha due usi:
+
+1. **Collega la stessa pagina servizio fra città diverse** (la sezione "Lo stesso servizio in
+   altre città" in fondo alle pagine locali).
+2. **Punta alla pagina del sito che descrive quel servizio** — per esempio
+   `/duplicazione-chiavi-auto/`. Si sceglie dal campo *Pagina del servizio*.
+
+Da lì si costruiscono due elenchi a schede:
+
+| Shortcode | Dove metterlo | Cosa mostra |
+|---|---|---|
+| `[glp_servizi_cards]` | sulla pagina **Servizi** | una scheda per tipo: nome, descrizione, in quante città è attivo, link alla pagina del servizio |
+| `[glp_servizio_citta]` | sulla pagina **di un servizio** | le città in cui quel servizio è pubblicato |
+
+`[glp_servizio_citta]` riconosce da solo di quale servizio si tratta, se la pagina è quella
+collegata al tipo. Altrimenti si indica: `[glp_servizio_citta tipo="duplicazione-chiavi-auto"]`.
+
+Attributi utili: `colonne="4"`, `descrizione="no"`, `citta="no"`.
+
+La **descrizione** del tipo è quella che compare nelle schede, e l'**immagine o icona** è
+facoltativa. Un tipo senza pagina collegata appare nella griglia ma non è cliccabile, ed è il
+modo per accorgersene.
+
+---
+
 ## Il menu della città
 
 Compare sulla pagina città e su tutte le sue pagine e servizi, e si costruisce da solo con

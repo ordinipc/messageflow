@@ -19,6 +19,8 @@ class GLP_Shortcodes {
 		add_shortcode( 'glp_sezioni', array( __CLASS__, 'sections' ) );
 		add_shortcode( 'glp_sezione', array( __CLASS__, 'section' ) );
 		add_shortcode( 'glp_menu_citta', array( __CLASS__, 'city_menu' ) );
+		add_shortcode( 'glp_servizi_cards', array( 'GLP_Services', 'cards' ) );
+		add_shortcode( 'glp_servizio_citta', array( 'GLP_Services', 'city_cards' ) );
 	}
 
 	/**

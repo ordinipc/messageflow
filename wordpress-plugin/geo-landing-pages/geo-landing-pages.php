@@ -3,7 +3,7 @@
  * Plugin Name:       Geo Landing Pages
  * Plugin URI:        https://chiaviitalia.it/
  * Description:       Crea landing page locali per città (es. /trapani/) con questionario guidato, contenuti reali, FAQ e SEO locale completa (meta tag, JSON-LD, sitemap).
- * Version:           1.6.0
+ * Version:           1.7.0
  * Requires at least: 5.9
  * Requires PHP:      7.4
  * Author:            Chiavi Italia
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'GLP_VERSION', '1.6.0' );
+define( 'GLP_VERSION', '1.7.0' );
 define( 'GLP_FILE', __FILE__ );
 define( 'GLP_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GLP_URL', plugin_dir_url( __FILE__ ) );
@@ -38,6 +38,7 @@ require_once GLP_PATH . 'includes/class-glp-shortcodes.php';
 require_once GLP_PATH . 'includes/class-glp-ai.php';
 require_once GLP_PATH . 'includes/class-glp-pages.php';
 require_once GLP_PATH . 'includes/class-glp-nav.php';
+require_once GLP_PATH . 'includes/class-glp-services.php';
 
 /**
  * Bootstrap del plugin.
@@ -65,6 +66,7 @@ final class GLP_Plugin {
 		GLP_AI::init();
 		GLP_Pages::init();
 		GLP_Nav::init();
+		GLP_Services::init();
 
 		add_action( 'init', array( $this, 'load_textdomain' ) );
 		add_action( 'admin_init', array( __CLASS__, 'migrate_design' ) );
@@ -129,10 +131,34 @@ final class GLP_Plugin {
 		return $time ? GLP_VERSION . '.' . $time : GLP_VERSION;
 	}
 
+	/**
+	 * La pagina mostrata contiene uno degli shortcode a schede?
+	 *
+	 * Serve a caricare lo stile anche sulle pagine del tema (Servizi,
+	 * Duplicazione chiavi auto…) dove vengono inserite le schede.
+	 *
+	 * @return bool
+	 */
+	private static function page_has_cards() {
+		if ( ! is_singular() ) {
+			return false;
+		}
+		$post = get_post();
+		if ( ! $post ) {
+			return false;
+		}
+		foreach ( array( 'glp_servizi_cards', 'glp_servizio_citta', 'glp_citta', 'glp_servizi', 'glp_menu_citta', 'glp_sezione' ) as $tag ) {
+			if ( has_shortcode( $post->post_content, $tag ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public function enqueue_front_assets() {
 		// Lo stile serve sulle landing e sulle pagine generate dal plugin,
 		// così il sito resta coerente.
-		if ( ! is_singular( GLP_POST_TYPE ) && ! GLP_Pages::is_generated_page() ) {
+		if ( ! is_singular( GLP_POST_TYPE ) && ! GLP_Pages::is_generated_page() && ! self::page_has_cards() ) {
 			return;
 		}
 		if ( ! GLP_Settings::get( 'design_enabled', 1 ) ) {
