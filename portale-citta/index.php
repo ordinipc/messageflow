@@ -98,6 +98,22 @@ if ( count( $parti ) > 1 && '' !== $parti[1] ) {
 	$pagina = pagina_home( $citta['id'] );
 }
 
+// Terzo livello: /{citta}/{blog}/{articolo}/
+$articolo = null;
+if ( $pagina && 'blog' === $pagina['tipo'] && count( $parti ) > 2 && '' !== $parti[2] ) {
+	$articolo = articolo_per_slug( $citta['id'], $parti[2] );
+	if ( ! $articolo ) {
+		http_response_code( 404 );
+		include __DIR__ . '/tema/404.php';
+		exit;
+	}
+	if ( 'pubblicato' !== $articolo['stato'] && ! $anteprima ) {
+		http_response_code( 404 );
+		include __DIR__ . '/tema/404.php';
+		exit;
+	}
+}
+
 if ( ! $pagina ) {
 	http_response_code( 404 );
 	include __DIR__ . '/tema/404.php';
@@ -107,6 +123,11 @@ if ( ! $pagina ) {
 if ( 'pubblicata' !== $pagina['stato'] && ! $anteprima ) {
 	http_response_code( 404 );
 	include __DIR__ . '/tema/404.php';
+	exit;
+}
+
+if ( $articolo ) {
+	include __DIR__ . '/tema/articolo.php';
 	exit;
 }
 

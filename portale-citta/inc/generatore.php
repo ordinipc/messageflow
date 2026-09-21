@@ -58,6 +58,10 @@ function genera_pagina_servizio( $citta, $servizio_id ) {
 	$pagina['titolo']      = $s['nome'];
 	$pagina['slug']        = pagina_slug_libero( $s['slug'], $citta['id'] );
 	$pagina['menu_ordine'] = 10;
+	// Fuori dal menu: con sei o sette servizi la barra diventa illeggibile.
+	// I servizi si raggiungono dall'indice nell'intestazione e dalla pagina
+	// "Elenco servizi". Si può sempre rimetterli dall'editor della pagina.
+	$pagina['menu_mostra'] = 0;
 	return pagina_salva( $pagina );
 }
 

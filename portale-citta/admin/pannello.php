@@ -59,6 +59,23 @@ foreach ( $citta as $c ) {
 			'admin.php?p=pagine&citta=' . $c['id'],
 		);
 	}
+	$n_articoli = articoli_conta( $c['id'] );
+	if ( $n_articoli > 0 && ! pagina_blog( $c['id'] ) ) {
+		$problemi[] = array(
+			$c['nome'] . ': ' . $n_articoli . ' articoli senza pagina blog',
+			'Gli articoli esistono ma non hanno un indirizzo pubblico: serve una pagina di tipo Blog.',
+			'admin.php?p=pagina-modifica&citta=' . $c['id'],
+		);
+	}
+	$bozze_art = $n_articoli - articoli_conta( $c['id'], true );
+	if ( $bozze_art > 0 ) {
+		$problemi[] = array(
+			$c['nome'] . ': ' . $bozze_art . ' articoli in bozza',
+			'Non sono visibili al pubblico e non vanno nella sitemap.',
+			'admin.php?p=articoli&citta=' . $c['id'],
+		);
+	}
+
 	$mancanti = servizi_senza_pagina( $c['id'] );
 	if ( ! empty( $mancanti ) && $servizio_pubblicate > 0 ) {
 		$problemi[] = array(
@@ -97,6 +114,7 @@ if ( '1' !== (string) $imp['indicizza'] ) {
 	<div class="pc-numero"><strong><?php echo (int) $stat['citta_pubblicate']; ?>/<?php echo (int) $stat['citta']; ?></strong><span>Città pubblicate</span></div>
 	<div class="pc-numero"><strong><?php echo (int) $stat['pagine_pubblicate']; ?>/<?php echo (int) $stat['pagine']; ?></strong><span>Pagine pubblicate</span></div>
 	<div class="pc-numero"><strong><?php echo (int) $stat['servizi']; ?></strong><span>Tipi di servizio</span></div>
+	<div class="pc-numero"><strong><?php echo (int) $stat['articoli_pubblicati']; ?>/<?php echo (int) $stat['articoli']; ?></strong><span>Articoli pubblicati</span></div>
 	<div class="pc-numero"><strong><?php echo (int) $stat['media']; ?></strong><span>Immagini</span></div>
 </div>
 

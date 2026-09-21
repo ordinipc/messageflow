@@ -135,6 +135,56 @@ foreach ( pagine_tutte() as $p ) {
 </div>
 <?php endif; ?>
 
+<?php
+/* Articoli importati: elenco dei redirect dal vecchio indirizzo al nuovo. */
+$redirect = array();
+foreach ( db_righe( 'SELECT citta_id, slug, origine, stato FROM ' . db_tab( 'articoli' ) . " WHERE origine <> '' ORDER BY origine ASC" ) as $r ) {
+	$c = citta_per_id( $r['citta_id'] );
+	$b = $c ? pagina_blog( $c['id'] ) : null;
+	if ( ! $c || ! $b || 'pubblicato' !== $r['stato'] ) {
+		continue;
+	}
+	$vecchio = parse_url( $r['origine'], PHP_URL_PATH );
+	$redirect[] = array(
+		'da' => null === $vecchio ? $r['origine'] : $vecchio,
+		'a'  => url_articolo( $c, array( 'slug' => $r['slug'] ), $b ),
+	);
+}
+?>
+
+<?php if ( ! empty( $redirect ) ) : ?>
+<div class="pc-scheda">
+	<h2>Redirect degli articoli importati</h2>
+	<p class="pc-scheda__nota">
+		<?php echo count( $redirect ); ?> articoli importati sono ancora pubblicati anche all'indirizzo
+		di origine. Lo stesso testo a due indirizzi dello stesso dominio si fa concorrenza da solo:
+		o togli quelli vecchi, o li reindirizzi qui.
+	</p>
+
+	<label>Regole per <code>.htaccess</code> del sito di origine
+		<textarea class="pc-codice" readonly style="min-height:200px" onclick="this.select()"><?php
+		echo e( "# Articoli spostati nel portale città — generato il " . oggi() . "\n" );
+		echo e( "<IfModule mod_rewrite.c>\n" );
+		echo e( "\tRewriteEngine On\n" );
+		foreach ( $redirect as $r ) {
+			echo e( "\tRedirect 301 " . $r['da'] . " " . $r['a'] . "\n" );
+		}
+		echo e( "</IfModule>\n" );
+		?></textarea>
+		<small>
+			Clicca dentro per selezionare tutto. Vanno incollate <strong>sopra</strong> il blocco di
+			WordPress, non dentro. Con tanti articoli conviene un plugin di redirect o un file separato.
+		</small>
+	</label>
+
+	<p class="pc-nota">
+		<strong>Prima di farlo:</strong> un redirect è permanente e Google ci mette settimane a
+		riassorbirlo. Se gli articoli posizionano già bene dove sono, valuta se lasciarli lì e
+		non pubblicarli qui.
+	</p>
+</div>
+<?php endif; ?>
+
 <div class="pc-scheda">
 	<h2>Tutte le URL pubblicate</h2>
 	<p class="pc-scheda__nota"><?php echo count( $voci ); ?> indirizzi. Sono esattamente quelli che finiscono nella sitemap.</p>

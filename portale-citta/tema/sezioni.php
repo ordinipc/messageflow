@@ -380,6 +380,63 @@ function sezione_orari( $citta ) {
  * ------------------------------------------------------------------------- */
 
 /**
+ * Elenco degli articoli: è il corpo della pagina di tipo "Blog".
+ * Pagina i risultati, perché una città può averne centinaia.
+ */
+function sezione_blog( $citta, $pagina_blog, $per_pagina = 12 ) {
+	$solo_pubblicati = ! connesso();
+	$totale = articoli_conta( $citta['id'], $solo_pubblicati );
+
+	if ( 0 === $totale ) {
+		if ( $solo_pubblicati ) {
+			return '';
+		}
+		return sezione_apri( 'blog', 'Blog di ' . $citta['nome'], 'Articoli' )
+			. '<p>Nessun articolo per ' . e( $citta['nome'] ) . ': i visitatori non vedono questa sezione.</p>'
+			. '<p><a href="' . e( base_url() ) . '/admin.php?p=articoli&citta=' . e( $citta['id'] )
+			. '">Scrivi o importa gli articoli →</a></p></section>';
+	}
+
+	$pagine_totali = max( 1, (int) ceil( $totale / $per_pagina ) );
+	$corrente      = isset( $_GET['pag'] ) ? max( 1, min( $pagine_totali, (int) $_GET['pag'] ) ) : 1;
+	$articoli      = articoli_di_citta( $citta['id'], $solo_pubblicati, $per_pagina, ( $corrente - 1 ) * $per_pagina );
+
+	$html  = sezione_apri( 'blog', 'Dal blog di ' . $citta['nome'], 'Articoli' );
+	$html .= '<p class="glp-areas__label">' . (int) $totale . ' articoli'
+		. ( $pagine_totali > 1 ? ' · pagina ' . $corrente . ' di ' . $pagine_totali : '' ) . '</p>';
+
+	$html .= '<ul class="glp-boxes glp-boxes--larghe">';
+	foreach ( $articoli as $i => $a ) {
+		$html .= box_apri( 'link', $i )
+			. '<a href="' . e( url_articolo( $citta, $a, $pagina_blog ) ) . '">'
+			. '<span class="glp-box__titolo">' . e( $a['titolo'] ) . '</span>';
+		if ( ! vuoto( $a['estratto'] ) ) {
+			$html .= '<span class="glp-box__testo">' . e( mb_substr( $a['estratto'], 0, 140 ) ) . '</span>';
+		}
+		if ( ! vuoto( $a['data'] ) ) {
+			$html .= '<span class="glp-box__nota">' . e( data_italiana( $a['data'] ) ) . '</span>';
+		}
+		$html .= '</a></li>';
+	}
+	$html .= '</ul>';
+
+	if ( $pagine_totali > 1 ) {
+		$base  = url_pagina( $citta, $pagina_blog );
+		$html .= '<nav class="glp-paginazione" aria-label="Pagine del blog">';
+		if ( $corrente > 1 ) {
+			$html .= '<a class="glp-btn glp-btn--ghost" href="' . e( $base . ( $corrente - 1 > 1 ? '?pag=' . ( $corrente - 1 ) : '' ) ) . '">← Più recenti</a>';
+		}
+		$html .= '<span class="glp-paginazione__stato">' . $corrente . ' / ' . $pagine_totali . '</span>';
+		if ( $corrente < $pagine_totali ) {
+			$html .= '<a class="glp-btn glp-btn--ghost" href="' . e( $base . '?pag=' . ( $corrente + 1 ) ) . '">Più vecchi →</a>';
+		}
+		$html .= '</nav>';
+	}
+
+	return $html . '</section>';
+}
+
+/**
  * Elenco completo dei servizi della città: è il corpo della pagina
  * di tipo "Elenco servizi", non una sezione di coda.
  */
@@ -500,6 +557,108 @@ function sezione_correlate( $altre ) {
 		}
 		$html .= '</ul>';
 	}
+
+	return $html . '</section>';
+}
+
+/* ---------------------------------------------------------------------------
+ * Recapiti e modulo di contatto
+ * ------------------------------------------------------------------------- */
+
+/** Tutti i recapiti della città, in chiaro. */
+function sezione_recapiti( $citta ) {
+	$imp   = impostazioni();
+	$righe = array();
+
+	$telefono = contatto( $citta, 'telefono' );
+	$whatsapp = contatto( $citta, 'whatsapp' );
+	$email    = contatto( $citta, 'email' );
+
+	if ( ! vuoto( $telefono ) ) {
+		$righe[] = array( 'Telefono', '<a href="tel:' . e( tel( $telefono ) ) . '">' . e( $telefono ) . '</a>' );
+	}
+	if ( ! vuoto( $whatsapp ) ) {
+		$righe[] = array( 'WhatsApp', '<a href="' . e( url_whatsapp( $whatsapp ) ) . '" rel="nofollow noopener" target="_blank">' . e( $whatsapp ) . '</a>' );
+	}
+	if ( ! vuoto( $email ) ) {
+		$righe[] = array( 'Email', '<a href="mailto:' . e( $email ) . '">' . e( $email ) . '</a>' );
+	}
+	if ( ! vuoto( $citta['indirizzo'] ) ) {
+		$indirizzo = $citta['indirizzo'] . ', ' . trim( $citta['cap'] . ' ' . $citta['nome'] );
+		if ( ! vuoto( $citta['provincia'] ) ) {
+			$indirizzo .= ' (' . $citta['provincia'] . ')';
+		}
+		$righe[] = array( 'Indirizzo', e( $indirizzo ) );
+	}
+	if ( ! vuoto( $imp['piva'] ) ) {
+		$righe[] = array( 'Partita IVA', e( $imp['piva'] ) );
+	}
+
+	if ( empty( $righe ) ) {
+		return '';
+	}
+
+	$html = sezione_apri( 'recapiti', 'Come raggiungerci a ' . $citta['nome'], 'Recapiti' );
+	$html .= '<ul class="glp-recapiti">';
+	foreach ( $righe as $i => $r ) {
+		$html .= '<li class="glp-box glp-box--recapito"' . ritardo( $i ) . '>'
+			. '<span class="glp-box__testo">' . e( $r[0] ) . '</span>'
+			. '<strong class="glp-box__titolo">' . $r[1] . '</strong>'
+			. '</li>';
+	}
+	return $html . '</ul></section>';
+}
+
+/** Modulo di contatto. $esito arriva da modulo_gestisci(). */
+function sezione_modulo( $citta, $pagina, $servizi, $esito = null ) {
+	$valori = ( $esito && isset( $esito['valori'] ) ) ? $esito['valori'] : array();
+	$v      = function ( $campo ) use ( $valori ) {
+		return e( isset( $valori[ $campo ] ) ? $valori[ $campo ] : '' );
+	};
+
+	$aperto = time();
+	$html   = sezione_apri( 'modulo', 'Scrivici', 'Richiesta' );
+
+	if ( $esito ) {
+		$html .= '<p class="glp-modulo__esito' . ( $esito['ok'] ? ' is-ok' : ' is-ko' ) . '" role="status">'
+			. e( $esito['messaggio'] ) . '</p>';
+	}
+
+	if ( $esito && $esito['ok'] ) {
+		return $html . '</section>';
+	}
+
+	$html .= '<form class="glp-modulo" method="post" action="' . e( url_pagina( $citta, $pagina ) ) . '#modulo">'
+		. '<input type="hidden" name="pc_modulo" value="1">'
+		. '<input type="hidden" name="aperto" value="' . e( $aperto ) . '">'
+		. '<input type="hidden" name="firma" value="' . e( modulo_firma( $aperto ) ) . '">'
+		// Campo esca: nascosto e fuori dal percorso di tabulazione.
+		. '<div class="glp-modulo__esca" aria-hidden="true">'
+		. '<label>Non compilare<input type="text" name="indirizzo2" tabindex="-1" autocomplete="off"></label>'
+		. '</div>'
+
+		. '<div class="glp-modulo__riga">'
+		. '<label>Nome e cognome *<input type="text" name="nome" required value="' . $v( 'nome' ) . '" autocomplete="name"></label>'
+		. '<label>Telefono<input type="tel" name="telefono" value="' . $v( 'telefono' ) . '" autocomplete="tel"></label>'
+		. '</div>'
+
+		. '<div class="glp-modulo__riga">'
+		. '<label>Email<input type="email" name="email" value="' . $v( 'email' ) . '" autocomplete="email"></label>';
+
+	if ( ! empty( $servizi ) ) {
+		$html .= '<label>Di cosa hai bisogno<select name="servizio"><option value="">— scegli —</option>';
+		foreach ( $servizi as $s ) {
+			$sel   = ( isset( $valori['servizio'] ) && $valori['servizio'] === $s['nome'] ) ? ' selected' : '';
+			$html .= '<option value="' . e( $s['nome'] ) . '"' . $sel . '>' . e( $s['nome'] ) . '</option>';
+		}
+		$html .= '<option value="Altro">Altro</option></select></label>';
+	}
+
+	$html .= '</div>'
+		. '<label>Messaggio *<textarea name="messaggio" required rows="5" placeholder="Scrivi il modello dell\'auto, o che tipo di serratura hai.">' . $v( 'messaggio' ) . '</textarea></label>'
+		. '<p class="glp-modulo__nota">Lascia almeno un recapito fra telefono ed email. I dati servono solo a risponderti.</p>'
+		. '<button class="glp-btn" type="submit">Invia la richiesta</button>'
+		. '</form>';
 
 	return $html . '</section>';
 }

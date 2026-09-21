@@ -8,6 +8,7 @@ $voci = array(
 	'citta'        => array( 'Città', '◉' ),
 	'pagine'       => array( 'Pagine', '▤' ),
 	'servizi'      => array( 'Tipi di servizio', '⚙' ),
+	'articoli'     => array( 'Articoli', '✎' ),
 	'media'        => array( 'Immagini', '▣' ),
 	'seo'          => array( 'SEO e sitemap', '↗' ),
 	'impostazioni' => array( 'Impostazioni', '☰' ),
@@ -15,6 +16,7 @@ $voci = array(
 $attiva = $schermata;
 if ( 'citta-modifica' === $attiva ) { $attiva = 'citta'; }
 if ( 'pagina-modifica' === $attiva ) { $attiva = 'pagine'; }
+if ( 'articolo-modifica' === $attiva || 'importa' === $attiva ) { $attiva = 'articoli'; }
 ?>
 <!DOCTYPE html>
 <html lang="it">

@@ -15,6 +15,10 @@ $servizi  = servizi_citta( $citta );
 $altre    = altre_citta( $citta['id'] );
 $menu     = menu_citta( $citta, $pagina['id'] );
 
+// Il modulo di contatto, se questa pagina lo mostra, va elaborato prima
+// di stampare qualsiasi cosa: potrebbe dover reindirizzare o rispondere.
+$esito_modulo = pagina_mostra( $pagina, 'modulo' ) ? modulo_gestisci( $citta, $pagina ) : null;
+
 // Dati per la testa del documento.
 $titolo      = seo_titolo( $citta, $pagina );
 $descrizione = seo_descrizione( $citta, $pagina );
@@ -53,7 +57,13 @@ include __DIR__ . '/parti/barra.php';
 <?php endif; ?>
 
 <!-- INTESTAZIONE -->
-<div class="glp-hero">
+<?php
+// L'immagine della pagina fa da sfondo dell'intestazione: prima finiva
+// solo in og:image e non si vedeva da nessuna parte.
+$sfondo = vuoto( $pagina['immagine'] ) ? '' : url_media( $pagina['immagine'] );
+?>
+<div class="glp-hero<?php echo '' === $sfondo ? '' : ' glp-hero--image'; ?>"
+	<?php echo '' === $sfondo ? '' : 'style="background-image:url(' . e( $sfondo ) . ')"'; ?>>
 	<div class="glp-hero__inner">
 
 		<div class="glp-hero__top glp-reveal">
@@ -134,13 +144,18 @@ if ( 'servizi' === $pagina['tipo'] ) {
 	echo sezione_elenco_servizi( $citta, $servizi );
 }
 
+/* --- Blog: idem, l'elenco degli articoli è il contenuto --------------- */
+if ( 'blog' === $pagina['tipo'] ) {
+	echo sezione_blog( $citta, $pagina );
+}
+
 /* --- Sezioni a riquadri o a elenco (tema/sezioni.php) -------------------- */
-echo sezione_inclusi( $pagina );
-echo sezione_perche( $citta );
-echo sezione_processo( $pagina );
+if ( pagina_mostra( $pagina, 'inclusi' ) )    { echo sezione_inclusi( $pagina ); }
+if ( pagina_mostra( $pagina, 'perche' ) )     { echo sezione_perche( $citta ); }
+if ( pagina_mostra( $pagina, 'processo' ) )   { echo sezione_processo( $pagina ); }
 
 /* --- Prezzi -------------------------------------------------------------- */
-if ( ! vuoto( $pagina['prezzo_da'] ) ) {
+if ( pagina_mostra( $pagina, 'prezzi' ) && ! vuoto( $pagina['prezzo_da'] ) ) {
 	echo sezione_apri( 'prezzi', 'Quanto costa', 'Prezzi' );
 	$valuta = '€';
 	$testo  = vuoto( $pagina['prezzo_a'] )
@@ -153,12 +168,12 @@ if ( ! vuoto( $pagina['prezzo_da'] ) ) {
 	echo '</section>';
 }
 
-echo sezione_zone( $citta );
-echo sezione_recensioni( $citta );
-echo sezione_team( $citta );
+if ( pagina_mostra( $pagina, 'zone' ) )       { echo sezione_zone( $citta ); }
+if ( pagina_mostra( $pagina, 'recensioni' ) ) { echo sezione_recensioni( $citta ); }
+if ( pagina_mostra( $pagina, 'team' ) )       { echo sezione_team( $citta ); }
 
 /* --- Dove siamo ---------------------------------------------------------- */
-if ( ! vuoto( $citta['indirizzo'] ) || ! vuoto( $citta['mappa'] ) || ! vuoto( $citta['raggiungerci'] ) ) {
+if ( pagina_mostra( $pagina, 'dove' ) && ( ! vuoto( $citta['indirizzo'] ) || ! vuoto( $citta['mappa'] ) || ! vuoto( $citta['raggiungerci'] ) ) ) {
 	echo sezione_apri( 'dove', 'Dove siamo e come raggiungerci', 'Sede' );
 	if ( ! vuoto( $citta['indirizzo'] ) ) {
 		$completo = $citta['indirizzo'] . ', ' . trim( $citta['cap'] . ' ' . $citta['nome'] );
@@ -177,10 +192,10 @@ if ( ! vuoto( $citta['indirizzo'] ) || ! vuoto( $citta['mappa'] ) || ! vuoto( $c
 }
 
 
-echo sezione_orari( $citta );
+if ( pagina_mostra( $pagina, 'orari' ) )      { echo sezione_orari( $citta ); }
 
 /* --- FAQ ----------------------------------------------------------------- */
-$faq = (array) $pagina['faq'];
+$faq = pagina_mostra( $pagina, 'faq' ) ? (array) $pagina['faq'] : array();
 if ( ! empty( $faq ) ) {
 	echo sezione_apri( 'faq', 'Domande frequenti', 'FAQ' );
 	echo '<div class="glp-faq">';
@@ -199,8 +214,16 @@ if ( ! empty( $faq ) ) {
 	echo '</div></section>';
 }
 
+/* --- Recapiti e modulo di contatto ---------------------------------------- */
+if ( pagina_mostra( $pagina, 'recapiti' ) ) {
+	echo sezione_recapiti( $citta );
+}
+if ( pagina_mostra( $pagina, 'modulo' ) ) {
+	echo sezione_modulo( $citta, $pagina, $servizi, $esito_modulo );
+}
+
 /* --- Chiamata all'azione -------------------------------------------------- */
-if ( ! vuoto( $telefono ) || ! vuoto( $whatsapp ) ) {
+if ( pagina_mostra( $pagina, 'cta' ) && ( ! vuoto( $telefono ) || ! vuoto( $whatsapp ) ) ) {
 	echo sezione_apri( 'cta', 'Richiedi un intervento a ' . $citta['nome'], 'Contatti' );
 	echo '<div class="glp-cta">';
 	if ( ! vuoto( $cta_url ) ) {
@@ -213,10 +236,12 @@ if ( ! vuoto( $telefono ) || ! vuoto( $whatsapp ) ) {
 }
 
 // Su una pagina che già elenca i servizi non si ripete l'elenco in fondo.
-if ( 'servizi' !== $pagina['tipo'] ) {
+if ( 'servizi' !== $pagina['tipo'] && pagina_mostra( $pagina, 'servizi' ) ) {
 	echo sezione_servizi( $citta, $servizi, url_pagina( $citta, $pagina ) );
 }
-echo sezione_correlate( $altre );
+if ( pagina_mostra( $pagina, 'correlate' ) ) {
+	echo sezione_correlate( $altre );
+}
 ?>
 </div><!-- .glp-sections -->
 </div><!-- .glp-main__inner -->

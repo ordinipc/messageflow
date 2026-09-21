@@ -21,6 +21,9 @@ Non è un plugin: gira da solo, con il suo database e la sua amministrazione.
 | **Controllo duplicati** | Confronta i testi fra città e segnala quelli troppo simili |
 | **Libreria immagini** | Caricamento multiplo, ridimensionamento automatico a 1800 px |
 | **Assistente Gemini** | Propone introduzione, testo, descrizione e FAQ dai dati della città |
+| **Blog per città** | Articoli con elenco paginato, schema BlogPosting, importazione da WordPress |
+| **Modulo di contatto** | Con recapiti completi, anti-spam senza captcha |
+| **Sezioni per pagina** | Ogni pagina sceglie cosa mostrare: non escono tutte uguali |
 | **Sezioni a card** | Ogni sezione si disegna a riquadri o a elenco, con effetti dinamici |
 | **CSS/HTML/JS** | Tre livelli: globale, per città, per pagina |
 | **Bozze** | Le pagine non pubblicate sono 404 per tutti, tranne per chi è collegato |
@@ -126,6 +129,49 @@ pubblicate.
 
 **5. SEO e sitemap** → prendi l'indirizzo della sitemap e mettilo in Search Console.
 
+**6. Articoli** → scrivili a mano oppure importali da un'esportazione WordPress.
+
+---
+
+## Il blog
+
+Ogni città può avere il suo blog: una pagina di tipo **Blog** elenca gli
+articoli di quella città, dodici per volta, e ogni articolo vive a
+`/citta/blog/titolo-articolo/` con il suo schema `BlogPosting`.
+
+### Importare da WordPress
+
+In WordPress: Strumenti → Esporta → Articoli. Poi qui, in **Importa**:
+
+1. Carichi il file (`.xml` o `.zip`). Se supera il limite di caricamento del
+   server, lo metti via FTP in `dati/import/` e compare da solo nell'elenco
+2. **Analizza il file**: ti dice quanti articoli contiene e come verrebbero
+   smistati fra le tue città
+3. Scegli le città, quanti per volta, e se pubblicarli subito o lasciarli in bozza
+
+Lo smistamento legge il titolo e lo confronta con i nomi delle tue città: un
+articolo su Marsala va a Marsala, se quella città esiste. Vince il nome che
+compare più avanti nel titolo, perché la geolocalizzazione sta di solito in
+fondo. Quelli che non nominano nessuna città vanno nella città di riserva.
+
+Il file si legge in streaming: un'esportazione da 40 MB con 1750 articoli
+si importa in pochi secondi senza superare i 6 MB di memoria.
+
+Il testo viene ripulito: via commenti di blocco, shortcode, script, iframe e
+attributi. I paragrafi vengono ricostruiti anche quando WordPress non li aveva
+salvati come `<p>`.
+
+### Dopo l'importazione
+
+- **Riscrivi i link interni** — i link fra articoli puntano ancora al sito di
+  origine: questo li fa puntare alle pagine del portale
+- **SEO e sitemap** prepara le regole di redirect 301 dai vecchi indirizzi ai nuovi
+
+⚠️ **Un articolo importato resta pubblicato anche sul sito di origine.** Lo
+stesso testo a due indirizzi dello stesso dominio si fa concorrenza da solo.
+Delle due l'una: o lo tieni dov'è e non lo pubblichi qui, o lo pubblichi qui e
+reindirizzi il vecchio indirizzo.
+
 ---
 
 ## La regola che decide tutto
@@ -145,6 +191,48 @@ la fascia di prezzo.
 
 La schermata **SEO e sitemap** ti dice quando due testi sono troppo simili.
 Sopra l'88% di somiglianza hai un problema.
+
+---
+
+## Ogni pagina mostra cose diverse
+
+Molte sezioni (orari, recensioni, zone, team, mappa) vengono dai dati della
+**città**: se le mostrassero tutte le pagine, ogni pagina della stessa città
+sarebbe identica alle altre, e Google ne indicizzerebbe una sola.
+
+Per questo ogni pagina ha la scheda **Sezioni** nel suo editor, con le caselle
+di ciò che vuole mostrare. Le proposte di partenza:
+
+| Tipo di pagina | Sezioni proposte |
+|---|---|
+| Principale | perché, zone, recensioni, dove siamo, orari, CTA, servizi, altre città |
+| Servizio | cosa comprende, processo, prezzi, FAQ, perché, CTA, altri servizi |
+| Elenco servizi | perché, CTA, altre città |
+| Contatti | recapiti, modulo, dove siamo, orari |
+| Chi siamo | team, perché, CTA |
+| Blog | CTA |
+
+Sono proposte, non regole: spunta e togli come vuoi.
+
+---
+
+## Il modulo di contatto
+
+Si attiva dalla scheda **Sezioni** di una pagina, spuntando *Modulo di contatto*
+(e di solito anche *Recapiti completi*).
+
+Le richieste arrivano via email all'indirizzo della città; se non c'è, a quello
+delle impostazioni. L'editor ti dice a quale indirizzo andranno, e ti avvisa se
+non ne hai messo nessuno.
+
+Contro lo spam, senza captcha e senza far perdere tempo a chi scrive davvero:
+
+- un campo esca invisibile, che compilano solo i robot
+- una firma sul momento in cui il modulo è stato aperto
+- un tempo minimo di compilazione e uno massimo
+- gli a capo nei campi brevi, tipici dei tentativi di iniezione, fanno scartare l'invio
+
+Niente sessioni: le pagine pubbliche restano cacheabili.
 
 ---
 
@@ -301,6 +389,7 @@ Prefisso predefinito `pc_`, si cambia in fase di installazione.
 | `pc_servizi` | Catalogo dei tipi di servizio |
 | `pc_citta` | Una riga per città |
 | `pc_pagine` | Una riga per pagina, legata a una città |
+| `pc_articoli` | Articoli del blog, legati a una città |
 | `pc_media` | Immagini caricate |
 
 I campi ripetibili (orari, FAQ, recensioni, processo, numeri, team) sono
@@ -311,7 +400,9 @@ salvati in JSON dentro la loro colonna.
 ## Aggiornare
 
 Sovrascrivi tutto **tranne** `config.php`, `dati/` e `media/`.
-Le tabelle mancanti vengono create da sole al primo accesso.
+
+Al primo accesso all'amministrazione le tabelle mancanti vengono create e le
+colonne nuove aggiunte a quelle esistenti: non devi toccare il database.
 
 ---
 

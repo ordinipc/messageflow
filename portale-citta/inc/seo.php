@@ -231,6 +231,19 @@ function sitemap_voci( $citta_id = '' ) {
 				'freq'     => 'weekly',
 			);
 		}
+
+		// Gli articoli del blog, se la città ha una pagina che li ospita.
+		$blog = pagina_blog( $citta['id'] );
+		if ( $blog && 'pubblicata' === $blog['stato'] ) {
+			foreach ( articoli_di_citta( $citta['id'], true ) as $articolo ) {
+				$voci[] = array(
+					'url'      => url_articolo( $citta, $articolo, $blog ),
+					'modifica' => vuoto( $articolo['aggiornata'] ) ? ( vuoto( $articolo['data'] ) ? oggi() : $articolo['data'] ) : $articolo['aggiornata'],
+					'priorita' => '0.6',
+					'freq'     => 'monthly',
+				);
+			}
+		}
 	}
 	return $voci;
 }

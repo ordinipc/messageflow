@@ -130,3 +130,15 @@ function versione_asset( $file ) {
 	$percorso = PC_RADICE . '/tema/' . $file;
 	return is_file( $percorso ) ? (string) filemtime( $percorso ) : PC_VERSIONE;
 }
+
+/** Data in italiano: 2026-07-08 → 8 luglio 2026. */
+function data_italiana( $iso ) {
+	$iso = trim( (string) $iso );
+	if ( ! preg_match( '/^(\d{4})-(\d{2})-(\d{2})/', $iso, $m ) ) {
+		return $iso;
+	}
+	$mesi = array( 1 => 'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
+		'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre' );
+	$mese = (int) $m[2];
+	return (int) $m[3] . ' ' . ( isset( $mesi[ $mese ] ) ? $mesi[ $mese ] : '' ) . ' ' . $m[1];
+}

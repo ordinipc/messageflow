@@ -244,8 +244,26 @@ function db_installa() {
 		html ' . $t( 'LONGTEXT' ) . ' NULL,
 		css ' . $t( 'LONGTEXT' ) . ' NULL,
 		js ' . $t( 'LONGTEXT' ) . ' NULL,
+		sezioni ' . $t( 'LONGTEXT' ) . ' NULL,
 		menu_mostra ' . $t( 'TINYINT(1)' ) . ' NOT NULL DEFAULT 1,
 		menu_ordine ' . $t( 'INT' ) . ' NOT NULL DEFAULT 10,
+		stato ' . $t( 'VARCHAR(20)' ) . ' NOT NULL DEFAULT \'bozza\',
+		aggiornata ' . $t( 'VARCHAR(20)' ) . ' NULL,
+		PRIMARY KEY (id)
+	)' . $coda;
+
+	$sql[] = 'CREATE TABLE IF NOT EXISTS ' . db_tab( 'articoli' ) . ' (
+		id ' . $t( 'VARCHAR(16)' ) . ' NOT NULL,
+		citta_id ' . $t( 'VARCHAR(16)' ) . ' NOT NULL,
+		slug ' . $t( 'VARCHAR(190)' ) . ' NOT NULL,
+		titolo ' . $t( 'VARCHAR(255)' ) . ' NOT NULL,
+		seo_titolo ' . $t( 'VARCHAR(255)' ) . ' NULL,
+		seo_desc ' . $t( 'LONGTEXT' ) . ' NULL,
+		estratto ' . $t( 'LONGTEXT' ) . ' NULL,
+		corpo ' . $t( 'LONGTEXT' ) . ' NULL,
+		immagine ' . $t( 'VARCHAR(255)' ) . ' NULL,
+		data ' . $t( 'VARCHAR(20)' ) . ' NULL,
+		origine ' . $t( 'VARCHAR(255)' ) . ' NULL,
 		stato ' . $t( 'VARCHAR(20)' ) . ' NOT NULL DEFAULT \'bozza\',
 		aggiornata ' . $t( 'VARCHAR(20)' ) . ' NULL,
 		PRIMARY KEY (id)
@@ -273,6 +291,9 @@ function db_installa() {
 		'CREATE INDEX pc_idx_pagine_citta ON ' . db_tab( 'pagine' ) . ' (citta_id)',
 		'CREATE UNIQUE INDEX pc_idx_pagine_slug ON ' . db_tab( 'pagine' ) . ' (citta_id, slug)',
 		'CREATE UNIQUE INDEX pc_idx_servizi_slug ON ' . db_tab( 'servizi' ) . ' (slug)',
+		'CREATE INDEX pc_idx_articoli_citta ON ' . db_tab( 'articoli' ) . ' (citta_id)',
+		'CREATE UNIQUE INDEX pc_idx_articoli_slug ON ' . db_tab( 'articoli' ) . ' (citta_id, slug)',
+		'CREATE INDEX pc_idx_articoli_origine ON ' . db_tab( 'articoli' ) . ' (origine)',
 	);
 	foreach ( $indici as $q ) {
 		try {
@@ -295,4 +316,82 @@ function db_installato() {
 		unset( $ex );
 		return false;
 	}
+}
+
+/* ---------------------------------------------------------------------------
+ * Aggiornamento dello schema
+ * ------------------------------------------------------------------------- */
+
+/** Colonne attese in ogni tabella, per chi ha installato una versione prima. */
+function db_colonne_attese() {
+	return array(
+		'pagine'   => array(
+			'sezioni' => 'LONGTEXT NULL',
+		),
+		'citta'    => array(
+			'css' => 'LONGTEXT NULL',
+			'js'  => 'LONGTEXT NULL',
+		),
+		'articoli' => array(),
+		'servizi'  => array(
+			'ordine' => 'INT NOT NULL DEFAULT 10',
+		),
+	);
+}
+
+/** Colonne già presenti in una tabella. */
+function db_colonne_di( $tabella ) {
+	$cfg  = db_config();
+	$tab  = db_tab( $tabella );
+	$out  = array();
+	try {
+		if ( 'sqlite' === $cfg['driver'] ) {
+			foreach ( db_righe( 'PRAGMA table_info(' . $tab . ')' ) as $r ) {
+				$out[] = strtolower( (string) $r['name'] );
+			}
+		} else {
+			foreach ( db_righe( 'SHOW COLUMNS FROM ' . $tab ) as $r ) {
+				$out[] = strtolower( (string) $r['Field'] );
+			}
+		}
+	} catch ( PDOException $ex ) {
+		unset( $ex );
+	}
+	return $out;
+}
+
+/**
+ * Aggiunge le colonne mancanti alle tabelle già esistenti.
+ *
+ * CREATE TABLE IF NOT EXISTS non tocca una tabella che c'è già: senza
+ * questo passaggio chi aggiorna il portale si ritroverebbe con le
+ * funzioni nuove e le colonne vecchie.
+ *
+ * @return array Elenco delle colonne aggiunte.
+ */
+function db_aggiorna() {
+	$aggiunte = array();
+
+	foreach ( db_colonne_attese() as $tabella => $colonne ) {
+		if ( empty( $colonne ) ) {
+			continue;
+		}
+		$presenti = db_colonne_di( $tabella );
+		if ( empty( $presenti ) ) {
+			continue;
+		}
+		foreach ( $colonne as $nome => $tipo ) {
+			if ( in_array( strtolower( $nome ), $presenti, true ) ) {
+				continue;
+			}
+			try {
+				db()->exec( 'ALTER TABLE ' . db_tab( $tabella ) . ' ADD COLUMN ' . $nome . ' ' . db_tipo( $tipo ) );
+				$aggiunte[] = $tabella . '.' . $nome;
+			} catch ( PDOException $ex ) {
+				unset( $ex );
+			}
+		}
+	}
+
+	return $aggiunte;
 }

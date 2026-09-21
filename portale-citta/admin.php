@@ -12,6 +12,9 @@ try {
 	if ( ! db_installato() ) {
 		vai_a( 'install.php' );
 	}
+	// Chi aggiorna il portale trova le tabelle vecchie: qui si allineano.
+	db_installa();
+	db_aggiorna();
 } catch ( PDOException $ex ) {
 	exit( '<h1>Database non raggiungibile</h1><p>' . e( $ex->getMessage() ) . '</p>' );
 }
@@ -25,6 +28,9 @@ $pagine_admin = array(
 	'pagine'          => 'Pagine',
 	'pagina-modifica' => 'Modifica pagina',
 	'servizi'         => 'Tipi di servizio',
+	'articoli'         => 'Articoli',
+	'articolo-modifica'=> 'Modifica articolo',
+	'importa'          => 'Importa',
 	'media'           => 'Immagini',
 	'seo'             => 'SEO e sitemap',
 	'impostazioni'    => 'Impostazioni',

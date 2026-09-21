@@ -12,7 +12,7 @@ require_once __DIR__ . '/db.php';
 function campi_json( $entita ) {
 	$mappa = array(
 		'citta'  => array( 'orari', 'numeri', 'recensioni', 'team' ),
-		'pagine' => array( 'processo', 'faq' ),
+		'pagine' => array( 'processo', 'faq', 'sezioni' ),
 	);
 	return isset( $mappa[ $entita ] ) ? $mappa[ $entita ] : array();
 }
@@ -224,6 +224,7 @@ function citta_salva( $dati ) {
 
 function citta_elimina( $id ) {
 	db_elimina( 'pagine', 'citta_id = ?', array( $id ) );
+	db_elimina( 'articoli', 'citta_id = ?', array( $id ) );
 	return db_elimina( 'citta', 'id = ?', array( $id ) );
 }
 
@@ -276,6 +277,7 @@ function pagina_predefinita() {
 		'prezzo_a'    => '',
 		'prezzo_note' => '',
 		'faq'         => array(),
+		'sezioni'     => array(),
 		'html'        => '',
 		'css'         => '',
 		'js'          => '',
@@ -364,5 +366,182 @@ function statistiche() {
 		'pagine_pubblicate'=> (int) db_valore( 'SELECT COUNT(*) FROM ' . db_tab( 'pagine' ) . " WHERE stato = 'pubblicata'", array(), 0 ),
 		'servizi'          => (int) db_valore( 'SELECT COUNT(*) FROM ' . db_tab( 'servizi' ), array(), 0 ),
 		'media'            => (int) db_valore( 'SELECT COUNT(*) FROM ' . db_tab( 'media' ), array(), 0 ),
+		'articoli'         => (int) db_valore( 'SELECT COUNT(*) FROM ' . db_tab( 'articoli' ), array(), 0 ),
+		'articoli_pubblicati' => (int) db_valore( 'SELECT COUNT(*) FROM ' . db_tab( 'articoli' ) . " WHERE stato = 'pubblicato'", array(), 0 ),
 	);
+}
+
+/* ---------------------------------------------------------------------------
+ * Articoli del blog
+ * ------------------------------------------------------------------------- */
+
+function articolo_predefinito() {
+	return array(
+		'id'         => '',
+		'citta_id'   => '',
+		'slug'       => '',
+		'titolo'     => '',
+		'seo_titolo' => '',
+		'seo_desc'   => '',
+		'estratto'   => '',
+		'corpo'      => '',
+		'immagine'   => '',
+		'data'       => '',
+		'origine'    => '',
+		'stato'      => 'bozza',
+		'aggiornata' => '',
+	);
+}
+
+/** Articoli di una città, dal più recente. */
+function articoli_di_citta( $citta_id, $solo_pubblicati = false, $limite = 0, $salta = 0 ) {
+	$sql = 'SELECT * FROM ' . db_tab( 'articoli' ) . ' WHERE citta_id = ?';
+	if ( $solo_pubblicati ) {
+		$sql .= " AND stato = 'pubblicato'";
+	}
+	$sql .= ' ORDER BY data DESC, titolo ASC';
+	if ( $limite > 0 ) {
+		$sql .= ' LIMIT ' . (int) $limite . ' OFFSET ' . (int) $salta;
+	}
+	$out = array();
+	foreach ( db_righe( $sql, array( $citta_id ) ) as $r ) {
+		$out[] = array_merge( articolo_predefinito(), $r );
+	}
+	return $out;
+}
+
+function articoli_conta( $citta_id, $solo_pubblicati = false ) {
+	$sql = 'SELECT COUNT(*) FROM ' . db_tab( 'articoli' ) . ' WHERE citta_id = ?';
+	if ( $solo_pubblicati ) {
+		$sql .= " AND stato = 'pubblicato'";
+	}
+	return (int) db_valore( $sql, array( $citta_id ), 0 );
+}
+
+function articolo_per_id( $id ) {
+	$r = db_riga( 'SELECT * FROM ' . db_tab( 'articoli' ) . ' WHERE id = ?', array( $id ) );
+	return $r ? array_merge( articolo_predefinito(), $r ) : null;
+}
+
+function articolo_per_slug( $citta_id, $slug ) {
+	$r = db_riga( 'SELECT * FROM ' . db_tab( 'articoli' ) . ' WHERE citta_id = ? AND slug = ?', array( $citta_id, $slug ) );
+	return $r ? array_merge( articolo_predefinito(), $r ) : null;
+}
+
+/** True se l'indirizzo di origine è già stato importato. */
+function articolo_gia_importato( $origine ) {
+	if ( vuoto( $origine ) ) {
+		return false;
+	}
+	return null !== db_valore( 'SELECT id FROM ' . db_tab( 'articoli' ) . ' WHERE origine = ?', array( $origine ) );
+}
+
+function articolo_salva( $dati ) {
+	$base               = articolo_predefinito();
+	$dati               = array_merge( $base, array_intersect_key( $dati, $base ) );
+	$dati['aggiornata'] = oggi();
+	return db_salva( 'articoli', $dati );
+}
+
+function articolo_elimina( $id ) {
+	return db_elimina( 'articoli', 'id = ?', array( $id ) );
+}
+
+function articolo_slug_libero( $slug, $citta_id, $escludi_id = '' ) {
+	$slug = slugifica( $slug );
+	if ( '' === $slug ) {
+		$slug = 'articolo';
+	}
+	$base = $slug;
+	$n    = 1;
+	while ( true ) {
+		$usato = db_valore(
+			'SELECT id FROM ' . db_tab( 'articoli' ) . ' WHERE citta_id = ? AND slug = ? AND id <> ?',
+			array( $citta_id, $slug, (string) $escludi_id )
+		);
+		if ( null === $usato ) {
+			return $slug;
+		}
+		$n++;
+		$slug = $base . '-' . $n;
+	}
+}
+
+/** La pagina di tipo blog di una città, se esiste. */
+function pagina_blog( $citta_id ) {
+	$r = db_riga( 'SELECT * FROM ' . db_tab( 'pagine' ) . " WHERE citta_id = ? AND tipo = 'blog'", array( $citta_id ) );
+	return $r ? array_merge( pagina_predefinita(), decodifica( 'pagine', $r ) ) : null;
+}
+
+/* ---------------------------------------------------------------------------
+ * Quali sezioni mostra una pagina
+ * ------------------------------------------------------------------------- */
+
+/** Tutte le sezioni attivabili, con etichetta e spiegazione. */
+function sezioni_disponibili() {
+	return array(
+		'inclusi'   => array( 'Cosa comprende', 'Le voci scritte in questa pagina' ),
+		'processo'  => array( 'Come funziona', 'I passi scritti in questa pagina' ),
+		'prezzi'    => array( 'Prezzi', 'Il prezzo scritto in questa pagina' ),
+		'faq'       => array( 'Domande frequenti', 'Le FAQ di questa pagina' ),
+		'perche'    => array( 'Perché sceglierci + numeri', 'Dai dati della città' ),
+		'zone'      => array( 'Zone servite', 'Dai dati della città' ),
+		'recensioni'=> array( 'Recensioni', 'Dai dati della città' ),
+		'team'      => array( 'Team e certificazioni', 'Dai dati della città' ),
+		'dove'      => array( 'Dove siamo e mappa', 'Dai dati della città' ),
+		'orari'     => array( 'Orari di apertura', 'Dai dati della città' ),
+		'recapiti'  => array( 'Recapiti completi', 'Telefono, WhatsApp, email, indirizzo, P. IVA' ),
+		'modulo'    => array( 'Modulo di contatto', 'Il visitatore scrive e tu ricevi una email' ),
+		'cta'       => array( 'Chiamata all\'azione', 'Il riquadro nero con i pulsanti' ),
+		'servizi'   => array( 'Altri servizi', 'Le altre pagine servizio della città' ),
+		'correlate' => array( 'Altre città', 'I collegamenti alle altre città' ),
+	);
+}
+
+/**
+ * Sezioni proposte per un tipo di pagina.
+ *
+ * Servono a non far uscire tutte le pagine uguali: una pagina servizio
+ * parla del servizio, i contatti parlano di come raggiungerti, e il resto
+ * non si ripete ovunque.
+ */
+function sezioni_predefinite( $tipo, $slug = '' ) {
+	$slug = slugifica( (string) $slug );
+
+	if ( 'home' === $tipo ) {
+		return array( 'perche', 'zone', 'recensioni', 'dove', 'orari', 'cta', 'servizi', 'correlate' );
+	}
+	if ( 'servizio' === $tipo ) {
+		return array( 'inclusi', 'processo', 'prezzi', 'faq', 'perche', 'cta', 'servizi' );
+	}
+	if ( 'servizi' === $tipo ) {
+		return array( 'perche', 'cta', 'correlate' );
+	}
+	if ( 'blog' === $tipo ) {
+		return array( 'cta' );
+	}
+
+	// Pagine fisse: si va a naso sullo slug, ed è comunque modificabile.
+	$per_slug = array(
+		'contatti'          => array( 'recapiti', 'modulo', 'dove', 'orari' ),
+		'chi-siamo'         => array( 'team', 'perche', 'cta' ),
+		'domande-frequenti' => array( 'faq', 'cta' ),
+		'zone-servite'      => array( 'zone', 'dove', 'cta' ),
+		'recensioni'        => array( 'recensioni', 'cta' ),
+		'orari'             => array( 'orari', 'dove', 'recapiti' ),
+	);
+	if ( isset( $per_slug[ $slug ] ) ) {
+		return $per_slug[ $slug ];
+	}
+	return array( 'faq', 'cta' );
+}
+
+/** True se la pagina deve mostrare quella sezione. */
+function pagina_mostra( $pagina, $chiave ) {
+	$scelte = isset( $pagina['sezioni'] ) ? (array) $pagina['sezioni'] : array();
+	if ( empty( $scelte ) ) {
+		// Pagina mai salvata con le nuove opzioni: si usa il criterio del tipo.
+		$scelte = sezioni_predefinite( $pagina['tipo'], $pagina['slug'] );
+	}
+	return in_array( $chiave, $scelte, true );
 }

@@ -28,7 +28,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	verifica_token();
 
 	$pagina['titolo'] = trim( (string) ( $_POST['titolo'] ?? '' ) );
-	$pagina['tipo']   = in_array( $_POST['tipo'] ?? '', array( 'home', 'servizio', 'servizi', 'fissa' ), true ) ? $_POST['tipo'] : 'fissa';
+	$pagina['tipo']   = in_array( $_POST['tipo'] ?? '', array( 'home', 'servizio', 'servizi', 'blog', 'fissa' ), true ) ? $_POST['tipo'] : 'fissa';
 
 	// Una sola pagina principale per città.
 	$nota = '';
@@ -55,6 +55,15 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	$pagina['html']        = (string) ( $_POST['html'] ?? '' );
 	$pagina['css']         = (string) ( $_POST['css'] ?? '' );
 	$pagina['js']          = (string) ( $_POST['js'] ?? '' );
+	$ammesse = array_keys( sezioni_disponibili() );
+	$pagina['sezioni'] = array_values( array_intersect( $ammesse, (array) ( $_POST['sezioni'] ?? array() ) ) );
+	// Nessuna spunta significa "nessuna sezione", non "tutte": si segna
+	// con un valore che non è una sezione, altrimenti tornerebbero i valori
+	// predefiniti del tipo di pagina.
+	if ( empty( $pagina['sezioni'] ) ) {
+		$pagina['sezioni'] = array( 'nessuna' );
+	}
+
 	$pagina['menu_mostra'] = isset( $_POST['menu_mostra'] ) ? 1 : 0;
 	$pagina['menu_ordine'] = (int) ( $_POST['menu_ordine'] ?? 10 );
 	$pagina['stato']       = 'pubblicata' === ( $_POST['stato'] ?? '' ) ? 'pubblicata' : 'bozza';
@@ -118,6 +127,7 @@ $lista_s  = servizi();
 		<button type="button" class="pc-linguetta" data-pannello="q-dettagli">Dettagli del servizio</button>
 		<button type="button" class="pc-linguetta" data-pannello="q-faq">FAQ</button>
 		<button type="button" class="pc-linguetta" data-pannello="q-seo">SEO</button>
+		<button type="button" class="pc-linguetta" data-pannello="q-sezioni">Sezioni</button>
 		<button type="button" class="pc-linguetta" data-pannello="q-codice">Codice</button>
 	</div>
 
@@ -141,6 +151,7 @@ $lista_s  = servizi();
 						<option value="home" <?php selected_pc( 'home', $pagina['tipo'] ); ?>>Principale (è /<?php echo e( $citta['slug'] ); ?>/)</option>
 						<option value="servizio" <?php selected_pc( 'servizio', $pagina['tipo'] ); ?>>Servizio — una pagina per un servizio solo</option>
 						<option value="servizi" <?php selected_pc( 'servizi', $pagina['tipo'] ); ?>>Elenco servizi — mostra tutti i servizi della città</option>
+						<option value="blog" <?php selected_pc( 'blog', $pagina['tipo'] ); ?>>Blog — elenca gli articoli della città</option>
 						<option value="fissa" <?php selected_pc( 'fissa', $pagina['tipo'] ); ?>>Pagina fissa (chi siamo, contatti…)</option>
 					</select>
 				</label>
@@ -332,6 +343,55 @@ $lista_s  = servizi();
 			</label>
 			<label style="max-width:160px">Ordine <input type="number" name="menu_ordine" value="<?php echo (int) $pagina['menu_ordine']; ?>"><small>Numero più basso = più a sinistra.</small></label>
 		</div>
+	</div>
+
+	<!-- SEZIONI -->
+	<div class="pc-pannello" id="q-sezioni">
+		<div class="pc-scheda">
+			<h2>Cosa mostra questa pagina</h2>
+			<p class="pc-scheda__nota">
+				Senza questa scelta tutte le pagine della città finirebbero per assomigliarsi:
+				stessi orari, stesse recensioni, stesse zone. Spunta solo ciò che ha senso qui.
+			</p>
+
+			<?php
+			$attive = isset( $pagina['sezioni'] ) ? (array) $pagina['sezioni'] : array();
+			if ( empty( $attive ) ) {
+				$attive = sezioni_predefinite( $pagina['tipo'], $pagina['slug'] );
+			}
+			foreach ( sezioni_disponibili() as $chiave => $info ) :
+				?>
+				<p class="pc-inline">
+					<input type="checkbox" name="sezioni[]" value="<?php echo e( $chiave ); ?>"
+						id="sez-<?php echo e( $chiave ); ?>" <?php checked_pc( in_array( $chiave, $attive, true ) ); ?>>
+					<label for="sez-<?php echo e( $chiave ); ?>" style="margin:0;font-weight:600">
+						<?php echo e( $info[0] ); ?>
+						<span class="pc-nota" style="font-weight:400">— <?php echo e( $info[1] ); ?></span>
+					</label>
+				</p>
+			<?php endforeach; ?>
+
+			<p class="pc-nota" style="margin-top:14px">
+				Le sezioni marcate "dai dati della città" prendono il contenuto dalla scheda della
+				città: mostrarle ovunque non aggiunge niente, mostrarle dove servono sì.
+			</p>
+		</div>
+
+		<?php if ( in_array( 'modulo', $attive, true ) ) : ?>
+			<div class="pc-scheda">
+				<h2>Dove arrivano le richieste</h2>
+				<?php $a = modulo_destinatario( $citta ); ?>
+				<?php if ( '' === $a ) : ?>
+					<div class="pc-avviso pc-avviso--errore" style="margin:0">
+						Nessun indirizzo email impostato: il modulo si mostra ma non può inviare niente.
+						Metti un'email nella <a href="admin.php?p=citta-modifica&id=<?php echo e( $citta['id'] ); ?>">scheda di <?php echo e( $citta['nome'] ); ?></a>
+						o nelle <a href="admin.php?p=impostazioni">impostazioni</a>.
+					</div>
+				<?php else : ?>
+					<p class="pc-nota" style="margin:0">Le richieste arrivano a <strong><?php echo e( $a ); ?></strong>.</p>
+				<?php endif; ?>
+			</div>
+		<?php endif; ?>
 	</div>
 
 	<!-- CODICE -->

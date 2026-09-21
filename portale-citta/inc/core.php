@@ -44,6 +44,8 @@ require_once __DIR__ . '/seo.php';
 require_once __DIR__ . '/schema.php';
 require_once __DIR__ . '/ai.php';
 require_once __DIR__ . '/generatore.php';
+require_once __DIR__ . '/importatore.php';
+require_once __DIR__ . '/modulo.php';
 
 /** Escape HTML. */
 function e( $testo ) {
@@ -227,4 +229,13 @@ function checked_pc( $condizione ) {
 /** Stampa selected se i due valori coincidono. */
 function selected_pc( $a, $b ) {
 	echo (string) $a === (string) $b ? 'selected' : '';
+}
+
+/** URL pubblico di un articolo del blog. */
+function url_articolo( $citta, $articolo, $pagina_blog = null ) {
+	if ( null === $pagina_blog ) {
+		$pagina_blog = pagina_blog( $citta['id'] );
+	}
+	$base = null === $pagina_blog ? 'blog' : $pagina_blog['slug'];
+	return base_url() . '/' . $citta['slug'] . '/' . $base . '/' . $articolo['slug'] . '/';
 }

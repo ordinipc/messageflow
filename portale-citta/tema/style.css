@@ -93,6 +93,12 @@ a{
     color:var(--glp-on-dark);
 }
 
+.glp-hero--image.glp-hero--image{
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+}
+
 .glp-hero--image.glp-hero--image::before{
     content:"";
 
@@ -2933,4 +2939,327 @@ body.glp-standalone{
     padding:11px 14px;
 
     font-size:10px;
+}
+
+/* =========================================================
+   BLOG
+========================================================= */
+
+.glp-paginazione.glp-paginazione{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+
+    margin:26px 0 0;
+}
+
+.glp-paginazione__stato.glp-paginazione__stato{
+    color:var(--glp-muted);
+
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.11em;
+    text-transform:uppercase;
+}
+
+.glp-breadcrumbs.glp-breadcrumbs{
+    margin:0 0 6px;
+
+    color:var(--glp-muted);
+
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+}
+
+.glp-breadcrumbs a{
+    color:inherit;
+    text-decoration:none;
+}
+
+.glp-breadcrumbs a:hover{ color:var(--glp-text); }
+
+.glp-breadcrumbs span{
+    margin:0 6px;
+    color:var(--glp-accent);
+}
+
+/* --- corpo dell'articolo: è HTML importato, va vestito qui --- */
+
+.glp-articolo__corpo.glp-articolo__corpo{
+    max-width:74ch;
+}
+
+.glp-articolo__corpo p{
+    margin:0 0 18px;
+
+    font-size:16px;
+    line-height:1.75;
+    color:var(--glp-text);
+}
+
+.glp-articolo__corpo h2{
+    margin:34px 0 12px;
+
+    font-size:24px;
+    font-weight:800;
+    line-height:1.2;
+    letter-spacing:-.02em;
+}
+
+.glp-articolo__corpo h3{
+    margin:26px 0 10px;
+
+    font-size:18px;
+    font-weight:700;
+    line-height:1.3;
+}
+
+.glp-articolo__corpo h4{
+    margin:22px 0 8px;
+
+    font-size:15.5px;
+    font-weight:700;
+}
+
+.glp-articolo__corpo ul,
+.glp-articolo__corpo ol{
+    margin:0 0 20px;
+    padding-left:22px;
+}
+
+.glp-articolo__corpo li{
+    margin:0 0 8px;
+
+    font-size:15.5px;
+    line-height:1.7;
+}
+
+.glp-articolo__corpo a{
+    color:var(--glp-text);
+
+    text-decoration:underline;
+    text-decoration-color:var(--glp-accent);
+    text-decoration-thickness:2px;
+    text-underline-offset:3px;
+}
+
+.glp-articolo__corpo a:hover{
+    background:rgba(255,212,0,.22);
+}
+
+.glp-articolo__corpo strong{ font-weight:700; }
+
+.glp-articolo__corpo blockquote{
+    margin:0 0 20px;
+    padding:2px 0 2px 18px;
+
+    border-left:3px solid var(--glp-accent);
+
+    font-size:16px;
+    line-height:1.7;
+}
+
+.glp-articolo__corpo table{
+    width:100%;
+    margin:0 0 20px;
+
+    border-collapse:collapse;
+
+    font-size:14.5px;
+}
+
+.glp-articolo__corpo th,
+.glp-articolo__corpo td{
+    padding:9px 12px;
+    text-align:left;
+    border-bottom:1px solid var(--glp-line);
+}
+
+.glp-articolo__corpo th{
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+    color:var(--glp-muted);
+}
+
+.glp-articolo__foto.glp-articolo__foto{
+    margin:20px 0 0;
+}
+
+.glp-articolo__foto img{
+    width:100%;
+    height:auto;
+
+    border-radius:var(--glp-radius);
+}
+
+@media(max-width:640px){
+
+    .glp-articolo__corpo p,
+    .glp-articolo__corpo li{ font-size:15.5px; }
+
+    .glp-articolo__corpo h2{ font-size:21px; }
+}
+
+/* =========================================================
+   RECAPITI E MODULO DI CONTATTO
+========================================================= */
+
+.glp-recapiti.glp-recapiti{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:12px;
+
+    list-style:none;
+    margin:22px 0 0;
+    padding:0;
+}
+
+.glp-box--recapito.glp-box--recapito{
+    gap:4px;
+}
+
+.glp-box--recapito .glp-box__testo{
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+}
+
+.glp-box--recapito .glp-box__titolo{
+    font-size:16px;
+    line-height:1.35;
+    word-break:break-word;
+}
+
+.glp-box--recapito a{
+    color:inherit;
+    text-decoration:none;
+    border-bottom:2px solid var(--glp-accent);
+}
+
+.glp-box--recapito a:hover{
+    background:rgba(255,212,0,.22);
+}
+
+/* --- modulo --- */
+
+.glp-modulo.glp-modulo{
+    max-width:720px;
+    margin:22px 0 0;
+}
+
+.glp-modulo__riga.glp-modulo__riga{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+}
+
+.glp-modulo__riga > label{
+    flex:1 1 220px;
+    min-width:0;
+}
+
+.glp-modulo label{
+    display:block;
+    margin:0 0 14px;
+
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--glp-muted);
+}
+
+.glp-modulo input[type=text],
+.glp-modulo input[type=tel],
+.glp-modulo input[type=email],
+.glp-modulo select,
+.glp-modulo textarea{
+    display:block;
+    width:100%;
+    margin-top:7px;
+    padding:12px 14px;
+
+    background:#fff;
+    border:1px solid var(--glp-line);
+    border-radius:var(--glp-radius);
+
+    font:inherit;
+    font-size:15px;
+    font-weight:400;
+    letter-spacing:0;
+    text-transform:none;
+    color:var(--glp-text);
+
+    transition:border-color .25s ease,box-shadow .25s ease;
+}
+
+.glp-modulo textarea{
+    min-height:130px;
+    line-height:1.6;
+    resize:vertical;
+}
+
+.glp-modulo input:focus,
+.glp-modulo select:focus,
+.glp-modulo textarea:focus{
+    outline:none;
+    border-color:var(--glp-accent);
+    box-shadow:0 0 0 3px rgba(255,212,0,.28);
+}
+
+/* Il campo esca non deve esistere per chi legge o per chi tabula. */
+.glp-modulo__esca.glp-modulo__esca{
+    position:absolute;
+    left:-9999px;
+    width:1px;
+    height:1px;
+    overflow:hidden;
+}
+
+.glp-modulo__nota.glp-modulo__nota{
+    margin:0 0 18px;
+
+    color:var(--glp-muted);
+
+    font-size:12.5px;
+    line-height:1.6;
+}
+
+.glp-modulo__esito.glp-modulo__esito{
+    margin:18px 0 0;
+    padding:13px 16px;
+
+    border-radius:var(--glp-radius);
+
+    font-size:14.5px;
+    font-weight:600;
+}
+
+.glp-modulo__esito.is-ok{
+    background:#e4f5ea;
+    border:1px solid #bfe4cd;
+    color:#0c5c30;
+}
+
+.glp-modulo__esito.is-ko{
+    background:#fdeceb;
+    border:1px solid #f3c8c5;
+    color:#8c1d18;
+}
+
+@media(max-width:640px){
+
+    .glp-recapiti.glp-recapiti{
+        grid-template-columns:1fr;
+    }
+
+    .glp-modulo__riga > label{
+        flex:1 1 100%;
+    }
 }

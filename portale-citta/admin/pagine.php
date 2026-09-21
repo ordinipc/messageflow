@@ -78,6 +78,10 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['massa'] ) ) {
 			$p['stato'] = 'pubblicata';
 		} elseif ( 'ritira' === $_POST['massa'] ) {
 			$p['stato'] = 'bozza';
+		} elseif ( 'menu_si' === $_POST['massa'] ) {
+			$p['menu_mostra'] = 1;
+		} elseif ( 'menu_no' === $_POST['massa'] ) {
+			$p['menu_mostra'] = 0;
 		} elseif ( 'elimina' === $_POST['massa'] ) {
 			pagina_elimina( $p['id'] );
 			$fatte++;
@@ -217,6 +221,8 @@ foreach ( $pagine as $p ) {
 		<div class="pc-titolo__azioni">
 			<button class="pc-btn pc-btn--ghost pc-btn--piccolo" type="submit" name="massa" value="pubblica">Pubblica</button>
 			<button class="pc-btn pc-btn--ghost pc-btn--piccolo" type="submit" name="massa" value="ritira">Riporta in bozza</button>
+			<button class="pc-btn pc-btn--ghost pc-btn--piccolo" type="submit" name="massa" value="menu_si">Metti nel menu</button>
+			<button class="pc-btn pc-btn--ghost pc-btn--piccolo" type="submit" name="massa" value="menu_no">Togli dal menu</button>
 			<button class="pc-btn pc-btn--rosso pc-btn--piccolo" type="submit" name="massa" value="elimina" data-conferma="Eliminare le pagine selezionate?">Elimina</button>
 		</div>
 	</div>
