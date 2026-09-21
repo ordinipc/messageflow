@@ -119,7 +119,7 @@ function ai_traduci( $messaggio, $stato = 0 ) {
  * Chiama Gemini e restituisce il testo generato.
  * Ritorna array( 'ok' => bool, 'testo' => string, 'errore' => string ).
  */
-function ai_chiedi( $istruzione, $schema = null ) {
+function ai_chiedi( $istruzione, $schema = null, $massimo = 8192 ) {
 	$chiave = impostazione( 'gemini_key', '' );
 	if ( vuoto( $chiave ) ) {
 		return array( 'ok' => false, 'testo' => '', 'errore' => 'Chiave Gemini non impostata.' );
@@ -137,7 +137,10 @@ function ai_chiedi( $istruzione, $schema = null ) {
 		),
 		'generationConfig' => array(
 			'temperature'     => 0.8,
-			'maxOutputTokens' => 2048,
+			// I modelli recenti "ragionano" prima di rispondere, e quei token
+			// consumano lo stesso budget del testo: stretto qui significa
+			// risposte tagliate a metà frase.
+			'maxOutputTokens' => max( 1024, (int) $massimo ),
 		),
 	);
 	if ( is_array( $schema ) ) {
@@ -169,11 +172,37 @@ function ai_chiedi( $istruzione, $schema = null ) {
 		$messaggio = pesca( is_array( $dati ) ? $dati : array(), 'error.message', 'Errore HTTP ' . $stato );
 		return array( 'ok' => false, 'testo' => '', 'errore' => ai_traduci( $messaggio, $stato ) );
 	}
-	$testo = pesca( is_array( $dati ) ? $dati : array(), 'candidates.0.content.parts.0.text', '' );
-	if ( vuoto( $testo ) ) {
-		return array( 'ok' => false, 'testo' => '', 'errore' => 'Risposta vuota dal modello.' );
+	$dati   = is_array( $dati ) ? $dati : array();
+	$testo  = pesca( $dati, 'candidates.0.content.parts.0.text', '' );
+	$motivo = (string) pesca( $dati, 'candidates.0.finishReason', '' );
+
+	if ( 'MAX_TOKENS' === $motivo ) {
+		return array(
+			'ok'     => false,
+			'testo'  => '',
+			'motivo' => $motivo,
+			'errore' => 'La risposta è stata tagliata prima della fine: il modello ha esaurito lo spazio. '
+				. 'Riprova; se capita di nuovo, in Impostazioni → Assistente scegli un modello "flash", '
+				. 'che ragiona meno e lascia più spazio al testo.',
+		);
 	}
-	return array( 'ok' => true, 'testo' => ai_ripulisci( $testo ), 'errore' => '' );
+	if ( 'SAFETY' === $motivo || 'RECITATION' === $motivo || 'PROHIBITED_CONTENT' === $motivo ) {
+		return array(
+			'ok'     => false,
+			'testo'  => '',
+			'motivo' => $motivo,
+			'errore' => 'Il modello si è fermato da solo (motivo: ' . $motivo . '). Riformula la richiesta.',
+		);
+	}
+	if ( vuoto( $testo ) ) {
+		return array(
+			'ok'     => false,
+			'testo'  => '',
+			'motivo' => $motivo,
+			'errore' => 'Risposta vuota dal modello' . ( '' === $motivo ? '' : ' (motivo: ' . $motivo . ')' ) . '.',
+		);
+	}
+	return array( 'ok' => true, 'testo' => ai_ripulisci( $testo ), 'motivo' => $motivo, 'errore' => '' );
 }
 
 /**
@@ -186,24 +215,35 @@ function ai_chiedi( $istruzione, $schema = null ) {
  * @param string $campo      Nome del campo da leggere.
  * @param int    $max        Taglio di sicurezza in caratteri, 0 per nessuno.
  */
-function ai_chiedi_testo( $istruzione, $campo = 'testo', $max = 0 ) {
+function ai_chiedi_testo( $istruzione, $campo = 'testo', $max = 0, $massimo_token = 8192 ) {
 	$schema = array(
 		'type'       => 'OBJECT',
 		'properties' => array( $campo => array( 'type' => 'STRING' ) ),
 		'required'   => array( $campo ),
 	);
 
-	$esito = ai_chiedi( $istruzione, $schema );
+	$esito = ai_chiedi( $istruzione, $schema, $massimo_token );
 	if ( ! $esito['ok'] ) {
 		return $esito;
 	}
 
-	$dati  = json_decode( $esito['testo'], true );
-	$testo = is_array( $dati ) && isset( $dati[ $campo ] ) ? (string) $dati[ $campo ] : '';
+	$grezzo = trim( $esito['testo'] );
+	$dati   = json_decode( $grezzo, true );
+	$testo  = ( is_array( $dati ) && isset( $dati[ $campo ] ) ) ? (string) $dati[ $campo ] : '';
 
-	// Se il JSON non arriva, si prova comunque con il testo grezzo.
 	if ( '' === trim( $testo ) ) {
-		$testo = $esito['testo'];
+		// Il JSON non si è chiuso: quasi sempre vuol dire risposta tagliata.
+		// Non si può consegnare il grezzo, finirebbe nel campo con le graffe.
+		if ( ai_sembra_json( $grezzo ) ) {
+			return array(
+				'ok'     => false,
+				'testo'  => '',
+				'errore' => 'La risposta del modello è arrivata incompleta e non si può usare. '
+					. 'Riprova: di solito al secondo tentativo va.',
+			);
+		}
+		// Nessuna forma JSON: è testo semplice, si tiene.
+		$testo = $grezzo;
 	}
 
 	$testo = ai_ripulisci( $testo );
@@ -224,6 +264,19 @@ function ai_chiedi_testo( $istruzione, $campo = 'testo', $max = 0 ) {
 	return array( 'ok' => true, 'testo' => $testo, 'errore' => '' );
 }
 
+/** True se il testo ha la forma di un oggetto JSON, anche spezzato. */
+function ai_sembra_json( $testo ) {
+	$testo = ltrim( (string) $testo );
+	if ( '' === $testo ) {
+		return false;
+	}
+	if ( '{' === $testo[0] || '[' === $testo[0] ) {
+		return true;
+	}
+	// Una coppia "chiave": "valore" all'inizio basta a riconoscerlo.
+	return 1 === preg_match( '/^\s*"[a-z_]+"\s*:/i', $testo );
+}
+
 /**
  * Riconosce le risposte degenerate.
  *
@@ -233,6 +286,10 @@ function ai_chiedi_testo( $istruzione, $campo = 'testo', $max = 0 ) {
 function ai_testo_sospetto( $testo ) {
 	$testo = trim( (string) $testo );
 	if ( '' === $testo ) {
+		return true;
+	}
+	// Graffe e coppie chiave-valore: è la risposta grezza, non il testo.
+	if ( ai_sembra_json( $testo ) ) {
 		return true;
 	}
 	// Tre o più gruppi "numero:carattere" sono appunti, non prosa.
@@ -492,7 +549,9 @@ function ai_corpo( $citta, $pagina ) {
 		. "Lunghezza: 300-400 parole, divise in 3 o 4 paragrafi separati da una riga vuota.\n"
 		. "Spiega quando serve il servizio, come si svolge, cosa deve sapere il cliente e cosa lo distingue in questa città.\n\n"
 		. ai_regole();
-	return ai_chiedi_testo( $istruzione, 'testo' );
+	// Il testo di approfondimento è lungo: serve spazio per il ragionamento
+	// del modello e per le quattrocento parole richieste.
+	return ai_chiedi_testo( $istruzione, 'testo', 0, 16384 );
 }
 
 /** Genera la meta description. */
