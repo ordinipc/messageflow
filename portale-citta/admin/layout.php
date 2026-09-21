@@ -7,6 +7,7 @@ $voci = array(
 	'pannello'     => array( 'Pannello', '▦' ),
 	'citta'        => array( 'Città', '◉' ),
 	'pagine'       => array( 'Pagine', '▤' ),
+	'menu'         => array( 'Menu', '≡' ),
 	'servizi'      => array( 'Tipi di servizio', '⚙' ),
 	'articoli'     => array( 'Articoli', '✎' ),
 	'media'        => array( 'Immagini', '▣' ),

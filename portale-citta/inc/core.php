@@ -115,6 +115,17 @@ function vuoto( $valore ) {
 	return null === $valore || '' === trim( (string) $valore );
 }
 
+/**
+ * Un recapito della città, con ripiego sull'impostazione generale.
+ * Serve sia al tema sia alle schermate del pannello.
+ */
+function contatto( $citta, $campo ) {
+	if ( isset( $citta[ $campo ] ) && ! vuoto( $citta[ $campo ] ) ) {
+		return $citta[ $campo ];
+	}
+	return impostazione( $campo, '' );
+}
+
 /** Numero di telefono ripulito per tel:. */
 function tel( $numero ) {
 	return preg_replace( '/[^0-9+]/', '', (string) $numero );

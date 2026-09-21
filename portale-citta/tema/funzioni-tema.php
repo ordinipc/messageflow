@@ -92,14 +92,6 @@ function altre_citta( $escludi_id = '' ) {
 	return $voci;
 }
 
-/** Telefono della città, con ripiego sull'impostazione globale. */
-function contatto( $citta, $campo ) {
-	if ( ! vuoto( $citta[ $campo ] ) ) {
-		return $citta[ $campo ];
-	}
-	return impostazione( $campo, '' );
-}
-
 /** Link WhatsApp precompilato. */
 function url_whatsapp( $numero, $testo = '' ) {
 	$numero = preg_replace( '/[^0-9]/', '', (string) $numero );

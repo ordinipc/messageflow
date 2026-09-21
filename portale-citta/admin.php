@@ -26,6 +26,7 @@ $pagine_admin = array(
 	'citta'           => 'Città',
 	'citta-modifica'  => 'Modifica città',
 	'pagine'          => 'Pagine',
+	'menu'            => 'Menu',
 	'pagina-modifica' => 'Modifica pagina',
 	'servizi'         => 'Tipi di servizio',
 	'articoli'         => 'Articoli',

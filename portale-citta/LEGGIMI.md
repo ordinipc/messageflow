@@ -262,8 +262,30 @@ Sta **dentro l'intestazione**, in alto, accanto a logo e numero di telefono.
 L'intestazione resta attaccata al bordo superiore mentre si scorre, quindi il
 menu è sempre a un clic.
 
-Si costruisce da solo dalle pagine della città. Per ogni pagina decidi se
-mostrarla e in che ordine (editor della pagina → SEO → Posizione nel menu).
+### La schermata Menu
+
+In **Menu** gestisci la barra di una città in un posto solo:
+
+- **Come si vedrà** — l'anteprima della barra, che si aggiorna mentre lavori
+- **Nel menu** — le voci in ordine, con ↑ ↓ per spostarle e × per toglierle
+- **Fuori dal menu** — le pagine che esistono ma non compaiono, con + per aggiungerle
+- **Salva il menu** — scrive l'ordine su tutte le pagine in un colpo
+
+Dall'alto in basso corrisponde a da sinistra a destra nella barra. La pagina
+principale non compare: è già il pulsante con il nome della città.
+
+Se le voci diventano tante, un avviso ti dice che la barra andrà a capo. Non è
+un errore — i collegamenti restano tutti visibili, ed è meglio così per chi
+indicizza — ma se preferisci una riga sola sai cosa togliere.
+
+**Usa questo menu anche altrove** copia la struttura su altre città,
+abbinando le pagine per indirizzo. Le pagine che in quelle città non esistono
+vengono saltate.
+
+Senza JavaScript i pulsanti funzionano lo stesso: ogni clic salva e ricarica.
+
+Le stesse impostazioni restano anche nell'editor della singola pagina
+(scheda SEO → Posizione nel menu), se preferisci lavorare da lì.
 
 **Le pagine servizio nascono fuori dal menu**, perché con sei o sette servizi la
 barra va a capo e diventa difficile da leggere. Restano raggiungibili
