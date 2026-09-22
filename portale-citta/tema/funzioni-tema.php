@@ -116,6 +116,7 @@ function css_variabili() {
 		. '--glp-radius:' . e( $imp['raggio'] ) . ';'
 		// Header, contenuto e piè di pagina misurano tutti su questa.
 		. '--glp-wrap:' . e( larghezza_contenuto() ) . ';'
+		. '--glp-logo:' . e( altezza_logo() ) . 'px;'
 		. '}';
 }
 

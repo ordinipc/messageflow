@@ -61,6 +61,7 @@ function impostazioni_predefinite() {
 		'stile_sezioni'   => 'card',
 		'stile_tema'      => 'vetrina',
 		'larghezza'       => '1440px',
+		'logo_altezza'    => '56',
 		'effetti'         => '1',
 		'telefono_etichetta' => 'Assistenza 24h',
 		'telefono'        => '',
@@ -135,6 +136,12 @@ function social_attivi() {
 		}
 	}
 	return $voci;
+}
+
+/** Altezza del logo in barra, in pixel, dentro limiti ragionevoli. */
+function altezza_logo() {
+	$px = (int) impostazione( 'logo_altezza', '56' );
+	return (string) max( 24, min( 140, 0 === $px ? 56 : $px ) );
 }
 
 /**

@@ -19,6 +19,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		'stile_sezioni'   => 'elenco' === ( $_POST['stile_sezioni'] ?? '' ) ? 'elenco' : 'card',
 		'stile_tema'      => 'classico' === ( $_POST['stile_tema'] ?? '' ) ? 'classico' : 'vetrina',
 		'larghezza'       => trim( (string) ( $_POST['larghezza'] ?? '1440px' ) ),
+		'logo_altezza'    => (string) max( 24, min( 140, (int) ( $_POST['logo_altezza'] ?? 56 ) ) ),
 		'telefono_etichetta' => trim( (string) ( $_POST['telefono_etichetta'] ?? '' ) ),
 		'effetti'         => isset( $_POST['effetti'] ) ? '1' : '0',
 		'telefono'        => trim( (string) ( $_POST['telefono'] ?? '' ) ),
@@ -134,6 +135,12 @@ $cfg      = db_config();
 				<option value="1800px" <?php selected_pc( '1800px', $imp['larghezza'] ); ?>>1800 px — molto larga</option>
 			</select>
 			<small>La misura che usano header, contenuto e piè di pagina: sono sempre allineati fra loro.</small>
+		</label>
+
+		<label style="max-width:260px">Altezza del logo in barra
+			<input type="number" name="logo_altezza" value="<?php echo e( $imp['logo_altezza'] ); ?>"
+				min="24" max="140" step="2"> px
+			<small>Da 24 a 140. Sullo schermo del telefono si rimpicciolisce da solo.</small>
 		</label>
 
 		<label style="max-width:320px">Etichetta sopra il telefono in barra

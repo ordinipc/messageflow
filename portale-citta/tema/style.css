@@ -1995,14 +1995,17 @@ body.glp-standalone{
 }
 
 .glp-topbar__brand img{
-    max-height:42px;
+    /* L'altezza la sceglie chi amministra, in Impostazioni → Aspetto. */
+    max-height:var(--glp-logo,56px);
     width:auto;
 
     display:block;
 }
 
+/* Senza un'immagine in barra c'è il nome scritto: cresce anche lui con
+   l'altezza scelta, altrimenti l'impostazione non farebbe niente. */
 .glp-topbar__name.glp-topbar__name{
-    font-size:15px;
+    font-size:clamp(15px,calc(var(--glp-logo,56px) * .3),30px);
     font-weight:800;
     letter-spacing:-.01em;
 }
@@ -2915,8 +2918,10 @@ body.glp-standalone{
         font-size:12px;
     }
 
+    /* Sullo stretto il logo si rimpicciolisce, ma non oltre il necessario:
+       se chi amministra l'ha già messo piccolo resta com'è. */
     .glp-topbar__brand img{
-        max-height:32px;
+        max-height:min(var(--glp-logo,56px),40px);
     }
 }
 

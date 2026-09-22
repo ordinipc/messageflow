@@ -453,6 +453,11 @@ Impostazioni → Aspetto → **Impianto della pagina**.
 
 Si cambia idea quando si vuole: è una tendina, non una riscrittura.
 
+**Altezza del logo in barra** — da 24 a 140 px, 56 di partenza. Sullo schermo
+del telefono si rimpicciolisce da solo (fino a 40), ma un logo già più piccolo
+resta com'è. Un'immagine non viene mai stirata oltre la sua misura vera: se la
+vuoi grande, caricala grande.
+
 **Larghezza del contenuto** — 1240, 1440 (consigliata), 1600 o 1800 px. È la
 misura che usano *insieme* intestazione, contenuto e piè di pagina: sono
 sempre allineati fra loro, qualunque valore scegli.
