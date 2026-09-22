@@ -2,12 +2,13 @@
 /** Schermata di accesso. */
 defined( 'PC_AVVIO' ) || exit;
 
-// Con un utente solo il nome non serve e il campo non si mostra: i gestori
-// di password lo riempirebbero da soli con la mail salvata, e chi entra si
-// vedrebbe rifiutare una password giusta.
+// Con un utente solo non c'è niente da distinguere: il campo si mostra
+// lo stesso, ma quello che ci finisce dentro non decide nulla. Serve a non
+// far rifiutare una password giusta quando il gestore di password del
+// browser riempie il campo da sé con un indirizzo che non corrisponde.
 $uno    = 1 === utenti_conta( true );
 $errore = '';
-$nome   = $uno ? '' : trim( (string) ( $_POST['nome'] ?? '' ) );
+$nome   = trim( (string) ( $_POST['nome'] ?? '' ) );
 
 if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	if ( accedi( (string) ( $_POST['password'] ?? '' ), $nome ) ) {
@@ -35,13 +36,15 @@ $imp = impostazioni();
 		<div class="pc-avviso pc-avviso--errore"><?php echo e( $errore ); ?></div>
 	<?php endif; ?>
 	<form method="post">
-		<?php if ( ! $uno ) : ?>
-			<label>Nome utente o email
-				<input type="text" name="nome" value="<?php echo e( $nome ); ?>" autocomplete="username" required autofocus>
-			</label>
-		<?php endif; ?>
+		<label>Nome utente o email
+			<input type="text" name="nome" value="<?php echo e( $nome ); ?>" autocomplete="username"
+				<?php echo $uno ? '' : 'required'; ?> autofocus>
+			<?php if ( $uno ) : ?>
+				<small>C'è un solo utente: basta la password.</small>
+			<?php endif; ?>
+		</label>
 		<label>Password
-			<input type="password" name="password" autocomplete="current-password" required <?php echo $uno ? 'autofocus' : ''; ?>>
+			<input type="password" name="password" autocomplete="current-password" required>
 		</label>
 		<button class="pc-btn" type="submit">Entra</button>
 	</form>

@@ -94,12 +94,14 @@ entra più, e se in quel momento era collegato viene rimandato al login.
 Il portale non si lascia chiudere fuori: l'ultimo amministratore attivo non si
 può declassare, sospendere o eliminare, e nessuno può eliminare sé stesso.
 
-Finché c'è un solo utente **la schermata di accesso chiede solo la password**:
-il campo del nome non compare nemmeno, così i gestori di password del browser
-non possono riempirlo per conto loro e far rifiutare una password giusta.
+La schermata di accesso ha sempre due campi: **nome utente o email** e
+password. Finché c'è un solo utente il primo non è obbligatorio e non fa da
+filtro — non c'è nessuno da distinguere, decide la password. Serve anche a
+non farsi rifiutare una password giusta quando il gestore di password del
+browser riempie il campo da sé con un indirizzo che non corrisponde.
 
-Dal secondo utente in poi il campo torna, e accetta sia il nome utente sia
-l'email della persona.
+Dal secondo utente in poi il campo diventa obbligatorio e deve combaciare:
+va bene il nome utente oppure l'email della persona.
 
 > **Aggiorni da una versione precedente?** La password che usavi continua a
 > funzionare: diventa l'utente `admin`. Il primo accesso al pannello fa tutto
