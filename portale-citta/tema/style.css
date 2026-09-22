@@ -3707,16 +3707,63 @@ body.glp-standalone{
 
 
 /* =========================================================
+   TESTO E MODULO AFFIANCATI
+
+   Si legge a sinistra e si scrive a destra. Dentro alla
+   coppia ognuno dei due ha mezza pagina, quindi niente
+   colonne interne: sarebbero strisce.
+========================================================= */
+
+.glp-affiancate.glp-affiancate{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:clamp(32px,4vw,68px);
+    align-items:start;
+}
+
+.glp-affiancate.glp-affiancate > .glp-section{
+    margin-bottom:0;
+}
+
+.glp-affiancate.glp-affiancate .glp-prosa{
+    columns:auto;
+
+    max-width:none;
+}
+
+@media(max-width:1099px){
+
+    .glp-affiancate.glp-affiancate{
+        grid-template-columns:minmax(0,1fr);
+    }
+
+    /* Impilate tornano due sezioni normali, con l'aria in mezzo. */
+    .glp-affiancate.glp-affiancate > .glp-section{
+        margin-bottom:clamp(46px,6.5vw,86px);
+    }
+
+    .glp-affiancate.glp-affiancate > .glp-section:last-child{
+        margin-bottom:0;
+    }
+}
+
+
+/* =========================================================
    MODULO DI CONTATTO SU DUE COLONNE
+
+   Vale quando il modulo sta da solo su tutta la larghezza.
+   Affiancato al testo ha già mezza pagina e resta in una.
 ========================================================= */
 
 .glp-modulo.glp-modulo{
     max-width:1320px;
 }
 
+/* Il selettore figlio diretto distingue i due casi: dentro alla coppia
+   la sezione sta in .glp-affiancate, non in .glp-sections. */
 @media(min-width:1100px){
 
-    .glp-modulo.glp-modulo{
+    .glp-sections > .glp-section .glp-modulo.glp-modulo{
         display:grid;
         grid-template-columns:1fr 1fr;
         column-gap:clamp(28px,3vw,52px);
@@ -3724,21 +3771,21 @@ body.glp-standalone{
     }
 
     /* Il messaggio si allunga fino a pareggiare i campi di fianco. */
-    .glp-modulo__colonna.glp-modulo__colonna:last-child{
+    .glp-sections > .glp-section .glp-modulo__colonna:last-child{
         display:flex;
         flex-direction:column;
 
         height:100%;
     }
 
-    .glp-modulo__colonna.glp-modulo__colonna:last-child label{
+    .glp-sections > .glp-section .glp-modulo__colonna:last-child label{
         flex:1 1 auto;
 
         display:flex;
         flex-direction:column;
     }
 
-    .glp-modulo__colonna.glp-modulo__colonna:last-child textarea{
+    .glp-sections > .glp-section .glp-modulo__colonna:last-child textarea{
         flex:1 1 auto;
 
         min-height:150px;
@@ -3746,7 +3793,7 @@ body.glp-standalone{
 
     /* In una colonna flex il pulsante si stirerebbe per tutta la
        larghezza: resta della sua misura, come sul telefono. */
-    .glp-modulo__colonna.glp-modulo__colonna:last-child .glp-btn{
+    .glp-sections > .glp-section .glp-modulo__colonna:last-child .glp-btn{
         align-self:flex-start;
     }
 }

@@ -489,18 +489,23 @@ il portale: non si scarica niente da server di altri.
 
 ---
 
-## Testo su due colonne
+## Due colonne sugli schermi larghi
 
-Sopra i 1100px il testo lungo delle sezioni si dispone su **due colonne**, e
-il modulo di contatto pure: i campi a sinistra, il messaggio e il pulsante a
-destra. Sotto, tornano una colonna sola.
+Sopra i 1100px, quando una pagina ha **sia il testo di approfondimento sia il
+modulo di contatto**, i due escono affiancati: si legge a sinistra e si scrive
+a destra, senza scorrere. Sotto i 1100px si impilano.
 
-Non c'è niente da impostare: la soglia è scritta in `em`, quindi se il
+A sinistra va quella che viene prima nell'ordine della scheda **Sezioni**: se
+sposti il modulo sopra al testo, il modulo passa a sinistra.
+
+Quando invece il testo è da solo sulla pagina — le pagine servizio, per
+esempio — si dispone su **due colonne** invece di lasciare mezza pagina
+bianca. Stessa cosa per il modulo quando sta da solo: campi a sinistra,
+messaggio e pulsante a destra.
+
+Non c'è niente da impostare, e le soglie sono scritte in `em`: se il
 visitatore ingrandisce il testo le colonne diventano una da sole, prima che
-diventino troppo strette per leggerle.
-
-Un testo corto resta comunque in una colonna: due colonne da due righe non
-servono a niente, e il browser lo capisce da solo.
+si riducano a strisce. Un testo corto resta comunque in una colonna.
 
 ---
 

@@ -138,9 +138,7 @@ $sfondo = vuoto( $pagina['immagine'] ) ? '' : url_media( $pagina['immagine'] );
  * restituisce stringa vuota e non lascia un buco.
  */
 $contesto = contesto_pagina( $citta, $pagina, $esito_modulo );
-foreach ( pagina_sezioni( $pagina ) as $chiave ) {
-	echo rendi_sezione( $chiave, $contesto );
-}
+echo stampa_sezioni( $pagina, $contesto );
 ?>
 </div><!-- .glp-sections -->
 </div><!-- .glp-main__inner -->

@@ -862,6 +862,47 @@ function rendi_sezione_home( $chiave ) {
 }
 
 /**
+ * Stampa le sezioni di una pagina, affiancando il testo e il modulo.
+ *
+ * Il testo di approfondimento e il modulo di contatto stanno bene uno di
+ * fianco all'altro: si legge a sinistra e si scrive a destra, senza
+ * scorrere. Quando ci sono tutti e due escono in coppia, nel posto del
+ * primo dei due secondo l'ordine scelto nella scheda "Sezioni".
+ */
+function stampa_sezioni( $pagina, $contesto ) {
+	$elenco = pagina_sezioni( $pagina );
+	$coppia = array( 'testo', 'modulo' );
+
+	// Si affiancano solo se ci sono entrambe e hanno entrambe qualcosa da
+	// dire: un modulo di fianco al vuoto sarebbe peggio di prima.
+	$pezzi = array();
+	foreach ( $coppia as $chiave ) {
+		$pezzi[ $chiave ] = in_array( $chiave, $elenco, true ) ? rendi_sezione( $chiave, $contesto ) : '';
+	}
+	$affianca = '' !== $pezzi['testo'] && '' !== $pezzi['modulo'];
+
+	$fuori = '';
+	$fatte = array();
+	foreach ( $elenco as $chiave ) {
+		if ( in_array( $chiave, $fatte, true ) ) {
+			continue;
+		}
+		if ( $affianca && in_array( $chiave, $coppia, true ) ) {
+			// A sinistra va quella che viene prima nell'ordine scelto: chi
+			// mette il modulo in cima se lo ritrova in cima anche qui.
+			$altra  = 'testo' === $chiave ? 'modulo' : 'testo';
+			$fuori .= '<div class="glp-affiancate">' . $pezzi[ $chiave ] . $pezzi[ $altra ] . '</div>';
+			$fatte  = $coppia;
+			continue;
+		}
+		// Già disegnate qui sopra: non si rifanno.
+		$fuori .= isset( $pezzi[ $chiave ] ) ? $pezzi[ $chiave ] : rendi_sezione( $chiave, $contesto );
+	}
+
+	return $fuori;
+}
+
+/**
  * Tutto quello che serve alle sezioni per disegnarsi.
  *
  * Lo costruiscono sia la pagina pubblica sia l'incorporamento in
