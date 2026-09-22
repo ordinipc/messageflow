@@ -388,7 +388,36 @@ function ai_immagine( $citta, $pagina, $richiesta = '' ) {
 	}
 
 	$soggetto = vuoto( $richiesta ) ? ai_soggetto_immagine( $citta, $pagina ) : trim( $richiesta );
-	$imp      = impostazioni();
+
+	return ai_disegna_immagine(
+		$soggetto,
+		ai_alt_immagine( $citta, $pagina ),
+		$pagina['slug'] . '-' . $citta['slug'],
+		$citta['nome']
+	);
+}
+
+/**
+ * Disegna un'immagine e la salva in archivio.
+ *
+ * Sta separata da ai_immagine() perché la home del portale non appartiene
+ * a nessuna città: le serve lo stesso disegno, non lo stesso contesto.
+ *
+ * @param string $soggetto    Cosa deve mostrare.
+ * @param string $alt         Testo alternativo.
+ * @param string $base        Base del nome del file.
+ * @param string $evita_luogo Luogo reale da non riprodurre, se c'è.
+ */
+function ai_disegna_immagine( $soggetto, $alt, $base, $evita_luogo = '' ) {
+	$chiave = impostazione( 'gemini_key', '' );
+	if ( vuoto( $chiave ) ) {
+		return array( 'ok' => false, 'file' => '', 'alt' => '', 'errore' => 'Chiave Gemini non impostata.' );
+	}
+	if ( ! function_exists( 'curl_init' ) ) {
+		return array( 'ok' => false, 'file' => '', 'alt' => '', 'errore' => 'Estensione cURL non disponibile sul server.' );
+	}
+
+	$imp = impostazioni();
 
 	$istruzione = "Crea un'immagine fotografica orizzontale, formato 16:9, per l'anteprima di una pagina web.\n\n"
 		. "Soggetto: " . $soggetto . "\n\n"
@@ -398,7 +427,8 @@ function ai_immagine( $citta, $pagina, $richiesta = '' ) {
 		. "- qualsiasi testo, scritta, logo, insegna o filigrana nell'immagine\n"
 		. "- volti riconoscibili di persone\n"
 		. "- marchi, loghi di automobili o insegne commerciali esistenti\n"
-		. "- luoghi reali riconoscibili: deve essere una scena generica, non " . $citta['nome'] . "\n"
+		. "- luoghi reali riconoscibili: deve essere una scena generica"
+		. ( vuoto( $evita_luogo ) ? '' : ', non ' . $evita_luogo ) . "\n"
 		. "- numeri di targa, documenti o dati leggibili";
 
 	$url = ai_base() . '/models/' . rawurlencode( ai_modello_immagini() ) . ':generateContent';
@@ -449,9 +479,6 @@ function ai_immagine( $citta, $pagina, $richiesta = '' ) {
 				. '. Controlla che "' . ai_modello_immagini() . '" sia un modello capace di generarle.',
 		);
 	}
-
-	$alt  = ai_alt_immagine( $citta, $pagina );
-	$base = $pagina['slug'] . '-' . $citta['slug'];
 
 	$salvata = media_salva_dati( $immagine['dati'], $immagine['mime'], $base, $alt );
 	if ( ! $salvata['ok'] ) {
@@ -645,4 +672,157 @@ function ai_intro( $citta, $pagina ) {
 		. "Una o due frasi che dicano subito cosa fate e dove. Breve.\n\n"
 		. ai_regole();
 	return ai_chiedi_testo( $istruzione, 'introduzione', 220 );
+}
+
+/* ---------------------------------------------------------------------------
+ * Home del portale
+ *
+ * Questa pagina non appartiene a nessuna città: il contesto non è una
+ * scheda comunale ma l'insieme delle zone in cui si lavora.
+ * ------------------------------------------------------------------------- */
+
+/** Contesto del portale nel suo insieme, da passare al modello. */
+function ai_contesto_portale() {
+	$imp   = impostazioni();
+	$parti = array();
+
+	$parti[] = 'Attività: ' . $imp['brand'];
+
+	$nomi = array();
+	foreach ( citta_tutte( true ) as $c ) {
+		$nomi[] = $c['nome'] . ( vuoto( $c['provincia'] ) ? '' : ' (' . $c['provincia'] . ')' );
+	}
+	$parti[] = empty( $nomi )
+		? 'Città coperte: nessuna ancora pubblicata.'
+		: 'Città coperte (' . count( $nomi ) . '): ' . implode( ', ', $nomi );
+
+	$servizi = array();
+	foreach ( servizi() as $s ) {
+		$servizi[] = $s['nome'];
+	}
+	if ( ! empty( $servizi ) ) {
+		$parti[] = 'Servizi offerti: ' . implode( ', ', $servizi );
+	}
+	if ( ! vuoto( $imp['telefono'] ) ) {
+		$parti[] = 'Telefono: ' . $imp['telefono'];
+	}
+	if ( ! vuoto( $imp['piva'] ) ) {
+		$parti[] = 'Partita IVA: ' . $imp['piva'];
+	}
+
+	return "Contesto:\n- " . implode( "\n- ", $parti );
+}
+
+/** Regole per i testi del portale: qui non c'è una città da citare. */
+function ai_regole_portale() {
+	return "Regole:\n"
+		. "- Scrivi in italiano, tono professionale e concreto.\n"
+		. "- Niente superlativi pubblicitari, niente promesse non verificabili, niente emoji.\n"
+		. "- Non inventare città, servizi o dati: usa solo quelli elencati qui sopra.\n"
+		. "- Parla dell'insieme delle zone, non di una città sola.\n"
+		. "- Restituisci solo il testo richiesto, senza titoli né formattazione markdown.";
+}
+
+/**
+ * Titolo dell'intestazione, con la parte da evidenziare fra asterischi.
+ *
+ * È la sola convenzione che il modello deve rispettare, quindi gliela si
+ * spiega con un esempio e si ricontrolla al ritorno.
+ */
+function ai_home_titolo() {
+	$istruzione = "Scrivi il titolo grande della pagina d'ingresso di un portale di zone.\n\n"
+		. ai_contesto_portale() . "\n\n"
+		. "Da due a quattro parole in tutto. Dice dove si lavora, non cosa si fa.\n"
+		. "Metti fra asterischi la parola o le due parole da far risaltare in giallo.\n"
+		. "Esempi della forma richiesta: \"Dove *operiamo*\" oppure \"Le nostre *zone*\".\n\n"
+		. ai_regole_portale();
+
+	$esito = ai_chiedi_testo( $istruzione, 'titolo', 60 );
+	if ( ! $esito['ok'] ) {
+		return $esito;
+	}
+
+	// Senza asterischi il titolo esce tutto bianco: si evidenzia l'ultima
+	// parola, che è quella su cui cade l'accento nella forma richiesta.
+	if ( false === strpos( $esito['testo'], '*' ) ) {
+		$parole = preg_split( '/\s+/u', trim( $esito['testo'] ) );
+		$ultima = array_pop( $parole );
+		if ( null !== $ultima && '' !== $ultima ) {
+			$esito['testo'] = trim( implode( ' ', $parole ) . ' *' . $ultima . '*' );
+		}
+	}
+	return $esito;
+}
+
+/** Riga sotto il titolo della home del portale. */
+function ai_home_intro() {
+	$istruzione = "Scrivi la riga che compare sotto il titolo nella pagina d'ingresso di un portale di zone.\n\n"
+		. ai_contesto_portale() . "\n\n"
+		. "Una frase sola: dice a chi arriva di scegliere la città e cosa ci troverà.\n\n"
+		. ai_regole_portale();
+	return ai_chiedi_testo( $istruzione, 'introduzione', 200 );
+}
+
+/** Testo sopra l'elenco delle città. */
+function ai_home_testo() {
+	$istruzione = "Scrivi il testo di presentazione della pagina d'ingresso di un portale di zone.\n\n"
+		. ai_contesto_portale() . "\n\n"
+		. "Lunghezza: 120-180 parole, in due paragrafi separati da una riga vuota.\n"
+		. "Racconta di cosa si occupa l'attività e come lavora nelle zone che copre.\n"
+		. "Non elencare le città una per una: sotto c'è già il loro elenco.\n\n"
+		. ai_regole_portale();
+	return ai_chiedi_testo( $istruzione, 'testo', 0, 8192 );
+}
+
+/** Testo sotto l'elenco delle città. */
+function ai_home_sotto() {
+	$istruzione = "Scrivi due righe da mettere sotto l'elenco delle città di un portale di zone.\n\n"
+		. ai_contesto_portale() . "\n\n"
+		. "Servono a chi non trova la propria città: invitale a chiamare lo stesso.\n\n"
+		. ai_regole_portale();
+	return ai_chiedi_testo( $istruzione, 'testo', 240 );
+}
+
+/** Titolo per Google della home del portale. */
+function ai_home_seo_titolo() {
+	$istruzione = "Scrivi il tag title della pagina d'ingresso di un portale di zone.\n\n"
+		. ai_contesto_portale() . "\n\n"
+		. "Fra 45 e 60 caratteri. Deve contenere il nome dell'attività e l'idea delle zone coperte.\n\n"
+		. ai_regole_portale();
+	return ai_chiedi_testo( $istruzione, 'titolo', 65 );
+}
+
+/** Descrizione per Google della home del portale. */
+function ai_home_seo_desc() {
+	$istruzione = "Scrivi la meta description della pagina d'ingresso di un portale di zone.\n\n"
+		. ai_contesto_portale() . "\n\n"
+		. "Fra 120 e 155 caratteri. Dice cosa si fa e dove, e invita a scegliere la città.\n\n"
+		. ai_regole_portale();
+	return ai_chiedi_testo( $istruzione, 'descrizione', 158 );
+}
+
+/** Riga di presentazione nel piè di pagina. */
+function ai_piede_testo() {
+	$istruzione = "Scrivi la riga di presentazione che sta nel piè di pagina, sotto il nome dell'attività.\n\n"
+		. ai_contesto_portale() . "\n\n"
+		. "Una frase breve, al massimo dodici parole. Dice il mestiere, non slogan.\n\n"
+		. ai_regole_portale();
+	return ai_chiedi_testo( $istruzione, 'testo', 120 );
+}
+
+/** Soggetto proposto per l'immagine della home del portale. */
+function ai_soggetto_portale() {
+	$servizi = array();
+	foreach ( servizi() as $s ) {
+		$servizi[] = mb_strtolower( $s['nome'] );
+	}
+	$mestiere = empty( $servizi ) ? 'il mestiere' : implode( ', ', array_slice( $servizi, 0, 3 ) );
+	return 'il mestiere di ' . impostazione( 'brand', 'questa attività' ) . ' (' . $mestiere . '): '
+		. 'attrezzi e banco di lavoro ordinati, vista ampia';
+}
+
+/** Immagine di sfondo per la home del portale. */
+function ai_immagine_portale( $richiesta = '' ) {
+	$soggetto = vuoto( $richiesta ) ? ai_soggetto_portale() : trim( $richiesta );
+	return ai_disegna_immagine( $soggetto, impostazione( 'brand', '' ), 'home-portale', '' );
 }

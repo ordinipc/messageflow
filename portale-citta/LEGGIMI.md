@@ -270,6 +270,12 @@ Un fabbro *a Trapani*   →   Un fabbro a Trapani
 
 L'elenco delle città si costruisce da solo con le città pubblicate.
 
+Anche qui c'è l'assistente: propone il titolo (con gli asterischi già al
+posto giusto), la riga sotto, i due testi intorno all'elenco, titolo e
+descrizione per Google, e disegna l'immagine di sfondo. Non conosce una
+città sola: gli si passa l'elenco delle zone pubblicate e il catalogo dei
+servizi.
+
 **Piè di pagina** — è lo stesso su tutte le pagine del portale. Si cambiano la
 riga di presentazione sotto il nome, i titoli delle due colonne, il testo del
 copyright e i tuoi collegamenti, uno per riga:

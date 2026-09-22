@@ -305,7 +305,8 @@
 		}
 
 		var corpo = new FormData();
-		corpo.append('compito', 'immagine');
+		// La home del portale chiede un disegno diverso: niente città.
+		corpo.append('compito', bottone.getAttribute('data-ai-compito') || 'immagine');
 		corpo.append('pagina', bottone.getAttribute('data-ai-pagina') || '');
 		corpo.append('citta', bottone.getAttribute('data-ai-citta') || '');
 		corpo.append('richiesta', richiesta ? richiesta.value : '');
@@ -337,7 +338,7 @@
 				}
 				if (anteprima) { anteprima.style.display = ''; }
 
-				messaggio('✓ Immagine creata e selezionata (' + d.file + '). Salva la pagina per confermare.', '#0f7b3f');
+				messaggio('✓ Immagine creata e selezionata (' + d.file + '). Salva per confermare.', '#0f7b3f');
 			})
 			.catch(function (err) {
 				finito();

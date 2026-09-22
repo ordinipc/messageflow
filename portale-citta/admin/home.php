@@ -62,14 +62,22 @@ $citta    = citta_tutte( true );
 				<small>La riga piccola sopra il titolo. Vuota: si usa il nome dell'attività.</small>
 			</label>
 			<label>Titolo
-				<input type="text" name="home_titolo" value="<?php echo e( $imp['home_titolo'] ); ?>" placeholder="Dove *operiamo*">
+				<input type="text" id="campo-home-titolo-grande" name="home_titolo" value="<?php echo e( $imp['home_titolo'] ); ?>" placeholder="Dove *operiamo*">
 				<small>Fra <strong>*asterischi*</strong> la parte che esce in giallo: <code>Dove *operiamo*</code>.</small>
 			</label>
+			<?php if ( ai_attiva() ) : ?>
+			<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo"
+				data-ai="home_titolo" data-ai-campo="campo-home-titolo-grande">✦ Proponi un titolo</button>
+			<?php endif; ?>
 			<label>Testo sotto il titolo
-				<textarea name="home_intro" rows="3"><?php echo e( $imp['home_intro'] ); ?></textarea>
+				<textarea id="campo-home-intro" name="home_intro" rows="3"><?php echo e( $imp['home_intro'] ); ?></textarea>
 			</label>
+			<?php if ( ai_attiva() ) : ?>
+			<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo"
+				data-ai="home_intro" data-ai-campo="campo-home-intro">✦ Scrivi con l'assistente</button>
+			<?php endif; ?>
 			<label>Immagine di sfondo
-				<select name="home_immagine">
+				<select id="campo-immagine" name="home_immagine">
 					<option value="">— nessuna —</option>
 					<?php foreach ( $immagini as $m ) : ?>
 						<option value="<?php echo e( $m['file'] ); ?>" <?php selected_pc( $m['file'], $imp['home_immagine'] ); ?>><?php echo e( $m['file'] ); ?></option>
@@ -77,17 +85,38 @@ $citta    = citta_tutte( true );
 				</select>
 				<small>Come per le pagine città: sta dietro all'intestazione. Si caricano da <a href="admin.php?p=media">Immagini</a>.</small>
 			</label>
+			<div class="pc-anteprima" id="anteprima-immagine" <?php echo vuoto( $imp['home_immagine'] ) ? 'style="display:none"' : ''; ?>>
+				<img id="anteprima-immagine-img" src="<?php echo e( vuoto( $imp['home_immagine'] ) ? '' : url_media( $imp['home_immagine'] ) ); ?>" alt="">
+			</div>
+
+			<?php if ( ai_attiva() ) : ?>
+				<label style="margin-top:14px">Cosa deve mostrare
+					<input type="text" id="campo-richiesta-immagine" placeholder="<?php echo e( ai_soggetto_portale() ); ?>">
+					<small>Lascia vuoto per usare la descrizione suggerita qui sopra.</small>
+				</label>
+				<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo" id="genera-immagine"
+					data-ai-compito="home_immagine">✦ Genera immagine</button>
+				<p class="pc-nota" id="esito-immagine" style="margin-top:10px"></p>
+			<?php endif; ?>
 		</div>
 
 		<div class="pc-scheda">
 			<h2>Testo della pagina</h2>
 			<label>Testo sopra l'elenco
-				<textarea name="home_testo" rows="6" placeholder="Chi siete, da quanto lavorate, cosa trova chi apre questa pagina."><?php echo e( $imp['home_testo'] ); ?></textarea>
+				<textarea id="campo-home-testo" name="home_testo" rows="6" placeholder="Chi siete, da quanto lavorate, cosa trova chi apre questa pagina."><?php echo e( $imp['home_testo'] ); ?></textarea>
 				<small>Una riga vuota fra un paragrafo e l'altro. Lascia vuoto per non mostrare niente.</small>
 			</label>
+			<?php if ( ai_attiva() ) : ?>
+			<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo"
+				data-ai="home_testo" data-ai-campo="campo-home-testo">✦ Scrivi con l'assistente</button>
+			<?php endif; ?>
 			<label>Testo sotto l'elenco
-				<textarea name="home_sotto_elenco" rows="4"><?php echo e( $imp['home_sotto_elenco'] ); ?></textarea>
+				<textarea id="campo-home-sotto" name="home_sotto_elenco" rows="4"><?php echo e( $imp['home_sotto_elenco'] ); ?></textarea>
 			</label>
+			<?php if ( ai_attiva() ) : ?>
+			<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo"
+				data-ai="home_sotto" data-ai-campo="campo-home-sotto">✦ Scrivi con l'assistente</button>
+			<?php endif; ?>
 		</div>
 
 		<div class="pc-scheda">
@@ -124,10 +153,18 @@ $citta    = citta_tutte( true );
 					placeholder="<?php echo e( $imp['brand'] . ' — tutte le città in cui operiamo' ); ?>">
 				<small>Vuoto: si usa il nome dell'attività. Ideale 30-65 caratteri.</small>
 			</label>
+			<?php if ( ai_attiva() ) : ?>
+			<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo"
+				data-ai="home_seo_titolo" data-ai-campo="campo-home-titolo">✦ Scrivi il titolo</button>
+			<?php endif; ?>
 			<label>Descrizione per Google
 				<textarea id="campo-home-desc" name="home_seo_desc" rows="3"><?php echo e( $imp['home_seo_desc'] ); ?></textarea>
 				<small>Ideale 70-160 caratteri.</small>
 			</label>
+			<?php if ( ai_attiva() ) : ?>
+			<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo"
+				data-ai="home_seo_desc" data-ai-campo="campo-home-desc">✦ Scrivi la descrizione</button>
+			<?php endif; ?>
 		</div>
 
 		<div class="pc-scheda">
@@ -184,9 +221,13 @@ $citta    = citta_tutte( true );
 				P. IVA: vengono dalla città che si sta guardando, o dalle impostazioni.
 			</p>
 			<label>Riga di presentazione
-				<textarea name="piede_testo" rows="3" placeholder="Duplicazione chiavi e serrature dal 2013."><?php echo e( $imp['piede_testo'] ); ?></textarea>
+				<textarea id="campo-piede-testo" name="piede_testo" rows="3" placeholder="Duplicazione chiavi e serrature dal 2013."><?php echo e( $imp['piede_testo'] ); ?></textarea>
 				<small>Una frase breve sotto il nome. Lascia vuoto per non metterla.</small>
 			</label>
+			<?php if ( ai_attiva() ) : ?>
+			<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo"
+				data-ai="piede_testo" data-ai-campo="campo-piede-testo">✦ Scrivi con l'assistente</button>
+			<?php endif; ?>
 		</div>
 
 		<div class="pc-scheda">

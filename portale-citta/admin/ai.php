@@ -34,6 +34,38 @@ if ( ! ai_attiva() ) {
 	ai_risposta( array( 'ok' => false, 'errore' => 'Chiave Gemini non impostata.' ) );
 }
 
+// La home del portale e il piè di pagina non appartengono a nessuna città:
+// si rispondono prima di andare a cercarla.
+$senza_citta = array(
+	'home_titolo'     => 'ai_home_titolo',
+	'home_intro'      => 'ai_home_intro',
+	'home_testo'      => 'ai_home_testo',
+	'home_sotto'      => 'ai_home_sotto',
+	'home_seo_titolo' => 'ai_home_seo_titolo',
+	'home_seo_desc'   => 'ai_home_seo_desc',
+	'piede_testo'     => 'ai_piede_testo',
+);
+
+if ( isset( $senza_citta[ $compito ] ) ) {
+	$esito = call_user_func( $senza_citta[ $compito ] );
+	ai_risposta( array(
+		'ok'     => (bool) $esito['ok'],
+		'testo'  => isset( $esito['testo'] ) ? $esito['testo'] : '',
+		'errore' => $esito['errore'],
+	) );
+}
+
+if ( 'home_immagine' === $compito ) {
+	$esito = ai_immagine_portale( (string) ( $_POST['richiesta'] ?? '' ) );
+	ai_risposta( array(
+		'ok'     => (bool) $esito['ok'],
+		'file'   => $esito['file'],
+		'alt'    => $esito['alt'],
+		'url'    => '' === $esito['file'] ? '' : url_media( $esito['file'] ),
+		'errore' => $esito['errore'],
+	) );
+}
+
 $citta = citta_per_id( (string) ( $_POST['citta'] ?? '' ) );
 if ( ! $citta ) {
 	ai_risposta( array( 'ok' => false, 'errore' => 'Città non trovata.' ) );
