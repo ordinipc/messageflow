@@ -76,6 +76,18 @@ una cartella fisica non viene intercettata.
 
 L'amministrazione è su `tuosito.it/admin.php`.
 
+### Dove porta il logo
+
+Il logo in alto riporta al **sito principale**, su ogni pagina del portale:
+home, città, pagine, articoli e anche la pagina di errore. L'indirizzo si
+scrive in Impostazioni → Sito → *Indirizzo del sito principale*, e lo chiede
+anche l'installazione.
+
+Se lo lasci vuoto il portale lo ricava da sé: quando sta in una sottocartella
+(`tuosito.it/zone`) il logo porta alla **radice del dominio**, cioè
+`tuosito.it/`, non alla cartella del portale. Con il portale installato sulla
+radice i due coincidono.
+
 ### Chi entra nel pannello
 
 Gli accessi si gestiscono da **Utenti**. Ogni persona ha il suo nome e la sua

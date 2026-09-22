@@ -89,7 +89,15 @@ $cfg      = db_config();
 		</label>
 		<label>Indirizzo del sito principale
 			<input type="url" name="sito_principale" value="<?php echo e( $imp['sito_principale'] ); ?>" placeholder="https://www.tuosito.it">
-			<small>Il logo in alto porta qui.</small>
+			<small>
+				Il logo in alto porta qui, su <strong>tutte</strong> le pagine del portale.
+				<?php if ( vuoto( $imp['sito_principale'] ) ) : ?>
+					Vuoto: si usa la radice del dominio, cioè
+					<code><?php echo e( url_sito_principale() ); ?></code>.
+				<?php endif; ?>
+				Nel piè di pagina compare anche il collegamento «Torna al sito principale»,
+				ma solo se lo scrivi qui.
+			</small>
 		</label>
 		<div class="pc-riga pc-riga--2">
 			<label>Nazione (sigla) <input type="text" name="nazione" maxlength="2" value="<?php echo e( $imp['nazione'] ); ?>"></label>

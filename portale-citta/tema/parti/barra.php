@@ -13,7 +13,7 @@ defined( 'PC_AVVIO' ) || exit;
 $imp      = impostazioni();
 $telefono = isset( $telefono ) ? $telefono : $imp['telefono'];
 $menu     = isset( $menu ) ? (array) $menu : array();
-$home     = vuoto( $imp['sito_principale'] ) ? base_url() . '/' : $imp['sito_principale'];
+$home     = url_sito_principale();
 $in_home  = isset( $pagina ) && 'home' === $pagina['tipo'];
 ?>
 <header class="glp-topbar">

@@ -263,6 +263,30 @@ function shortcode_pagina( $citta, $pagina, $sezione = '' ) {
 	return '[portale_citta ' . $parti . ']';
 }
 
+/**
+ * Dove porta il logo in alto, su ogni pagina del portale.
+ *
+ * Se l'indirizzo del sito principale è scritto nelle impostazioni si usa
+ * quello. Altrimenti si ricava dal portale stesso: quando sta in una
+ * sottocartella (`sito.it/zone`) il sito è quello che la contiene, e il
+ * logo deve riportare là, non alla radice della sottocartella. Con il
+ * portale installato sulla radice del dominio i due coincidono.
+ */
+function url_sito_principale() {
+	$scelto = impostazione( 'sito_principale', '' );
+	if ( ! vuoto( $scelto ) ) {
+		return $scelto;
+	}
+
+	$base  = base_url();
+	$parti = parse_url( $base );
+	if ( empty( $parti['scheme'] ) || empty( $parti['host'] ) ) {
+		return $base . '/';
+	}
+	$porta = empty( $parti['port'] ) ? '' : ':' . $parti['port'];
+	return $parti['scheme'] . '://' . $parti['host'] . $porta . '/';
+}
+
 /** Lo shortcode della home del portale: l'elenco delle zone. */
 function shortcode_home( $sezione = '' ) {
 	return '' === (string) $sezione

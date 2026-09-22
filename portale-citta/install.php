@@ -68,6 +68,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['azione'] ) && 'avvi
 	$url      = rtrim( trim( (string) ( $_POST['sito_url'] ?? '' ) ), '/' );
 	$password = (string) ( $_POST['password'] ?? '' );
 	$utente   = utente_nome_pulito( $_POST['utente'] ?? 'admin' );
+	$principale = rtrim( trim( (string) ( $_POST['sito_principale'] ?? '' ) ), '/' );
 	$email    = trim( (string) ( $_POST['email'] ?? '' ) );
 	if ( '' === $utente ) {
 		$utente = 'admin';
@@ -79,9 +80,10 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['azione'] ) && 'avvi
 		try {
 			db_installa();
 			impostazioni_salva( array(
-				'brand'    => '' === $brand ? 'Il mio sito' : $brand,
-				'sito_url' => $url,
-				'email'    => $email,
+				'brand'           => '' === $brand ? 'Il mio sito' : $brand,
+				'sito_url'        => $url,
+				'email'           => $email,
+				'sito_principale' => $principale,
 			) );
 			utente_salva( array(
 				'nome'          => $utente,
@@ -154,6 +156,11 @@ $cfg = db_config();
 			<label>Indirizzo del portale
 				<input type="url" name="sito_url" placeholder="https://www.tuosito.it/citta" value="<?php echo e( base_url() ); ?>">
 				<small>Senza barra finale. È l'indirizzo da cui si raggiungono le pagine città.</small>
+			</label>
+			<label>Indirizzo del sito principale
+				<input type="url" name="sito_principale" placeholder="https://www.tuosito.it">
+				<small>Il sito a cui il portale si appoggia: il logo in alto porterà lì.
+					Vuoto: si usa la radice del dominio.</small>
 			</label>
 			<label>Nome utente
 				<input type="text" name="utente" value="admin" autocomplete="off">
