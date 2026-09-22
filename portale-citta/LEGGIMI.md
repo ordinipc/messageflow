@@ -489,6 +489,21 @@ il portale: non si scarica niente da server di altri.
 
 ---
 
+## Testo su due colonne
+
+Sopra i 1100px il testo lungo delle sezioni si dispone su **due colonne**, e
+il modulo di contatto pure: i campi a sinistra, il messaggio e il pulsante a
+destra. Sotto, tornano una colonna sola.
+
+Non c'è niente da impostare: la soglia è scritta in `em`, quindi se il
+visitatore ingrandisce il testo le colonne diventano una da sole, prima che
+diventino troppo strette per leggerle.
+
+Un testo corto resta comunque in una colonna: due colonne da due righe non
+servono a niente, e il browser lo capisce da solo.
+
+---
+
 ## Sezioni a riquadri ed effetti
 
 Impostazioni → Aspetto → **Sezioni ed effetti**.

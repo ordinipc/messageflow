@@ -8,6 +8,17 @@
 
 defined( 'PC_AVVIO' ) || exit;
 
+/**
+ * Avvolge i paragrafi di un testo lungo.
+ *
+ * Serve il contenitore: le colonne si applicano a lui, non alla sezione,
+ * altrimenti anche il titolo finirebbe spezzato in due.
+ */
+function blocco_prosa( $testo ) {
+	$html = paragrafi( $testo );
+	return '' === trim( $html ) ? '' : '<div class="glp-prosa">' . $html . '</div>';
+}
+
 /** True se le sezioni vanno disegnate a riquadri. */
 function stile_card() {
 	return 'card' === impostazione( 'stile_sezioni', 'card' );
@@ -637,6 +648,7 @@ function sezione_modulo( $citta, $pagina, $servizi, $esito = null ) {
 		. '<label>Non compilare<input type="text" name="indirizzo2" tabindex="-1" autocomplete="off"></label>'
 		. '</div>'
 
+		. '<div class="glp-modulo__colonna">'
 		. '<div class="glp-modulo__riga">'
 		. '<label>Nome e cognome *<input type="text" name="nome" required value="' . $v( 'nome' ) . '" autocomplete="name"></label>'
 		. '<label>Telefono<input type="tel" name="telefono" value="' . $v( 'telefono' ) . '" autocomplete="tel"></label>'
@@ -654,10 +666,12 @@ function sezione_modulo( $citta, $pagina, $servizi, $esito = null ) {
 		$html .= '<option value="Altro">Altro</option></select></label>';
 	}
 
-	$html .= '</div>'
+	$html .= '</div></div>'
+		. '<div class="glp-modulo__colonna">'
 		. '<label>Messaggio *<textarea name="messaggio" required rows="5" placeholder="Scrivi il modello dell\'auto, o che tipo di serratura hai.">' . $v( 'messaggio' ) . '</textarea></label>'
 		. '<p class="glp-modulo__nota">Lascia almeno un recapito fra telefono ed email. I dati servono solo a risponderti.</p>'
 		. '<button class="glp-btn" type="submit">Invia la richiesta</button>'
+		. '</div>'
 		. '</form>';
 
 	return $html . '</section>';
@@ -676,7 +690,7 @@ function sezione_testo( $citta, $pagina ) {
 		return '';
 	}
 	return sezione_apri( 'approfondimento', seo_h1( $citta, $pagina ) . ': cosa sapere', 'Approfondimento' )
-		. paragrafi( $pagina['corpo'] )
+		. blocco_prosa( $pagina['corpo'] )
 		. '</section>';
 }
 
@@ -810,7 +824,7 @@ function sezione_testo_home( $chiave, $id ) {
 	if ( vuoto( $testo ) ) {
 		return '';
 	}
-	return '<section class="glp-section glp-reveal" id="' . e( $id ) . '">' . paragrafi( $testo ) . '</section>';
+	return '<section class="glp-section glp-reveal" id="' . e( $id ) . '">' . blocco_prosa( $testo ) . '</section>';
 }
 
 /** L'HTML scritto a mano nella home del portale. */
