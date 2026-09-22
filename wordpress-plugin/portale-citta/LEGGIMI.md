@@ -21,6 +21,8 @@ pronto: ci clicchi sopra e si copia.
 
 | Cosa scrivi | Cosa esce |
 |---|---|
+| `[portale_citta]` | l'elenco di tutte le zone in cui lavori |
+| `[portale_citta sezione="citta"]` | solo la griglia delle zone, senza i testi intorno |
 | `[portale_citta citta="trapani"]` | la pagina principale di Trapani |
 | `[portale_citta citta="trapani" pagina="contatti"]` | tutta la pagina Contatti |
 | `[portale_citta citta="trapani" pagina="contatti" sezione="modulo"]` | solo il modulo di contatto |

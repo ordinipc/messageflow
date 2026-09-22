@@ -57,44 +57,10 @@ include __DIR__ . '/parti/barra.php';
 	<div class="glp-main__inner">
 	<div class="glp-sections">
 		<?php
-		// Testo senza titolo: il titolo della pagina è già l'intestazione.
-		if ( ! vuoto( $imp['home_testo'] ) ) {
-			echo '<section class="glp-section glp-reveal" id="testo">' . paragrafi( $imp['home_testo'] ) . '</section>';
-		}
-		?>
-
-		<?php if ( empty( $lista ) ) : ?>
-			<section class="glp-section glp-reveal">
-				<h2 class="glp-section__title">Nessuna città pubblicata</h2>
-				<p>Accedi all'<a href="<?php echo e( base_url() ); ?>/admin.php">amministrazione</a> per creare la prima città.</p>
-			</section>
-		<?php else : ?>
-			<?php echo sezione_apri( 'citta', $imp['home_elenco_titolo'], $imp['home_elenco_occhio'] ); ?>
-			<ul class="glp-grid glp-grid--citta">
-				<?php foreach ( $lista as $c ) : ?>
-					<?php $n_pagine = count( pagine_di_citta( $c['id'], true ) ); ?>
-					<li>
-						<a class="glp-grid__link" href="<?php echo e( url_citta( $c ) ); ?>">
-							<span class="glp-grid__title"><?php echo e( $c['nome'] ); ?></span>
-							<span class="glp-grid__meta">
-								<?php echo e( vuoto( $c['provincia'] ) ? $c['regione'] : $c['provincia'] ); ?>
-								<?php if ( $n_pagine > 0 ) : ?>
-									· <?php echo (int) $n_pagine; ?> pagine
-								<?php endif; ?>
-							</span>
-						</a>
-					</li>
-				<?php endforeach; ?>
-			</ul>
-			</section>
-		<?php endif; ?>
-
-		<?php
-		if ( ! vuoto( $imp['home_sotto_elenco'] ) ) {
-			echo '<section class="glp-section glp-reveal">' . paragrafi( $imp['home_sotto_elenco'] ) . '</section>';
-		}
-		if ( ! vuoto( $imp['home_html'] ) ) {
-			echo '<section class="glp-section glp-section--libero glp-reveal">' . $imp['home_html'] . '</section>';
+		// Le stesse funzioni che risponderanno allo shortcode: una sola
+		// versione di questa pagina, non due che si allontanano.
+		foreach ( array_keys( sezioni_home() ) as $chiave ) {
+			echo rendi_sezione_home( $chiave );
 		}
 		?>
 	</div>

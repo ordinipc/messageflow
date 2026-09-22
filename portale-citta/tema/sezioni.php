@@ -772,6 +772,81 @@ function sezione_cta( $citta, $telefono, $whatsapp ) {
 	return $html . '</div></section>';
 }
 
+/* ---------------------------------------------------------------------------
+ * Home del portale: le sezioni che non appartengono a nessuna città
+ * ------------------------------------------------------------------------- */
+
+/** L'elenco delle città pubblicate, a riquadri. */
+function sezione_elenco_citta( $lista = null ) {
+	$imp   = impostazioni();
+	$lista = null === $lista ? citta_tutte( true ) : $lista;
+
+	if ( empty( $lista ) ) {
+		return '<section class="glp-section glp-reveal" id="citta">'
+			. '<h2 class="glp-section__title">Nessuna città pubblicata</h2>'
+			. '<p>Accedi all\'<a href="' . e( base_url() ) . '/admin.php">amministrazione</a> per creare la prima città.</p>'
+			. '</section>';
+	}
+
+	$html = sezione_apri( 'citta', $imp['home_elenco_titolo'], $imp['home_elenco_occhio'] )
+		. '<ul class="glp-grid glp-grid--citta">';
+
+	foreach ( $lista as $c ) {
+		$quante = count( pagine_di_citta( $c['id'], true ) );
+		$html  .= '<li><a class="glp-grid__link" href="' . e( url_citta( $c ) ) . '">'
+			. '<span class="glp-grid__title">' . e( $c['nome'] ) . '</span>'
+			. '<span class="glp-grid__meta">'
+			. e( vuoto( $c['provincia'] ) ? $c['regione'] : $c['provincia'] )
+			. ( $quante > 0 ? ' · ' . (int) $quante . ' pagine' : '' )
+			. '</span></a></li>';
+	}
+
+	return $html . '</ul></section>';
+}
+
+/** Un testo libero della home, senza titolo. */
+function sezione_testo_home( $chiave, $id ) {
+	$testo = impostazione( $chiave, '' );
+	if ( vuoto( $testo ) ) {
+		return '';
+	}
+	return '<section class="glp-section glp-reveal" id="' . e( $id ) . '">' . paragrafi( $testo ) . '</section>';
+}
+
+/** L'HTML scritto a mano nella home del portale. */
+function sezione_html_home() {
+	$html = impostazione( 'home_html', '' );
+	if ( vuoto( $html ) ) {
+		return '';
+	}
+	return '<section class="glp-section glp-section--libero glp-reveal">' . $html . '</section>';
+}
+
+/** Le sezioni della home del portale, nell'ordine in cui escono. */
+function sezioni_home() {
+	return array(
+		'testo'  => 'Testo sopra l\'elenco',
+		'citta'  => 'Elenco delle città',
+		'sotto'  => 'Testo sotto l\'elenco',
+		'html'   => 'HTML libero',
+	);
+}
+
+/** Stampa una sezione della home del portale. */
+function rendi_sezione_home( $chiave ) {
+	switch ( $chiave ) {
+		case 'testo':
+			return sezione_testo_home( 'home_testo', 'testo' );
+		case 'citta':
+			return sezione_elenco_citta();
+		case 'sotto':
+			return sezione_testo_home( 'home_sotto_elenco', 'sotto-elenco' );
+		case 'html':
+			return sezione_html_home();
+	}
+	return '';
+}
+
 /**
  * Tutto quello che serve alle sezioni per disegnarsi.
  *

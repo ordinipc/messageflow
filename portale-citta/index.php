@@ -68,7 +68,8 @@ if ( preg_match( '#^sitemap-([a-z0-9-]+)\.xml$#', $percorso, $m ) ) {
 
 /* --- home del portale: elenco delle città -------------------------------- */
 if ( '' === $percorso ) {
-	include __DIR__ . '/tema/elenco-citta.php';
+	// Anche la home si può incorporare: è l'elenco delle città.
+	include __DIR__ . ( isset( $_GET['incorpora'] ) ? '/tema/incorpora-home.php' : '/tema/elenco-citta.php' );
 	exit;
 }
 

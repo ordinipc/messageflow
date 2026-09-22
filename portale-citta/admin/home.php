@@ -26,6 +26,11 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	vai_a( 'admin.php?p=home' );
 }
 
+// sezioni_home() e rendi_sezione_home() stanno nel tema: servono per
+// elencare le sezioni incorporabili di questa pagina.
+require_once PC_RADICE . '/tema/funzioni-tema.php';
+require_once PC_RADICE . '/tema/sezioni.php';
+
 $imp      = impostazioni();
 $immagini = media_tutti();
 $citta    = citta_tutte( true );
@@ -123,6 +128,37 @@ $citta    = citta_tutte( true );
 				<textarea id="campo-home-desc" name="home_seo_desc" rows="3"><?php echo e( $imp['home_seo_desc'] ); ?></textarea>
 				<small>Ideale 70-160 caratteri.</small>
 			</label>
+		</div>
+
+		<div class="pc-scheda">
+			<h2>Shortcode per WordPress</h2>
+			<p class="pc-scheda__nota">
+				Per mostrare l'elenco delle zone dentro una pagina di WordPress.
+				Serve il plugin <strong>Portale Città — shortcode</strong>.
+			</p>
+
+			<label>Tutta la pagina
+				<input type="text" class="pc-mono" readonly value="<?php echo e( shortcode_home() ); ?>"
+					title="<?php echo e( shortcode_home() ); ?>" onfocus="this.select()">
+				<small>Clicca per copiare.</small>
+			</label>
+
+			<label>Una sezione sola
+				<select id="scelta-sezione">
+					<?php foreach ( sezioni_home() as $chiave => $nome ) : ?>
+						<option value="<?php echo e( $chiave ); ?>" <?php selected_pc( 'citta', $chiave ); ?>><?php echo e( $nome ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</label>
+			<input type="text" class="pc-mono" readonly id="shortcode-sezione"
+				value="<?php echo e( shortcode_home( 'citta' ) ); ?>"
+				title="<?php echo e( shortcode_home( 'citta' ) ); ?>"
+				onfocus="this.select()"
+				data-modello="<?php echo e( shortcode_home( '__SEZIONE__' ) ); ?>">
+			<small>
+				<strong>Solo la griglia delle zone</strong> è quello che serve quasi sempre:
+				si incolla dove vuoi e non fa doppione con la pagina del portale.
+			</small>
 		</div>
 
 		<div class="pc-scheda">

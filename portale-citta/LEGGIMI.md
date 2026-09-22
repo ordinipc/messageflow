@@ -415,6 +415,14 @@ solo:
 [portale_citta citta="trapani" pagina="contatti" sezione="modulo"]
 ```
 
+**Serve solo l'elenco delle zone?** È lo shortcode della home del portale,
+che trovi in *Home del portale* → colonna destra:
+
+```
+[portale_citta]                    → tutta la pagina /zone/
+[portale_citta sezione="citta"]    → solo la griglia delle zone
+```
+
 Perché funzioni serve il plugin **Portale Città — shortcode**
 (`wordpress-plugin/portale-citta/`), da installare in WordPress e da puntare
 all'indirizzo del portale in *Impostazioni → Portale Città*.
@@ -426,9 +434,10 @@ la pagina "Contatti" di WordPress, le card dei servizi dentro la home, i
 recapiti dove servono.
 
 Come funziona sotto: il portale risponde in JSON su
-`/{citta}/{pagina}/?incorpora=1[&sezione=chiave]` con il contenuto già
-disegnato, l'indirizzo del foglio di stile e l'elenco delle sezioni
-disponibili. Le bozze non si incorporano: rispondono 404 come al pubblico.
+`/{citta}/{pagina}/?incorpora=1[&sezione=chiave]` — e su `/?incorpora=1` per
+la home — con il contenuto già disegnato, l'indirizzo del foglio di stile e
+l'elenco delle sezioni disponibili. Le bozze non si incorporano: rispondono
+404 come al pubblico.
 
 ---
 

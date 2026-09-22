@@ -128,6 +128,8 @@ function pcw_schermata() {
 		<p><code>[portale_citta citta="trapani" pagina="contatti"]</code> — tutta la pagina</p>
 		<p><code>[portale_citta citta="trapani" pagina="contatti" sezione="modulo"]</code> — solo il modulo di contatto</p>
 		<p><code>[portale_citta citta="trapani"]</code> — la pagina principale di quella città</p>
+		<p><code>[portale_citta]</code> — l'elenco di tutte le zone in cui lavori</p>
+		<p><code>[portale_citta sezione="citta"]</code> — solo la griglia delle zone, senza i testi intorno</p>
 		<p class="description">
 			Attenzione ai contenuti doppi: se incorpori una pagina intera, lo stesso testo esiste
 			su due indirizzi e Google ne sceglie uno solo. Per questo conviene incorporare
@@ -173,9 +175,13 @@ function pcw_leggi( $citta, $pagina, $sezione ) {
 		return new WP_Error( 'pcw_no_url', 'Indirizzo del portale non impostato: Impostazioni → Portale Città.' );
 	}
 
-	$percorso = $base . '/' . rawurlencode( $citta ) . '/';
-	if ( '' !== $pagina ) {
-		$percorso .= rawurlencode( $pagina ) . '/';
+	// Senza città si chiede la home del portale: l'elenco delle zone.
+	$percorso = $base . '/';
+	if ( '' !== $citta ) {
+		$percorso .= rawurlencode( $citta ) . '/';
+		if ( '' !== $pagina ) {
+			$percorso .= rawurlencode( $pagina ) . '/';
+		}
 	}
 	$url = add_query_arg(
 		array_filter( array( 'incorpora' => 1, 'sezione' => $sezione ) ),
@@ -231,12 +237,9 @@ function pcw_shortcode( $attributi ) {
 		'titolo'  => '',
 	), $attributi, 'portale_citta' );
 
+	// [portale_citta] da solo è l'elenco delle zone: non manca niente.
 	$citta = sanitize_title( $a['citta'] );
-	if ( '' === $citta ) {
-		return pcw_avviso( 'Manca l\'attributo citta: [portale_citta citta="trapani"].' );
-	}
-
-	$dati = pcw_leggi( $citta, sanitize_title( $a['pagina'] ), sanitize_key( $a['sezione'] ) );
+	$dati  = pcw_leggi( $citta, sanitize_title( $a['pagina'] ), sanitize_key( $a['sezione'] ) );
 	if ( is_wp_error( $dati ) ) {
 		return pcw_avviso( $dati->get_error_message() );
 	}

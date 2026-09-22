@@ -263,6 +263,13 @@ function shortcode_pagina( $citta, $pagina, $sezione = '' ) {
 	return '[portale_citta ' . $parti . ']';
 }
 
+/** Lo shortcode della home del portale: l'elenco delle zone. */
+function shortcode_home( $sezione = '' ) {
+	return '' === (string) $sezione
+		? '[portale_citta]'
+		: '[portale_citta sezione="' . $sezione . '"]';
+}
+
 /** URL pubblico di un articolo del blog. */
 function url_articolo( $citta, $articolo, $pagina_blog = null ) {
 	if ( null === $pagina_blog ) {
