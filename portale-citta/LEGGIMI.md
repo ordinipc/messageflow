@@ -25,6 +25,7 @@ Non è un plugin: gira da solo, con il suo database e la sua amministrazione.
 | **Modulo di contatto** | Con recapiti completi, anti-spam senza captcha |
 | **Home del portale** | La pagina d'ingresso e il piè di pagina si scrivono dal pannello |
 | **Due stili grafici** | Vetrina (intestazione a tutta larghezza) o Classico, con la larghezza regolabile |
+| **Shortcode per WordPress** | Ogni pagina (o singola sezione) si incolla dentro WordPress |
 | **Sezioni per pagina** | Ogni pagina sceglie cosa mostrare **e in che ordine**: non escono tutte uguali |
 | **Sezioni a card** | Ogni sezione si disegna a riquadri o a elenco, con effetti dinamici |
 | **CSS/HTML/JS** | Tre livelli: globale, per città, per pagina |
@@ -395,6 +396,39 @@ sprecarli.
 
 Il pannello si chiude con Esc, con un tocco fuori, e si richiude da solo
 tornando a schermo largo.
+
+---
+
+## Portare una pagina dentro WordPress
+
+Ogni pagina del portale ha il suo **shortcode**, pronto da copiare nella
+colonna destra dell'editor:
+
+```
+[portale_citta citta="trapani" pagina="contatti"]
+```
+
+Nella tendina sotto scegli una **singola sezione** e lo shortcode cambia da
+solo:
+
+```
+[portale_citta citta="trapani" pagina="contatti" sezione="modulo"]
+```
+
+Perché funzioni serve il plugin **Portale Città — shortcode**
+(`wordpress-plugin/portale-citta/`), da installare in WordPress e da puntare
+all'indirizzo del portale in *Impostazioni → Portale Città*.
+
+**Meglio una sezione che la pagina intera.** Incorporando una pagina intera lo
+stesso testo esiste su due indirizzi e Google ne sceglie uno solo, scartando
+l'altro. Le sezioni singole invece no: il modulo di contatto di Trapani dentro
+la pagina "Contatti" di WordPress, le card dei servizi dentro la home, i
+recapiti dove servono.
+
+Come funziona sotto: il portale risponde in JSON su
+`/{citta}/{pagina}/?incorpora=1[&sezione=chiave]` con il contenuto già
+disegnato, l'indirizzo del foglio di stile e l'elenco delle sezioni
+disponibili. Le bozze non si incorporano: rispondono 404 come al pubblico.
 
 ---
 

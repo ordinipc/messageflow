@@ -346,6 +346,41 @@
 	});
 })();
 
+/* Shortcode di una sezione: cambia insieme alla tendina, senza ricaricare. */
+(function () {
+	'use strict';
+
+	var scelta = document.getElementById('scelta-sezione');
+	var campo = document.getElementById('shortcode-sezione');
+	if (!scelta || !campo) { return; }
+
+	scelta.addEventListener('change', function () {
+		var modello = campo.getAttribute('data-modello') || '';
+		campo.value = modello.replace('__SEZIONE__', scelta.value);
+		campo.title = campo.value;
+	});
+})();
+
+/* Campi da copiare: un clic prende tutto, e lo dice. */
+(function () {
+	'use strict';
+
+	document.querySelectorAll('input[readonly].pc-mono, #shortcode-sezione').forEach(function (campo) {
+		campo.addEventListener('click', function () {
+			campo.select();
+			// Su http la scrittura negli appunti non è permessa: resta
+			// selezionato, e si copia a mano. Nessun errore in console.
+			if (navigator.clipboard && window.isSecureContext) {
+				navigator.clipboard.writeText(campo.value).then(function () {
+					var prima = campo.style.borderColor;
+					campo.style.borderColor = '#0a0';
+					setTimeout(function () { campo.style.borderColor = prima; }, 700);
+				}, function () {});
+			}
+		});
+	});
+})();
+
 /* Liste spostabili: le voci del menu di una città e le sezioni di una
    pagina. I pulsanti restano invii veri, quindi senza JavaScript le due
    schermate funzionano lo stesso — solo con un ricaricamento in mezzo. */

@@ -106,6 +106,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	}
 }
 
+$catalogo_sezioni = sezioni_disponibili( $pagina['tipo'] );
 $analisi  = seo_analisi( $citta, $pagina );
 $punti    = $analisi['punteggio'];
 $classe   = $punti >= 80 ? 'is-alto' : ( $punti >= 55 ? 'is-medio' : 'is-basso' );
@@ -462,6 +463,44 @@ $lista_s  = servizi();
 
 <!-- COLONNA LATERALE -->
 <aside>
+	<?php if ( ! $nuova ) : ?>
+	<div class="pc-scheda">
+		<h2>Shortcode per WordPress</h2>
+		<p class="pc-scheda__nota">
+			Da incollare in una pagina di WordPress per mostrare qui dentro il contenuto
+			di questa pagina. Serve il plugin <strong>Portale Città — shortcode</strong>.
+		</p>
+
+		<label>Tutta la pagina
+			<input type="text" class="pc-mono" readonly data-copia
+				value="<?php echo e( shortcode_pagina( $citta, $pagina ) ); ?>"
+				title="<?php echo e( shortcode_pagina( $citta, $pagina ) ); ?>"
+				onfocus="this.select()">
+			<small>Clicca per copiare.</small>
+		</label>
+
+		<?php $sezioni_attive = pagina_sezioni( $pagina ); ?>
+		<?php if ( ! empty( $sezioni_attive ) ) : ?>
+			<label>Una sezione sola
+				<select id="scelta-sezione">
+					<?php foreach ( $sezioni_attive as $chiave ) : ?>
+						<option value="<?php echo e( $chiave ); ?>"><?php echo e( $catalogo_sezioni[ $chiave ][0] ?? $chiave ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</label>
+			<input type="text" class="pc-mono" readonly id="shortcode-sezione"
+				value="<?php echo e( shortcode_pagina( $citta, $pagina, $sezioni_attive[0] ) ); ?>"
+				title="<?php echo e( shortcode_pagina( $citta, $pagina, $sezioni_attive[0] ) ); ?>"
+				onfocus="this.select()"
+				data-modello="<?php echo e( shortcode_pagina( $citta, $pagina, '__SEZIONE__' ) ); ?>">
+			<small>
+				Meglio una sezione che la pagina intera: lo stesso testo su due indirizzi
+				fa scegliere a Google quale tenere, e l'altro lo scarta.
+			</small>
+		<?php endif; ?>
+	</div>
+	<?php endif; ?>
+
 	<div class="pc-scheda">
 		<h2>Punteggio SEO</h2>
 		<div class="pc-punteggio">

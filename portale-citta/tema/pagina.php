@@ -137,15 +137,7 @@ $sfondo = vuoto( $pagina['immagine'] ) ? '' : url_media( $pagina['immagine'] );
  * Ognuna sa dire da sola se ha qualcosa da mostrare: se il contenuto manca
  * restituisce stringa vuota e non lascia un buco.
  */
-$contesto = array(
-	'citta'        => $citta,
-	'pagina'       => $pagina,
-	'servizi'      => $servizi,
-	'altre'        => $altre,
-	'esito_modulo' => $esito_modulo,
-	'telefono'     => $telefono,
-	'whatsapp'     => $whatsapp,
-);
+$contesto = contesto_pagina( $citta, $pagina, $esito_modulo );
 foreach ( pagina_sezioni( $pagina ) as $chiave ) {
 	echo rendi_sezione( $chiave, $contesto );
 }

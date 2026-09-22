@@ -134,6 +134,19 @@ input[type=checkbox]{width:auto;margin:0 6px 0 0;}
 .pc-tabella__azioni .pc-btn{margin:2px 0 2px 6px;}
 .pc-tabella code{font-size:12px;color:var(--pc-grigio);}
 
+/* Campi da leggere e copiare: shortcode, CSS, HTML. */
+.pc-mono{
+	font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+	font-size:12.5px;
+}
+input.pc-mono[readonly]{
+	background:#fafafa;
+	cursor:copy;
+}
+input.pc-mono[readonly]:focus{
+	background:#fff;
+}
+
 /* --- Etichette di stato ------------------------------------------------ */
 .pc-stato{
 	display:inline-block;padding:3px 9px;border-radius:99px;

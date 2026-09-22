@@ -246,6 +246,23 @@ function selected_pc( $a, $b ) {
 	echo (string) $a === (string) $b ? 'selected' : '';
 }
 
+/**
+ * Lo shortcode che mostra questa pagina dentro WordPress.
+ *
+ * La pagina principale di una città non ha bisogno dello slug: senza
+ * l'attributo «pagina» il plugin prende quella.
+ */
+function shortcode_pagina( $citta, $pagina, $sezione = '' ) {
+	$parti = 'citta="' . $citta['slug'] . '"';
+	if ( 'home' !== $pagina['tipo'] ) {
+		$parti .= ' pagina="' . $pagina['slug'] . '"';
+	}
+	if ( '' !== (string) $sezione ) {
+		$parti .= ' sezione="' . $sezione . '"';
+	}
+	return '[portale_citta ' . $parti . ']';
+}
+
 /** URL pubblico di un articolo del blog. */
 function url_articolo( $citta, $articolo, $pagina_blog = null ) {
 	if ( null === $pagina_blog ) {

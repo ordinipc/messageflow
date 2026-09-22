@@ -773,6 +773,24 @@ function sezione_cta( $citta, $telefono, $whatsapp ) {
 }
 
 /**
+ * Tutto quello che serve alle sezioni per disegnarsi.
+ *
+ * Lo costruiscono sia la pagina pubblica sia l'incorporamento in
+ * WordPress: meglio un posto solo, o i due si allontanano.
+ */
+function contesto_pagina( $citta, $pagina, $esito_modulo = null ) {
+	return array(
+		'citta'        => $citta,
+		'pagina'       => $pagina,
+		'servizi'      => servizi_citta( $citta ),
+		'altre'        => altre_citta( $citta['id'] ),
+		'esito_modulo' => $esito_modulo,
+		'telefono'     => contatto( $citta, 'telefono' ),
+		'whatsapp'     => contatto( $citta, 'whatsapp' ),
+	);
+}
+
+/**
  * Stampa una sezione a partire dalla sua chiave.
  *
  * $ctx porta quello che serve a tutte: città, pagina, servizi, altre città

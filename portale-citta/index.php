@@ -131,4 +131,11 @@ if ( $articolo ) {
 	exit;
 }
 
+// Richiesta di incorporamento: risponde in JSON, senza intestazione né piè
+// di pagina. La usa lo shortcode di WordPress.
+if ( isset( $_GET['incorpora'] ) ) {
+	include __DIR__ . '/tema/incorpora.php';
+	exit;
+}
+
 include __DIR__ . '/tema/pagina.php';
