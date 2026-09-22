@@ -48,7 +48,6 @@ a{
     --glp-line-dark:rgba(255,255,255,.16);
     --glp-muted:rgba(17,17,17,.62);
     --glp-line:rgba(17,17,17,.14);
-    --glp-wrap:1240px;
 
     color:var(--glp-text);
 }
@@ -112,7 +111,7 @@ a{
     position:relative;
     z-index:2;
 
-    width:min(var(--glp-wrap),100%);
+    width:100%;
     margin:0 auto;
 }
 
@@ -1980,7 +1979,7 @@ body.glp-standalone{
 
     gap:18px;
 
-    width:min(1240px,calc(100% - 40px));
+    width:min(var(--glp-wrap,1240px),calc(100% - 40px));
     margin:0 auto;
 
     padding:14px 0;
@@ -2039,7 +2038,7 @@ body.glp-standalone{
 }
 
 .glp-main__inner.glp-main__inner{
-    width:min(1240px,calc(100% - 40px));
+    width:min(var(--glp-wrap,1240px),calc(100% - 40px));
     margin:0 auto;
 
     padding:28px 0 10px;
@@ -2068,7 +2067,7 @@ body.glp-standalone{
 
     gap:32px;
 
-    width:min(1240px,calc(100% - 40px));
+    width:min(var(--glp-wrap,1240px),calc(100% - 40px));
     margin:0 auto;
 
     padding:clamp(32px,4vw,56px) 0;
@@ -3271,5 +3270,353 @@ body.glp-standalone{
 
     .glp-modulo__riga > label{
         flex:1 1 100%;
+    }
+}
+
+
+/* =========================================================
+   TELEFONO IN BARRA — vale per tutti e due gli stili
+========================================================= */
+
+.glp-topbar__cta.glp-topbar__cta{
+    gap:10px;
+}
+
+.glp-topbar__cta-icona.glp-topbar__cta-icona{
+    display:none;
+
+    flex:none;
+    align-items:center;
+    justify-content:center;
+}
+
+.glp-topbar__cta-testo.glp-topbar__cta-testo{
+    display:flex;
+    flex-direction:column;
+    gap:1px;
+
+    text-align:left;
+}
+
+.glp-topbar__cta-etichetta.glp-topbar__cta-etichetta{
+    display:none;
+
+    font-size:8.5px;
+    font-weight:700;
+    line-height:1;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+
+    opacity:.66;
+}
+
+.glp-topbar__cta-numero.glp-topbar__cta-numero{
+    font-size:inherit;
+    font-weight:inherit;
+    line-height:1.2;
+    white-space:nowrap;
+}
+
+
+/* =========================================================
+   SOCIAL NEL PIÈ DI PAGINA
+========================================================= */
+
+.glp-bottombar__label--social.glp-bottombar__label--social{
+    margin-top:18px;
+}
+
+.glp-social.glp-social{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+
+    margin:0;
+    padding:0;
+
+    list-style:none;
+}
+
+.glp-social__link.glp-social__link{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+
+    width:36px;
+    height:36px;
+
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:50%;
+
+    color:#fff;
+
+    text-decoration:none !important;
+
+    transition:border-color .25s ease,background .25s ease,color .25s ease;
+}
+
+/* Il nome resta nel documento per chi legge con la sintesi vocale. */
+.glp-social__nome.glp-social__nome{
+    position:absolute;
+
+    width:1px;
+    height:1px;
+
+    overflow:hidden;
+
+    clip-path:inset(50%);
+    white-space:nowrap;
+}
+
+@media(hover:hover){
+
+    .glp-social__link.glp-social__link:hover{
+        border-color:var(--glp-accent,#ffd400);
+
+        background:var(--glp-accent,#ffd400);
+
+        color:#111;
+    }
+}
+
+
+/* =========================================================
+   STILE "CLASSICO" — l'intestazione resta una scheda dentro
+   al contenitore, com'era prima che uscisse dal contenitore.
+========================================================= */
+
+.glp-tema-classico .glp-hero.glp-hero{
+    width:min(var(--glp-wrap,1240px),calc(100% - 40px));
+    margin-right:auto;
+    margin-left:auto;
+
+    margin-top:28px;
+}
+
+
+/* =========================================================
+   STILE "VETRINA"
+
+   L'intestazione va da bordo a bordo con la foto dietro, il
+   testo sta in mezzo e i pulsanti sotto. Il resto della
+   pagina misura come header e piè di pagina.
+========================================================= */
+
+.glp-tema-vetrina .glp-hero.glp-hero{
+    margin-top:0;
+    margin-bottom:clamp(44px,6vw,80px);
+
+    padding:clamp(70px,9vw,140px) 20px clamp(62px,8vw,120px);
+
+    border-radius:0;
+}
+
+.glp-tema-vetrina .glp-hero__inner.glp-hero__inner{
+    width:min(var(--glp-wrap,1240px),calc(100% - 40px));
+    margin-right:auto;
+    margin-left:auto;
+
+    text-align:center;
+}
+
+/* Sopra una foto il testo deve restare leggibile da cima a fondo:
+   il velo diagonale di prima schiariva troppo in basso a destra. */
+.glp-tema-vetrina .glp-hero--image.glp-hero--image::before{
+    background:linear-gradient(180deg,rgba(0,0,0,.58),rgba(0,0,0,.8));
+}
+
+.glp-tema-vetrina .glp-hero__top.glp-hero__top{
+    justify-content:center;
+
+    margin-bottom:26px;
+}
+
+.glp-tema-vetrina .glp-hero__eyebrow.glp-hero__eyebrow{
+    justify-content:center;
+}
+
+.glp-tema-vetrina .glp-hero__main.glp-hero__main{
+    grid-template-columns:minmax(0,1fr);
+
+    gap:clamp(36px,5vw,64px);
+    align-items:start;
+}
+
+.glp-tema-vetrina .glp-hero__title.glp-hero__title{
+    max-width:22ch;
+    margin-right:auto;
+    margin-left:auto;
+
+    font-size:clamp(34px,5vw,66px);
+    line-height:1.02;
+    letter-spacing:-.02em;
+    text-transform:uppercase;
+}
+
+.glp-tema-vetrina .glp-hero__text.glp-hero__text{
+    max-width:66ch;
+    margin-right:auto;
+    margin-left:auto;
+}
+
+.glp-tema-vetrina .glp-hero__cta.glp-hero__cta{
+    justify-content:center;
+}
+
+.glp-tema-vetrina .glp-hero__bottom.glp-hero__bottom{
+    justify-content:center;
+}
+
+/* L'elenco dei servizi non sta più di fianco al titolo: diventa una
+   riga di pastiglie sotto ai pulsanti. */
+.glp-tema-vetrina .glp-hero__index.glp-hero__index{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    align-items:stretch;
+
+    gap:8px;
+
+    padding:0;
+
+    border:0;
+    background:none;
+}
+
+.glp-tema-vetrina .glp-hero__index-title.glp-hero__index-title{
+    flex:1 0 100%;
+    justify-content:center;
+
+    margin-bottom:6px;
+    padding:0;
+
+    border-bottom:0;
+}
+
+.glp-tema-vetrina .glp-hero__index-title.glp-hero__index-title::after{
+    content:none;
+}
+
+.glp-tema-vetrina .glp-hero__service.glp-hero__service{
+    display:inline-flex;
+    align-items:center;
+
+    min-height:0;
+
+    padding:10px 18px;
+
+    border:1px solid rgba(255,255,255,.22);
+    border-radius:999px;
+
+    background:rgba(0,0,0,.28);
+}
+
+.glp-tema-vetrina .glp-hero__service-name.glp-hero__service-name{
+    font-size:12.5px;
+    white-space:nowrap;
+}
+
+.glp-tema-vetrina .glp-hero__service-number.glp-hero__service-number,
+.glp-tema-vetrina .glp-hero__service-arrow.glp-hero__service-arrow{
+    display:none;
+}
+
+@media(hover:hover){
+
+    .glp-tema-vetrina .glp-hero__service.glp-hero__service:hover{
+        padding-left:18px;
+
+        border-color:var(--glp-accent,#ffd400);
+    }
+}
+
+/* Riga di chiusura e squadretta: decorazioni della scheda di prima.
+   In una fascia a tutta larghezza non hanno più nulla da incorniciare. */
+.glp-tema-vetrina .glp-hero__bottom.glp-hero__bottom,
+.glp-tema-vetrina .glp-hero__corner.glp-hero__corner{
+    display:none;
+}
+
+
+/* --- titoli di sezione ---
+
+   Al centro solo dove sotto c'è una griglia di riquadri: un titolo
+   centrato sopra un paragrafo allineato a sinistra sembra storto. */
+
+.glp-tema-vetrina .glp-section--servizi > .glp-section__title,
+.glp-tema-vetrina .glp-section--servizi > .glp-section__label,
+.glp-tema-vetrina .glp-section--correlate > .glp-section__title,
+.glp-tema-vetrina .glp-section--correlate > .glp-section__label,
+.glp-tema-vetrina .glp-section--citta > .glp-section__title,
+.glp-tema-vetrina .glp-section--citta > .glp-section__label,
+.glp-tema-vetrina .glp-section--cta > .glp-section__title,
+.glp-tema-vetrina .glp-section--cta > .glp-section__label{
+    justify-content:center;
+
+    text-align:center;
+}
+
+
+/* --- riquadri centrati, come nel modello --- */
+
+.glp-tema-vetrina .glp-box--link a{
+    align-items:center;
+
+    padding:26px 20px;
+
+    text-align:center;
+}
+
+.glp-tema-vetrina .glp-box--link a::after{
+    align-self:center;
+}
+
+
+/* --- la fascia nera dell'invito sta al centro --- */
+
+.glp-tema-vetrina .glp-section--cta.glp-section--cta{
+    text-align:center;
+}
+
+.glp-tema-vetrina .glp-section--cta .glp-cta.glp-cta{
+    justify-content:center;
+}
+
+
+/* --- telefono in barra con etichetta e cornetta --- */
+
+.glp-tema-vetrina .glp-topbar__cta-icona.glp-topbar__cta-icona{
+    display:inline-flex;
+}
+
+.glp-tema-vetrina .glp-topbar__cta-etichetta.glp-topbar__cta-etichetta{
+    display:block;
+}
+
+.glp-tema-vetrina .glp-topbar__cta.glp-topbar__cta{
+    min-height:48px;
+
+    padding:0 20px;
+}
+
+/* Sotto i 720px l'etichetta ruba spazio al numero. */
+@media(max-width:720px){
+
+    .glp-tema-vetrina .glp-topbar__cta-etichetta.glp-topbar__cta-etichetta{
+        display:none;
+    }
+}
+
+/* Sul telefono la riga alta va a capo: le due parti restano in mezzo. */
+@media(max-width:600px){
+
+    .glp-tema-vetrina .glp-hero__top.glp-hero__top{
+        flex-direction:column;
+
+        gap:12px;
+    }
+
+    .glp-tema-vetrina .glp-hero__status.glp-hero__status{
+        justify-content:center;
     }
 }

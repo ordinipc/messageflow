@@ -26,6 +26,22 @@ $js_extra = isset( $js_extra ) ? $js_extra : '';
 			<?php if ( ! vuoto( $imp['piva'] ) ) : ?>
 				<p>P. IVA <?php echo e( $imp['piva'] ); ?></p>
 			<?php endif; ?>
+
+			<?php $social = social_attivi(); ?>
+			<?php if ( ! empty( $social ) ) : ?>
+				<p class="glp-bottombar__label glp-bottombar__label--social"><?php echo e( impostazione( 'piede_social_titolo', 'Social' ) ); ?></p>
+				<ul class="glp-social">
+					<?php foreach ( $social as $chiave => $s ) : ?>
+						<li>
+							<a class="glp-social__link" href="<?php echo e_url( $s['url'] ); ?>"
+								target="_blank" rel="noopener nofollow" title="<?php echo e( $s['nome'] ); ?>">
+								<?php echo icona_social( $chiave ); // SVG interno. ?>
+								<span class="glp-social__nome"><?php echo e( $s['nome'] ); ?></span>
+							</a>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+			<?php endif; ?>
 		</div>
 
 		<?php if ( ! empty( $altre ) ) : ?>

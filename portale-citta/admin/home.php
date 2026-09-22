@@ -10,7 +10,11 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		'home_testo', 'home_html', 'home_elenco_titolo', 'home_elenco_occhio',
 		'home_sotto_elenco', 'home_seo_titolo', 'home_seo_desc',
 		'piede_testo', 'piede_citta_titolo', 'piede_link_titolo', 'piede_link', 'piede_copy',
+		'piede_social_titolo',
 	);
+	foreach ( array_keys( social_disponibili() ) as $rete ) {
+		$campi[] = 'social_' . $rete;
+	}
 	$nuove = array();
 	foreach ( $campi as $c ) {
 		// L'HTML libero non si tocca: gli spazi lì dentro possono contare.
@@ -170,6 +174,26 @@ $citta    = citta_tutte( true );
 				Sito principale, privacy e cookie si mettono nelle
 				<a href="admin.php?p=impostazioni">impostazioni</a> e compaiono qui da soli.
 			</p>
+		</div>
+
+		<div class="pc-scheda">
+			<h2>Social</h2>
+			<p class="pc-scheda__nota">
+				Le icone escono nel piè di pagina, sotto i recapiti. Compaiono solo quelle
+				con un indirizzo scritto: lascia vuote le altre.
+			</p>
+			<label>Titolo
+				<input type="text" name="piede_social_titolo" value="<?php echo e( $imp['piede_social_titolo'] ); ?>" placeholder="Social">
+			</label>
+			<div class="pc-riga pc-riga--2">
+				<?php foreach ( social_disponibili() as $rete => $nome ) : ?>
+					<label><?php echo e( $nome ); ?>
+						<input type="url" name="social_<?php echo e( $rete ); ?>"
+							value="<?php echo e( $imp[ 'social_' . $rete ] ); ?>"
+							placeholder="https://...">
+					</label>
+				<?php endforeach; ?>
+			</div>
 		</div>
 
 		<div class="pc-scheda">

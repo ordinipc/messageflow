@@ -67,7 +67,18 @@ $in_home  = isset( $pagina ) && 'home' === $pagina['tipo'];
 		<?php endif; ?>
 
 		<?php if ( ! vuoto( $telefono ) ) : ?>
-			<a class="glp-btn glp-btn--tel glp-topbar__cta" href="tel:<?php echo e( tel( $telefono ) ); ?>"><?php echo e( $telefono ); ?></a>
+			<?php $etichetta = impostazione( 'telefono_etichetta', '' ); ?>
+			<a class="glp-btn glp-btn--tel glp-topbar__cta" href="tel:<?php echo e( tel( $telefono ) ); ?>">
+				<span class="glp-topbar__cta-icona" aria-hidden="true">
+					<svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" focusable="false"><path d="M6.6 10.8a15.1 15.1 0 006.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.7.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 013 4c0-.6.4-1 1-1h3.4c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.7.1.4 0 .8-.2 1z"/></svg>
+				</span>
+				<span class="glp-topbar__cta-testo">
+					<?php if ( ! vuoto( $etichetta ) ) : ?>
+						<small class="glp-topbar__cta-etichetta"><?php echo e( $etichetta ); ?></small>
+					<?php endif; ?>
+					<strong class="glp-topbar__cta-numero"><?php echo e( $telefono ); ?></strong>
+				</span>
+			</a>
 		<?php endif; ?>
 
 	</div>

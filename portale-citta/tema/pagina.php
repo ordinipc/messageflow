@@ -51,15 +51,16 @@ include __DIR__ . '/parti/barra.php';
 ?>
 
 <main class="glp-main">
-<div class="glp-main__inner">
 
 <?php if ( 'pubblicata' !== $pagina['stato'] || 'pubblicata' !== $citta['stato'] ) : ?>
-	<p style="background:#b00;color:#fff;padding:10px 14px;border-radius:6px;font:600 13px/1.4 system-ui,sans-serif;margin:0 0 16px">
-		Anteprima: questa pagina è in bozza e non è visibile al pubblico né a Google.
-	</p>
+	<div class="glp-main__inner">
+		<p style="background:#b00;color:#fff;padding:10px 14px;border-radius:6px;font:600 13px/1.4 system-ui,sans-serif;margin:0 0 16px">
+			Anteprima: questa pagina è in bozza e non è visibile al pubblico né a Google.
+		</p>
+	</div>
 <?php endif; ?>
 
-<!-- INTESTAZIONE -->
+<!-- INTESTAZIONE — sta fuori dal contenitore: nello stile "vetrina" va da bordo a bordo -->
 <?php
 // L'immagine della pagina fa da sfondo dell'intestazione: prima finiva
 // solo in og:image e non si vedeva da nessuna parte.
@@ -128,6 +129,7 @@ $sfondo = vuoto( $pagina['immagine'] ) ? '' : url_media( $pagina['immagine'] );
 	<div class="glp-hero__corner" aria-hidden="true"></div>
 </div>
 
+<div class="glp-main__inner">
 <div class="glp-sections">
 <?php
 /**

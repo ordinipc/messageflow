@@ -17,6 +17,9 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		'colore_chiaro'   => trim( (string) ( $_POST['colore_chiaro'] ?? '#f6f6f6' ) ),
 		'raggio'          => trim( (string) ( $_POST['raggio'] ?? '10px' ) ),
 		'stile_sezioni'   => 'elenco' === ( $_POST['stile_sezioni'] ?? '' ) ? 'elenco' : 'card',
+		'stile_tema'      => 'classico' === ( $_POST['stile_tema'] ?? '' ) ? 'classico' : 'vetrina',
+		'larghezza'       => trim( (string) ( $_POST['larghezza'] ?? '1440px' ) ),
+		'telefono_etichetta' => trim( (string) ( $_POST['telefono_etichetta'] ?? '' ) ),
 		'effetti'         => isset( $_POST['effetti'] ) ? '1' : '0',
 		'telefono'        => trim( (string) ( $_POST['telefono'] ?? '' ) ),
 		'whatsapp'        => trim( (string) ( $_POST['whatsapp'] ?? '' ) ),
@@ -105,6 +108,38 @@ $cfg      = db_config();
 			<label>Colore chiaro <input type="text" name="colore_chiaro" value="<?php echo e( $imp['colore_chiaro'] ); ?>"></label>
 		</div>
 		<label style="max-width:200px">Arrotondamento angoli <input type="text" name="raggio" value="<?php echo e( $imp['raggio'] ); ?>" placeholder="10px"></label>
+	</div>
+
+	<div class="pc-scheda">
+		<h2>Impianto della pagina</h2>
+		<p class="pc-scheda__nota">Come sono messi intestazione, contenuto e piè di pagina.</p>
+
+		<label>Stile grafico
+			<select name="stile_tema">
+				<option value="vetrina" <?php selected_pc( 'vetrina', $imp['stile_tema'] ); ?>>Vetrina — intestazione a tutta larghezza, testo al centro</option>
+				<option value="classico" <?php selected_pc( 'classico', $imp['stile_tema'] ); ?>>Classico — intestazione a scheda, testo a sinistra</option>
+			</select>
+			<small>
+				In <strong>Vetrina</strong> l'intestazione va da bordo a bordo con l'immagine dietro,
+				titolo e pulsanti al centro, il telefono in barra con l'etichetta. In
+				<strong>Classico</strong> resta la scheda arrotondata di prima.
+			</small>
+		</label>
+
+		<label style="max-width:260px">Larghezza del contenuto
+			<select name="larghezza">
+				<option value="1240px" <?php selected_pc( '1240px', $imp['larghezza'] ); ?>>1240 px — stretta</option>
+				<option value="1440px" <?php selected_pc( '1440px', $imp['larghezza'] ); ?>>1440 px — consigliata</option>
+				<option value="1600px" <?php selected_pc( '1600px', $imp['larghezza'] ); ?>>1600 px — larga</option>
+				<option value="1800px" <?php selected_pc( '1800px', $imp['larghezza'] ); ?>>1800 px — molto larga</option>
+			</select>
+			<small>La misura che usano header, contenuto e piè di pagina: sono sempre allineati fra loro.</small>
+		</label>
+
+		<label style="max-width:320px">Etichetta sopra il telefono in barra
+			<input type="text" name="telefono_etichetta" value="<?php echo e( $imp['telefono_etichetta'] ); ?>" placeholder="Assistenza 24h">
+			<small>Solo nello stile Vetrina. Vuota: si vede il numero da solo.</small>
+		</label>
 	</div>
 
 	<div class="pc-scheda">

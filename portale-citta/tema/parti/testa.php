@@ -86,4 +86,4 @@ gtag('js',new Date());gtag('config','<?php echo e( $imp['ga_id'] ); ?>');
 </script>
 <?php endif; ?>
 </head>
-<body class="glp-standalone<?php echo '1' === (string) $imp['effetti'] ? ' glp-effetti' : ''; ?><?php echo 'card' === $imp['stile_sezioni'] ? ' glp-stile-card' : ' glp-stile-elenco'; ?>">
+<body class="<?php echo e( classi_corpo() ); ?>">

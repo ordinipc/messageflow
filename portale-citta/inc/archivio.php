@@ -59,7 +59,10 @@ function impostazioni_predefinite() {
 		'colore_chiaro'   => '#f6f6f6',
 		'raggio'          => '10px',
 		'stile_sezioni'   => 'card',
+		'stile_tema'      => 'vetrina',
+		'larghezza'       => '1440px',
 		'effetti'         => '1',
+		'telefono_etichetta' => 'Assistenza 24h',
 		'telefono'        => '',
 		'whatsapp'        => '',
 		'email'           => '',
@@ -98,7 +101,54 @@ function impostazioni_predefinite() {
 		'piede_link_titolo'  => 'Sito',
 		'piede_link'         => '',
 		'piede_copy'         => '',
+		'piede_social_titolo' => 'Social',
+		'social_facebook'    => '',
+		'social_instagram'   => '',
+		'social_x'           => '',
+		'social_youtube'     => '',
+		'social_linkedin'    => '',
+		'social_tiktok'      => '',
+		'social_whatsapp'    => '',
 	);
+}
+
+/** I social configurati, nell'ordine in cui vanno mostrati. */
+function social_disponibili() {
+	return array(
+		'facebook'  => 'Facebook',
+		'instagram' => 'Instagram',
+		'x'         => 'X (Twitter)',
+		'youtube'   => 'YouTube',
+		'tiktok'    => 'TikTok',
+		'linkedin'  => 'LinkedIn',
+		'whatsapp'  => 'WhatsApp',
+	);
+}
+
+/** Solo quelli con un indirizzo scritto. */
+function social_attivi() {
+	$voci = array();
+	foreach ( social_disponibili() as $chiave => $nome ) {
+		$url = impostazione( 'social_' . $chiave, '' );
+		if ( ! vuoto( $url ) ) {
+			$voci[ $chiave ] = array( 'nome' => $nome, 'url' => $url );
+		}
+	}
+	return $voci;
+}
+
+/**
+ * Larghezza del contenuto, in una forma che il CSS accetta.
+ *
+ * Header, testo e piè di pagina la usano tutti: è quella che decide
+ * quanto il portale respira sugli schermi grandi.
+ */
+function larghezza_contenuto() {
+	$valore = trim( (string) impostazione( 'larghezza', '1440px' ) );
+	if ( ! preg_match( '/^\d{3,4}(px|%)?$/', $valore ) ) {
+		return '1440px';
+	}
+	return preg_match( '/(px|%)$/', $valore ) ? $valore : $valore . 'px';
 }
 
 /**

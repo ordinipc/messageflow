@@ -24,6 +24,7 @@ Non è un plugin: gira da solo, con il suo database e la sua amministrazione.
 | **Blog per città** | Articoli con elenco paginato, schema BlogPosting, importazione da WordPress |
 | **Modulo di contatto** | Con recapiti completi, anti-spam senza captcha |
 | **Home del portale** | La pagina d'ingresso e il piè di pagina si scrivono dal pannello |
+| **Due stili grafici** | Vetrina (intestazione a tutta larghezza) o Classico, con la larghezza regolabile |
 | **Sezioni per pagina** | Ogni pagina sceglie cosa mostrare **e in che ordine**: non escono tutte uguali |
 | **Sezioni a card** | Ogni sezione si disegna a riquadri o a elenco, con effetti dinamici |
 | **CSS/HTML/JS** | Tre livelli: globale, per città, per pagina |
@@ -392,6 +393,30 @@ sprecarli.
 
 Il pannello si chiude con Esc, con un tocco fuori, e si richiude da solo
 tornando a schermo largo.
+
+---
+
+## Stile grafico e larghezza
+
+Impostazioni → Aspetto → **Impianto della pagina**.
+
+| Stile | Com'è fatto |
+|---|---|
+| **Vetrina** (predefinito) | Intestazione da bordo a bordo con l'immagine dietro, titolo maiuscolo e pulsanti al centro, i servizi come pastiglie, il telefono in barra con l'etichetta ("Assistenza 24h") e la cornetta |
+| **Classico** | L'intestazione è una scheda arrotondata dentro al contenuto, testo a sinistra, servizi in colonna di fianco al titolo |
+
+Si cambia idea quando si vuole: è una tendina, non una riscrittura.
+
+**Larghezza del contenuto** — 1240, 1440 (consigliata), 1600 o 1800 px. È la
+misura che usano *insieme* intestazione, contenuto e piè di pagina: sono
+sempre allineati fra loro, qualunque valore scegli.
+
+> Se il contenuto ti sembra stretto su un monitor grande non è disallineato:
+> è il contenitore che finisce prima. Allargalo qui.
+
+**Social nel piè di pagina** — Home del portale → Piè di pagina → Social.
+Compaiono solo quelli con un indirizzo scritto. Le icone sono disegnate dentro
+il portale: non si scarica niente da server di altri.
 
 ---
 

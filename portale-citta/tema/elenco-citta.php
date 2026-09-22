@@ -35,7 +35,6 @@ include __DIR__ . '/parti/barra.php';
 ?>
 
 <main class="glp-main">
-<div class="glp-main__inner">
 
 	<div class="glp-hero<?php echo '' === $sfondo ? '' : ' glp-hero--image'; ?>"
 		<?php echo '' === $sfondo ? '' : 'style="background-image:url(' . e( $sfondo ) . ')"'; ?>>
@@ -55,6 +54,7 @@ include __DIR__ . '/parti/barra.php';
 		<div class="glp-hero__corner" aria-hidden="true"></div>
 	</div>
 
+	<div class="glp-main__inner">
 	<div class="glp-sections">
 		<?php
 		// Testo senza titolo: il titolo della pagina è già l'intestazione.
