@@ -30,6 +30,10 @@ $schemi      = array(
 
 $sfondo = vuoto( $imp['home_immagine'] ) ? '' : url_media( $imp['home_immagine'] );
 
+// Questa pagina non appartiene a nessuna città: in barra non c'è un menu
+// da mostrare, e il marchio sta al centro invece che appoggiato a sinistra.
+$classi_pagina = 'glp-home-portale';
+
 include __DIR__ . '/parti/testa.php';
 include __DIR__ . '/parti/barra.php';
 ?>

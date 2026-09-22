@@ -120,9 +120,12 @@ function css_variabili() {
 }
 
 /** Classi del <body>: stile delle sezioni, effetti, stile grafico. */
-function classi_corpo() {
+function classi_corpo( $extra = '' ) {
 	$imp    = impostazioni();
 	$classi = array( 'glp-standalone' );
+	if ( '' !== trim( (string) $extra ) ) {
+		$classi[] = trim( (string) $extra );
+	}
 	if ( '1' === (string) $imp['effetti'] ) {
 		$classi[] = 'glp-effetti';
 	}

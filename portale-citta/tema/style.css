@@ -3620,3 +3620,50 @@ body.glp-standalone{
         justify-content:center;
     }
 }
+
+
+/* =========================================================
+   HOME DEL PORTALE — la barra ha solo il marchio
+
+   Non c'è una città, quindi non c'è un menu: senza niente a
+   destra il marchio resterebbe appoggiato a sinistra con un
+   vuoto lungo accanto. Tre colonne lo tengono in mezzo anche
+   quando il telefono c'è.
+========================================================= */
+
+.glp-home-portale .glp-topbar__inner.glp-topbar__inner{
+    display:grid;
+    grid-template-columns:1fr auto 1fr;
+    align-items:center;
+
+    gap:12px;
+}
+
+.glp-home-portale .glp-topbar__brand.glp-topbar__brand{
+    grid-column:2;
+    justify-self:center;
+
+    margin:0;
+}
+
+.glp-home-portale .glp-topbar__cta.glp-topbar__cta{
+    grid-column:3;
+    justify-self:end;
+
+    margin-left:0;
+}
+
+@media(max-width:600px){
+
+    /* Sullo stretto il telefono sotto il marchio, tutti e due in mezzo. */
+    .glp-home-portale .glp-topbar__inner.glp-topbar__inner{
+        grid-template-columns:minmax(0,1fr);
+        justify-items:center;
+    }
+
+    .glp-home-portale .glp-topbar__brand.glp-topbar__brand,
+    .glp-home-portale .glp-topbar__cta.glp-topbar__cta{
+        grid-column:1;
+        justify-self:center;
+    }
+}

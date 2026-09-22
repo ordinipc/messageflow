@@ -86,4 +86,4 @@ gtag('js',new Date());gtag('config','<?php echo e( $imp['ga_id'] ); ?>');
 </script>
 <?php endif; ?>
 </head>
-<body class="<?php echo e( classi_corpo() ); ?>">
+<body class="<?php echo e( classi_corpo( isset( $classi_pagina ) ? $classi_pagina : '' ) ); ?>">

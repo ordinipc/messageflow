@@ -257,7 +257,8 @@ Sono i due pezzi che non appartengono a nessuna città, e si scrivono da
 
 **Pagina principale** — è quella che si apre sull'indirizzo del portale
 (`tuosito.it/zone/`) e serve a chi arriva senza sapere ancora quale città gli
-interessa. Si cambiano soprattitolo, titolo, testo di presentazione, immagine
+interessa. In barra non c'è un menu — non appartiene a nessuna città — e il
+marchio sta al centro. Si cambiano soprattitolo, titolo, testo di presentazione, immagine
 di sfondo, il testo sopra e sotto l'elenco, un blocco di HTML libero, e titolo
 e descrizione per Google.
 
