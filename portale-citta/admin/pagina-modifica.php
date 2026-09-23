@@ -265,7 +265,7 @@ $lista_s  = servizi();
 						data-ai="faq" data-ai-pagina="<?php echo e( $pagina['id'] ); ?>" data-ai-citta="<?php echo e( $citta['id'] ); ?>">✦ Proponi 6 FAQ</button>
 				<?php endif; ?>
 			</h2>
-			<p class="pc-scheda__nota">Da 3 in su generano lo schema <code>FAQPage</code>, che può comparire direttamente nei risultati.</p>
+			<p class="pc-scheda__nota">Da 2 in su generano lo schema <code>FAQPage</code>, che può comparire nei risultati di Google e viene citato dagli assistenti IA.</p>
 			<div data-ripeti="faq">
 				<?php foreach ( (array) $pagina['faq'] as $i => $f ) : ?>
 					<div class="pc-ripeti__voce">
