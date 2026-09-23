@@ -23,6 +23,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		// Il taglio vero lo fa dimensione_menu() in lettura: qui si tiene
 		// solo il numero scritto, virgola compresa.
 		'menu_dimensione' => trim( (string) ( $_POST['menu_dimensione'] ?? '12.5' ) ),
+		'cartella_nascosta' => isset( $_POST['cartella_nascosta'] ) ? '1' : '0',
 		'telefono_etichetta' => trim( (string) ( $_POST['telefono_etichetta'] ?? '' ) ),
 		'effetti'         => isset( $_POST['effetti'] ) ? '1' : '0',
 		'telefono'        => trim( (string) ( $_POST['telefono'] ?? '' ) ),
@@ -90,6 +91,19 @@ $cfg      = db_config();
 		<label>Indirizzo del portale
 			<input type="url" name="sito_url" value="<?php echo e( $imp['sito_url'] ); ?>" placeholder="https://www.tuosito.it/citta">
 			<small>Senza barra finale. Da qui nascono canonical, sitemap e link interni: se è sbagliato, lo sono tutti.</small>
+				<?php if ( '' !== trim( cartella_reale(), '/' ) ) : ?>
+					<label class="pc-inline" style="margin-top:12px">
+						<input type="checkbox" name="cartella_nascosta" value="1"<?php echo '1' === (string) $imp['cartella_nascosta'] ? ' checked' : ''; ?>>
+						Nascondi la cartella <code><?php echo e( cartella_reale() ); ?></code> dagli indirizzi
+					</label>
+					<small>
+						Da spuntare <strong>solo dopo</strong> aver messo le regole nel
+						<code>.htaccess</code> della radice: le trovi già scritte in
+						<a href="admin.php?p=seo">SEO e sitemap</a>, con la prova che funzionino.
+						Poi qui sopra togli la cartella dall'indirizzo.
+					</small>
+				<?php endif; ?>
+
 				<?php $sbagliata = cartella_incoerente(); ?>
 				<?php if ( '' !== $sbagliata ) : ?>
 					<small class="pc-allarme">

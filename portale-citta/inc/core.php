@@ -337,6 +337,12 @@ function cartella_reale() {
  *                può sapere.
  */
 function cartella_incoerente() {
+	// Chi nasconde la cartella apposta ha una differenza voluta: qui non
+	// c'è niente da segnalare, e un avviso che si sa già sbagliato
+	// insegna solo a non leggere gli avvisi.
+	if ( '1' === (string) impostazione( 'cartella_nascosta', '0' ) ) {
+		return '';
+	}
 	$url = trim( (string) impostazione( 'sito_url', '' ) );
 	if ( '' === $url || '' === (string) ( $_SERVER['SCRIPT_NAME'] ?? '' ) ) {
 		return '';

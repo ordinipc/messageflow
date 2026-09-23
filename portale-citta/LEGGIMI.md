@@ -75,13 +75,46 @@ da cui sta davvero girando, un avviso rosso compare sotto il campo e nella
 è solo sulla cartella, non sul dominio: fra `www` e senza `www`, o dietro a un
 proxy, l'host può legittimamente essere diverso.
 
-**Per togliere davvero `/zone` dagli indirizzi** le strade sono due, e nessuna
-è un'impostazione:
+### Nascondere la cartella dagli indirizzi
+
+Altro discorso è **non farla vedere**, tenendo i file dove sono. Si può, e il
+portale ti prepara tutto: **SEO e sitemap → «Togliere /zone dagli indirizzi»**.
+
+Come funziona: alcune righe di riscrittura nel `.htaccess` della radice dicono
+ad Apache che `/trapani/` va servito dai file dentro `/zone/`. I file non si
+spostano, si sposta solo l'indirizzo che si vede.
+
+I tre passi, nell'ordine — e l'ordine conta:
+
+1. **Copia il blocco** che trovi già scritto in quella schermata, nel
+   `.htaccess` della radice, **prima** di `# BEGIN WordPress`. Sotto, WordPress
+   se le prenderebbe tutte lui.
+2. **Premi «Prova gli indirizzi corti»**: il portale chiede al server, città per
+   città, se rispondono. Solo quando sono tutte ✓ si va avanti.
+3. **In Impostazioni** togli `/zone` dall'indirizzo del portale e spunta
+   *Nascondi la cartella*. Quella spunta serve anche a far tacere l'avviso di
+   prima, che altrimenti scatterebbe proprio adesso.
+
+Il pulsante di prova serve anche dopo: **ogni città nuova va aggiunta alle
+regole**. Se te ne dimentichi, quella città risponde 404 e la prova te lo dice
+con il suo nome.
+
+**Tre cose da sapere prima di farlo.**
+
+- Una pagina di WordPress che si chiama come una città diventa irraggiungibile:
+  vince il portale.
+- Se un plugin SEO gestisce già `/sitemap.xml`, togli quella riga dal blocco e
+  lascia la sitemap del portale dentro la cartella.
+- La pagina d'ingresso del portale, quella con l'elenco delle città,
+  all'indirizzo corto è la home di WordPress. Per mostrare l'elenco dentro
+  WordPress c'è lo shortcode `[portale_citta_zone]`.
+
+### L'alternativa: il sottodominio
 
 | Come | Cosa comporta |
 |---|---|
-| **Sottodominio** — `zone.chiaviitalia.it` | Sposti i file lì, cambi l'indirizzo del portale, e gli indirizzi diventano `zone.chiaviitalia.it/trapani/`. È la strada pulita: WordPress resta dov'è e non si tocca |
-| **Portale nella radice** | Vorrebbe dire togliere WordPress da lì. Non si fa per un portale in sottocartella |
+| **Riscrittura** (sopra) | Gli indirizzi diventano `chiaviitalia.it/trapani/`. I file restano in `/zone/`. Niente da spostare |
+| **Sottodominio** — `zone.chiaviitalia.it` | Sposti i file lì e cambi l'indirizzo del portale. Più pulito da gestire, ma un sottodominio non eredita l'autorità del dominio principale come fa una sottocartella |
 
 In tutti e due i casi, se le pagine sono già indicizzate servono i **redirect
 301** dai vecchi indirizzi ai nuovi, o perdi il lavoro fatto con Google.
@@ -156,6 +189,15 @@ va bene il nome utente oppure l'email della persona.
 ```nginx
 location / { try_files $uri $uri/ /index.php?$query_string; }
 location ~ ^/(dati|inc)/ { deny all; }
+```
+
+Per **nascondere la cartella** su nginx il blocco `.htaccess` non serve: chiedi
+all'hosting l'equivalente, con l'elenco delle città che trovi nella schermata
+SEO e sitemap.
+
+```nginx
+location ~ ^/(tema|media)/ { root /percorso/della/radice/zone; }
+location ~ ^/(trapani|marsala)(/|$) { try_files $uri /zone/index.php; }
 ```
 
 ### Provare in locale

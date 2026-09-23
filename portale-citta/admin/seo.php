@@ -63,6 +63,85 @@ foreach ( pagine_tutte() as $p ) {
 </div>
 <?php endif; ?>
 
+<?php /* Nascondere la sottocartella: le regole si generano qui, si
+	incollano a mano nella radice, e poi si prova che funzionino. Il
+	portale quel file non può né leggerlo né scriverlo, quindi l'unica
+	verifica onesta è chiedere al server. */ ?>
+<?php $cartella = trim( cartella_reale(), '/' ); ?>
+<?php if ( '' !== $cartella ) : ?>
+	<?php $nascosta = '1' === (string) impostazione( 'cartella_nascosta', '0' ); ?>
+	<div class="pc-scheda">
+		<h2>Togliere <code>/<?php echo e( $cartella ); ?></code> dagli indirizzi</h2>
+		<p class="pc-scheda__nota">
+			I file restano dove sono: è il server a girare le richieste. Gli indirizzi
+			diventano <code><?php echo e( preg_replace( '#/' . preg_quote( $cartella, '#' ) . '$#', '', base_url() ) ); ?>/trapani/</code>
+			invece di <code>…/<?php echo e( $cartella ); ?>/trapani/</code>.
+		</p>
+
+		<p class="pc-scheda__nota"><strong>1.</strong> Copia queste righe nel file <code>.htaccess</code> della
+			radice del dominio, <strong>prima</strong> del blocco <code># BEGIN WordPress</code>.</p>
+		<textarea class="pc-codice" readonly rows="16" onclick="this.select()"><?php echo e( regole_htaccess() ); ?></textarea>
+
+		<p class="pc-scheda__nota" style="margin-top:14px"><strong>2.</strong> Torna qui e premi il pulsante: il portale
+			prova gli indirizzi corti uno per uno e ti dice se il server li ha presi.</p>
+		<p><a class="pc-btn pc-btn--ghost" href="admin.php?p=seo&prova=1#prova">Prova gli indirizzi corti</a></p>
+
+		<?php if ( isset( $_GET['prova'] ) ) : ?>
+			<?php $esiti = prova_indirizzi_nascosti(); ?>
+			<table class="pc-tabella" id="prova">
+				<tbody>
+					<?php foreach ( $esiti as $slug => $e ) : ?>
+						<tr>
+							<td><strong><?php echo e( $e['nome'] ); ?></strong><br><span class="pc-nota"><code><?php echo e( $e['url'] ); ?></code></span></td>
+							<td>
+								<?php if ( $e['ok'] ) : ?>
+									<span style="color:var(--pc-ok);font-weight:700">✓ risponde</span>
+								<?php else : ?>
+									<span style="color:#b3261e;font-weight:700">✗ <?php echo 0 === $e['stato'] ? 'non raggiungibile' : $e['stato']; ?></span>
+								<?php endif; ?>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+					<?php if ( empty( $esiti ) ) : ?>
+						<tr><td colspan="2">Nessuna città pubblicata da provare<?php echo function_exists( 'curl_init' ) ? '' : ', oppure cURL non è disponibile su questo server'; ?>.</td></tr>
+					<?php endif; ?>
+				</tbody>
+			</table>
+			<p class="pc-nota">
+				Un <code>404</code> vuol dire che quella città non è nelle regole: se l'hai
+				aggiunta dopo aver copiato il blocco, ricopialo da qui sopra.
+				<br>
+				<strong>«Non raggiungibile» su tutte</strong> di solito non vuol dire che le
+				regole siano sbagliate: certi server non lasciano che un sito chiami se
+				stesso. Apri uno di quegli indirizzi nel browser: se si vede la pagina,
+				va tutto bene.
+			</p>
+		<?php endif; ?>
+
+		<p class="pc-scheda__nota" style="margin-top:14px"><strong>3.</strong> Solo quando rispondono tutte:
+			in <a href="admin.php?p=impostazioni">Impostazioni</a> togli <code>/<?php echo e( $cartella ); ?></code>
+			dall'indirizzo del portale e spunta «Nascondi la cartella».
+			<?php if ( $nascosta ) : ?>
+				<strong style="color:var(--pc-ok)">Fatto: la casella è spuntata.</strong>
+			<?php endif; ?>
+		</p>
+
+		<p class="pc-nota" style="margin-top:14px">
+			<strong>Tre cose da sapere prima.</strong>
+			Una pagina di WordPress che si chiama come una città diventa irraggiungibile:
+			vince il portale. Se un plugin SEO gestisce già <code>/sitemap.xml</code>, togli
+			quella riga dal blocco. E la pagina d'ingresso del portale, quella con l'elenco
+			delle città, all'indirizzo corto è la home di WordPress: per mostrare l'elenco
+			dentro WordPress usa lo shortcode <code>[portale_citta_zone]</code>.
+		</p>
+
+		<p class="pc-nota">
+			Se le pagine sono già indicizzate, i vecchi indirizzi vanno reindirizzati ai
+			nuovi con un 301, o il lavoro fatto con Google riparte da zero.
+		</p>
+	</div>
+<?php endif; ?>
+
 <div class="pc-scheda">
 	<h2>Indirizzi da dare a Google</h2>
 	<p class="pc-scheda__nota">Aggiungi la sitemap in Search Console: Indicizzazione → Sitemap.</p>

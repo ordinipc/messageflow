@@ -297,6 +297,109 @@ function sottocartella() {
 	return null === $percorso ? '' : rtrim( $percorso, '/' );
 }
 
+/**
+ * Le regole da incollare nel .htaccess della radice per non far vedere
+ * la sottocartella negli indirizzi.
+ *
+ * Non si tocca niente sul portale: i file restano dove sono e il server
+ * gira le richieste. Le città si elencano una per una apposta — così
+ * tutto quello che non è del portale resta di WordPress, comprese le
+ * pagine che non esistono ancora.
+ */
+function regole_htaccess() {
+	$cartella = trim( cartella_reale(), '/' );
+	if ( '' === $cartella ) {
+		return '';
+	}
+
+	$slug = array();
+	foreach ( citta_tutte( true ) as $c ) {
+		$slug[] = preg_quote( $c['slug'], '/' );
+	}
+
+	$righe = array(
+		'# --- Portale Città: la cartella /' . $cartella . ' non si vede negli indirizzi ---',
+		'# Da mettere PRIMA del blocco "# BEGIN WordPress", o WordPress se le',
+		'# prende tutte lui e queste regole non le legge nessuno.',
+		'<IfModule mod_rewrite.c>',
+		"	RewriteEngine On",
+		'',
+		"	# File e cartelle che esistono davvero restano dove sono.",
+		"	RewriteCond %{REQUEST_FILENAME} -f [OR]",
+		"	RewriteCond %{REQUEST_FILENAME} -d",
+		"	RewriteRule ^ - [L]",
+		'',
+		"	# Fogli di stile, script e immagini del portale.",
+		"	RewriteRule ^(tema|media)/(.*)$ " . $cartella . '/$1/$2 [L]',
+	);
+
+	if ( empty( $slug ) ) {
+		$righe[] = '';
+		$righe[] = "	# Nessuna città pubblicata: qui andranno i loro indirizzi.";
+	} else {
+		$righe[] = '';
+		$righe[] = "	# Le città pubblicate. Aggiungendone una, ricopia queste regole.";
+		$righe[] = "	RewriteRule ^(" . implode( '|', $slug ) . ')(/.*)?$ ' . $cartella . '/index.php [L]';
+	}
+
+	$righe[] = '';
+	$righe[] = "	# Sitemap e indice per gli assistenti IA. Se un plugin SEO usa già";
+	$righe[] = "	# /sitemap.xml, togli questa riga e lascia la sitemap del portale";
+	$righe[] = "	# al suo indirizzo dentro la cartella.";
+	$righe[] = "	RewriteRule ^(sitemap\.xml|sitemap-[a-z0-9-]+\.xml|llms\.txt)$ " . $cartella . '/index.php [L]';
+	$righe[] = '</IfModule>';
+	$righe[] = '# --- fine Portale Città ---';
+
+	return implode( "\n", $righe );
+}
+
+/**
+ * Prova davvero gli indirizzi corti, uno per città.
+ *
+ * Le regole si incollano a mano in un file che il portale non può
+ * leggere: l'unico modo di sapere se funzionano è chiederlo al server.
+ * Serve anche dopo, quando si aggiunge una città e ci si dimentica di
+ * ricopiare le regole: quella città risponde 404 e qui si vede.
+ *
+ * @return array slug => array( 'url', 'stato', 'ok' )
+ */
+function prova_indirizzi_nascosti( $quante = 8 ) {
+	$fuori = array();
+	if ( ! function_exists( 'curl_init' ) ) {
+		return $fuori;
+	}
+	// L'indirizzo corto si costruisce qui, togliendo la cartella: così la
+	// prova si può fare PRIMA di cambiare le impostazioni, che è l'ordine
+	// giusto — prima si controlla che funzioni, poi ci si sposta.
+	$cartella = trim( cartella_reale(), '/' );
+	$radice   = preg_replace( '#/' . preg_quote( $cartella, '#' ) . '$#', '', base_url() );
+
+	foreach ( array_slice( citta_tutte( true ), 0, $quante ) as $c ) {
+		$url = $radice . '/' . $c['slug'] . '/';
+		$ch  = curl_init( $url );
+		curl_setopt_array( $ch, array(
+			CURLOPT_NOBODY         => true,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_FOLLOWLOCATION => true,
+			CURLOPT_MAXREDIRS      => 3,
+			CURLOPT_TIMEOUT        => 5,
+			CURLOPT_CONNECTTIMEOUT => 3,
+			CURLOPT_USERAGENT      => 'PortaleCitta/verifica',
+		) );
+		curl_exec( $ch );
+		$stato = (int) curl_getinfo( $ch, CURLINFO_RESPONSE_CODE );
+		curl_close( $ch );
+
+		$fuori[ $c['slug'] ] = array(
+			'nome'  => $c['nome'],
+			'url'   => $url,
+			'stato' => $stato,
+			'ok'    => 200 === $stato,
+		);
+	}
+	return $fuori;
+}
+
 /** Contenuto di robots.txt. */
 function robots_txt() {
 	$righe = array( 'User-agent: *' );
