@@ -11,7 +11,7 @@ require_once __DIR__ . '/db.php';
 /** Colonne che contengono JSON. */
 function campi_json( $entita ) {
 	$mappa = array(
-		'citta'  => array( 'orari', 'numeri', 'recensioni', 'team' ),
+		'citta'  => array( 'orari', 'numeri', 'recensioni', 'team', 'social' ),
 		'pagine' => array( 'processo', 'faq', 'sezioni' ),
 	);
 	return isset( $mappa[ $entita ] ) ? $mappa[ $entita ] : array();
@@ -127,11 +127,23 @@ function social_disponibili() {
 	);
 }
 
-/** Solo quelli con un indirizzo scritto. */
-function social_attivi() {
+/**
+ * Solo i social con un indirizzo scritto.
+ *
+ * Il controllo è rete per rete, come per telefono ed email: se una città
+ * ha la sua pagina Facebook ma non un suo Instagram, esce il Facebook
+ * della città accanto all'Instagram del marchio. L'alternativa — o tutti
+ * della città o tutti generali — farebbe sparire profili che esistono.
+ */
+function social_attivi( $citta = null ) {
+	$della_citta = ( is_array( $citta ) && isset( $citta['social'] ) ) ? (array) $citta['social'] : array();
+
 	$voci = array();
 	foreach ( social_disponibili() as $chiave => $nome ) {
-		$url = impostazione( 'social_' . $chiave, '' );
+		$url = isset( $della_citta[ $chiave ] ) ? trim( (string) $della_citta[ $chiave ] ) : '';
+		if ( vuoto( $url ) ) {
+			$url = impostazione( 'social_' . $chiave, '' );
+		}
 		if ( ! vuoto( $url ) ) {
 			$voci[ $chiave ] = array( 'nome' => $nome, 'url' => $url );
 		}
@@ -300,6 +312,7 @@ function citta_predefinita() {
 		'whatsapp'       => '',
 		'email'          => '',
 		'piva'           => '',
+		'social'         => array(),
 		'indirizzo'      => '',
 		'mappa'          => '',
 		'orari'          => array(),

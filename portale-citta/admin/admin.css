@@ -625,3 +625,13 @@ input.pc-mono[readonly]:focus{
 	line-height:1.25;
 	color:var(--pc-grigio);
 }
+
+/* Sottotitolo dentro un riquadro, quando una scheda raccoglie due gruppi
+   di campi che non meritano due riquadri separati. */
+.pc-sottotitolo{
+	margin:26px 0 4px;
+	padding-top:18px;
+	border-top:1px solid var(--pc-bordo);
+	font-size:14px;
+	font-weight:700;
+}

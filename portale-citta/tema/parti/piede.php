@@ -29,7 +29,7 @@ $js_extra = isset( $js_extra ) ? $js_extra : '';
 				<p>P. IVA <?php echo e( $piva ); ?></p>
 			<?php endif; ?>
 
-			<?php $social = social_attivi(); ?>
+			<?php $social = social_attivi( empty( $citta ) ? null : $citta ); ?>
 			<?php if ( ! empty( $social ) ) : ?>
 				<p class="glp-bottombar__label glp-bottombar__label--social"><?php echo e( impostazione( 'piede_social_titolo', 'Social' ) ); ?></p>
 				<ul class="glp-social">

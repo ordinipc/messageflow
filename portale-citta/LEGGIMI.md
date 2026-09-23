@@ -11,7 +11,7 @@ Non è un plugin: gira da solo, con il suo database e la sua amministrazione.
 
 | | |
 |---|---|
-| **Città illimitate** | Ognuna con slug, provincia, CAP, coordinate, contatti, **partita IVA**, orari, zone servite |
+| **Città illimitate** | Ognuna con slug, provincia, CAP, coordinate, contatti, **partita IVA**, **social**, orari, zone servite |
 | **Pagine per città** | Principale, servizi, chi siamo, contatti, FAQ… Ogni città ha le sue |
 | **Menu nell'intestazione** | Costruito dalle pagine della città, sempre in alto, con ordine e visibilità per pagina |
 | **Sitemap** | Indice `/sitemap.xml` + una sitemap per città, aggiornate da sole |
@@ -412,7 +412,7 @@ lo legge nessuno e non lo cita nemmeno un assistente IA.
 
 ---
 
-## Tag, icone e partita IVA
+## Tag, icone, partita IVA e social
 
 **I tag** sono le pastiglie sotto il testo: quattro o cinque parole che dicono
 di cosa parla la pagina a chi la guarda senza leggerla tutta. Si scrivono in
@@ -446,6 +446,23 @@ Quella della città vince su quella generale. Se la lasci vuota vale la
 generale, quindi non devi riscriverla su ognuna. Esce nel piè di pagina,
 nella sezione dei recapiti completi, nei dati strutturati (`vatID`) e, se è
 diversa da quella generale, anche dentro `llms.txt`.
+
+**I social** funzionano allo stesso modo, ma **rete per rete**:
+
+| Dove | Quando |
+|---|---|
+| **Home del portale → Piè di pagina → Social** | I profili del marchio, validi ovunque |
+| **Città → Contatti → Social di questa città** | Quella città ha i suoi |
+
+Il confronto non è «o tutti della città o tutti generali»: una città con la
+sua pagina Facebook ma senza un suo Instagram mostra **il Facebook della
+città accanto all'Instagram del marchio**. Il segnaposto di ogni campo ti
+dice cosa erediteresti lasciandolo vuoto. Svuotare un campo già compilato
+riporta a quello generale, non cancella niente.
+
+Anche qui i profili finiscono nel campo `sameAs` dei dati strutturati, e
+quelli sono quelli della città che si sta guardando. La pagina d'ingresso del
+portale non appartiene a nessuna città, quindi mostra sempre i generali.
 
 ---
 

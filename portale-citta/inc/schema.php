@@ -107,7 +107,7 @@ function schema_attivita( $citta ) {
 		// Descrizione e profili social: sono i campi da cui gli assistenti
 		// IA ricavano «chi è» un'attività, non solo «dove sta».
 		'description' => vuoto( $citta['intro'] ) ? '' : $citta['intro'],
-		'sameAs'      => schema_social(),
+		'sameAs'      => schema_social( $citta ),
 		'priceRange'  => schema_prezzi( $citta ),
 		'hasMap'      => $citta['mappa'],
 	);
@@ -135,9 +135,9 @@ function schema_attivita( $citta ) {
 
 /** Zone servite come elenco di luoghi. */
 /** I profili social dell'attività, per il campo sameAs. */
-function schema_social() {
+function schema_social( $citta = null ) {
 	$indirizzi = array();
-	foreach ( social_attivi() as $s ) {
+	foreach ( social_attivi( $citta ) as $s ) {
 		$indirizzi[] = $s['url'];
 	}
 	return $indirizzi;

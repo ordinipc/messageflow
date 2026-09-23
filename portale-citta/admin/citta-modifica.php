@@ -29,6 +29,15 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	$citta['whatsapp']       = trim( (string) ( $_POST['whatsapp'] ?? '' ) );
 	$citta['email']          = trim( (string) ( $_POST['email'] ?? '' ) );
 	$citta['piva']           = trim( (string) ( $_POST['piva'] ?? '' ) );
+	// Social della città: si salva solo quello che è stato scritto, così
+	// una rete lasciata vuota resta vuota e ricade su quella generale.
+	$citta['social'] = array();
+	foreach ( array_keys( social_disponibili() ) as $rete ) {
+		$url = trim( (string) ( $_POST[ 'social_' . $rete ] ?? '' ) );
+		if ( '' !== $url ) {
+			$citta['social'][ $rete ] = $url;
+		}
+	}
 	$citta['indirizzo']      = trim( (string) ( $_POST['indirizzo'] ?? '' ) );
 	$citta['mappa']          = trim( (string) ( $_POST['mappa'] ?? '' ) );
 	$citta['zone']           = trim( (string) ( $_POST['zone'] ?? '' ) );
@@ -194,6 +203,24 @@ $immagini      = media_tutti();
 				<input type="text" name="piva" value="<?php echo e( $citta['piva'] ); ?>" placeholder="<?php echo e( impostazione( 'piva', '01234567890' ) ); ?>">
 				<small>Solo se questa città ha una società diversa. Lasciala vuota e viene usata quella in Impostazioni<?php echo vuoto( impostazione( 'piva', '' ) ) ? '' : ' (' . e( impostazione( 'piva', '' ) ) . ')'; ?>.</small>
 			</label>
+
+			<h3 class="pc-sottotitolo">Social di questa città</h3>
+			<p class="pc-scheda__nota">
+				Compila solo le reti che questa città ha di suo. Le altre restano quelle
+				generali di <a href="admin.php?p=home">Home del portale → Piè di pagina</a>,
+				rete per rete: una città con il suo Facebook ma senza Instagram mostra il
+				suo Facebook accanto all'Instagram del marchio.
+			</p>
+			<div class="pc-riga pc-riga--2">
+				<?php foreach ( social_disponibili() as $rete => $nome ) : ?>
+					<?php $generale = impostazione( 'social_' . $rete, '' ); ?>
+					<label><?php echo e( $nome ); ?>
+						<input type="url" name="social_<?php echo e( $rete ); ?>"
+							value="<?php echo e( isset( $citta['social'][ $rete ] ) ? $citta['social'][ $rete ] : '' ); ?>"
+							placeholder="<?php echo vuoto( $generale ) ? 'https://...' : e( $generale ); ?>">
+					</label>
+				<?php endforeach; ?>
+			</div>
 			<label>Indirizzo della mappa incorporata
 				<input type="url" name="mappa" value="<?php echo e( $citta['mappa'] ); ?>" placeholder="https://www.google.com/maps/embed?pb=...">
 				<small>Su Google Maps: Condividi → Incorpora una mappa → copia solo l'indirizzo dentro <code>src="…"</code>.</small>

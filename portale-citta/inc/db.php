@@ -204,6 +204,7 @@ function db_installa() {
 		whatsapp ' . $t( 'VARCHAR(60)' ) . ' NULL,
 		email ' . $t( 'VARCHAR(190)' ) . ' NULL,
 		piva ' . $t( 'VARCHAR(40)' ) . ' NULL,
+		social ' . $t( 'LONGTEXT' ) . ' NULL,
 		indirizzo ' . $t( 'VARCHAR(255)' ) . ' NULL,
 		mappa ' . $t( 'LONGTEXT' ) . ' NULL,
 		orari ' . $t( 'LONGTEXT' ) . ' NULL,
@@ -346,9 +347,10 @@ function db_colonne_attese() {
 			'tag'     => 'LONGTEXT NULL',
 		),
 		'citta'    => array(
-			'css'  => 'LONGTEXT NULL',
-			'js'   => 'LONGTEXT NULL',
-			'piva' => 'VARCHAR(40) NULL',
+			'css'    => 'LONGTEXT NULL',
+			'js'     => 'LONGTEXT NULL',
+			'piva'   => 'VARCHAR(40) NULL',
+			'social' => 'LONGTEXT NULL',
 		),
 		'articoli' => array(),
 		'servizi'  => array(
