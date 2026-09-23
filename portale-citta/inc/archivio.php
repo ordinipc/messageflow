@@ -12,7 +12,7 @@ require_once __DIR__ . '/db.php';
 function campi_json( $entita ) {
 	$mappa = array(
 		'citta'  => array( 'orari', 'numeri', 'recensioni', 'team', 'social' ),
-		'pagine' => array( 'processo', 'faq', 'sezioni' ),
+		'pagine' => array( 'processo', 'faq', 'sezioni', 'colonne' ),
 	);
 	return isset( $mappa[ $entita ] ) ? $mappa[ $entita ] : array();
 }
@@ -419,6 +419,7 @@ function pagina_predefinita() {
 		'faq'         => array(),
 		'tag'         => '',
 		'sezioni'     => array(),
+		'colonne'     => array(),
 		'html'        => '',
 		'css'         => '',
 		'js'          => '',
@@ -783,6 +784,54 @@ function sezioni_sposta( $scelte, $comando, $ammesse ) {
 /** True se la pagina mostra una certa sezione. */
 function pagina_mostra( $pagina, $chiave ) {
 	return in_array( $chiave, pagina_sezioni( $pagina ), true );
+}
+
+/** Le tre larghezze che una sezione può avere. */
+function colonne_disponibili() {
+	return array(
+		'intera'   => 'Tutta la larghezza',
+		'sinistra' => 'Colonna di sinistra',
+		'destra'   => 'Colonna di destra',
+	);
+}
+
+/**
+ * In quale colonna sta ogni sezione.
+ *
+ * L'elenco vuoto vuol dire che nessuno ha ancora scelto: allora vale la
+ * regola di prima, testo e modulo affiancati da soli. Appena si salva
+ * dalla schermata Sezioni l'elenco si riempie — anche di sole «intera» —
+ * e da quel momento comanda quello che è stato scelto.
+ */
+function pagina_colonne( $pagina ) {
+	$scelte = isset( $pagina['colonne'] ) ? (array) $pagina['colonne'] : array();
+	if ( empty( $scelte ) ) {
+		$elenco = pagina_sezioni( $pagina );
+		$dove_t = array_search( 'testo', $elenco, true );
+		$dove_m = array_search( 'modulo', $elenco, true );
+		if ( false === $dove_t || false === $dove_m ) {
+			return array();
+		}
+		// A sinistra va quella che viene prima nell'ordine, come faceva la
+		// regola di prima: chi aveva messo il modulo in cima se lo
+		// ritrovava a sinistra, e deve continuare a ritrovarcelo.
+		return $dove_m < $dove_t
+			? array( 'modulo' => 'sinistra', 'testo' => 'destra' )
+			: array( 'testo' => 'sinistra', 'modulo' => 'destra' );
+	}
+
+	$buone = array_keys( colonne_disponibili() );
+	$fuori = array();
+	foreach ( $scelte as $chiave => $dove ) {
+		$fuori[ $chiave ] = in_array( $dove, $buone, true ) ? $dove : 'intera';
+	}
+	return $fuori;
+}
+
+/** La colonna di una sezione, «intera» se non è stata scelta. */
+function pagina_colonna( $pagina, $chiave ) {
+	$colonne = pagina_colonne( $pagina );
+	return isset( $colonne[ $chiave ] ) ? $colonne[ $chiave ] : 'intera';
 }
 
 /**

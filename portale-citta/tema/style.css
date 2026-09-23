@@ -2086,6 +2086,22 @@ body.glp-standalone{
     font-weight:800;
 }
 
+/* Il logo al posto del nome. L'altezza è quella scelta in Impostazioni,
+   ridotta: nel piede non deve gridare come nell'intestazione. */
+.glp-bottombar__name--logo.glp-bottombar__name--logo{
+    margin:0 0 16px;
+}
+
+.glp-bottombar__name--logo img{
+    display:block;
+
+    height:calc(var(--glp-logo,56px) * .8);
+    width:auto;
+    max-width:min(260px,100%);
+
+    object-fit:contain;
+}
+
 .glp-bottombar__intro.glp-bottombar__intro{
     max-width:34ch;
     margin:0 0 12px;

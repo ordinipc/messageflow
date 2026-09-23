@@ -248,6 +248,7 @@ function db_installa() {
 		css ' . $t( 'LONGTEXT' ) . ' NULL,
 		js ' . $t( 'LONGTEXT' ) . ' NULL,
 		sezioni ' . $t( 'LONGTEXT' ) . ' NULL,
+		colonne ' . $t( 'LONGTEXT' ) . ' NULL,
 		menu_mostra ' . $t( 'TINYINT(1)' ) . ' NOT NULL DEFAULT 1,
 		menu_ordine ' . $t( 'INT' ) . ' NOT NULL DEFAULT 10,
 		stato ' . $t( 'VARCHAR(20)' ) . ' NOT NULL DEFAULT \'bozza\',
@@ -345,6 +346,7 @@ function db_colonne_attese() {
 		'pagine'   => array(
 			'sezioni' => 'LONGTEXT NULL',
 			'tag'     => 'LONGTEXT NULL',
+			'colonne' => 'LONGTEXT NULL',
 		),
 		'citta'    => array(
 			'css'    => 'LONGTEXT NULL',

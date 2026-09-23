@@ -478,6 +478,76 @@
 			}
 		}
 
+		/* Trascinamento. I pulsanti restano: chi non può trascinare — dito
+		   impreciso, tastiera, lettore di schermo — sposta con le frecce e
+		   ottiene lo stesso risultato. */
+		var presa = null;
+
+		function dentroLista(el) {
+			return el === dentro || el === fuori ? el : (el.closest ? el.closest('#' + dentro.id + ', #' + fuori.id) : null);
+		}
+
+		zona.addEventListener('dragstart', function (ev) {
+			var voce = ev.target.closest ? ev.target.closest('.pc-voce') : null;
+			if (!voce) { return; }
+			presa = voce;
+			voce.classList.add('pc-voce--presa');
+			// Serve a Firefox: senza dati il trascinamento non parte.
+			try { ev.dataTransfer.setData('text/plain', voce.getAttribute('data-chiave') || ''); } catch (e) {}
+			ev.dataTransfer.effectAllowed = 'move';
+		});
+
+		zona.addEventListener('dragend', function () {
+			if (presa) { presa.classList.remove('pc-voce--presa'); }
+			presa = null;
+			zona.querySelectorAll('.pc-lista-menu').forEach(function (l) { l.classList.remove('pc-lista--sotto'); });
+		});
+
+		zona.addEventListener('dragover', function (ev) {
+			if (!presa) { return; }
+			var lista = dentroLista(ev.target);
+			if (!lista) { return; }
+			ev.preventDefault();
+			ev.dataTransfer.dropEffect = 'move';
+
+			zona.querySelectorAll('.pc-lista-menu').forEach(function (l) { l.classList.toggle('pc-lista--sotto', l === lista); });
+
+			// Si guarda la metà della voce sotto il cursore: sopra la metà
+			// si entra prima, sotto si entra dopo. Senza questo la voce
+			// finirebbe sempre in fondo e trascinare non servirebbe.
+			var sopra = ev.target.closest('.pc-voce');
+			if (!sopra || sopra === presa) {
+				if (!sopra) { lista.appendChild(presa); }
+				return;
+			}
+			var meta = sopra.getBoundingClientRect().top + sopra.offsetHeight / 2;
+			lista.insertBefore(presa, ev.clientY < meta ? sopra : sopra.nextSibling);
+		});
+
+		zona.addEventListener('drop', function (ev) {
+			if (!presa) { return; }
+			ev.preventDefault();
+			var lista = dentroLista(ev.target) || presa.parentNode;
+			var id = presa.getAttribute('data-chiave') || '';
+
+			if (lista === dentro) {
+				if (!presa.querySelector('.pc-voce__num')) {
+					var n = document.createElement('span');
+					n.className = 'pc-voce__num';
+					presa.insertBefore(n, presa.firstChild);
+				}
+				campo(presa, id);
+				bottoni(presa, id, 'dentro');
+			} else {
+				var h = presa.querySelector('input[name="' + cfg.campo + '"]');
+				if (h) { h.remove(); }
+				var num = presa.querySelector('.pc-voce__num');
+				if (num) { num.remove(); }
+				bottoni(presa, id, 'fuori');
+			}
+			aggiorna();
+		});
+
 		zona.addEventListener('click', function (ev) {
 			var b = ev.target.closest('[name="' + cfg.bottone + '"]');
 			if (!b) { return; }

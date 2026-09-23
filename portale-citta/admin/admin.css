@@ -635,3 +635,77 @@ input.pc-mono[readonly]:focus{
 	font-size:14px;
 	font-weight:700;
 }
+
+/* --- Colonna di una sezione ------------------------------------------- */
+.pc-colonne{
+	display:inline-flex;
+	gap:4px;
+	margin-top:8px;
+}
+
+.pc-colonna{
+	display:inline-flex;
+	align-items:center;
+	gap:5px;
+	margin:0;
+	padding:4px 9px 4px 6px;
+	border:1px solid var(--pc-bordo);
+	border-radius:999px;
+	background:#fff;
+	font-size:11px;
+	font-weight:600;
+	line-height:1;
+	color:var(--pc-grigio);
+	cursor:pointer;
+}
+
+.pc-colonna:hover{ background:#f6f6f8; }
+
+.pc-colonna input{
+	position:absolute;
+	width:1px;
+	height:1px;
+	opacity:0;
+}
+
+/* Il segno è la forma della colonna, non un pallino: si capisce a
+   colpo d'occhio dove finisce la sezione. */
+.pc-colonna__segno{
+	width:16px;
+	height:12px;
+	border:1.5px solid currentColor;
+	border-radius:2px;
+}
+
+.pc-colonna--sinistra .pc-colonna__segno{ border-right-width:7px; }
+.pc-colonna--destra .pc-colonna__segno{ border-left-width:7px; }
+
+.pc-colonna input:checked + .pc-colonna__segno{ color:#111; }
+
+.pc-colonna:has(input:checked){
+	border-color:#111;
+	background:#111;
+	color:#fff;
+}
+
+.pc-colonna:has(input:checked) .pc-colonna__segno{ color:#fff; }
+
+.pc-colonna:has(input:focus-visible){
+	outline:2px solid #1a73e8;
+	outline-offset:1px;
+}
+
+/* Le sezioni non mostrate portano la scelta con sé, ma non ha senso
+   vederla finché non sono nella pagina. */
+#lista-sez-fuori .pc-colonne{ display:none; }
+
+/* --- Trascinamento ----------------------------------------------------- */
+.pc-voce[draggable="true"]{ cursor:grab; }
+.pc-voce--presa{ opacity:.45; cursor:grabbing; }
+
+.pc-lista--sotto{
+	outline:2px dashed #c9c9d1;
+	outline-offset:4px;
+	border-radius:8px;
+	min-height:44px;
+}

@@ -901,35 +901,79 @@ function rendi_sezione_home( $chiave ) {
  * primo dei due secondo l'ordine scelto nella scheda "Sezioni".
  */
 function stampa_sezioni( $pagina, $contesto ) {
-	$elenco = pagina_sezioni( $pagina );
-	$coppia = array( 'testo', 'modulo' );
+	$elenco  = pagina_sezioni( $pagina );
+	$colonne = pagina_colonne( $pagina );
 
-	// Si affiancano solo se ci sono entrambe e hanno entrambe qualcosa da
-	// dire: un modulo di fianco al vuoto sarebbe peggio di prima.
+	// Pagine salvate prima che la colonna si potesse scegliere: la regola
+	// di allora affiancava testo e modulo ovunque fossero nell'elenco,
+	// anche con tre sezioni in mezzo. Qui si avvicinano, e ci pensa poi
+	// la regola generale: stesso risultato di prima, un algoritmo solo.
+	if ( empty( $pagina['colonne'] ) ) {
+		$elenco = avvicina( $elenco, 'testo', 'modulo' );
+	}
+
+	// Si disegna tutto prima di impaginare: una sezione senza niente da
+	// dire esce vuota, e una colonna di fianco al vuoto sarebbe peggio
+	// che nessuna colonna. Sapendolo prima si può rinunciare alla coppia.
 	$pezzi = array();
-	foreach ( $coppia as $chiave ) {
-		$pezzi[ $chiave ] = in_array( $chiave, $elenco, true ) ? rendi_sezione( $chiave, $contesto ) : '';
-	}
-	$affianca = '' !== $pezzi['testo'] && '' !== $pezzi['modulo'];
-
-	$fuori = '';
-	$fatte = array();
 	foreach ( $elenco as $chiave ) {
-		if ( in_array( $chiave, $fatte, true ) ) {
-			continue;
-		}
-		if ( $affianca && in_array( $chiave, $coppia, true ) ) {
-			// A sinistra va quella che viene prima nell'ordine scelto: chi
-			// mette il modulo in cima se lo ritrova in cima anche qui.
-			$altra  = 'testo' === $chiave ? 'modulo' : 'testo';
-			$fuori .= '<div class="glp-affiancate">' . $pezzi[ $chiave ] . $pezzi[ $altra ] . '</div>';
-			$fatte  = $coppia;
-			continue;
-		}
-		// Già disegnate qui sopra: non si rifanno.
-		$fuori .= isset( $pezzi[ $chiave ] ) ? $pezzi[ $chiave ] : rendi_sezione( $chiave, $contesto );
+		$pezzi[ $chiave ] = rendi_sezione( $chiave, $contesto );
 	}
 
+	$fuori  = '';
+	$quante = count( $elenco );
+	for ( $i = 0; $i < $quante; $i++ ) {
+		$chiave = $elenco[ $i ];
+		$mia    = isset( $colonne[ $chiave ] ) ? $colonne[ $chiave ] : 'intera';
+
+		if ( 'intera' !== $mia && $i + 1 < $quante ) {
+			$dopo = $elenco[ $i + 1 ];
+			$sua  = isset( $colonne[ $dopo ] ) ? $colonne[ $dopo ] : 'intera';
+			// Due vicine che stanno da parti opposte fanno una coppia,
+			// ma solo se hanno entrambe qualcosa da mostrare.
+			if ( 'intera' !== $sua && $sua !== $mia && '' !== $pezzi[ $chiave ] && '' !== $pezzi[ $dopo ] ) {
+				// A sinistra va quella marcata sinistra, non quella che
+				// viene prima: l'ordine dell'elenco qui non comanda.
+				$sx     = 'sinistra' === $mia ? $pezzi[ $chiave ] : $pezzi[ $dopo ];
+				$dx     = 'sinistra' === $mia ? $pezzi[ $dopo ] : $pezzi[ $chiave ];
+				$fuori .= '<div class="glp-affiancate">' . $sx . $dx . '</div>';
+				$i++;
+				continue;
+			}
+		}
+
+		// Rimasta spaiata: si prende tutta la larghezza, com'era prima.
+		$fuori .= $pezzi[ $chiave ];
+	}
+
+	return $fuori;
+}
+
+/**
+ * Mette due voci una accanto all'altra, senza spostare le altre.
+ *
+ * La seconda si toglie da dov'è e si rimette subito dopo la prima. Se
+ * una delle due non c'è, l'elenco torna com'era.
+ */
+function avvicina( $elenco, $una, $altra ) {
+	$dove_una   = array_search( $una, $elenco, true );
+	$dove_altra = array_search( $altra, $elenco, true );
+	if ( false === $dove_una || false === $dove_altra ) {
+		return $elenco;
+	}
+	// Chi viene prima resta dov'è: è quella che finirà a sinistra.
+	$prima  = $dove_una < $dove_altra ? $una : $altra;
+	$dopo   = $dove_una < $dove_altra ? $altra : $una;
+	$fuori  = array();
+	foreach ( $elenco as $chiave ) {
+		if ( $chiave === $dopo ) {
+			continue;
+		}
+		$fuori[] = $chiave;
+		if ( $chiave === $prima ) {
+			$fuori[] = $dopo;
+		}
+	}
 	return $fuori;
 }
 

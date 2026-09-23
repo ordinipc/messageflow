@@ -12,7 +12,15 @@ $js_extra = isset( $js_extra ) ? $js_extra : '';
 <footer class="glp-bottombar">
 	<div class="glp-bottombar__inner">
 		<div class="glp-bottombar__col">
-			<p class="glp-bottombar__name"><?php echo e( $imp['brand'] ); ?></p>
+			<?php /* Il logo al posto del nome scritto. Se non c'è un logo
+				caricato resta il nome, o il piede aprirebbe con un buco. */ ?>
+			<?php if ( ! vuoto( $imp['logo'] ) ) : ?>
+				<p class="glp-bottombar__name glp-bottombar__name--logo">
+					<img src="<?php echo e( url_media( $imp['logo'] ) ); ?>" alt="<?php echo e( $imp['brand'] ); ?>" loading="lazy" decoding="async">
+				</p>
+			<?php else : ?>
+				<p class="glp-bottombar__name"><?php echo e( $imp['brand'] ); ?></p>
+			<?php endif; ?>
 			<?php if ( ! vuoto( $imp['piede_testo'] ) ) : ?>
 				<p class="glp-bottombar__intro"><?php echo testo_con_link( $imp['piede_testo'] ); // Già ripulito. ?></p>
 			<?php endif; ?>

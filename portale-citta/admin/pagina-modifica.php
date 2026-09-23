@@ -73,6 +73,21 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	array_unshift( $scelte, PC_ORDINE_DECISO );
 	$pagina['sezioni'] = $scelte;
 
+	// La colonna di ogni sezione. Si scrive anche «intera», che pure è il
+	// valore di riposo: serve a distinguere «scelto così» da «mai
+	// scelto», e chi non ha mai scelto tiene l'impaginazione di prima.
+	$dove    = (array) ( $_POST['colonna'] ?? array() );
+	$buone   = array_keys( colonne_disponibili() );
+	$colonne = array();
+	foreach ( $scelte as $chiave ) {
+		if ( PC_ORDINE_DECISO === $chiave ) {
+			continue;
+		}
+		$scelta            = (string) ( $dove[ $chiave ] ?? 'intera' );
+		$colonne[ $chiave ] = in_array( $scelta, $buone, true ) ? $scelta : 'intera';
+	}
+	$pagina['colonne'] = $colonne;
+
 	$pagina['menu_mostra'] = isset( $_POST['menu_mostra'] ) ? 1 : 0;
 	$pagina['menu_ordine'] = (int) ( $_POST['menu_ordine'] ?? 10 );
 	$pagina['stato']       = 'pubblicata' === ( $_POST['stato'] ?? '' ) ? 'pubblicata' : 'bozza';
@@ -375,6 +390,28 @@ $lista_s  = servizi();
 		<?php
 		$catalogo = sezioni_disponibili( $pagina['tipo'] );
 		$attive   = pagina_sezioni( $pagina );
+		$colonne  = pagina_colonne( $pagina );
+
+		/**
+		 * I tre bottoncini della colonna.
+		 *
+		 * Stanno anche sulle sezioni spente, nascosti: così trascinandone
+		 * una dentro si porta dietro la sua scelta, invece di dover
+		 * ricostruire il gruppo di radio in JavaScript.
+		 */
+		function scelta_colonna( $chiave, $qui ) {
+			$fuori = '<span class="pc-colonne">';
+			foreach ( colonne_disponibili() as $dove => $etichetta ) {
+				$nome   = 'intera' === $dove ? 'Intera' : ( 'sinistra' === $dove ? 'Sinistra' : 'Destra' );
+				$fuori .= '<label class="pc-colonna pc-colonna--' . e( $dove ) . '" title="' . e( $etichetta ) . '">'
+					. '<input type="radio" name="colonna[' . e( $chiave ) . ']" value="' . e( $dove ) . '"'
+					. ( $dove === $qui ? ' checked' : '' ) . '>'
+					. '<span class="pc-colonna__segno" aria-hidden="true"></span>'
+					. '<span class="pc-colonna__nome">' . e( $nome ) . '</span>'
+					. '</label>';
+			}
+			return $fuori . '</span>';
+		}
 		$spente   = array();
 		foreach ( $catalogo as $chiave => $info ) {
 			if ( ! in_array( $chiave, $attive, true ) ) {
@@ -386,17 +423,25 @@ $lista_s  = servizi();
 		<div class="pc-griglia-2" id="modulo-sezioni">
 			<div class="pc-scheda">
 				<h2>Nella pagina <span class="pc-nota" id="conta-sez-dentro">(<?php echo count( $attive ); ?>)</span></h2>
-				<p class="pc-scheda__nota">Dall'alto in basso = l'ordine in cui si leggono scorrendo la pagina.</p>
+				<p class="pc-scheda__nota">
+					Dall'alto in basso = l'ordine in cui si leggono scorrendo la pagina.
+					Si trascinano, o si spostano con le frecce.
+					<br>
+					<strong>Intera</strong> prende tutta la larghezza. Due sezioni vicine
+					messe una a <strong>Sinistra</strong> e una a <strong>Destra</strong>
+					escono affiancate; sul telefono tornano una sotto l'altra.
+				</p>
 
 				<ul class="pc-lista-menu" id="lista-sez-dentro">
 					<?php foreach ( $attive as $i => $chiave ) : ?>
 						<?php $info = $catalogo[ $chiave ]; ?>
-						<li class="pc-voce" data-titolo="<?php echo e( $info[0] ); ?>">
+						<li class="pc-voce" data-titolo="<?php echo e( $info[0] ); ?>" data-chiave="<?php echo e( $chiave ); ?>" draggable="true">
 							<input type="hidden" name="sezioni[]" value="<?php echo e( $chiave ); ?>">
 							<span class="pc-voce__num"><?php echo (int) $i + 1; ?></span>
 							<span class="pc-voce__nome">
 								<?php echo e( $info[0] ); ?>
 								<small><?php echo e( $info[1] ); ?></small>
+								<?php echo scelta_colonna( $chiave, isset( $colonne[ $chiave ] ) ? $colonne[ $chiave ] : 'intera' ); ?>
 							</span>
 							<span class="pc-voce__azioni">
 								<button type="submit" name="muovi_sezione" value="su:<?php echo e( $chiave ); ?>" class="pc-tondo" title="Sposta su" aria-label="Sposta su">↑</button>
@@ -422,10 +467,11 @@ $lista_s  = servizi();
 				<ul class="pc-lista-menu" id="lista-sez-fuori">
 					<?php foreach ( $spente as $chiave ) : ?>
 						<?php $info = $catalogo[ $chiave ]; ?>
-						<li class="pc-voce" data-titolo="<?php echo e( $info[0] ); ?>">
+						<li class="pc-voce" data-titolo="<?php echo e( $info[0] ); ?>" data-chiave="<?php echo e( $chiave ); ?>" draggable="true">
 							<span class="pc-voce__nome">
 								<?php echo e( $info[0] ); ?>
 								<small><?php echo e( $info[1] ); ?></small>
+								<?php echo scelta_colonna( $chiave, isset( $colonne[ $chiave ] ) ? $colonne[ $chiave ] : 'intera' ); ?>
 							</span>
 							<span class="pc-voce__azioni">
 								<button type="submit" name="muovi_sezione" value="dentro:<?php echo e( $chiave ); ?>" class="pc-tondo pc-tondo--verde" title="Metti nella pagina" aria-label="Metti nella pagina">+</button>

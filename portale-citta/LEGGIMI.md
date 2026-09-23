@@ -30,7 +30,7 @@ Non è un plugin: gira da solo, con il suo database e la sua amministrazione.
 | **Home del portale** | La pagina d'ingresso e il piè di pagina si scrivono dal pannello |
 | **Due stili grafici** | Vetrina (intestazione a tutta larghezza) o Classico, con la larghezza regolabile |
 | **Shortcode per WordPress** | Ogni pagina (o singola sezione) si incolla dentro WordPress |
-| **Sezioni per pagina** | Ogni pagina sceglie cosa mostrare **e in che ordine**: non escono tutte uguali |
+| **Sezioni per pagina** | Ogni pagina sceglie cosa mostrare, **in che ordine** e **in quale colonna**: non escono tutte uguali |
 | **Sezioni a card** | Ogni sezione si disegna a riquadri o a elenco, con effetti dinamici |
 | **CSS/HTML/JS** | Tre livelli: globale, per città, per pagina |
 | **Bozze** | Le pagine non pubblicate sono 404 per tutti, tranne per chi è collegato |
@@ -317,6 +317,10 @@ per quei bot soli — Google e Bing continuano a indicizzarti normalmente — e
 
 Sono i due pezzi che non appartengono a nessuna città, e si scrivono da
 **Home del portale** nel menu.
+
+**Il nome in alto a sinistra del piè di pagina è il logo**, lo stesso di
+Impostazioni → Logo e icona, rimpicciolito. Se non hai caricato un logo resta
+il nome scritto, o il piede aprirebbe con un buco.
 
 **Pagina principale** — è quella che si apre sull'indirizzo del portale
 (`tuosito.it/zone/`) e serve a chi arriva senza sapere ancora quale città gli
@@ -653,12 +657,32 @@ il portale: non si scarica niente da server di altri.
 
 ## Due colonne sugli schermi larghi
 
-Sopra i 1100px, quando una pagina ha **sia il testo di approfondimento sia il
-modulo di contatto**, i due escono affiancati: si legge a sinistra e si scrive
-a destra, senza scorrere. Sotto i 1100px si impilano.
+Nella scheda **Sezioni** ogni sezione ha tre bottoncini: **Intera**,
+**Sinistra**, **Destra**.
 
-A sinistra va quella che viene prima nell'ordine della scheda **Sezioni**: se
-sposti il modulo sopra al testo, il modulo passa a sinistra.
+- **Intera** è il riposo: la sezione prende tutta la larghezza.
+- **Due sezioni vicine**, una messa a Sinistra e una a Destra, **escono
+  affiancate**. Sotto i 1100px — tablet e telefono — tornano una sotto
+  l'altra da sole.
+
+**Il lato lo decide il bottoncino, non l'ordine.** Trascinare una sezione
+sopra l'altra cambia l'ordine di lettura, non il lato: se vuoi il modulo a
+sinistra, marcalo Sinistra. Prima era l'ordine a decidere, e per le pagine
+mai salvate dalla scheda Sezioni lo è ancora.
+
+Perché «vicine»: una coppia si forma solo fra due sezioni che si toccano
+nell'ordine. Se ne infili una a tutta larghezza in mezzo, la coppia si apre e
+le due tornano larghe. E se una delle due non ha niente da mostrare — un
+modulo di fianco al vuoto — la coppia non si fa: meglio una sezione larga che
+mezza pagina bianca.
+
+Le sezioni si spostano **trascinandole**, oppure con le frecce ↑ ↓ per chi
+preferisce (o per chi non può trascinare: funzionano anche da tastiera, e
+senza JavaScript).
+
+**Le pagine fatte prima** di questa scheda tengono l'impaginazione che
+avevano: testo e modulo affiancati da soli. Appena salvi la pagina dalla
+scheda Sezioni, comanda quello che hai scelto lì.
 
 Quando invece il testo è da solo sulla pagina — le pagine servizio, per
 esempio — si dispone su **due colonne** invece di lasciare mezza pagina
