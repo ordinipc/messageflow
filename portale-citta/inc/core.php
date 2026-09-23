@@ -32,6 +32,12 @@ set_exception_handler( function ( $errore ) {
 	echo '<h1 style="font-size:18px;margin:0 0 8px">Qualcosa non ha funzionato</h1>';
 	if ( $amministrazione ) {
 		echo '<p style="margin:0 0 10px">' . htmlspecialchars( $errore->getMessage(), ENT_QUOTES, 'UTF-8' ) . '</p>';
+		// «Call to undefined function» dopo un aggiornamento vuol dire
+		// quasi sempre file caricati a metà: chi legge deve sapere cosa
+		// fare, non solo come si chiama la funzione che manca.
+		if ( preg_match( '/undefined (function|method|constant)/i', $errore->getMessage() ) ) {
+			echo '<p style="margin:0 0 10px">Sembra un aggiornamento caricato a metà: ricarica <strong>tutta</strong> la cartella del portale, in particolare <code>inc/</code>, <code>admin/</code> e <code>tema/</code>, poi riprova. I tuoi dati non sono stati toccati.</p>';
+		}
 		echo '<p style="margin:0;font-size:13px;color:#8c1d18">' . htmlspecialchars( basename( $errore->getFile() ) . ':' . $errore->getLine(), ENT_QUOTES, 'UTF-8' ) . '</p>';
 	} else {
 		echo '<p style="margin:0">La pagina non è al momento disponibile. Riprova fra poco.</p>';

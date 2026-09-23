@@ -727,6 +727,12 @@ Sovrascrivi tutto **tranne** `config.php`, `dati/` e `media/`.
 Al primo accesso all'amministrazione le tabelle mancanti vengono create e le
 colonne nuove aggiunte a quelle esistenti: non devi toccare il database.
 
+**Caricali tutti.** Se `admin.php` è nuovo e la cartella `inc/` è rimasta
+quella vecchia, il pannello se ne accorge da solo: entra lo stesso e mette
+in cima un avviso rosso che dice cosa ricaricare. Gli aggiornamenti al
+database, però, non sono passati — quindi ricarica e riapri la pagina. I
+dati non vengono toccati in nessun caso.
+
 ---
 
 ## Sicurezza

@@ -62,6 +62,16 @@ if ( 'articolo-modifica' === $attiva || 'importa' === $attiva ) { $attiva = 'art
 		<?php if ( $msg ) : ?>
 			<div class="pc-avviso pc-avviso--<?php echo e( 'ok' === $msg['tipo'] ? 'ok' : 'errore' ); ?>"><?php echo e( $msg['testo'] ); ?></div>
 		<?php endif; ?>
+		<?php /* Qualche file del portale è rimasto indietro: il pannello
+			funziona lo stesso, ma gli aggiornamenti al database non
+			sono passati. Meglio dirlo che lasciarlo scoprire. */ ?>
+		<?php if ( ! empty( $pc_da_ricaricare ) ) : ?>
+			<div class="pc-avviso pc-avviso--errore">
+				L'aggiornamento è stato caricato a metà: la cartella <code>inc/</code> è
+				ancora quella vecchia. Ricarica <strong>tutti</strong> i file del portale
+				e apri di nuovo questa pagina. I tuoi dati non sono stati toccati.
+			</div>
+		<?php endif; ?>
 		<?php echo $contenuto; // Generato dalle schermate. ?>
 	</main>
 </div>

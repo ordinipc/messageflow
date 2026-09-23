@@ -15,10 +15,21 @@ try {
 	// Chi aggiorna il portale trova le tabelle vecchie: qui si allineano.
 	db_installa();
 	db_aggiorna();
-	// La vecchia password unica diventa il primo utente.
-	utenti_migra();
-	// Le FAQ arrivano anche sulle pagine principali già create.
-	sezioni_migra_faq();
+	// Le migrazioni: la vecchia password unica che diventa il primo
+	// utente, le FAQ che arrivano sulle pagine principali già create.
+	//
+	// Si chiamano solo se ci sono davvero. Un caricamento a metà —
+	// admin.php nuovo e la cartella inc/ ancora vecchia — chiudeva fuori
+	// dal pannello con un errore fatale, e il pannello è proprio il
+	// posto da cui si rimedia. Meglio entrare con un avviso.
+	$pc_da_ricaricare = array();
+	foreach ( array( 'utenti_migra', 'sezioni_migra_faq' ) as $pc_passo ) {
+		if ( function_exists( $pc_passo ) ) {
+			$pc_passo();
+		} else {
+			$pc_da_ricaricare[] = $pc_passo;
+		}
+	}
 } catch ( PDOException $ex ) {
 	exit( '<h1>Database non raggiungibile</h1><p>' . e( $ex->getMessage() ) . '</p>' );
 }
