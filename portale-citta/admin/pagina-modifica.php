@@ -47,7 +47,9 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	$pagina['seo_desc']    = trim( (string) ( $_POST['seo_desc'] ?? '' ) );
 	$pagina['immagine']    = trim( (string) ( $_POST['immagine'] ?? '' ) );
 	$pagina['intro']       = trim( (string) ( $_POST['intro'] ?? '' ) );
-	$pagina['corpo']       = trim( (string) ( $_POST['corpo'] ?? '' ) );
+	// L'editor manda HTML: qui passa dal filtro, così quello che finisce
+	// nel database è già innocuo e in pagina si può stampare com'è.
+	$pagina['corpo']       = corpo_pulisci( (string) ( $_POST['corpo'] ?? '' ) );
 	$pagina['inclusi']     = trim( (string) ( $_POST['inclusi'] ?? '' ) );
 	$pagina['prezzo_da']   = trim( (string) ( $_POST['prezzo_da'] ?? '' ) );
 	$pagina['prezzo_a']    = trim( (string) ( $_POST['prezzo_a'] ?? '' ) );
@@ -205,8 +207,8 @@ $lista_s  = servizi();
 						data-ai="corpo" data-ai-campo="campo-corpo" data-ai-pagina="<?php echo e( $pagina['id'] ); ?>" data-ai-citta="<?php echo e( $citta['id'] ); ?>">✦ Scrivi con l'assistente</button>
 				<?php endif; ?>
 			</h2>
-			<p class="pc-scheda__nota">Il corpo della pagina. Separa i paragrafi con una riga vuota. Minimo consigliato: 300 parole.</p>
-			<label><textarea id="campo-corpo" name="corpo" style="min-height:260px"><?php echo e( $pagina['corpo'] ); ?></textarea></label>
+			<p class="pc-scheda__nota">Il corpo della pagina. Minimo consigliato: 300 parole, spezzate in sottotitoli invece che in un muro unico.</p>
+			<textarea id="campo-corpo" name="corpo" data-editor style="min-height:300px" aria-label="Testo di approfondimento"><?php echo e( $pagina['corpo'] ); ?></textarea>
 			<p class="pc-nota"><strong>Deve essere diverso da quello delle altre città.</strong> Testi identici con solo il nome cambiato è il motivo numero uno per cui Google non indicizza le pagine locali.</p>
 		</div>
 	</div>

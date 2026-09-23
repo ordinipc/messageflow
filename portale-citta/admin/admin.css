@@ -462,3 +462,86 @@ input.pc-mono[readonly]:focus{
 	text-decoration:underline;
 	text-underline-offset:3px;
 }
+
+/* ===========================================================================
+   EDITOR DEL TESTO
+   La textarea resta nel modulo ma sparisce dalla vista: è ancora lei il
+   campo che viene inviato, e senza JavaScript torna al suo posto.
+   ========================================================================= */
+.pc-editor{
+	border:1px solid #d9d9de;
+	border-radius:8px;
+	background:#fff;
+	overflow:hidden;
+}
+
+.pc-editor__barra{
+	display:flex;
+	flex-wrap:wrap;
+	gap:4px;
+	padding:8px;
+	border-bottom:1px solid #ececf0;
+	background:#fafafb;
+}
+
+.pc-ferro{
+	padding:6px 10px;
+	border:1px solid #dcdce2;
+	border-radius:6px;
+	background:#fff;
+	color:#2a2a30;
+	font:inherit;
+	font-size:13px;
+	line-height:1.2;
+	cursor:pointer;
+}
+
+.pc-ferro:hover{ background:#f1f1f4; }
+.pc-ferro:active{ background:#e6e6ea; }
+.pc-ferro:focus-visible{ outline:2px solid #1a73e8; outline-offset:1px; }
+
+.pc-ferro--g{ font-weight:700; min-width:34px; }
+.pc-ferro--c{ font-style:italic; min-width:34px; }
+
+.pc-editor__foglio{
+	padding:16px 18px;
+	min-height:260px;
+	font-size:15px;
+	/* Le etichette del pannello sono a 600: ereditandolo, il browser
+	   considerava già in grassetto tutto quello che si scriveva qui, e il
+	   pulsante Grassetto lo toglieva invece di metterlo. */
+	font-weight:400;
+	line-height:1.7;
+	color:#1c1c1f;
+	overflow-wrap:anywhere;
+}
+
+.pc-editor__foglio:focus{ outline:none; }
+
+.pc-editor__foglio p{ margin:0 0 1em; }
+.pc-editor__foglio p:last-child{ margin-bottom:0; }
+
+.pc-editor__foglio h3,
+.pc-editor__foglio h4{
+	margin:1.4em 0 .5em;
+	font-size:17px;
+	font-weight:700;
+	line-height:1.3;
+}
+
+.pc-editor__foglio h3:first-child{ margin-top:0; }
+.pc-editor__foglio ul,
+.pc-editor__foglio ol{ margin:0 0 1em; padding-left:1.4em; }
+.pc-editor__foglio li{ margin:0 0 .3em; }
+.pc-editor__foglio a{ color:#1a5fd0; }
+.pc-editor__foglio strong{ font-weight:700; }
+
+/* Nascosta, non rimossa: senza JavaScript questa regola non arriva mai a
+   toccarla perché la classe la mette l'editor stesso. */
+.pc-editor__sorgente{
+	position:absolute;
+	left:-9999px;
+	width:1px;
+	height:1px;
+	opacity:0;
+}

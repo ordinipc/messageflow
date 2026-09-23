@@ -202,7 +202,19 @@ function ai_chiedi( $istruzione, $schema = null, $massimo = 8192 ) {
 			'errore' => 'Risposta vuota dal modello' . ( '' === $motivo ? '' : ' (motivo: ' . $motivo . ')' ) . '.',
 		);
 	}
-	return array( 'ok' => true, 'testo' => ai_ripulisci( $testo ), 'motivo' => $motivo, 'errore' => '' );
+	// Qui si toglie solo il recinto di codice attorno al JSON. La
+	// formattazione non si tocca: chi ha chiesto un testo formattato la
+	// vuole, e chi ha chiesto testo semplice la toglie più avanti. Prima
+	// spariva qui per tutti, e il grassetto non arrivava mai.
+	return array( 'ok' => true, 'testo' => ai_togli_recinto( $testo ), 'motivo' => $motivo, 'errore' => '' );
+}
+
+/** Toglie il recinto ```…``` con cui certi modelli incartano la risposta. */
+function ai_togli_recinto( $testo ) {
+	$testo = trim( (string) $testo );
+	$testo = preg_replace( '/^```[a-z]*\s*/i', '', $testo );
+	$testo = preg_replace( '/```\s*$/', '', $testo );
+	return trim( $testo );
 }
 
 /**
@@ -215,7 +227,7 @@ function ai_chiedi( $istruzione, $schema = null, $massimo = 8192 ) {
  * @param string $campo      Nome del campo da leggere.
  * @param int    $max        Taglio di sicurezza in caratteri, 0 per nessuno.
  */
-function ai_chiedi_testo( $istruzione, $campo = 'testo', $max = 0, $massimo_token = 8192 ) {
+function ai_chiedi_testo( $istruzione, $campo = 'testo', $max = 0, $massimo_token = 8192, $formato = 'semplice' ) {
 	$schema = array(
 		'type'       => 'OBJECT',
 		'properties' => array( $campo => array( 'type' => 'STRING' ) ),
@@ -246,8 +258,12 @@ function ai_chiedi_testo( $istruzione, $campo = 'testo', $max = 0, $massimo_toke
 		$testo = $grezzo;
 	}
 
-	$testo = ai_ripulisci( $testo );
-	$testo = trim( $testo, " \t\n\r\0\x0B\"'«»" );
+	if ( 'html' === $formato ) {
+		$testo = ai_ripulisci_html( $testo );
+	} else {
+		$testo = ai_ripulisci( $testo );
+		$testo = trim( $testo, " \t\n\r\0\x0B\"'«»" );
+	}
 
 	if ( ai_testo_sospetto( $testo ) ) {
 		return array(
@@ -354,6 +370,49 @@ function ai_ripulisci( $testo ) {
 	$testo = preg_replace( '/^#{1,6}\s*/m', '', $testo );
 	$testo = preg_replace( '/^\s*[-*]\s+/m', '', $testo );
 	return trim( $testo );
+}
+
+/**
+ * Ripulitura per i campi che accettano formattazione.
+ *
+ * Differenza con ai_ripulisci(): lì i marcatori markdown si buttano via,
+ * qui si traducono. Al modello si chiede HTML, ma ogni tanto risponde in
+ * markdown lo stesso — e buttare via gli asterischi butterebbe via anche
+ * il grassetto che ci avevamo chiesto di mettere.
+ *
+ * Alla fine passa dal filtro del server: quello che torna è già pronto
+ * da salvare.
+ */
+function ai_ripulisci_html( $testo ) {
+	$testo = trim( (string) $testo );
+	$testo = preg_replace( '/^```[a-z]*\s*/i', '', $testo );
+	$testo = preg_replace( '/```\s*$/', '', $testo );
+
+	// Titoli markdown. Si va tutti su h3: h1 è il titolo della pagina e
+	// h2 lo mette la sezione, quindi qui sotto si riparte da lì.
+	$testo = preg_replace( '/^\s*#{1,6}\s*(.+?)\s*$/m', '<h3>$1</h3>', $testo );
+
+	// Righe di elenco consecutive → un solo <ul>.
+	$testo = preg_replace_callback(
+		'/(?:^[ \t]*[-*+][ \t]+.+(?:\n|$))+/m',
+		function ( $pezzi ) {
+			$voci = '';
+			foreach ( preg_split( "/\n/", trim( $pezzi[0] ) ) as $riga ) {
+				$riga = preg_replace( '/^[ \t]*[-*+][ \t]+/', '', $riga );
+				if ( '' !== trim( $riga ) ) {
+					$voci .= '<li>' . trim( $riga ) . '</li>';
+				}
+			}
+			return '' === $voci ? '' : '<ul>' . $voci . '</ul>' . "\n";
+		},
+		$testo
+	);
+
+	// Grassetto e corsivo, in quest'ordine: ** prima di *.
+	$testo = preg_replace( '/\*\*(.+?)\*\*/su', '<strong>$1</strong>', $testo );
+	$testo = preg_replace( '/(?<!\*)\*(?!\s)(.+?)(?<!\s)\*(?!\*)/su', '<em>$1</em>', $testo );
+
+	return corpo_pulisci( $testo );
 }
 
 /* ---------------------------------------------------------------------------
@@ -569,16 +628,34 @@ function ai_regole() {
 		. "- Restituisci solo il testo richiesto, senza titoli né formattazione markdown.";
 }
 
+/**
+ * Regole in più per i campi che escono formattati.
+ *
+ * Il muro di testo non lo legge nessuno, e nemmeno lo cita un assistente
+ * IA: quello che serve è un testo spezzato, con i punti che contano in
+ * evidenza e gli elenchi scritti come elenchi.
+ */
+function ai_regole_formato() {
+	return "Formato della risposta:\n"
+		. "- Rispondi in HTML, senza <html>, <head> o <body>.\n"
+		. "- Usa solo questi tag: <p>, <h3>, <strong>, <ul>, <ol>, <li>. Nient'altro.\n"
+		. "- Spezza il testo con un <h3> ogni due o tre paragrafi: il sottotitolo dice cosa si trova sotto, non è un titolo generico.\n"
+		. "- Paragrafi corti, due o tre frasi. Mai un blocco di dieci righe.\n"
+		. "- Metti in <strong> le tre o quattro cose che il cliente cerca davvero: il servizio, la città, il prezzo, il tempo di attesa. Parole o brevi gruppi di parole, mai frasi intere.\n"
+		. "- Quando elenchi cose — cosa serve portare, cosa comprende, i passaggi — usa <ul> con <li>, non un elenco dentro il paragrafo.";
+}
+
 /** Genera il testo di approfondimento. */
 function ai_corpo( $citta, $pagina ) {
 	$istruzione = "Scrivi il testo di approfondimento per una pagina di servizio locale.\n\n"
 		. ai_contesto( $citta, $pagina ) . "\n\n"
-		. "Lunghezza: 300-400 parole, divise in 3 o 4 paragrafi separati da una riga vuota.\n"
+		. "Lunghezza: 300-380 parole in tutto, divise in 3 o 4 blocchi, ognuno con il suo <h3>.\n"
 		. "Spiega quando serve il servizio, come si svolge, cosa deve sapere il cliente e cosa lo distingue in questa città.\n\n"
-		. ai_regole();
+		. ai_regole() . "\n\n"
+		. ai_regole_formato();
 	// Il testo di approfondimento è lungo: serve spazio per il ragionamento
 	// del modello e per le quattrocento parole richieste.
-	return ai_chiedi_testo( $istruzione, 'testo', 0, 16384 );
+	return ai_chiedi_testo( $istruzione, 'testo', 0, 16384, 'html' );
 }
 
 /** Genera la meta description. */
@@ -623,9 +700,11 @@ function ai_faq( $citta, $pagina, $quante = 6 ) {
 		if ( empty( $v['domanda'] ) || empty( $v['risposta'] ) ) {
 			continue;
 		}
+		// Le FAQ vanno in campi di testo semplice: qui i marcatori si
+		// tolgono, o in pagina si leggerebbero gli asterischi.
 		$pulite[] = array(
-			'domanda'  => trim( (string) $v['domanda'] ),
-			'risposta' => trim( (string) $v['risposta'] ),
+			'domanda'  => ai_ripulisci( (string) $v['domanda'] ),
+			'risposta' => ai_ripulisci( (string) $v['risposta'] ),
 		);
 	}
 	return array( 'ok' => true, 'voci' => $pulite, 'errore' => '' );
@@ -767,11 +846,12 @@ function ai_home_intro() {
 function ai_home_testo() {
 	$istruzione = "Scrivi il testo di presentazione della pagina d'ingresso di un portale di zone.\n\n"
 		. ai_contesto_portale() . "\n\n"
-		. "Lunghezza: 120-180 parole, in due paragrafi separati da una riga vuota.\n"
+		. "Lunghezza: 140-200 parole, in due o tre blocchi con il loro <h3>.\n"
 		. "Racconta di cosa si occupa l'attività e come lavora nelle zone che copre.\n"
 		. "Non elencare le città una per una: sotto c'è già il loro elenco.\n\n"
-		. ai_regole_portale();
-	return ai_chiedi_testo( $istruzione, 'testo', 0, 8192 );
+		. ai_regole_portale() . "\n\n"
+		. ai_regole_formato();
+	return ai_chiedi_testo( $istruzione, 'testo', 0, 8192, 'html' );
 }
 
 /** Testo sotto l'elenco delle città. */

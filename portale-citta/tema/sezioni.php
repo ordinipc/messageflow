@@ -15,7 +15,12 @@ defined( 'PC_AVVIO' ) || exit;
  * altrimenti anche il titolo finirebbe spezzato in due.
  */
 function blocco_prosa( $testo ) {
-	$html = paragrafi( $testo );
+	// Scritto con l'editor: l'HTML è già passato dal filtro al
+	// salvataggio, ma ci ripassa anche qui — i testi scritti prima
+	// dell'editor non l'hanno mai visto, e un tag finito lì dentro a mano
+	// non deve diventare markup solo perché adesso sappiamo leggerlo.
+	// Scritto prima, senza tag: si impagina come si è sempre fatto.
+	$html = testo_ha_html( $testo ) ? corpo_pulisci( $testo ) : paragrafi( $testo );
 	return '' === trim( $html ) ? '' : '<div class="glp-prosa">' . $html . '</div>';
 }
 

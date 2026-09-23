@@ -2,6 +2,9 @@
 /** Amministrazione — front controller. */
 
 define( 'PC_AVVIO', true );
+// La versione che questo file si aspetta di trovare dentro inc/. Sta qui
+// e non lì apposta: serve proprio a scoprire quando i due non combaciano.
+define( 'PC_VERSIONE_ATTESA', '1.1.0' );
 require_once __DIR__ . '/inc/core.php';
 
 if ( ! db_configurato() ) {
@@ -23,6 +26,11 @@ try {
 	// dal pannello con un errore fatale, e il pannello è proprio il
 	// posto da cui si rimedia. Meglio entrare con un avviso.
 	$pc_da_ricaricare = array();
+	// La versione sta in inc/core.php: se è indietro, la cartella inc/ è
+	// vecchia anche quando le funzioni qui sotto ci sono tutte.
+	if ( version_compare( PC_VERSIONE, PC_VERSIONE_ATTESA, '<' ) ) {
+		$pc_da_ricaricare[] = 'inc/core.php';
+	}
 	foreach ( array( 'utenti_migra', 'sezioni_migra_faq' ) as $pc_passo ) {
 		if ( function_exists( $pc_passo ) ) {
 			$pc_passo();

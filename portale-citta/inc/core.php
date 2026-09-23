@@ -8,7 +8,7 @@ if ( ! defined( 'PC_AVVIO' ) ) {
 	define( 'PC_AVVIO', true );
 }
 
-define( 'PC_VERSIONE', '1.0.0' );
+define( 'PC_VERSIONE', '1.1.0' );
 // Segnaposto salvato fra le sezioni di una pagina: dice che l'ordine è
 // stato deciso a mano, e non va più corretto dai valori di una volta.
 define( 'PC_ORDINE_DECISO', '--ordine--' );
@@ -211,6 +211,33 @@ function paragrafi( $testo ) {
 		$html .= '<p>' . nl2br( e( $blocco ) ) . '</p>';
 	}
 	return $html;
+}
+
+/**
+ * True se il testo porta già dentro dell'HTML di blocco.
+ *
+ * Serve a distinguere i contenuti scritti con l'editor da quelli scritti
+ * prima, quando il campo era testo semplice: quelli vanno ancora
+ * impaginati da paragrafi(), questi no.
+ */
+function testo_ha_html( $testo ) {
+	return (bool) preg_match( '#<(p|h[1-6]|ul|ol|li|blockquote|table|hr)\b#i', (string) $testo );
+}
+
+/**
+ * Ripulisce l'HTML scritto nell'editor.
+ *
+ * È lo stesso filtro degli articoli importati da WordPress: restano i tag
+ * del testo, spariscono script, stili, moduli e tutti gli attributi
+ * tranne href sui collegamenti. Si applica al salvataggio, ed è
+ * idempotente, così si può ripassare anche in lettura.
+ */
+function corpo_pulisci( $html ) {
+	$html = trim( (string) $html );
+	if ( '' === $html ) {
+		return '';
+	}
+	return import_pulisci_corpo( $html );
 }
 
 /** Una riga per elemento → array. */

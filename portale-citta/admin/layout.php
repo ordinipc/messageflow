@@ -62,14 +62,36 @@ if ( 'articolo-modifica' === $attiva || 'importa' === $attiva ) { $attiva = 'art
 		<?php if ( $msg ) : ?>
 			<div class="pc-avviso pc-avviso--<?php echo e( 'ok' === $msg['tipo'] ? 'ok' : 'errore' ); ?>"><?php echo e( $msg['testo'] ); ?></div>
 		<?php endif; ?>
-		<?php /* Qualche file del portale è rimasto indietro: il pannello
-			funziona lo stesso, ma gli aggiornamenti al database non
-			sono passati. Meglio dirlo che lasciarlo scoprire. */ ?>
-		<?php if ( ! empty( $pc_da_ricaricare ) ) : ?>
+		<?php
+		/* Qualche file del portale è rimasto indietro: il pannello funziona
+		   lo stesso, ma gli aggiornamenti al database non sono passati.
+		
+		   Le cause sono due e vanno distinte, o chi legge ricarica i file
+		   una seconda volta per niente: o il file non è stato sostituito
+		   davvero — il programma FTP che salta quelli che ci sono già — o
+		   è stato sostituito ma PHP sta ancora usando la copia compilata
+		   che si tiene in memoria. La data del file sul server lo dice. */
+		if ( ! empty( $pc_da_ricaricare ) ) :
+			$pc_file    = PC_RADICE . '/inc/archivio.php';
+			$pc_quando  = is_file( $pc_file ) ? (int) filemtime( $pc_file ) : 0;
+			$pc_fresco  = $pc_quando > 0 && ( time() - $pc_quando ) < 3600;
+			?>
 			<div class="pc-avviso pc-avviso--errore">
-				L'aggiornamento è stato caricato a metà: la cartella <code>inc/</code> è
-				ancora quella vecchia. Ricarica <strong>tutti</strong> i file del portale
-				e apri di nuovo questa pagina. I tuoi dati non sono stati toccati.
+				<?php if ( $pc_fresco ) : ?>
+					<strong>I file sono caricati, ma PHP usa ancora quelli vecchi.</strong>
+					Sul server <code>inc/archivio.php</code> risulta delle
+					<?php echo e( date( 'H:i', $pc_quando ) ); ?> di oggi, quindi l'invio è
+					andato a buon fine: è la cache di PHP che non si è ancora accorta del
+					cambio. Aspetta un paio di minuti e ricarica questa pagina. Se resta,
+					svuota la cache PHP (OPcache) dal pannello dell'hosting.
+				<?php else : ?>
+					<strong>L'aggiornamento è stato caricato a metà.</strong>
+					Sul server <code>inc/archivio.php</code> è ancora quello
+					<?php echo $pc_quando ? 'del ' . e( date( 'd/m/Y', $pc_quando ) ) : 'di prima'; ?>:
+					il programma con cui carichi i file ha saltato la cartella
+					<code>inc/</code>. Ricaricala sovrascrivendo, e riapri questa pagina.
+				<?php endif; ?>
+				I tuoi dati non sono stati toccati.
 			</div>
 		<?php endif; ?>
 		<?php echo $contenuto; // Generato dalle schermate. ?>

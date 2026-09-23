@@ -536,3 +536,149 @@
 		togli: 'Togli dalla pagina', metti: 'Metti nella pagina'
 	});
 })();
+
+/* ===========================================================================
+   EDITOR DEL TESTO
+
+   Una barra di pulsanti sopra un riquadro scrivibile. Il campo vero resta
+   la textarea, nascosta: l'editor la tiene aggiornata a ogni tasto, così
+   tutto quello che già leggeva la textarea — l'assistente, il conteggio
+   delle parole, l'invio del modulo — continua a funzionare senza sapere
+   che l'editor esiste.
+
+   Senza JavaScript non succede niente e resta la textarea: si scrive HTML
+   a mano, o testo semplice come prima.
+   ========================================================================= */
+(function () {
+	'use strict';
+
+	var STRUMENTI = [
+		{ comando: 'bold',            etichetta: 'G',  titolo: 'Grassetto (Ctrl+B)', classe: 'pc-ferro--g' },
+		{ comando: 'italic',          etichetta: 'C',  titolo: 'Corsivo (Ctrl+I)',   classe: 'pc-ferro--c' },
+		{ comando: 'formatBlock',     valore: 'h3',    etichetta: 'Sottotitolo', titolo: 'Sottotitolo' },
+		{ comando: 'formatBlock',     valore: 'p',     etichetta: 'Paragrafo',   titolo: 'Torna paragrafo' },
+		{ comando: 'insertUnorderedList', etichetta: '• Elenco',  titolo: 'Elenco puntato' },
+		{ comando: 'insertOrderedList',   etichetta: '1. Elenco', titolo: 'Elenco numerato' },
+		{ comando: 'collegamento',    etichetta: 'Collegamento', titolo: 'Inserisci un collegamento' },
+		{ comando: 'removeFormat',    etichetta: 'Pulisci', titolo: 'Togli la formattazione' }
+	];
+
+	var campi = document.querySelectorAll('textarea[data-editor]');
+	if (campi.length) {
+		// Senza questo il browser scrive <span style="font-weight:700">
+		// invece di <b>: uno stile inline che il filtro del server butta
+		// via, e il grassetto sparirebbe al salvataggio.
+		try { document.execCommand('styleWithCSS', false, false); } catch (e) {}
+	}
+	campi.forEach(function (campo) {
+		monta(campo);
+	});
+
+	function monta(campo) {
+		var guscio = document.createElement('div');
+		guscio.className = 'pc-editor';
+
+		var barra = document.createElement('div');
+		barra.className = 'pc-editor__barra';
+
+		var foglio = document.createElement('div');
+		foglio.className = 'pc-editor__foglio';
+		foglio.contentEditable = 'true';
+		foglio.setAttribute('role', 'textbox');
+		foglio.setAttribute('aria-multiline', 'true');
+		foglio.setAttribute('aria-label', 'Testo della pagina');
+		foglio.innerHTML = daCampo(campo.value);
+		if (campo.style.minHeight) { foglio.style.minHeight = campo.style.minHeight; }
+
+		STRUMENTI.forEach(function (s) {
+			var b = document.createElement('button');
+			b.type = 'button';
+			b.className = 'pc-ferro' + (s.classe ? ' ' + s.classe : '');
+			b.title = s.titolo;
+			b.textContent = s.etichetta;
+			// Il mousedown porterebbe via la selezione prima del click.
+			b.addEventListener('mousedown', function (ev) { ev.preventDefault(); });
+			b.addEventListener('click', function () { usa(s, foglio, campo); });
+			barra.appendChild(b);
+		});
+
+		guscio.appendChild(barra);
+		guscio.appendChild(foglio);
+		campo.parentNode.insertBefore(guscio, campo);
+		campo.classList.add('pc-editor__sorgente');
+
+		foglio.addEventListener('input', function () { versa(foglio, campo); });
+		foglio.addEventListener('blur', function () { versa(foglio, campo); });
+
+		// Incollare da un altro sito porta dentro di tutto: entra il testo,
+		// non l'impaginazione altrui.
+		foglio.addEventListener('paste', function (ev) {
+			ev.preventDefault();
+			var testo = (ev.clipboardData || window.clipboardData).getData('text/plain');
+			document.execCommand('insertText', false, testo);
+		});
+
+		// L'assistente scrive nella textarea e annuncia il cambio: l'editor
+		// si rilegge. La sentinella evita il rimbalzo infinito.
+		var miaScrittura = false;
+		campo.addEventListener('input', function () {
+			if (miaScrittura) { return; }
+			foglio.innerHTML = daCampo(campo.value);
+		});
+
+		function versa(f, c) {
+			miaScrittura = true;
+			c.value = pulisci(f.innerHTML);
+			c.dispatchEvent(new Event('input', { bubbles: true }));
+			miaScrittura = false;
+		}
+
+		// Alla partenza la textarea può contenere testo semplice: si
+		// riallinea subito al formato dell'editor, o il primo salvataggio
+		// senza modifiche cambierebbe il contenuto a sorpresa.
+		versa(foglio, campo);
+	}
+
+	function usa(s, foglio, campo) {
+		foglio.focus();
+		if (s.comando === 'collegamento') {
+			var url = window.prompt('Indirizzo del collegamento:', 'https://');
+			if (!url) { return; }
+			if (!/^([a-z][a-z0-9+.-]*:|\/|#)/i.test(url)) { url = 'https://' + url; }
+			if (/^(javascript|data|vbscript):/i.test(url)) { return; }
+			document.execCommand('createLink', false, url);
+		} else if (s.comando === 'formatBlock') {
+			document.execCommand('formatBlock', false, s.valore);
+		} else {
+			document.execCommand(s.comando, false, null);
+		}
+		foglio.dispatchEvent(new Event('input', { bubbles: true }));
+	}
+
+	/* Testo semplice scritto prima dell'editor → paragrafi. Se l'HTML c'è
+	   già, si lascia stare. */
+	function daCampo(valore) {
+		var v = (valore || '').trim();
+		if (v === '') { return '<p><br></p>'; }
+		if (/<(p|h[1-6]|ul|ol|li|blockquote)\b/i.test(v)) { return v; }
+		return v.split(/\n\s*\n/).map(function (b) {
+			return '<p>' + fuga(b.trim()).replace(/\n/g, '<br>') + '</p>';
+		}).join('');
+	}
+
+	function fuga(t) {
+		return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+	}
+
+	/* Quello che esce dal riquadro prima di finire nella textarea. Il
+	   filtro serio è quello del server: questo toglie solo il rumore che
+	   il browser si lascia dietro. */
+	function pulisci(html) {
+		return (html || '')
+			.replace(/<div><br><\/div>/gi, '')
+			.replace(/&nbsp;/g, ' ')
+			.replace(/<p>(\s|<br\s*\/?>)*<\/p>/gi, '')
+			.replace(/\s+$/g, '')
+			.trim();
+	}
+})();

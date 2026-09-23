@@ -17,8 +17,15 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	}
 	$nuove = array();
 	foreach ( $campi as $c ) {
-		// L'HTML libero non si tocca: gli spazi lì dentro possono contare.
-		$nuove[ $c ] = 'home_html' === $c ? (string) ( $_POST[ $c ] ?? '' ) : trim( (string) ( $_POST[ $c ] ?? '' ) );
+		if ( 'home_html' === $c ) {
+			// L'HTML libero non si tocca: gli spazi lì dentro possono contare.
+			$nuove[ $c ] = (string) ( $_POST[ $c ] ?? '' );
+		} elseif ( 'home_testo' === $c ) {
+			// Scritto con l'editor: stesso filtro del corpo delle pagine.
+			$nuove[ $c ] = corpo_pulisci( (string) ( $_POST[ $c ] ?? '' ) );
+		} else {
+			$nuove[ $c ] = trim( (string) ( $_POST[ $c ] ?? '' ) );
+		}
 	}
 
 	impostazioni_salva( $nuove );
@@ -102,10 +109,8 @@ $citta    = citta_tutte( true );
 
 		<div class="pc-scheda">
 			<h2>Testo della pagina</h2>
-			<label>Testo sopra l'elenco
-				<textarea id="campo-home-testo" name="home_testo" rows="6" placeholder="Chi siete, da quanto lavorate, cosa trova chi apre questa pagina."><?php echo e( $imp['home_testo'] ); ?></textarea>
-				<small>Una riga vuota fra un paragrafo e l'altro. Lascia vuoto per non mostrare niente.</small>
-			</label>
+			<p class="pc-scheda__nota">Sopra l'elenco delle città. Lascia vuoto per non mostrare niente.</p>
+			<textarea id="campo-home-testo" name="home_testo" data-editor rows="6" aria-label="Testo sopra l'elenco" placeholder="Chi siete, da quanto lavorate, cosa trova chi apre questa pagina."><?php echo e( $imp['home_testo'] ); ?></textarea>
 			<?php if ( ai_attiva() ) : ?>
 			<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo"
 				data-ai="home_testo" data-ai-campo="campo-home-testo">✦ Scrivi con l'assistente</button>
