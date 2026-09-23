@@ -214,9 +214,14 @@ $lista_s  = servizi();
 		</div>
 
 		<div class="pc-scheda">
-			<h2>Tag</h2>
+			<h2>Tag
+				<?php if ( ai_attiva() ) : ?>
+					<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo" style="float:right"
+						data-ai="tag" data-ai-campo="campo-tag" data-ai-pagina="<?php echo e( $pagina['id'] ); ?>" data-ai-citta="<?php echo e( $citta['id'] ); ?>">✦ Proponi i tag</button>
+				<?php endif; ?>
+			</h2>
 			<p class="pc-scheda__nota">Escono come pastiglie sotto il testo: le parole con cui questa pagina si riassume. Una per riga, quattro o cinque bastano.</p>
-			<textarea name="tag" rows="4" aria-label="Tag" placeholder="Chiavi&#10;Transponder&#10;Smart Key&#10;Serrature"><?php echo e( $pagina['tag'] ); ?></textarea>
+			<textarea id="campo-tag" name="tag" rows="5" aria-label="Tag" placeholder="Chiavi&#10;Transponder&#10;Smart Key&#10;Serrature"><?php echo e( $pagina['tag'] ); ?></textarea>
 		</div>
 	</div>
 

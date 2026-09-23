@@ -658,6 +658,56 @@ function ai_corpo( $citta, $pagina ) {
 	return ai_chiedi_testo( $istruzione, 'testo', 0, 16384, 'html' );
 }
 
+/**
+ * Genera i tag della pagina.
+ *
+ * Sono le pastiglie sotto il testo: quattro o cinque parole che dicono
+ * di cosa parla la pagina. Si chiedono dentro un JSON con la forma
+ * giusta, così non tornano come una frase da spezzare a indovinare.
+ */
+function ai_tag( $citta, $pagina, $quanti = 5 ) {
+	$schema = array(
+		'type'  => 'ARRAY',
+		'items' => array( 'type' => 'STRING' ),
+	);
+
+	$istruzione = "Elenca {$quanti} tag per questa pagina di servizio locale.\n\n"
+		. ai_contesto( $citta, $pagina ) . "\n\n"
+		. "I tag sono le parole con cui un cliente cerca questo servizio: cose concrete, "
+		. "non concetti. «Transponder», «Smart Key», «Cilindri europei» vanno bene; "
+		. "«Qualità», «Professionalità», «Affidabilità» no.\n"
+		. "Una o due parole ciascuno, con la maiuscola iniziale, senza punteggiatura.\n"
+		. "Non mettere il nome della città: è già nel titolo e in mezza pagina.\n\n"
+		. ai_regole();
+
+	$esito = ai_chiedi( $istruzione, $schema );
+	if ( ! $esito['ok'] ) {
+		return array( 'ok' => false, 'testo' => '', 'errore' => $esito['errore'] );
+	}
+
+	$voci = json_decode( $esito['testo'], true );
+	if ( ! is_array( $voci ) ) {
+		return array( 'ok' => false, 'testo' => '', 'errore' => 'Risposta non interpretabile.' );
+	}
+
+	$pulite = array();
+	foreach ( $voci as $v ) {
+		// Un tag lungo una riga non è un tag: è una frase, e nella
+		// pastiglia andrebbe a capo tre volte.
+		$v = trim( ai_ripulisci( (string) $v ), " \t\n\r.,;:•-–—" );
+		if ( '' === $v || mb_strlen( $v ) > 28 ) {
+			continue;
+		}
+		$pulite[] = maiuscola( $v );
+	}
+	$pulite = array_slice( array_unique( $pulite ), 0, $quanti + 1 );
+
+	if ( empty( $pulite ) ) {
+		return array( 'ok' => false, 'testo' => '', 'errore' => 'Il modello non ha proposto tag utilizzabili. Riprova.' );
+	}
+	return array( 'ok' => true, 'testo' => implode( "\n", $pulite ), 'errore' => '' );
+}
+
 /** Genera la meta description. */
 function ai_descrizione( $citta, $pagina ) {
 	$istruzione = "Scrivi la meta description per Google di questa pagina.\n\n"

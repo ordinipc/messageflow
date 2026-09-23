@@ -127,7 +127,7 @@ function seo_analisi( $citta, $pagina ) {
 	$controlli[] = array(
 		'nome' => 'Domande frequenti',
 		'ok'   => count( (array) $pagina['faq'] ) >= 3,
-		'nota' => count( (array) $pagina['faq'] ) . ' FAQ (minimo 3 per lo schema FAQPage)',
+		'nota' => count( (array) $pagina['faq'] ) . ' FAQ (2 bastano per lo schema FAQPage, 3 sono meglio)',
 		'peso' => 10,
 	);
 

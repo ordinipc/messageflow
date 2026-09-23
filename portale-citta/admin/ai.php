@@ -79,7 +79,7 @@ if ( ! $pagina ) {
 
 // Il modulo non ancora salvato ha la precedenza: l'assistente vede ciò che l'utente sta scrivendo.
 $modulo = (array) ( $_POST['modulo'] ?? array() );
-foreach ( array( 'titolo', 'intro', 'corpo', 'inclusi', 'prezzo_da', 'prezzo_a', 'h1' ) as $campo ) {
+foreach ( array( 'titolo', 'intro', 'corpo', 'inclusi', 'prezzo_da', 'prezzo_a', 'h1', 'tag' ) as $campo ) {
 	if ( isset( $modulo[ $campo ] ) && '' !== trim( (string) $modulo[ $campo ] ) ) {
 		$pagina[ $campo ] = trim( (string) $modulo[ $campo ] );
 	}
@@ -94,6 +94,9 @@ switch ( $compito ) {
 		break;
 	case 'descrizione':
 		$esito = ai_descrizione( $citta, $pagina );
+		break;
+	case 'tag':
+		$esito = ai_tag( $citta, $pagina );
 		break;
 	case 'titolo':
 		$esito = ai_titolo( $citta, $pagina );

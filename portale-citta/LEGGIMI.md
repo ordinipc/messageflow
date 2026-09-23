@@ -417,7 +417,15 @@ lo legge nessuno e non lo cita nemmeno un assistente IA.
 **I tag** sono le pastiglie sotto il testo: quattro o cinque parole che dicono
 di cosa parla la pagina a chi la guarda senza leggerla tutta. Si scrivono in
 **Pagine → Modifica → riquadro Tag**, una per riga. Non sono collegamenti e
-non portano da nessuna parte: servono a farsi capire in un colpo d'occhio.
+non portano da nessuna parte: servono a farsi capire in un colpo d'occhio. Il
+pulsante **✦ Proponi i tag** li fa scrivere all'assistente, che pesca dal
+testo della pagina; quelli troppo lunghi per stare in una pastiglia li scarta
+da solo.
+
+Una precisazione, perché è una domanda che torna sempre: **i tag non servono
+a Google.** Il `meta keywords` non conta più da vent'anni. Servono a chi
+legge, e indirettamente agli assistenti IA, che dalle pastiglie capiscono in
+una riga di cosa tratta la pagina.
 
 **Le icone** stanno sul *tipo di servizio*, non sulla singola pagina: così
 tutte le città che offrono quel servizio mostrano lo stesso segno. Si
