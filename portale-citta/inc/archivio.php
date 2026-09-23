@@ -755,3 +755,83 @@ function sezioni_sposta( $scelte, $comando, $ammesse ) {
 function pagina_mostra( $pagina, $chiave ) {
 	return in_array( $chiave, pagina_sezioni( $pagina ), true );
 }
+
+/**
+ * Infila una sezione dentro un elenco già scelto, al posto giusto.
+ *
+ * Il posto giusto è quello dell'ordine di riferimento: la sezione entra
+ * prima della prima che nell'elenco di riferimento viene dopo di lei.
+ * Quello che c'era non si sposta, e il segnaposto dell'ordine deciso
+ * resta in testa perché nel riferimento non compare.
+ */
+function sezioni_inserisci( $scelte, $chiave, $riferimento ) {
+	if ( in_array( $chiave, $scelte, true ) ) {
+		return $scelte;
+	}
+	$posto = array_search( $chiave, $riferimento, true );
+	if ( false === $posto ) {
+		return $scelte;
+	}
+
+	$fuori = array();
+	$messa = false;
+	foreach ( $scelte as $sezione ) {
+		$dove = array_search( $sezione, $riferimento, true );
+		if ( ! $messa && false !== $dove && $dove > $posto ) {
+			$fuori[] = $chiave;
+			$messa   = true;
+		}
+		$fuori[] = $sezione;
+	}
+	if ( ! $messa ) {
+		$fuori[] = $chiave;
+	}
+	return $fuori;
+}
+
+/**
+ * Aggiunge la sezione FAQ alle pagine già salvate. Passa una volta sola.
+ *
+ * Le sezioni predefinite valgono solo per le pagine nuove: quelle già
+ * salvate portano scritto nel database l'elenco esatto scelto allora, e
+ * un aggiornamento del portale non deve rimescolarle. Le FAQ però sono
+ * il pezzo che gli assistenti IA citano, e le pagine principali delle
+ * città create prima non ce l'hanno.
+ *
+ * Tocca solo i tipi dove la sezione è arrivata adesso, non sposta niente
+ * di quello che c'era e non cambia la data di aggiornamento della
+ * pagina. Chi l'aveva tolta apposta se la ritrova: «tolta» e «mai
+ * avuta» nel database si scrivono nello stesso modo. Resta comunque
+ * invisibile finché quella pagina non ha domande scritte.
+ *
+ * @return int Quante pagine sono state toccate.
+ */
+function sezioni_migra_faq() {
+	if ( '1' === (string) impostazione( 'migrazione_faq', '' ) ) {
+		return 0;
+	}
+
+	$fatte = 0;
+	foreach ( pagine_tutte() as $pagina ) {
+		$tipo = isset( $pagina['tipo'] ) ? (string) $pagina['tipo'] : '';
+		if ( 'home' !== $tipo && 'servizi' !== $tipo ) {
+			continue;
+		}
+		$scelte = (array) $pagina['sezioni'];
+		// Elenco vuoto: la pagina prende già le predefinite, e adesso le
+		// predefinite le FAQ ce l'hanno. Niente da scrivere.
+		if ( empty( $scelte ) || in_array( 'faq', $scelte, true ) ) {
+			continue;
+		}
+
+		$nuove = sezioni_inserisci( $scelte, 'faq', array_keys( sezioni_disponibili( $tipo ) ) );
+		db_esegui(
+			'UPDATE ' . db_tab( 'pagine' ) . ' SET sezioni = ? WHERE id = ?',
+			array( json_encode( $nuove, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ), $pagina['id'] )
+		);
+		$fatte++;
+	}
+
+	impostazioni_salva( array( 'migrazione_faq' => '1' ) );
+	return $fatte;
+}

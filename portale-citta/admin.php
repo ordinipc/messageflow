@@ -17,6 +17,8 @@ try {
 	db_aggiorna();
 	// La vecchia password unica diventa il primo utente.
 	utenti_migra();
+	// Le FAQ arrivano anche sulle pagine principali già create.
+	sezioni_migra_faq();
 } catch ( PDOException $ex ) {
 	exit( '<h1>Database non raggiungibile</h1><p>' . e( $ex->getMessage() ) . '</p>' );
 }

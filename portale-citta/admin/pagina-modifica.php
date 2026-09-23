@@ -126,6 +126,10 @@ $lista_s  = servizi();
 
 <form method="post">
 <?php echo campo_token(); ?>
+<?php /* Premendo Invio in un campo il browser scatta il PRIMO pulsante di
+	invio del modulo. Senza questo sarebbe una freccia di spostamento
+	sezioni, per giunta spenta: Invio non salvava più niente. */ ?>
+<button type="submit" class="pc-invio-implicito" tabindex="-1" aria-hidden="true">Salva</button>
 <div class="pc-griglia-2">
 <div>
 

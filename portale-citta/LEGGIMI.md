@@ -284,7 +284,11 @@ farebbe un cliente, con la risposta sotto, è esattamente il pezzo che un
 assistente cita. Le FAQ generano lo schema `FAQPage` (servono almeno due
 domande) e ora la sezione FAQ è prevista anche sulla **pagina principale**
 della città e sulle pagine servizio. Il riquadro in SEO e sitemap ti dice
-su quante pagine le hai già scritte.
+su quante pagine le hai già scritte. Le pagine principali create **prima**
+di questo aggiornamento se la prendono da sole, la prima volta che apri il
+pannello: la sezione viene aggiunta in fondo agli orari senza spostare
+nient'altro di quello che avevi ordinato, e resta invisibile finché quella
+pagina non ha domande scritte.
 
 **3. `/llms.txt`.** Un indice in testo semplice, all'indirizzo
 `iltuosito.it/zone/llms.txt`, che elenca il brand, i recapiti e — città per

@@ -436,3 +436,7 @@ input.pc-mono[readonly]:focus{
 	.pc-voce{ flex-wrap:wrap; }
 	.pc-voce__azioni{ margin-left:auto; }
 }
+
+/* Il pulsante che scatta premendo Invio: fuori dallo schermo, ma non
+   display:none, perché deve restare il pulsante predefinito del modulo. */
+.pc-invio-implicito{position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0}
