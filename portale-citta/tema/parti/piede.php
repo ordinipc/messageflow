@@ -12,7 +12,7 @@ $js_extra = isset( $js_extra ) ? $js_extra : '';
 		<div class="glp-bottombar__col">
 			<p class="glp-bottombar__name"><?php echo e( $imp['brand'] ); ?></p>
 			<?php if ( ! vuoto( $imp['piede_testo'] ) ) : ?>
-				<p class="glp-bottombar__intro"><?php echo e( $imp['piede_testo'] ); ?></p>
+				<p class="glp-bottombar__intro"><?php echo testo_con_link( $imp['piede_testo'] ); // Già ripulito. ?></p>
 			<?php endif; ?>
 			<?php if ( ! empty( $citta ) && ! vuoto( $citta['indirizzo'] ) ) : ?>
 				<p><?php echo e( $citta['indirizzo'] . ', ' . trim( $citta['cap'] . ' ' . $citta['nome'] ) ); ?></p>
@@ -76,7 +76,7 @@ $js_extra = isset( $js_extra ) ? $js_extra : '';
 	</div>
 
 	<p class="glp-bottombar__copy">
-		<?php echo e( vuoto( $imp['piede_copy'] ) ? '© ' . date( 'Y' ) . ' ' . $imp['brand'] : $imp['piede_copy'] ); ?>
+		<?php echo testo_con_link( vuoto( $imp['piede_copy'] ) ? '© {anno} ' . $imp['brand'] : $imp['piede_copy'] ); // Già ripulito. ?>
 	</p>
 </footer>
 

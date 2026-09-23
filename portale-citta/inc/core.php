@@ -68,6 +68,42 @@ function e_url( $url ) {
 	return e( $url );
 }
 
+/**
+ * Testo di una riga con dentro, se serve, un collegamento.
+ *
+ * Si scrive `[etichetta](indirizzo)` e solo quella parte diventa
+ * cliccabile; `{anno}` diventa l'anno corrente, così una riga di
+ * copyright non va riscritta a gennaio.
+ *
+ * Tutto il resto passa da htmlspecialchars prima che il collegamento
+ * venga costruito: un tag scritto nel campo resta testo, e un indirizzo
+ * javascript: viene scartato da e_url().
+ */
+function testo_con_link( $testo ) {
+	$testo = str_replace( '{anno}', date( 'Y' ), (string) $testo );
+	$fuori = e( $testo );
+
+	// Si lavora sul testo già reso innocuo: le parentesi non sono fra i
+	// caratteri che htmlspecialchars tocca, quindi il segno si ritrova.
+	return preg_replace_callback(
+		'/\[([^\]]+)\]\(([^)\s]+)\)/',
+		function ( $pezzi ) {
+			$url = e_url( html_entity_decode( $pezzi[2], ENT_QUOTES, 'UTF-8' ) );
+			if ( '' === $url ) {
+				// Indirizzo rifiutato: si rimette la riga com'era scritta.
+				// Vedere le parentesi quadre dice subito che il link non
+				// ha preso, invece di lasciare un pezzo di testo monco.
+				return $pezzi[0];
+			}
+			$esterno = preg_match( '#^https?://#i', html_entity_decode( $pezzi[2], ENT_QUOTES, 'UTF-8' ) )
+				? ' target="_blank" rel="noopener"'
+				: '';
+			return '<a href="' . $url . '"' . $esterno . '>' . $pezzi[1] . '</a>';
+		},
+		$fuori
+	);
+}
+
 /** Primo carattere maiuscolo rispettando UTF-8. */
 function maiuscola( $testo ) {
 	$testo = (string) $testo;

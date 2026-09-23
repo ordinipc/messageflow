@@ -298,6 +298,27 @@ Blog | https://www.tuosito.it/blog/
 ```
 
 Senza la barra verticale la riga vale sia come etichetta sia come indirizzo.
+
+Nella **riga di presentazione** e nel **testo del copyright** valgono due
+scorciatoie:
+
+| Scrivi | Esce |
+|---|---|
+| `{anno}` | l'anno corrente, che a gennaio cambia da solo |
+| `[testo](indirizzo)` | quel pezzo, e solo quello, diventa cliccabile |
+
+Per esempio:
+
+```
+Copyright © {anno} - [Realizzato da Max Digital Innovation](https://maxdigitalinnovation.it/)
+```
+
+esce come «Copyright © 2026 - Realizzato da Max Digital Innovation», dove solo
+le ultime parole sono un collegamento. Un indirizzo che comincia per `http`
+si apre in una scheda nuova. Il resto della riga passa da `htmlspecialchars`:
+un tag scritto lì dentro resta testo, e un `javascript:` non diventa un
+collegamento — la riga si vede com'è stata scritta, così ci si accorge
+dell'errore.
 Sito principale, privacy e cookie si mettono nelle impostazioni e compaiono
 lì da soli; indirizzo, telefono, email e P. IVA vengono dalla città che si sta
 guardando.

@@ -276,9 +276,30 @@ $citta    = citta_tutte( true );
 		<div class="pc-scheda">
 			<h2>Riga in fondo</h2>
 			<label>Testo del copyright
-				<input type="text" name="piede_copy" value="<?php echo e( $imp['piede_copy'] ); ?>" placeholder="© <?php echo e( date( 'Y' ) ); ?> <?php echo e( $imp['brand'] ); ?>">
-				<small>Vuoto: esce «© <?php echo e( date( 'Y' ) . ' ' . $imp['brand'] ); ?>». L'anno si aggiorna da solo.</small>
+				<input type="text" name="piede_copy" value="<?php echo e( $imp['piede_copy'] ); ?>"
+					placeholder="© {anno} <?php echo e( $imp['brand'] ); ?>">
+				<small>Vuoto: esce «© <?php echo e( date( 'Y' ) . ' ' . $imp['brand'] ); ?>».</small>
 			</label>
+
+			<p class="pc-scheda__nota" style="margin-bottom:0">
+				In questa riga e in quella di presentazione qui sopra puoi usare due scorciatoie:
+			</p>
+			<table class="pc-tabella" style="margin-top:10px">
+				<tbody>
+					<tr>
+						<td><code>{anno}</code></td>
+						<td>diventa <strong><?php echo e( date( 'Y' ) ); ?></strong>, e a gennaio cambia da solo</td>
+					</tr>
+					<tr>
+						<td><code>[testo](indirizzo)</code></td>
+						<td>rende cliccabile <strong>solo</strong> quel pezzo di riga</td>
+					</tr>
+				</tbody>
+			</table>
+			<p class="pc-nota">
+				Esempio:<br>
+				<code class="pc-mono">Copyright © {anno} - [Realizzato da Max Digital Innovation](https://maxdigitalinnovation.it/)</code>
+			</p>
 		</div>
 	</div>
 
