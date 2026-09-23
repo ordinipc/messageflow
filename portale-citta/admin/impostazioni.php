@@ -34,6 +34,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		'gemini_modello'  => trim( (string) ( $_POST['gemini_modello'] ?? 'gemini-3.6-flash' ) ),
 		'gemini_modello_immagini' => trim( (string) ( $_POST['gemini_modello_immagini'] ?? 'gemini-3.1-flash-image' ) ),
 		'indicizza'       => isset( $_POST['indicizza'] ) ? '1' : '0',
+		'ia_consenti'     => isset( $_POST['ia_consenti'] ) ? '1' : '0',
 		'privacy_url'     => trim( (string) ( $_POST['privacy_url'] ?? '' ) ),
 		'cookie_url'      => trim( (string) ( $_POST['cookie_url'] ?? '' ) ),
 		'css_globale'     => (string) ( $_POST['css_globale'] ?? '' ),
@@ -237,6 +238,18 @@ $cfg      = db_config();
 			Permetti a Google di indicizzare il portale
 		</label>
 		<p class="pc-nota">Se togli la spunta, robots.txt blocca tutto e ogni pagina riceve <code>noindex</code>. Usalo solo finché stai lavorando.</p>
+
+		<label class="pc-inline" style="margin-top:14px">
+			<input type="checkbox" name="ia_consenti" value="1" <?php checked_pc( '0' !== (string) $imp['ia_consenti'] ); ?>>
+			Permetti agli assistenti IA di leggere il portale
+		</label>
+		<p class="pc-nota">
+			ChatGPT, Gemini, Perplexity, Claude e gli altri. Con la spunta vengono
+			nominati uno per uno nel <code>robots.txt</code> ed esce
+			<code>/llms.txt</code>, l'indice del portale scritto per loro.
+			Senza, il portale gli dice di stare alla larga: lo si fa solo se non si
+			vuole essere citati nelle risposte generate.
+		</p>
 		<label style="margin-top:16px">Suffisso dei titoli
 			<input type="text" name="seo_suffisso" value="<?php echo e( $imp['seo_suffisso'] ); ?>" placeholder="<?php echo e( $imp['brand'] ); ?>">
 			<small>Compare dopo la barra verticale: "Duplicazione chiavi a Trapani | <strong>suffisso</strong>".</small>

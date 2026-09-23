@@ -49,6 +49,17 @@ if ( 'robots.txt' === $percorso ) {
 	exit;
 }
 
+/* --- llms.txt: l'indice per gli assistenti IA ---------------------------- */
+if ( 'llms.txt' === $percorso ) {
+	header( 'Content-Type: text/plain; charset=UTF-8' );
+	if ( '0' === (string) impostazione( 'ia_consenti', '1' ) ) {
+		http_response_code( 404 );
+		exit;
+	}
+	echo llms_txt();
+	exit;
+}
+
 /* --- sitemap ------------------------------------------------------------- */
 if ( 'sitemap.xml' === $percorso ) {
 	header( 'Content-Type: application/xml; charset=UTF-8' );

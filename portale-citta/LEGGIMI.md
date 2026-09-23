@@ -15,9 +15,10 @@ Non è un plugin: gira da solo, con il suo database e la sua amministrazione.
 | **Pagine per città** | Principale, servizi, chi siamo, contatti, FAQ… Ogni città ha le sue |
 | **Menu nell'intestazione** | Costruito dalle pagine della città, sempre in alto, con ordine e visibilità per pagina |
 | **Sitemap** | Indice `/sitemap.xml` + una sitemap per città, aggiornate da sole |
-| **robots.txt** | Generato, con l'indirizzo della sitemap |
+| **robots.txt** | Generato, con l'indirizzo della sitemap e i crawler IA nominati uno per uno |
 | **SEO per pagina** | Title, description, canonical, Open Graph, meta geo, punteggio 0-100 |
-| **Dati strutturati** | LocalBusiness, Service, FAQPage, BreadcrumbList |
+| **Dati strutturati** | LocalBusiness (con social, fascia di prezzo, mappa), Service, FAQPage, BreadcrumbList, ItemList, BlogPosting |
+| **GEO** | `/llms.txt`, interruttore per gli assistenti IA, riepilogo di cosa vedono |
 | **Controllo duplicati** | Confronta i testi fra città e segnala quelli troppo simili |
 | **Libreria immagini** | Caricamento multiplo, ridimensionamento automatico a 1800 px |
 | **Assistente Gemini** | Propone introduzione, testo, descrizione e FAQ dai dati della città |
@@ -259,6 +260,49 @@ la fascia di prezzo.
 
 La schermata **SEO e sitemap** ti dice quando due testi sono troppo simili.
 Sopra l'88% di somiglianza hai un problema.
+
+---
+
+## Farsi trovare dagli assistenti IA (GEO)
+
+La SEO serve a finire nei dieci link blu. Il **GEO** serve a finire dentro la
+risposta che ChatGPT, Gemini, Claude o Perplexity scrivono a chi chiede
+«dove duplico una chiave a Trapani». Sono due lavori diversi e il portale li
+fa tutti e due, dalla schermata **SEO e sitemap** → riquadro *Farsi trovare
+dagli assistenti IA*.
+
+**1. Dati strutturati più ricchi.** Ogni città pubblica ora un
+`LocalBusiness` con dentro anche la descrizione, i profili social
+(`sameAs`), la fascia di prezzo (`priceRange`, calcolata dai prezzi delle
+pagine: se il tuo servizio più basso costa 15 € e il più alto 180 €, esce
+`€15-€180`), il collegamento alla mappa e il sito principale come azienda
+madre. Sono i campi che gli assistenti leggono per dire *quanto costa* e
+*chi sei* senza inventarselo.
+
+**2. Le FAQ.** Restano la cosa che conta di più: una domanda scritta come la
+farebbe un cliente, con la risposta sotto, è esattamente il pezzo che un
+assistente cita. Le FAQ generano lo schema `FAQPage` (servono almeno due
+domande) e ora la sezione FAQ è prevista anche sulla **pagina principale**
+della città e sulle pagine servizio. Il riquadro in SEO e sitemap ti dice
+su quante pagine le hai già scritte.
+
+**3. `/llms.txt`.** Un indice in testo semplice, all'indirizzo
+`iltuosito.it/zone/llms.txt`, che elenca il brand, i recapiti e — città per
+città — tutte le pagine pubblicate con titolo, indirizzo e descrizione. È
+una convenzione giovane: non tutti gli assistenti la leggono, ma costa zero
+e chi la legge trova tutto in ordine.
+
+**4. I crawler IA nel `robots.txt`.** GPTBot, ClaudeBot, PerplexityBot,
+Google-Extended, Applebot-Extended e gli altri sono nominati uno per uno e
+autorizzati (pannello e cartelle di sistema restano off-limits anche per
+loro). Se un giorno **non** vuoi più che i tuoi testi finiscano negli
+assistenti, togli la spunta *Consenti agli assistenti IA di leggere il sito*
+in **Impostazioni → Indicizzazione**: il `robots.txt` diventa `Disallow: /`
+per quei bot soli — Google e Bing continuano a indicizzarti normalmente — e
+`/llms.txt` risponde 404.
+
+> Se hai tempo per una cosa sola, scrivi le FAQ. `llms.txt` è una
+> convenzione giovane; i dati strutturati e le FAQ li leggono già tutti.
 
 ---
 
@@ -618,7 +662,7 @@ sostituto che Google stesso indica).
 
 ```
 portale-citta/
-├── index.php          front controller pubblico (città, pagine, sitemap, robots)
+├── index.php          front controller pubblico (città, pagine, sitemap, robots, llms.txt)
 ├── admin.php          front controller dell'amministrazione
 ├── install.php        installazione guidata (da cancellare dopo)
 ├── config.php         dati del database (creato dall'installazione)
@@ -630,7 +674,7 @@ portale-citta/
 │   ├── auth.php       accesso, ruoli e token anti-CSRF
 │   ├── utenti.php     gli utenti del pannello
 │   ├── media.php      immagini
-│   ├── seo.php        titoli, descrizioni, punteggio, sitemap, robots
+│   ├── seo.php        titoli, descrizioni, punteggio, sitemap, robots, llms.txt
 │   ├── schema.php     dati strutturati JSON-LD
 │   └── ai.php         assistente Gemini
 ├── admin/             schermate dell'amministrazione + admin.css/js

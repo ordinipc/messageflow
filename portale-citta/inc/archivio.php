@@ -76,6 +76,7 @@ function impostazioni_predefinite() {
 		'gemini_modello'  => 'gemini-3.6-flash',
 		'gemini_modello_immagini' => 'gemini-3.1-flash-image',
 		'indicizza'       => '1',
+		'ia_consenti'     => '1',
 		'css_globale'     => '',
 		'js_globale'      => '',
 		'password_hash'   => '',
@@ -638,13 +639,15 @@ function sezioni_predefinite( $tipo, $slug = '' ) {
 	$slug = slugifica( (string) $slug );
 
 	if ( 'home' === $tipo ) {
-		return array( 'perche', 'zone', 'recensioni', 'dove', 'orari', 'cta', 'servizi', 'correlate' );
+		// Le FAQ ci sono anche qui: è la pagina che gli assistenti IA
+		// leggono per prima, e le domande sono quello che citano.
+		return array( 'perche', 'zone', 'faq', 'recensioni', 'dove', 'orari', 'cta', 'servizi', 'correlate' );
 	}
 	if ( 'servizio' === $tipo ) {
 		return array( 'inclusi', 'processo', 'prezzi', 'faq', 'perche', 'cta', 'servizi' );
 	}
 	if ( 'servizi' === $tipo ) {
-		return array( 'perche', 'cta', 'correlate' );
+		return array( 'perche', 'faq', 'cta', 'correlate' );
 	}
 	if ( 'blog' === $tipo ) {
 		return array( 'cta' );

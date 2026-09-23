@@ -104,7 +104,21 @@ function schema_attivita( $citta ) {
 		) ),
 		'areaServed'  => schema_area( $citta ),
 		'openingHoursSpecification' => schema_orari( $citta['orari'] ),
+		// Descrizione e profili social: sono i campi da cui gli assistenti
+		// IA ricavano «chi è» un'attività, non solo «dove sta».
+		'description' => vuoto( $citta['intro'] ) ? '' : $citta['intro'],
+		'sameAs'      => schema_social(),
+		'priceRange'  => schema_prezzi( $citta ),
+		'hasMap'      => $citta['mappa'],
 	);
+	$principale = impostazione( 'sito_principale', '' );
+	if ( ! vuoto( $principale ) ) {
+		$nodo['parentOrganization'] = array(
+			'@type' => 'Organization',
+			'name'  => impostazione( 'brand', '' ),
+			'url'   => $principale,
+		);
+	}
 	if ( ! vuoto( $citta['lat'] ) && ! vuoto( $citta['lng'] ) ) {
 		$nodo['geo'] = array(
 			'@type'     => 'GeoCoordinates',
@@ -120,6 +134,42 @@ function schema_attivita( $citta ) {
 }
 
 /** Zone servite come elenco di luoghi. */
+/** I profili social dell'attività, per il campo sameAs. */
+function schema_social() {
+	$indirizzi = array();
+	foreach ( social_attivi() as $s ) {
+		$indirizzi[] = $s['url'];
+	}
+	return $indirizzi;
+}
+
+/**
+ * Fascia di prezzo, ricavata dalle pagine servizio della città.
+ *
+ * Non è un dato che si chiede a mano: sta già scritto nei prezzi delle
+ * pagine, e riscriverlo vorrebbe dire tenerlo allineato a mano.
+ */
+function schema_prezzi( $citta ) {
+	$minimo = null;
+	$massimo = null;
+	foreach ( pagine_di_citta( $citta['id'], true ) as $p ) {
+		foreach ( array( 'prezzo_da', 'prezzo_a' ) as $campo ) {
+			$valore = (float) str_replace( ',', '.', (string) $p[ $campo ] );
+			if ( $valore <= 0 ) {
+				continue;
+			}
+			$minimo  = ( null === $minimo || $valore < $minimo ) ? $valore : $minimo;
+			$massimo = ( null === $massimo || $valore > $massimo ) ? $valore : $massimo;
+		}
+	}
+	if ( null === $minimo ) {
+		return '';
+	}
+	return $minimo === $massimo
+		? '€' . (int) $minimo
+		: '€' . (int) $minimo . '-€' . (int) $massimo;
+}
+
 function schema_area( $citta ) {
 	$luoghi = array( array( '@type' => 'City', 'name' => $citta['nome'] ) );
 	foreach ( righe( (string) $citta['comuni'] ) as $comune ) {

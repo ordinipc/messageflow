@@ -76,6 +76,12 @@ foreach ( pagine_tutte() as $p ) {
 				<td><strong>robots.txt</strong></td>
 				<td><a href="<?php echo e( base_url() ); ?>/robots.txt" target="_blank" rel="noopener"><code><?php echo e( base_url() ); ?>/robots.txt</code></a></td>
 			</tr>
+			<?php if ( '0' !== (string) impostazione( 'ia_consenti', '1' ) ) : ?>
+			<tr>
+				<td><strong>llms.txt</strong><br><span class="pc-nota">L'indice scritto per gli assistenti IA.</span></td>
+				<td><a href="<?php echo e( base_url() ); ?>/llms.txt" target="_blank" rel="noopener"><code><?php echo e( base_url() ); ?>/llms.txt</code></a></td>
+			</tr>
+			<?php endif; ?>
 			<?php foreach ( $citta as $c ) : ?>
 				<?php if ( 'pubblicata' !== $c['stato'] ) { continue; } ?>
 				<tr>
@@ -89,6 +95,58 @@ foreach ( pagine_tutte() as $p ) {
 		<strong>Consiglio.</strong> In Search Console crea una proprietà "prefisso URL" per ogni città
 		(<code><?php echo e( base_url() ); ?>/trapani/</code>): così vedi posizioni e clic città per città,
 		invece di un unico totale che non dice niente.
+	</p>
+</div>
+
+<div class="pc-scheda">
+	<h2>Farsi trovare dagli assistenti IA</h2>
+	<p class="pc-scheda__nota">
+		ChatGPT, Gemini, Perplexity e Google con le risposte generate non «posizionano»
+		pagine: leggono e citano. Quello che pesa non è più solo la parola chiave nel
+		titolo, ma quanto sono estraibili i fatti — recapiti, zone, orari, prezzi, e
+		soprattutto <strong>domande con risposta</strong>.
+	</p>
+
+	<table class="pc-tabella">
+		<tbody>
+			<tr>
+				<td><strong>Dati strutturati</strong><br><span class="pc-nota">LocalBusiness con indirizzo, orari, zone servite, coordinate, prezzi e profili social.</span></td>
+				<td>✓ su ogni pagina</td>
+			</tr>
+			<tr>
+				<td><strong>FAQ sulle pagine</strong><br><span class="pc-nota">Domanda e risposta visibili, più lo schema FAQPage. È quello che gli assistenti citano.</span></td>
+				<td>
+					<?php
+					$con_faq = 0;
+					$pubbliche = 0;
+					foreach ( pagine_tutte() as $pg ) {
+						if ( 'pubblicata' !== $pg['stato'] ) { continue; }
+						$pubbliche++;
+						if ( ! empty( $pg['faq'] ) && pagina_mostra( $pg, 'faq' ) ) { $con_faq++; }
+					}
+					echo (int) $con_faq . ' su ' . (int) $pubbliche . ' pagine';
+					?>
+					<?php if ( $con_faq < $pubbliche ) : ?>
+						<br><span class="pc-nota">Aprendo una pagina, scheda FAQ → «✦ Proponi 6 FAQ».</span>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
+				<td><strong>llms.txt</strong><br><span class="pc-nota">Indice in testo semplice con attività, contatti, città e pagine.</span></td>
+				<td><?php echo '0' !== (string) impostazione( 'ia_consenti', '1' ) ? '✓ attivo' : '✗ spento'; ?></td>
+			</tr>
+			<tr>
+				<td><strong>robots.txt</strong><br><span class="pc-nota">GPTBot, ClaudeBot, PerplexityBot, Google-Extended e gli altri, nominati uno per uno.</span></td>
+				<td><?php echo '0' !== (string) impostazione( 'ia_consenti', '1' ) ? '✓ ammessi' : '✗ bloccati'; ?></td>
+			</tr>
+		</tbody>
+	</table>
+
+	<p class="pc-nota" style="margin-top:14px">
+		Si accende e si spegne da <a href="admin.php?p=impostazioni">Impostazioni → SEO</a>.
+		<strong>Una cosa detta con onestà:</strong> <code>llms.txt</code> è una convenzione
+		giovane e non tutti gli assistenti la seguono. I dati strutturati e le FAQ, invece,
+		li leggono già tutti — se hai tempo per una cosa sola, scrivi le FAQ.
 	</p>
 </div>
 

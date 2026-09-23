@@ -309,7 +309,135 @@ function robots_txt() {
 	$righe[] = 'Disallow: /inc/';
 	$righe[] = 'Disallow: /dati/';
 	$righe[] = 'Allow: /';
+
+	// Gli assistenti IA leggono il robots.txt come tutti gli altri, ma
+	// hanno nomi propri: qui si dice sì o no senza lasciarlo al caso.
+	//
+	// Un gruppo con il proprio nome sostituisce quello di «*», non lo
+	// completa: i divieti sull'amministrazione vanno ripetuti, o questi
+	// sarebbero gli unici a potersela leggere.
+	$consenti = '0' !== (string) impostazione( 'ia_consenti', '1' );
+	$righe[]  = '';
+	$righe[]  = '# Assistenti IA';
+	foreach ( bot_ia() as $bot ) {
+		$righe[] = 'User-agent: ' . $bot;
+	}
+	if ( $consenti ) {
+		$righe[] = 'Disallow: /admin.php';
+		$righe[] = 'Disallow: /admin/';
+		$righe[] = 'Disallow: /inc/';
+		$righe[] = 'Disallow: /dati/';
+		$righe[] = 'Allow: /';
+	} else {
+		$righe[] = 'Disallow: /';
+	}
+
 	$righe[] = '';
 	$righe[] = 'Sitemap: ' . base_url() . '/sitemap.xml';
+	if ( $consenti ) {
+		// Non è una direttiva del protocollo: è un commento, perché
+		// scriverla come se lo fosse non la farebbe leggere a nessuno.
+		$righe[] = '# llms.txt: ' . base_url() . '/llms.txt';
+	}
 	return implode( "\n", $righe ) . "\n";
+}
+
+/** I nomi con cui si presentano gli assistenti IA che leggono il web. */
+function bot_ia() {
+	return array(
+		'GPTBot',
+		'OAI-SearchBot',
+		'ChatGPT-User',
+		'ClaudeBot',
+		'Claude-User',
+		'Claude-SearchBot',
+		'PerplexityBot',
+		'Perplexity-User',
+		'Google-Extended',
+		'Applebot-Extended',
+		'meta-externalagent',
+		'Bingbot',
+		'CCBot',
+	);
+}
+
+/**
+ * llms.txt — l'indice del portale scritto per gli assistenti IA.
+ *
+ * È una convenzione giovane e non tutti la seguono: costa poco e, se
+ * anche servisse solo a metà di loro, è sempre meglio che far ricavare
+ * i fatti dell'attività dall'HTML delle pagine.
+ */
+function llms_txt() {
+	$imp   = impostazioni();
+	$marca = $imp['brand'];
+	$fuori = array( '# ' . $marca );
+
+	$servizi = array();
+	foreach ( servizi() as $s ) {
+		$servizi[] = $s['nome'];
+	}
+	if ( ! empty( $servizi ) ) {
+		$fuori[] = '';
+		$fuori[] = '> ' . $marca . ': ' . implode( ', ', $servizi ) . '.';
+	}
+
+	$fuori[] = '';
+	$fuori[] = 'Portale delle zone servite. Ogni città ha la sua pagina con recapiti,';
+	$fuori[] = 'orari, zone coperte e i servizi disponibili sul posto.';
+
+	$recapiti = array();
+	if ( ! vuoto( $imp['telefono'] ) ) {
+		$recapiti[] = 'Telefono: ' . $imp['telefono'];
+	}
+	if ( ! vuoto( $imp['email'] ) ) {
+		$recapiti[] = 'Email: ' . $imp['email'];
+	}
+	if ( ! vuoto( $imp['piva'] ) ) {
+		$recapiti[] = 'Partita IVA: ' . $imp['piva'];
+	}
+	if ( ! vuoto( $imp['sito_principale'] ) ) {
+		$recapiti[] = 'Sito principale: ' . $imp['sito_principale'];
+	}
+	if ( ! empty( $recapiti ) ) {
+		$fuori[] = '';
+		$fuori[] = '## Contatti';
+		$fuori[] = '';
+		foreach ( $recapiti as $r ) {
+			$fuori[] = '- ' . $r;
+		}
+	}
+
+	foreach ( citta_tutte( true ) as $c ) {
+		$fuori[] = '';
+		$fuori[] = '## ' . $c['nome'] . ( vuoto( $c['provincia'] ) ? '' : ' (' . $c['provincia'] . ')' );
+		$fuori[] = '';
+
+		$dati = array();
+		if ( ! vuoto( $c['indirizzo'] ) ) {
+			$dati[] = 'Indirizzo: ' . trim( $c['indirizzo'] . ', ' . $c['cap'] . ' ' . $c['nome'] );
+		}
+		$telefono = contatto( $c, 'telefono' );
+		if ( ! vuoto( $telefono ) ) {
+			$dati[] = 'Telefono: ' . $telefono;
+		}
+		$comuni = righe( (string) $c['comuni'] );
+		if ( ! empty( $comuni ) ) {
+			$dati[] = 'Copre anche: ' . implode( ', ', $comuni );
+		}
+		foreach ( $dati as $d ) {
+			$fuori[] = '- ' . $d;
+		}
+		if ( ! empty( $dati ) ) {
+			$fuori[] = '';
+		}
+
+		foreach ( pagine_di_citta( $c['id'], true ) as $p ) {
+			$descrizione = vuoto( $p['seo_desc'] ) ? $p['intro'] : $p['seo_desc'];
+			$fuori[]     = '- [' . $p['titolo'] . '](' . url_pagina( $c, $p ) . ')'
+				. ( vuoto( $descrizione ) ? '' : ': ' . trim( preg_replace( '/\s+/u', ' ', $descrizione ) ) );
+		}
+	}
+
+	return implode( "\n", $fuori ) . "\n";
 }
