@@ -126,6 +126,7 @@ function css_variabili() {
 		// Header, contenuto e piè di pagina misurano tutti su questa.
 		. '--glp-wrap:' . e( larghezza_contenuto() ) . ';'
 		. '--glp-logo:' . e( altezza_logo() ) . 'px;'
+		. '--glp-menu:' . e( dimensione_menu() ) . 'px;'
 		. '}';
 }
 

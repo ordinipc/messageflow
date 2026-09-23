@@ -28,7 +28,7 @@ Non è un plugin: gira da solo, con il suo database e la sua amministrazione.
 | **Blog per città** | Articoli con elenco paginato, schema BlogPosting, importazione da WordPress |
 | **Modulo di contatto** | Con recapiti completi, anti-spam senza captcha |
 | **Home del portale** | La pagina d'ingresso e il piè di pagina si scrivono dal pannello |
-| **Due stili grafici** | Vetrina (intestazione a tutta larghezza) o Classico, con la larghezza regolabile |
+| **Due stili grafici** | Vetrina (intestazione a tutta larghezza) o Classico, con larghezza, altezza del logo e corpo del menu regolabili |
 | **Shortcode per WordPress** | Ogni pagina (o singola sezione) si incolla dentro WordPress |
 | **Sezioni per pagina** | Ogni pagina sceglie cosa mostrare, **in che ordine** e **in quale colonna**: non escono tutte uguali |
 | **Sezioni a card** | Ogni sezione si disegna a riquadri o a elenco, con effetti dinamici |
@@ -641,6 +641,16 @@ Si cambia idea quando si vuole: è una tendina, non una riscrittura.
 del telefono si rimpicciolisce da solo (fino a 40), ma un logo già più piccolo
 resta com'è. Un'immagine non viene mai stirata oltre la sua misura vera: se la
 vuoi grande, caricala grande.
+
+**Testo del menu** — da 10 a 22 px, 12,5 di partenza. Alzandolo si muovono
+insieme anche il pulsante con il nome della città e il menu del telefono, così
+la barra resta in proporzione invece di sfilacciarsi. L'anteprima in
+**Menu → Come si vedrà** usa la stessa misura: quello che vedi lì è quello
+che esce.
+
+> Attenzione a esagerare: con molte voci, una misura alta manda la barra a
+> capo su due righe. Non è un errore — i collegamenti restano tutti — ma la
+> schermata Menu te lo dice, e da lì puoi togliere qualche voce.
 
 **Larghezza del contenuto** — 1240, 1440 (consigliata), 1600 o 1800 px. È la
 misura che usano *insieme* intestazione, contenuto e piè di pagina: sono

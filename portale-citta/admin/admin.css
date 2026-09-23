@@ -298,7 +298,7 @@ input.pc-mono[readonly]:focus{
 	border:1px solid rgba(255,255,255,.24);
 	border-radius:5px;
 
-	font-size:9px;
+	font-size:calc(var(--pc-menu,12px) * .75);
 	font-weight:700;
 	letter-spacing:.11em;
 	color:var(--pc-accento);
@@ -318,7 +318,7 @@ input.pc-mono[readonly]:focus{
 	padding:6px 9px;
 	border-radius:5px;
 
-	font-size:12px;
+	font-size:var(--pc-menu,12px);
 	font-weight:600;
 	color:rgba(255,255,255,.8);
 	white-space:nowrap;

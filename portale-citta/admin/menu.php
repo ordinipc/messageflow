@@ -200,7 +200,9 @@ $stretto = $larghezza > 820;
 <!-- Anteprima -->
 <div class="pc-scheda">
 	<h2>Come si vedrà</h2>
-	<div class="pc-barra-finta">
+	<?php /* L'anteprima misura quanto il sito: se la misura del menu si
+		cambia in Impostazioni, qui si vede subito com'è diventata. */ ?>
+	<div class="pc-barra-finta" style="--pc-menu:<?php echo e( dimensione_menu() ); ?>px">
 		<span class="pc-barra-finta__marchio"><?php echo e( impostazione( 'brand', '' ) ); ?></span>
 		<span class="pc-barra-finta__citta">● <?php echo e( mb_strtoupper( $citta['nome'] ) ); ?></span>
 		<span class="pc-barra-finta__voci" id="anteprima-menu">
@@ -210,6 +212,11 @@ $stretto = $larghezza > 820;
 		</span>
 		<span class="pc-barra-finta__tel"><?php echo e( contatto( $citta, 'telefono' ) ); ?></span>
 	</div>
+	<p class="pc-nota" style="margin-top:10px">
+		Il corpo del testo si regola in
+		<a href="admin.php?p=impostazioni">Impostazioni → Aspetto → Testo del menu</a>
+		(ora: <?php echo e( str_replace( '.', ',', dimensione_menu() ) ); ?> px).
+	</p>
 	<p class="pc-nota" id="avviso-larghezza" style="margin-top:10px<?php echo $stretto ? '' : ';display:none'; ?>">
 		⚠ Con queste voci la barra va a capo su una seconda riga. Non è un errore —
 		i collegamenti restano tutti visibili — ma se preferisci una riga sola, togli qualche voce.

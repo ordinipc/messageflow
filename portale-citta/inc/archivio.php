@@ -62,6 +62,7 @@ function impostazioni_predefinite() {
 		'stile_tema'      => 'vetrina',
 		'larghezza'       => '1440px',
 		'logo_altezza'    => '56',
+		'menu_dimensione' => '12.5',
 		'effetti'         => '1',
 		'telefono_etichetta' => 'Assistenza 24h',
 		'telefono'        => '',
@@ -177,6 +178,23 @@ function altezza_logo() {
  * Header, testo e piè di pagina la usano tutti: è quella che decide
  * quanto il portale respira sugli schermi grandi.
  */
+/**
+ * Corpo del testo del menu, in pixel.
+ *
+ * Sotto i 10px non si legge e sopra i 22 la barra va a capo: fuori da
+ * quei due numeri non si va, comunque sia scritto nelle impostazioni.
+ * Mezzo pixel è ammesso perché il valore di sempre è 12,5.
+ */
+function dimensione_menu() {
+	$px = (float) str_replace( ',', '.', (string) impostazione( 'menu_dimensione', '12.5' ) );
+	if ( $px <= 0 ) {
+		$px = 12.5;
+	}
+	$px = max( 10, min( 22, $px ) );
+	// Niente zeri inutili: 14 e non 14.0, ma 12.5 resta 12.5.
+	return rtrim( rtrim( number_format( $px, 1, '.', '' ), '0' ), '.' );
+}
+
 function larghezza_contenuto() {
 	$valore = trim( (string) impostazione( 'larghezza', '1440px' ) );
 	if ( ! preg_match( '/^\d{3,4}(px|%)?$/', $valore ) ) {

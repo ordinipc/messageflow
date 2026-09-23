@@ -20,6 +20,9 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		'stile_tema'      => 'classico' === ( $_POST['stile_tema'] ?? '' ) ? 'classico' : 'vetrina',
 		'larghezza'       => trim( (string) ( $_POST['larghezza'] ?? '1440px' ) ),
 		'logo_altezza'    => (string) max( 24, min( 140, (int) ( $_POST['logo_altezza'] ?? 56 ) ) ),
+		// Il taglio vero lo fa dimensione_menu() in lettura: qui si tiene
+		// solo il numero scritto, virgola compresa.
+		'menu_dimensione' => trim( (string) ( $_POST['menu_dimensione'] ?? '12.5' ) ),
 		'telefono_etichetta' => trim( (string) ( $_POST['telefono_etichetta'] ?? '' ) ),
 		'effetti'         => isset( $_POST['effetti'] ) ? '1' : '0',
 		'telefono'        => trim( (string) ( $_POST['telefono'] ?? '' ) ),
@@ -150,6 +153,12 @@ $cfg      = db_config();
 			<input type="number" name="logo_altezza" value="<?php echo e( $imp['logo_altezza'] ); ?>"
 				min="24" max="140" step="2"> px
 			<small>Da 24 a 140. Sullo schermo del telefono si rimpicciolisce da solo.</small>
+		</label>
+
+		<label style="max-width:260px">Testo del menu
+			<input type="number" name="menu_dimensione" value="<?php echo e( dimensione_menu() ); ?>"
+				min="10" max="22" step="0.5"> px
+			<small>Da 10 a 22. Il pulsante della città e il menu del telefono si muovono insieme, così la barra resta in proporzione. Di serie: 12,5.</small>
 		</label>
 
 		<label style="max-width:320px">Etichetta sopra il telefono in barra
