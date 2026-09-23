@@ -79,25 +79,43 @@ function e_url( $url ) {
  * venga costruito: un tag scritto nel campo resta testo, e un indirizzo
  * javascript: viene scartato da e_url().
  */
+function url_completa( $url ) {
+	$url = trim( (string) $url );
+	if ( '' === $url ) {
+		return '';
+	}
+	// Già completo, oppure è un indirizzo interno o una mail: si lascia.
+	if ( preg_match( '#^[a-z][a-z0-9+.-]*:#i', $url ) || '/' === $url[0] || '#' === $url[0] ) {
+		return $url;
+	}
+	// Scritto come lo si detta a voce — «maxdigitalinnovation.it» — senza
+	// https:// davanti. Così com'è il browser lo prenderebbe per una
+	// sottopagina del portale e finirebbe su una pagina che non esiste.
+	if ( preg_match( '#^[a-z0-9.-]+\.[a-z]{2,}([/?\#].*)?$#i', $url ) ) {
+		return 'https://' . $url;
+	}
+	return $url;
+}
+
 function testo_con_link( $testo ) {
 	$testo = str_replace( '{anno}', date( 'Y' ), (string) $testo );
 	$fuori = e( $testo );
 
 	// Si lavora sul testo già reso innocuo: le parentesi non sono fra i
 	// caratteri che htmlspecialchars tocca, quindi il segno si ritrova.
+	// Lo spazio fra ] e ( è tollerato: chi scrive a mano lo mette.
 	return preg_replace_callback(
-		'/\[([^\]]+)\]\(([^)\s]+)\)/',
+		'/\[([^\]]+)\]\s*\(([^)\s]+)\)/',
 		function ( $pezzi ) {
-			$url = e_url( html_entity_decode( $pezzi[2], ENT_QUOTES, 'UTF-8' ) );
+			$grezzo = url_completa( html_entity_decode( $pezzi[2], ENT_QUOTES, 'UTF-8' ) );
+			$url    = e_url( $grezzo );
 			if ( '' === $url ) {
 				// Indirizzo rifiutato: si rimette la riga com'era scritta.
 				// Vedere le parentesi quadre dice subito che il link non
 				// ha preso, invece di lasciare un pezzo di testo monco.
 				return $pezzi[0];
 			}
-			$esterno = preg_match( '#^https?://#i', html_entity_decode( $pezzi[2], ENT_QUOTES, 'UTF-8' ) )
-				? ' target="_blank" rel="noopener"'
-				: '';
+			$esterno = preg_match( '#^https?://#i', $grezzo ) ? ' target="_blank" rel="noopener"' : '';
 			return '<a href="' . $url . '"' . $esterno . '>' . $pezzi[1] . '</a>';
 		},
 		$fuori

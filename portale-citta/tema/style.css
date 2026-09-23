@@ -2143,18 +2143,38 @@ body.glp-standalone{
 .glp-bottombar__copy.glp-bottombar__copy{
     margin:0;
 
-    padding:16px 0 24px;
+    padding:18px 0 26px;
 
     border-top:1px solid rgba(255,255,255,.12);
 
     text-align:center;
 
-    font-size:9px;
+    /* Era 9px con il 40% di bianco: elegante e illeggibile. Il maiuscolo
+       spaziato rimpicciolisce già di suo, quindi qui serve più corpo e
+       più contrasto, non meno. */
+    font-size:13px;
     font-weight:700;
-    letter-spacing:.14em;
+    letter-spacing:.1em;
     text-transform:uppercase;
 
-    color:rgba(255,255,255,.4);
+    color:rgba(255,255,255,.66);
+}
+
+/* Il pezzo cliccabile deve vedersi che lo è: stesso corpo del resto,
+   ma bianco pieno e sottolineato. I collegamenti del piede sono senza
+   sottolineatura per scelta, con un !important: qui va riacceso allo
+   stesso modo, o vincerebbe quello. */
+.glp-bottombar .glp-bottombar__copy a{
+    color:#fff;
+    text-decoration:underline !important;
+    text-underline-offset:3px;
+    text-decoration-thickness:1px;
+}
+
+.glp-bottombar .glp-bottombar__copy a:hover,
+.glp-bottombar .glp-bottombar__copy a:focus-visible{
+    color:var(--glp-accent,#ffd400);
+    text-decoration-color:var(--glp-accent,#ffd400);
 }
 
 @media(max-width:767px){

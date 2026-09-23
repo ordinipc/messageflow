@@ -281,6 +281,14 @@ $citta    = citta_tutte( true );
 				<small>Vuoto: esce «© <?php echo e( date( 'Y' ) . ' ' . $imp['brand'] ); ?>».</small>
 			</label>
 
+			<?php /* L'anteprima è la stessa funzione del tema: se qui il
+				pezzo non è cliccabile, sul sito non lo sarà. Si aggiorna
+				al salvataggio, e senza JavaScript funziona lo stesso. */ ?>
+			<p class="pc-scheda__nota" style="margin-bottom:6px">Così esce sul sito:</p>
+			<p class="pc-anteprima-piede">
+				<?php echo testo_con_link( vuoto( $imp['piede_copy'] ) ? '© {anno} ' . $imp['brand'] : $imp['piede_copy'] ); // Già ripulito. ?>
+			</p>
+
 			<p class="pc-scheda__nota" style="margin-bottom:0">
 				In questa riga e in quella di presentazione qui sopra puoi usare due scorciatoie:
 			</p>

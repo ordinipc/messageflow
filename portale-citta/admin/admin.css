@@ -440,3 +440,25 @@ input.pc-mono[readonly]:focus{
 /* Il pulsante che scatta premendo Invio: fuori dallo schermo, ma non
    display:none, perché deve restare il pulsante predefinito del modulo. */
 .pc-invio-implicito{position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0}
+
+/* Anteprima della riga in fondo: si vede subito se il pezzo cliccabile
+   ha preso, invece di scoprirlo sul sito. Sfondo scuro come il piede. */
+.pc-anteprima-piede{
+	margin:0;
+	padding:14px 16px;
+	border-radius:8px;
+	background:#111;
+	color:rgba(255,255,255,.66);
+	text-align:center;
+	font-size:13px;
+	font-weight:700;
+	letter-spacing:.1em;
+	text-transform:uppercase;
+	overflow-wrap:anywhere;
+}
+
+.pc-anteprima-piede a{
+	color:#fff;
+	text-decoration:underline;
+	text-underline-offset:3px;
+}

@@ -367,6 +367,14 @@ si apre in una scheda nuova. Il resto della riga passa da `htmlspecialchars`:
 un tag scritto lì dentro resta testo, e un `javascript:` non diventa un
 collegamento — la riga si vede com'è stata scritta, così ci si accorge
 dell'errore.
+
+Due tolleranze, perché questa riga si scrive a mano una volta sola e
+sbagliarla è facile: lo **spazio fra `]` e `(`** non rompe niente, e un
+indirizzo scritto **senza `https://`** (`maxdigitalinnovation.it`) viene
+completato da solo, invece di diventare una sottopagina del portale che non
+esiste. Sotto il campo, nel pannello, c'è l'**anteprima** della riga come
+esce sul sito: se lì il pezzo non è sottolineato, cliccabile non è.
+
 Sito principale, privacy e cookie si mettono nelle impostazioni e compaiono
 lì da soli; indirizzo, telefono, email e P. IVA vengono dalla città che si sta
 guardando.
