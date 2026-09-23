@@ -139,6 +139,20 @@ function social_attivi() {
 	return $voci;
 }
 
+/**
+ * La partita IVA da mostrare.
+ *
+ * Quella della città se c'è, altrimenti quella generale delle
+ * impostazioni: chi ha una sola società la scrive una volta sola, chi ha
+ * una società per città la scrive su ognuna.
+ */
+function piva_da_mostrare( $citta = null ) {
+	if ( is_array( $citta ) && ! vuoto( isset( $citta['piva'] ) ? $citta['piva'] : '' ) ) {
+		return trim( (string) $citta['piva'] );
+	}
+	return trim( (string) impostazione( 'piva', '' ) );
+}
+
 /** Altezza del logo in barra, in pixel, dentro limiti ragionevoli. */
 function altezza_logo() {
 	$px = (int) impostazione( 'logo_altezza', '56' );
@@ -285,6 +299,7 @@ function citta_predefinita() {
 		'telefono'       => '',
 		'whatsapp'       => '',
 		'email'          => '',
+		'piva'           => '',
 		'indirizzo'      => '',
 		'mappa'          => '',
 		'orari'          => array(),
@@ -389,6 +404,7 @@ function pagina_predefinita() {
 		'prezzo_a'    => '',
 		'prezzo_note' => '',
 		'faq'         => array(),
+		'tag'         => '',
 		'sezioni'     => array(),
 		'html'        => '',
 		'css'         => '',

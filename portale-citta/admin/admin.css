@@ -545,3 +545,83 @@ input.pc-mono[readonly]:focus{
 	height:1px;
 	opacity:0;
 }
+
+/* --- Scelta dell'icona di un servizio ---------------------------------- */
+.pc-etichetta{
+	margin:0 0 8px;
+	font-size:13px;
+	font-weight:600;
+}
+
+.pc-icone{
+	display:grid;
+	grid-template-columns:repeat(auto-fill,minmax(88px,1fr));
+	gap:8px;
+	margin:0 0 16px;
+}
+
+.pc-icona{
+	display:flex;
+	flex-direction:column;
+	align-items:center;
+	gap:6px;
+	margin:0;
+	padding:10px 6px;
+	border:1px solid var(--pc-bordo);
+	border-radius:8px;
+	background:#fff;
+	text-align:center;
+	cursor:pointer;
+}
+
+.pc-icona:hover{ background:#f6f6f8; }
+
+/* Il radio resta nel modulo e resta raggiungibile da tastiera: è solo
+   spostato sotto il disegno, che è quello che si guarda. */
+.pc-icona input{
+	position:absolute;
+	width:1px;
+	height:1px;
+	opacity:0;
+}
+
+/* Il fratello che segue funziona ovunque; :has() colora anche il bordo
+   del riquadro dove c'è. Se non c'è, si vede comunque quale è scelta. */
+.pc-icona input:checked + .pc-icona__segno{
+	box-shadow:0 0 0 2px #111;
+}
+
+.pc-icona:has(input:checked){
+	border-color:#111;
+	box-shadow:inset 0 0 0 1px #111;
+	background:#fff;
+}
+
+.pc-icona:has(input:focus-visible){
+	outline:2px solid #1a73e8;
+	outline-offset:1px;
+}
+
+.pc-icona__segno{
+	display:inline-flex;
+	align-items:center;
+	justify-content:center;
+	width:42px;
+	height:42px;
+	border-radius:50%;
+	background:#ffd400;
+	color:#111;
+}
+
+.pc-icona__segno--vuoto{
+	background:#f0f0f3;
+	color:var(--pc-grigio);
+	font-weight:700;
+}
+
+.pc-icona__nome{
+	font-size:11px;
+	font-weight:400;
+	line-height:1.25;
+	color:var(--pc-grigio);
+}

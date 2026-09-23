@@ -28,6 +28,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	$citta['telefono']       = trim( (string) ( $_POST['telefono'] ?? '' ) );
 	$citta['whatsapp']       = trim( (string) ( $_POST['whatsapp'] ?? '' ) );
 	$citta['email']          = trim( (string) ( $_POST['email'] ?? '' ) );
+	$citta['piva']           = trim( (string) ( $_POST['piva'] ?? '' ) );
 	$citta['indirizzo']      = trim( (string) ( $_POST['indirizzo'] ?? '' ) );
 	$citta['mappa']          = trim( (string) ( $_POST['mappa'] ?? '' ) );
 	$citta['zone']           = trim( (string) ( $_POST['zone'] ?? '' ) );
@@ -189,6 +190,10 @@ $immagini      = media_tutti();
 				<label>Email <input type="email" name="email" value="<?php echo e( $citta['email'] ); ?>"></label>
 			</div>
 			<label>Indirizzo della sede <input type="text" name="indirizzo" value="<?php echo e( $citta['indirizzo'] ); ?>" placeholder="Via Roma 12"></label>
+			<label>Partita IVA
+				<input type="text" name="piva" value="<?php echo e( $citta['piva'] ); ?>" placeholder="<?php echo e( impostazione( 'piva', '01234567890' ) ); ?>">
+				<small>Solo se questa città ha una società diversa. Lasciala vuota e viene usata quella in Impostazioni<?php echo vuoto( impostazione( 'piva', '' ) ) ? '' : ' (' . e( impostazione( 'piva', '' ) ) . ')'; ?>.</small>
+			</label>
 			<label>Indirizzo della mappa incorporata
 				<input type="url" name="mappa" value="<?php echo e( $citta['mappa'] ); ?>" placeholder="https://www.google.com/maps/embed?pb=...">
 				<small>Su Google Maps: Condividi → Incorpora una mappa → copia solo l'indirizzo dentro <code>src="…"</code>.</small>

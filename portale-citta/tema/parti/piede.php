@@ -5,6 +5,8 @@ $imp      = impostazioni();
 $altre    = isset( $altre ) ? $altre : altre_citta( empty( $citta ) ? '' : $citta['id'] );
 $telefono = empty( $citta ) ? $imp['telefono'] : contatto( $citta, 'telefono' );
 $email    = empty( $citta ) ? $imp['email'] : contatto( $citta, 'email' );
+// Ogni città può avere la sua società: se non ce l'ha, vale quella generale.
+$piva     = piva_da_mostrare( empty( $citta ) ? null : $citta );
 $js_extra = isset( $js_extra ) ? $js_extra : '';
 ?>
 <footer class="glp-bottombar">
@@ -23,8 +25,8 @@ $js_extra = isset( $js_extra ) ? $js_extra : '';
 			<?php if ( ! vuoto( $email ) ) : ?>
 				<p><a href="mailto:<?php echo e( $email ); ?>"><?php echo e( $email ); ?></a></p>
 			<?php endif; ?>
-			<?php if ( ! vuoto( $imp['piva'] ) ) : ?>
-				<p>P. IVA <?php echo e( $imp['piva'] ); ?></p>
+			<?php if ( ! vuoto( $piva ) ) : ?>
+				<p>P. IVA <?php echo e( $piva ); ?></p>
 			<?php endif; ?>
 
 			<?php $social = social_attivi(); ?>

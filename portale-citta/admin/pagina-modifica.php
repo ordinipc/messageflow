@@ -51,6 +51,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	// nel database è già innocuo e in pagina si può stampare com'è.
 	$pagina['corpo']       = corpo_pulisci( (string) ( $_POST['corpo'] ?? '' ) );
 	$pagina['inclusi']     = trim( (string) ( $_POST['inclusi'] ?? '' ) );
+	$pagina['tag']         = trim( (string) ( $_POST['tag'] ?? '' ) );
 	$pagina['prezzo_da']   = trim( (string) ( $_POST['prezzo_da'] ?? '' ) );
 	$pagina['prezzo_a']    = trim( (string) ( $_POST['prezzo_a'] ?? '' ) );
 	$pagina['prezzo_note'] = trim( (string) ( $_POST['prezzo_note'] ?? '' ) );
@@ -210,6 +211,12 @@ $lista_s  = servizi();
 			<p class="pc-scheda__nota">Il corpo della pagina. Minimo consigliato: 300 parole, spezzate in sottotitoli invece che in un muro unico.</p>
 			<textarea id="campo-corpo" name="corpo" data-editor style="min-height:300px" aria-label="Testo di approfondimento"><?php echo e( $pagina['corpo'] ); ?></textarea>
 			<p class="pc-nota"><strong>Deve essere diverso da quello delle altre città.</strong> Testi identici con solo il nome cambiato è il motivo numero uno per cui Google non indicizza le pagine locali.</p>
+		</div>
+
+		<div class="pc-scheda">
+			<h2>Tag</h2>
+			<p class="pc-scheda__nota">Escono come pastiglie sotto il testo: le parole con cui questa pagina si riassume. Una per riga, quattro o cinque bastano.</p>
+			<textarea name="tag" rows="4" aria-label="Tag" placeholder="Chiavi&#10;Transponder&#10;Smart Key&#10;Serrature"><?php echo e( $pagina['tag'] ); ?></textarea>
 		</div>
 	</div>
 

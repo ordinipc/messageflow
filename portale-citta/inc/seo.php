@@ -425,6 +425,10 @@ function llms_txt() {
 		if ( ! empty( $comuni ) ) {
 			$dati[] = 'Copre anche: ' . implode( ', ', $comuni );
 		}
+		// Solo se è diversa da quella generale, già scritta sotto Contatti.
+		if ( ! vuoto( $c['piva'] ) && $c['piva'] !== $imp['piva'] ) {
+			$dati[] = 'Partita IVA: ' . $c['piva'];
+		}
 		foreach ( $dati as $d ) {
 			$fuori[] = '- ' . $d;
 		}

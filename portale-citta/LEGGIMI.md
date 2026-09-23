@@ -11,11 +11,14 @@ Non è un plugin: gira da solo, con il suo database e la sua amministrazione.
 
 | | |
 |---|---|
-| **Città illimitate** | Ognuna con slug, provincia, CAP, coordinate, contatti, orari, zone servite |
+| **Città illimitate** | Ognuna con slug, provincia, CAP, coordinate, contatti, **partita IVA**, orari, zone servite |
 | **Pagine per città** | Principale, servizi, chi siamo, contatti, FAQ… Ogni città ha le sue |
 | **Menu nell'intestazione** | Costruito dalle pagine della città, sempre in alto, con ordine e visibilità per pagina |
 | **Sitemap** | Indice `/sitemap.xml` + una sitemap per città, aggiornate da sole |
 | **robots.txt** | Generato, con l'indirizzo della sitemap e i crawler IA nominati uno per uno |
+| **Editor di testo** | Barra con grassetto, corsivo, sottotitoli, elenchi e collegamenti |
+| **Icone nelle card** | Sedici segni disegnati dentro il portale, uno per tipo di servizio |
+| **Tag per pagina** | Le pastiglie sotto il testo che riassumono di cosa parla |
 | **SEO per pagina** | Title, description, canonical, Open Graph, meta geo, punteggio 0-100 |
 | **Dati strutturati** | LocalBusiness (con social, fascia di prezzo, mappa), Service, FAQPage, BreadcrumbList, ItemList, BlogPosting |
 | **GEO** | `/llms.txt`, interruttore per gli assistenti IA, riepilogo di cosa vedono |
@@ -378,6 +381,63 @@ esce sul sito: se lì il pezzo non è sottolineato, cliccabile non è.
 Sito principale, privacy e cookie si mettono nelle impostazioni e compaiono
 lì da soli; indirizzo, telefono, email e P. IVA vengono dalla città che si sta
 guardando.
+
+---
+
+## Scrivere il testo
+
+Il campo del testo di approfondimento ha una barra sopra: **G** (grassetto),
+**C** (corsivo), Sottotitolo, Paragrafo, elenco puntato, elenco numerato,
+Collegamento, Pulisci. Si scrive vedendo il risultato, come su WordPress.
+
+Tre cose da sapere:
+
+- **Il sottotitolo è un `<h3>`.** L'`<h1>` è il titolo della pagina e l'`<h2>`
+  lo mette la sezione, quindi qui si riparte da lì: la gerarchia resta giusta
+  per Google senza doverci pensare.
+- **Incollando da un altro sito entra solo il testo**, non l'impaginazione
+  altrui. Poi lo formatti con la barra.
+- **Quello che si salva è HTML ripulito**: restano i tag del testo,
+  spariscono script, stili, moduli e ogni attributo tranne `href` sui
+  collegamenti. È lo stesso filtro degli articoli importati da WordPress.
+
+I testi scritti prima che l'editor esistesse continuano a funzionare: erano
+testo semplice, e testo semplice restano finché non li tocchi.
+
+**L'assistente scrive già formattato**: sottotitoli ogni due o tre paragrafi,
+grassetto sulle tre o quattro cose che il cliente cerca davvero (il servizio,
+la città, il prezzo, il tempo), elenchi scritti come elenchi. E più corto di
+prima — 300-380 parole spezzate invece di un muro unico, perché un muro non
+lo legge nessuno e non lo cita nemmeno un assistente IA.
+
+---
+
+## Tag, icone e partita IVA
+
+**I tag** sono le pastiglie sotto il testo: quattro o cinque parole che dicono
+di cosa parla la pagina a chi la guarda senza leggerla tutta. Si scrivono in
+**Pagine → Modifica → riquadro Tag**, una per riga. Non sono collegamenti e
+non portano da nessuna parte: servono a farsi capire in un colpo d'occhio.
+
+**Le icone** stanno sul *tipo di servizio*, non sulla singola pagina: così
+tutte le città che offrono quel servizio mostrano lo stesso segno. Si
+scelgono in **Tipi di servizio**, vedendole: sedici disegni (chiave, chiave
+auto, telecomando, lucchetto, serratura, porta, casa, auto, moto, cancello,
+cassaforte, attrezzi, sicurezza, orari, telefono, mappa). Sono disegnati
+dentro il portale, quindi non c'è niente da scaricare da altri siti e
+prendono da soli il colore dell'accento.
+
+**La partita IVA** si può mettere due volte:
+
+| Dove | Quando |
+|---|---|
+| **Impostazioni → Contatti** | Una sola società per tutto il portale |
+| **Città → Contatti → Partita IVA** | Quella città ha una società diversa |
+
+Quella della città vince su quella generale. Se la lasci vuota vale la
+generale, quindi non devi riscriverla su ognuna. Esce nel piè di pagina,
+nella sezione dei recapiti completi, nei dati strutturati (`vatID`) e, se è
+diversa da quella generale, anche dentro `llms.txt`.
 
 ---
 

@@ -3896,3 +3896,99 @@ body.glp-standalone{
         align-self:flex-start;
     }
 }
+
+/* =========================================================
+   ICONE DEI SERVIZI
+
+   Un pallino con dentro il segno del servizio, nell'angolo
+   in alto a destra della card. Il tracciato è disegnato nel
+   portale e prende il colore dal contenitore, quindi non
+   serve una copia chiara e una scura.
+========================================================= */
+
+.glp-box__icona.glp-box__icona,
+.glp-card__icona.glp-card__icona{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+
+    width:46px;
+    height:46px;
+
+    border-radius:50%;
+    background:var(--glp-accent,#ffd400);
+
+    /* Il segno sta sul giallo: va scritto scuro, non chiaro. */
+    color:var(--glp-dark,#0b0b0b);
+}
+
+/* Nelle card a riquadro il numero è già in alto a sinistra:
+   l'icona si mette dall'altra parte, alla stessa altezza. */
+.glp-box{
+    position:relative;
+}
+
+.glp-box__icona.glp-box__icona{
+    position:absolute;
+    top:clamp(16px,2vw,24px);
+    right:clamp(16px,2vw,24px);
+}
+
+.glp-card__icona.glp-card__icona{
+    margin:0 0 14px;
+}
+
+@media(prefers-reduced-motion:no-preference){
+
+    .glp-effetti .glp-box .glp-box__icona.glp-box__icona,
+    .glp-effetti .glp-card .glp-card__icona.glp-card__icona{
+        transition:transform .25s ease;
+    }
+
+    .glp-effetti .glp-box:hover .glp-box__icona.glp-box__icona,
+    .glp-effetti .glp-card:hover .glp-card__icona.glp-card__icona{
+        transform:rotate(-8deg) scale(1.08);
+    }
+}
+
+/* Il titolo non deve finire sotto l'icona. */
+.glp-box__icona.glp-box__icona ~ .glp-box__titolo{
+    padding-right:56px;
+}
+
+/* =========================================================
+   TAG SOTTO IL TESTO
+
+   Le pastiglie della pagina stanno dentro la sezione di
+   approfondimento, dopo il testo: staccate da quello che
+   le precede, e col pallino giallo davanti che le distingue
+   dai collegamenti agli altri servizi.
+========================================================= */
+
+.glp-tags--pagina.glp-tags--pagina{
+    margin:28px 0 0;
+}
+
+.glp-tags--pagina.glp-tags--pagina li{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+
+    padding:8px 16px;
+
+    border-radius:999px;
+
+    color:var(--glp-text,#111);
+}
+
+.glp-tags--pagina.glp-tags--pagina li::before{
+    content:"";
+
+    width:6px;
+    height:6px;
+
+    border-radius:50%;
+    background:var(--glp-accent,#ffd400);
+
+    flex:0 0 auto;
+}

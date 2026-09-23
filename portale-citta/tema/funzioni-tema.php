@@ -70,11 +70,20 @@ function servizi_citta( $citta ) {
 			$prezzo = 'da ' . $p['prezzo_da'] . ' €';
 		}
 
+		// L'icona sta sul tipo di servizio, non sulla pagina: così tutte
+		// le città che offrono quel servizio mostrano lo stesso segno.
+		$icona = '';
+		if ( ! vuoto( $p['servizio_id'] ) ) {
+			$tipo  = servizio( $p['servizio_id'] );
+			$icona = is_array( $tipo ) && isset( $tipo['icona'] ) ? (string) $tipo['icona'] : '';
+		}
+
 		$voci[] = array(
 			'nome'   => $p['titolo'],
 			'url'    => url_pagina( $citta, $p ),
 			'testo'  => $testo,
 			'prezzo' => $prezzo,
+			'icona'  => $icona,
 		);
 	}
 	return $voci;
@@ -161,53 +170,6 @@ function icona_social( $chiave ) {
 	}
 	return '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" focusable="false">'
 		. $tracciati[ $chiave ] . '</svg>';
-}
-
-/**
- * Le icone che si possono dare a un tipo di servizio.
- *
- * Sono disegnate qui dentro, non caricate da fuori: nessuna richiesta a
- * un altro sito, nessun font da scaricare, e prendono il colore del
- * testo che le circonda perché usano currentColor.
- *
- * @return array chiave => array( nome leggibile, tracciato SVG )
- */
-function icone_disponibili() {
-	return array(
-		'chiave' => array( 'Chiave', '<circle cx="8" cy="8" r="4.2"/><path d="M11 11l8.5 8.5M16.5 16.5l2-2M19 14l1.8 1.8"/>' ),
-		'chiave-auto' => array( 'Chiave auto', '<rect x="3" y="7" width="8" height="10" rx="2"/><path d="M11 12h9M17 12v3.5M20 12v2.5M6.5 10.5v3"/>' ),
-		'telecomando' => array( 'Telecomando', '<rect x="7" y="3" width="10" height="18" rx="3"/><circle cx="10.5" cy="8" r="1.1"/><circle cx="13.5" cy="8" r="1.1"/><circle cx="10.5" cy="12" r="1.1"/><circle cx="13.5" cy="12" r="1.1"/><path d="M10 16.5h4"/>' ),
-		'lucchetto' => array( 'Lucchetto', '<rect x="4.5" y="10" width="15" height="10.5" rx="2.5"/><path d="M8 10V7a4 4 0 018 0v3"/><circle cx="12" cy="15.2" r="1.4"/>' ),
-		'serratura' => array( 'Serratura e cilindro', '<circle cx="12" cy="9" r="5.5"/><path d="M12 12.5v6M9.5 18.5h5"/><circle cx="12" cy="9" r="1.6"/>' ),
-		'porta' => array( 'Porta', '<rect x="5.5" y="3" width="13" height="18" rx="1.5"/><circle cx="15" cy="12" r="1.2"/>' ),
-		'casa' => array( 'Casa', '<path d="M4 10.5L12 4l8 6.5"/><path d="M6 10v10h12V10"/><path d="M10 20v-5.5h4V20"/>' ),
-		'auto' => array( 'Auto', '<path d="M4 15.5h16M5.5 15.5l1.6-5a2 2 0 011.9-1.4h6a2 2 0 011.9 1.4l1.6 5"/><rect x="3.5" y="15.5" width="17" height="4" rx="1.5"/><path d="M7 19.5v1.2M17 19.5v1.2"/>' ),
-		'moto' => array( 'Moto', '<circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M5.5 16.5l4-6h5l4 6M9 10.5h6M13.5 7.5h3"/>' ),
-		'cancello' => array( 'Cancello', '<path d="M3 20V8l4.5-3L12 8l4.5-3L21 8v12"/><path d="M3 20h18M7.5 20V6.5M12 20V8M16.5 20V6.5M3 13h18"/>' ),
-		'cassaforte' => array( 'Cassaforte', '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="11" cy="12" r="3.8"/><path d="M11 8.2v1.4M11 14.4v1.4M7.2 12h1.4M13.4 12h1.4M17.5 9v6"/>' ),
-		'attrezzi' => array( 'Attrezzi', '<path d="M14.5 3.5a4.5 4.5 0 00-5.4 5.8L3.5 14.9a2 2 0 102.8 2.8l5.6-5.6a4.5 4.5 0 005.8-5.4l-2.9 2.9-2.4-.6-.6-2.4z"/><path d="M14 14l5.5 5.5"/>' ),
-		'scudo' => array( 'Sicurezza', '<path d="M12 3l7.5 3v6c0 4.3-3 7.7-7.5 9.2C7.5 19.7 4.5 16.3 4.5 12V6z"/><path d="M9 12l2.2 2.2L15.5 10"/>' ),
-		'orologio' => array( 'Orari e urgenze', '<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5.3l3.4 2"/>' ),
-		'telefono' => array( 'Telefono', '<path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 006 6l1.5-2 4 1.5v3a2 2 0 01-2.2 2A16.8 16.8 0 014.5 5.7 2 2 0 016.5 3.5z"/>' ),
-		'mappa' => array( 'Mappa e zone', '<path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/>' ),
-	);
-}
-
-/**
- * L'icona di un tipo di servizio, pronta da stampare.
- *
- * Restituisce stringa vuota se l'icona non è stata scelta o non esiste
- * più: la card esce senza, non con un buco.
- */
-function icona_servizio( $chiave, $lato = 28 ) {
-	$icone = icone_disponibili();
-	$chiave = (string) $chiave;
-	if ( '' === $chiave || ! isset( $icone[ $chiave ] ) ) {
-		return '';
-	}
-	return '<svg class="glp-icona" viewBox="0 0 24 24" width="' . (int) $lato . '" height="' . (int) $lato . '"'
-		. ' fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"'
-		. ' aria-hidden="true" focusable="false">' . $icone[ $chiave ][1] . '</svg>';
 }
 
 /** Versione degli asset per forzare l'aggiornamento della cache. */

@@ -12,7 +12,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 			'slug'        => servizio_slug_libero( vuoto( $_POST['slug'] ?? '' ) ? $nome : $_POST['slug'], $sid ),
 			'nome'        => $nome,
 			'descrizione' => trim( (string) ( $_POST['descrizione'] ?? '' ) ),
-			'icona'       => '',
+			'icona'       => trim( (string) ( $_POST['icona'] ?? '' ) ),
 			'ordine'      => (int) ( $_POST['ordine'] ?? 10 ),
 		) );
 		avviso( 'Tipo di servizio salvato.' );
@@ -108,6 +108,25 @@ $tok      = '&token=' . rawurlencode( token() );
 				<input type="text" name="descrizione" value="<?php echo e( $modifica['descrizione'] ?? '' ); ?>">
 			</label>
 			<label>Ordine <input type="number" name="ordine" value="<?php echo (int) ( $modifica['ordine'] ?? 10 ); ?>"></label>
+
+			<?php /* Le icone sono disegnate dentro il portale: si scelgono
+				vedendole, non da un elenco di nomi. Senza JavaScript i
+				pallini restano dei radio button normali. */ ?>
+			<p class="pc-etichetta">Icona nelle card</p>
+			<div class="pc-icone">
+				<label class="pc-icona" title="Nessuna icona">
+					<input type="radio" name="icona" value=""<?php echo vuoto( $modifica['icona'] ?? '' ) ? ' checked' : ''; ?>>
+					<span class="pc-icona__segno pc-icona__segno--vuoto" aria-hidden="true">—</span>
+					<span class="pc-icona__nome">Nessuna</span>
+				</label>
+				<?php foreach ( icone_disponibili() as $chiave => $voce ) : ?>
+					<label class="pc-icona" title="<?php echo e( $voce[0] ); ?>">
+						<input type="radio" name="icona" value="<?php echo e( $chiave ); ?>"<?php echo ( $chiave === ( $modifica['icona'] ?? '' ) ) ? ' checked' : ''; ?>>
+						<span class="pc-icona__segno"><?php echo icona_servizio( $chiave, 26 ); ?></span>
+						<span class="pc-icona__nome"><?php echo e( $voce[0] ); ?></span>
+					</label>
+				<?php endforeach; ?>
+			</div>
 			<button class="pc-btn" type="submit"><?php echo $modifica ? 'Salva' : 'Aggiungi'; ?></button>
 			<?php if ( $modifica ) : ?>
 				<a class="pc-btn pc-btn--ghost" href="admin.php?p=servizi">Annulla</a>

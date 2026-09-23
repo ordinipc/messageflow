@@ -476,9 +476,11 @@ function sezione_elenco_servizi( $citta, $servizi ) {
 	if ( stile_card() ) {
 		$html .= '<ul class="glp-boxes glp-boxes--larghe">';
 		foreach ( $servizi as $i => $s ) {
-			$html .= box_apri( 'link', $i )
+			$icona  = icona_servizio( isset( $s['icona'] ) ? $s['icona'] : '' );
+			$html  .= box_apri( 'link', $i )
 				. '<a href="' . e_url( $s['url'] ) . '">'
 				. '<span class="glp-box__num" aria-hidden="true">' . e( sprintf( '%02d', $i + 1 ) ) . '</span>'
+				. ( '' === $icona ? '' : '<span class="glp-box__icona">' . $icona . '</span>' )
 				. '<span class="glp-box__titolo">' . e( $s['nome'] ) . '</span>';
 			if ( ! vuoto( isset( $s['testo'] ) ? $s['testo'] : '' ) ) {
 				$html .= '<span class="glp-box__testo">' . e( $s['testo'] ) . '</span>';
@@ -492,8 +494,10 @@ function sezione_elenco_servizi( $citta, $servizi ) {
 	} else {
 		$html .= '<ul class="glp-cards">';
 		foreach ( $servizi as $s ) {
+			$icona = icona_servizio( isset( $s['icona'] ) ? $s['icona'] : '' );
 			$html .= '<li class="glp-card"><a class="glp-card__link" href="' . e_url( $s['url'] ) . '">'
 				. '<span class="glp-card__body">'
+				. ( '' === $icona ? '' : '<span class="glp-card__icona">' . $icona . '</span>' )
 				. '<span class="glp-card__title">' . e( $s['nome'] ) . '</span>';
 			if ( ! vuoto( isset( $s['testo'] ) ? $s['testo'] : '' ) ) {
 				$html .= '<span class="glp-card__text">' . e( $s['testo'] ) . '</span>';
@@ -526,8 +530,10 @@ function sezione_servizi( $citta, $servizi, $escludi_url = '' ) {
 	if ( stile_card() ) {
 		$html .= '<ul class="glp-boxes">';
 		foreach ( $lista as $i => $s ) {
-			$html .= box_apri( 'link', $i )
+			$icona  = icona_servizio( isset( $s['icona'] ) ? $s['icona'] : '' );
+			$html  .= box_apri( 'link', $i )
 				. '<a href="' . e_url( $s['url'] ) . '">'
+				. ( '' === $icona ? '' : '<span class="glp-box__icona">' . $icona . '</span>' )
 				. '<span class="glp-box__titolo">' . e( $s['nome'] ) . '</span>';
 			if ( ! vuoto( isset( $s['testo'] ) ? $s['testo'] : '' ) ) {
 				$html .= '<span class="glp-box__testo">' . e( $s['testo'] ) . '</span>';
@@ -606,8 +612,9 @@ function sezione_recapiti( $citta ) {
 		}
 		$righe[] = array( 'Indirizzo', e( $indirizzo ) );
 	}
-	if ( ! vuoto( $imp['piva'] ) ) {
-		$righe[] = array( 'Partita IVA', e( $imp['piva'] ) );
+	$piva = piva_da_mostrare( $citta );
+	if ( ! vuoto( $piva ) ) {
+		$righe[] = array( 'Partita IVA', e( $piva ) );
 	}
 
 	if ( empty( $righe ) ) {
@@ -696,7 +703,26 @@ function sezione_testo( $citta, $pagina ) {
 	}
 	return sezione_apri( 'approfondimento', seo_h1( $citta, $pagina ) . ': cosa sapere', 'Approfondimento' )
 		. blocco_prosa( $pagina['corpo'] )
+		. blocco_tag( isset( $pagina['tag'] ) ? $pagina['tag'] : '' )
 		. '</section>';
+}
+
+/**
+ * Le pastiglie sotto il testo.
+ *
+ * Non sono collegamenti e non vanno da nessuna parte: dicono in una
+ * riga di cosa parla la pagina, per chi la guarda senza leggerla tutta.
+ */
+function blocco_tag( $tag ) {
+	$voci = righe( (string) $tag );
+	if ( empty( $voci ) ) {
+		return '';
+	}
+	$fuori = '<ul class="glp-tags glp-tags--pagina">';
+	foreach ( $voci as $v ) {
+		$fuori .= '<li>' . e( $v ) . '</li>';
+	}
+	return $fuori . '</ul>';
 }
 
 /** L'HTML scritto a mano nella scheda "Codice". */

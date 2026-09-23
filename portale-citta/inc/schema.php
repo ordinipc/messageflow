@@ -93,7 +93,7 @@ function schema_attivita( $citta ) {
 		'telephone'   => ! vuoto( $citta['telefono'] ) ? $citta['telefono'] : $imp['telefono'],
 		'email'       => ! vuoto( $citta['email'] ) ? $citta['email'] : $imp['email'],
 		'image'       => url_media( impostazione( 'logo', '' ) ),
-		'vatID'       => $imp['piva'],
+		'vatID'       => piva_da_mostrare( $citta ),
 		'address'     => schema_pulisci( array(
 			'@type'           => 'PostalAddress',
 			'streetAddress'   => $citta['indirizzo'],

@@ -203,6 +203,7 @@ function db_installa() {
 		telefono ' . $t( 'VARCHAR(60)' ) . ' NULL,
 		whatsapp ' . $t( 'VARCHAR(60)' ) . ' NULL,
 		email ' . $t( 'VARCHAR(190)' ) . ' NULL,
+		piva ' . $t( 'VARCHAR(40)' ) . ' NULL,
 		indirizzo ' . $t( 'VARCHAR(255)' ) . ' NULL,
 		mappa ' . $t( 'LONGTEXT' ) . ' NULL,
 		orari ' . $t( 'LONGTEXT' ) . ' NULL,
@@ -236,6 +237,7 @@ function db_installa() {
 		intro ' . $t( 'LONGTEXT' ) . ' NULL,
 		corpo ' . $t( 'LONGTEXT' ) . ' NULL,
 		inclusi ' . $t( 'LONGTEXT' ) . ' NULL,
+		tag ' . $t( 'LONGTEXT' ) . ' NULL,
 		processo ' . $t( 'LONGTEXT' ) . ' NULL,
 		prezzo_da ' . $t( 'VARCHAR(40)' ) . ' NULL,
 		prezzo_a ' . $t( 'VARCHAR(40)' ) . ' NULL,
@@ -341,14 +343,17 @@ function db_colonne_attese() {
 	return array(
 		'pagine'   => array(
 			'sezioni' => 'LONGTEXT NULL',
+			'tag'     => 'LONGTEXT NULL',
 		),
 		'citta'    => array(
-			'css' => 'LONGTEXT NULL',
-			'js'  => 'LONGTEXT NULL',
+			'css'  => 'LONGTEXT NULL',
+			'js'   => 'LONGTEXT NULL',
+			'piva' => 'VARCHAR(40) NULL',
 		),
 		'articoli' => array(),
 		'servizi'  => array(
 			'ordine' => 'INT NOT NULL DEFAULT 10',
+			'icona'  => 'VARCHAR(190) NULL',
 		),
 		'utenti'   => array(
 			'ultimo_accesso' => 'VARCHAR(20) NULL',
