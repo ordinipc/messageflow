@@ -95,6 +95,18 @@ foreach ( $citta as $c ) {
 if ( vuoto( $imp['sito_url'] ) ) {
 	$problemi[] = array( 'Indirizzo del portale non impostato', 'Canonical e sitemap useranno un indirizzo indovinato dal server.', 'admin.php?p=impostazioni' );
 }
+$sbagliata = cartella_incoerente();
+if ( '' !== $sbagliata ) {
+	$vera        = cartella_reale();
+	$problemi[] = array(
+		'L\'indirizzo del portale non porta dove stanno i file',
+		'Nelle impostazioni c\'è «' . $sbagliata . '», ma il portale gira da «'
+			. ( '' === $vera ? '/' : $vera ) . '». Tutti i collegamenti, la sitemap e i canonical '
+			. 'puntano in un posto dove non c\'è niente: le pagine rispondono 404. '
+			. 'Rimetti l\'indirizzo giusto, oppure sposta davvero i file.',
+		'admin.php?p=impostazioni',
+	);
+}
 if ( '1' !== (string) $imp['indicizza'] ) {
 	$problemi[] = array( 'Indicizzazione disattivata', 'robots.txt blocca tutti i motori di ricerca.', 'admin.php?p=impostazioni' );
 }

@@ -313,6 +313,44 @@ function base_url() {
 	return $schema . '://' . $host . $dir;
 }
 
+/**
+ * La cartella da cui il portale sta davvero girando.
+ *
+ * «/zone» se i file stanno in quella sottocartella, «» se stanno nella
+ * radice del dominio. Non si indovina: la dice il server.
+ */
+function cartella_reale() {
+	$dir = rtrim( dirname( (string) ( $_SERVER['SCRIPT_NAME'] ?? '' ) ), '/\\' );
+	return '.' === $dir || '\\' === $dir ? '' : $dir;
+}
+
+/**
+ * True se l'indirizzo scritto nelle impostazioni non porta dove i file
+ * stanno davvero.
+ *
+ * Si confronta solo la cartella, non il dominio: fra www e non-www, o
+ * dietro a un proxy, l'host può legittimamente non combaciare, mentre
+ * una cartella sbagliata rompe ogni collegamento del portale.
+ *
+ * @return string La cartella scritta nelle impostazioni, se è diversa da
+ *                quella vera. Stringa vuota se va tutto bene o se non si
+ *                può sapere.
+ */
+function cartella_incoerente() {
+	$url = trim( (string) impostazione( 'sito_url', '' ) );
+	if ( '' === $url || '' === (string) ( $_SERVER['SCRIPT_NAME'] ?? '' ) ) {
+		return '';
+	}
+	$scritta = rtrim( (string) parse_url( $url, PHP_URL_PATH ), '/' );
+	$vera    = cartella_reale();
+	if ( $scritta === $vera ) {
+		return '';
+	}
+	// Vuota vuol dire radice del dominio: si scrive così, o il messaggio
+	// direbbe «la cartella “”».
+	return '' === $scritta ? '/' : $scritta;
+}
+
 /** URL pubblico di una città. */
 function url_citta( $citta ) {
 	return base_url() . '/' . $citta['slug'] . '/';

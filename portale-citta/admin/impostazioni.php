@@ -90,6 +90,16 @@ $cfg      = db_config();
 		<label>Indirizzo del portale
 			<input type="url" name="sito_url" value="<?php echo e( $imp['sito_url'] ); ?>" placeholder="https://www.tuosito.it/citta">
 			<small>Senza barra finale. Da qui nascono canonical, sitemap e link interni: se è sbagliato, lo sono tutti.</small>
+				<?php $sbagliata = cartella_incoerente(); ?>
+				<?php if ( '' !== $sbagliata ) : ?>
+					<small class="pc-allarme">
+						⚠ Qui c'è la cartella <code><?php echo e( $sbagliata ); ?></code>, ma il portale
+						gira da <code><?php echo e( '' === cartella_reale() ? '/' : cartella_reale() ); ?></code>.
+						Questo campo dice <strong>dove i file stanno</strong>, non dove vorresti che fossero:
+						cambiarlo non sposta niente, manda solo tutti i collegamenti su indirizzi che
+						rispondono 404.
+					</small>
+				<?php endif; ?>
 		</label>
 		<label>Indirizzo del sito principale
 			<input type="url" name="sito_principale" value="<?php echo e( $imp['sito_principale'] ); ?>" placeholder="https://www.tuosito.it">

@@ -61,6 +61,31 @@ irraggiungibile.
 lascia passare le cartelle reali (`RewriteCond %{REQUEST_FILENAME} !-d`), quindi
 una cartella fisica non viene intercettata.
 
+### «Indirizzo del portale» non è un permalink
+
+In **Impostazioni → Generale** c'è *Indirizzo del portale*. Quel campo dice
+**dove i file stanno**, non dove vorresti che stessero: togliere `/zone` da lì
+non sposta niente e non accorcia gli indirizzi. Manda solo canonical, sitemap,
+menu e ogni collegamento interno su indirizzi dove non c'è nulla — e quelle
+pagine, nella radice, le risponde WordPress con un 404.
+
+Il portale se ne accorge: se l'indirizzo scritto non combacia con la cartella
+da cui sta davvero girando, un avviso rosso compare sotto il campo e nella
+**Diagnostica** del Pannello, con scritto qual è la cartella vera. Il confronto
+è solo sulla cartella, non sul dominio: fra `www` e senza `www`, o dietro a un
+proxy, l'host può legittimamente essere diverso.
+
+**Per togliere davvero `/zone` dagli indirizzi** le strade sono due, e nessuna
+è un'impostazione:
+
+| Come | Cosa comporta |
+|---|---|
+| **Sottodominio** — `zone.chiaviitalia.it` | Sposti i file lì, cambi l'indirizzo del portale, e gli indirizzi diventano `zone.chiaviitalia.it/trapani/`. È la strada pulita: WordPress resta dov'è e non si tocca |
+| **Portale nella radice** | Vorrebbe dire togliere WordPress da lì. Non si fa per un portale in sottocartella |
+
+In tutti e due i casi, se le pagine sono già indicizzate servono i **redirect
+301** dai vecchi indirizzi ai nuovi, o perdi il lavoro fatto con Google.
+
 ---
 
 ## Installazione

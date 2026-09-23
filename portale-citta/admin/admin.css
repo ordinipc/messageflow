@@ -709,3 +709,23 @@ input.pc-mono[readonly]:focus{
 	border-radius:8px;
 	min-height:44px;
 }
+
+/* Avvertimento dentro un campo: non è un errore di salvataggio, è una
+   cosa che vale la pena guardare prima di andare avanti. */
+.pc-allarme{
+	display:block;
+	margin-top:8px;
+	padding:9px 11px;
+	border-radius:6px;
+	background:#fdeceb;
+	border:1px solid #f3c8c5;
+	color:#8c1d18 !important;
+	font-weight:400;
+	line-height:1.5;
+}
+
+.pc-allarme code{
+	background:rgba(140,29,24,.09);
+	padding:1px 5px;
+	border-radius:3px;
+}
