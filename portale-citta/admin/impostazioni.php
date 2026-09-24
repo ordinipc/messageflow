@@ -23,6 +23,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		// Il taglio vero lo fa dimensione_menu() in lettura: qui si tiene
 		// solo il numero scritto, virgola compresa.
 		'menu_dimensione' => trim( (string) ( $_POST['menu_dimensione'] ?? '12.5' ) ),
+		'card_immagini'   => isset( $_POST['card_immagini'] ) ? '1' : '0',
 		'cartella_nascosta' => isset( $_POST['cartella_nascosta'] ) ? '1' : '0',
 		'telefono_etichetta' => trim( (string) ( $_POST['telefono_etichetta'] ?? '' ) ),
 		'effetti'         => isset( $_POST['effetti'] ) ? '1' : '0',
@@ -203,6 +204,16 @@ $cfg      = db_config();
 			</select>
 			<small>Vale per: cosa comprende, perché sceglierci, numeri, processo, zone, recensioni, team, orari, FAQ, servizi e altre città.</small>
 		</label>
+
+		<label class="pc-inline">
+			<input type="checkbox" name="card_immagini" value="1" <?php checked_pc( '1' === (string) $imp['card_immagini'] ); ?>>
+			Mostra l'immagine di anteprima nelle card dei servizi
+		</label>
+		<small style="display:block;margin:-8px 0 16px">
+			È l'immagine della scheda SEO di ogni pagina servizio, quella che si vede anche
+			quando il collegamento viene condiviso. Le pagine che non ce l'hanno escono
+			come prima, senza riquadro vuoto.
+		</small>
 
 		<label class="pc-inline">
 			<input type="checkbox" name="effetti" value="1" <?php checked_pc( '1' === (string) $imp['effetti'] ); ?>>

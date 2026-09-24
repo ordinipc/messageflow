@@ -37,11 +37,15 @@ function ritardo( $indice ) {
 
 /** Apre un riquadro. */
 function box_apri( $modificatore = '', $indice = 0 ) {
-	$classi = 'glp-box';
-	if ( '' !== $modificatore ) {
-		$classi .= ' glp-box--' . $modificatore;
+	$classi = array( 'glp-box' );
+	// Più modificatori separati da spazio: ognuno si prende il suo
+	// prefisso, o «link foto» diventerebbe una classe «foto» sciolta.
+	foreach ( preg_split( '/\s+/', trim( (string) $modificatore ) ) as $pezzo ) {
+		if ( '' !== $pezzo ) {
+			$classi[] = 'glp-box--' . $pezzo;
+		}
 	}
-	return '<li class="' . e( $classi ) . '"' . ritardo( $indice ) . '>';
+	return '<li class="' . e( implode( ' ', $classi ) ) . '"' . ritardo( $indice ) . '>';
 }
 
 /* ---------------------------------------------------------------------------
@@ -477,8 +481,10 @@ function sezione_elenco_servizi( $citta, $servizi ) {
 		$html .= '<ul class="glp-boxes glp-boxes--larghe">';
 		foreach ( $servizi as $i => $s ) {
 			$icona  = icona_servizio( isset( $s['icona'] ) ? $s['icona'] : '' );
-			$html  .= box_apri( 'link', $i )
+			$foto   = foto_card( $s );
+			$html  .= box_apri( 'link' . ( '' === $foto ? '' : ' foto' ), $i )
 				. '<a href="' . e_url( $s['url'] ) . '">'
+				. $foto
 				. '<span class="glp-box__num" aria-hidden="true">' . e( sprintf( '%02d', $i + 1 ) ) . '</span>'
 				. ( '' === $icona ? '' : '<span class="glp-box__icona">' . $icona . '</span>' )
 				. '<span class="glp-box__titolo">' . e( $s['nome'] ) . '</span>';
@@ -495,7 +501,10 @@ function sezione_elenco_servizi( $citta, $servizi ) {
 		$html .= '<ul class="glp-cards">';
 		foreach ( $servizi as $s ) {
 			$icona = icona_servizio( isset( $s['icona'] ) ? $s['icona'] : '' );
-			$html .= '<li class="glp-card"><a class="glp-card__link" href="' . e_url( $s['url'] ) . '">'
+			$foto  = foto_card( $s, 'glp-card__foto' );
+			$html .= '<li class="glp-card' . ( '' === $foto ? '' : ' glp-card--foto' ) . '">'
+				. '<a class="glp-card__link" href="' . e_url( $s['url'] ) . '">'
+				. $foto
 				. '<span class="glp-card__body">'
 				. ( '' === $icona ? '' : '<span class="glp-card__icona">' . $icona . '</span>' )
 				. '<span class="glp-card__title">' . e( $s['nome'] ) . '</span>';
@@ -531,8 +540,10 @@ function sezione_servizi( $citta, $servizi, $escludi_url = '' ) {
 		$html .= '<ul class="glp-boxes">';
 		foreach ( $lista as $i => $s ) {
 			$icona  = icona_servizio( isset( $s['icona'] ) ? $s['icona'] : '' );
-			$html  .= box_apri( 'link', $i )
+			$foto   = foto_card( $s );
+			$html  .= box_apri( 'link' . ( '' === $foto ? '' : ' foto' ), $i )
 				. '<a href="' . e_url( $s['url'] ) . '">'
+				. $foto
 				. ( '' === $icona ? '' : '<span class="glp-box__icona">' . $icona . '</span>' )
 				. '<span class="glp-box__titolo">' . e( $s['nome'] ) . '</span>';
 			if ( ! vuoto( isset( $s['testo'] ) ? $s['testo'] : '' ) ) {

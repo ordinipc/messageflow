@@ -79,11 +79,14 @@ function servizi_citta( $citta ) {
 		}
 
 		$voci[] = array(
-			'nome'   => $p['titolo'],
-			'url'    => url_pagina( $citta, $p ),
-			'testo'  => $testo,
-			'prezzo' => $prezzo,
-			'icona'  => $icona,
+			'nome'     => $p['titolo'],
+			'url'      => url_pagina( $citta, $p ),
+			'testo'    => $testo,
+			'prezzo'   => $prezzo,
+			'icona'    => $icona,
+			// L'immagine di anteprima della pagina: la stessa che va su
+			// Open Graph quando il collegamento viene condiviso.
+			'immagine' => (string) $p['immagine'],
 		);
 	}
 	return $voci;
@@ -171,6 +174,22 @@ function icona_social( $chiave ) {
 	}
 	return '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" focusable="false">'
 		. $tracciati[ $chiave ] . '</svg>';
+}
+
+/**
+ * La foto di anteprima dentro una card.
+ *
+ * Vuota se la pagina non ne ha una o se le immagini nelle card sono
+ * spente: la card esce senza, non con un riquadro grigio.
+ */
+function foto_card( $voce, $classe = 'glp-box__foto' ) {
+	$file = isset( $voce['immagine'] ) ? (string) $voce['immagine'] : '';
+	if ( vuoto( $file ) || '1' !== (string) impostazione( 'card_immagini', '1' ) ) {
+		return '';
+	}
+	return '<span class="' . e( $classe ) . '">'
+		. '<img src="' . e( url_media( $file ) ) . '" alt="" loading="lazy" decoding="async">'
+		. '</span>';
 }
 
 /** Versione degli asset per forzare l'aggiornamento della cache. */

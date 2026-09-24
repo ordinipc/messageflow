@@ -31,7 +31,7 @@ Non è un plugin: gira da solo, con il suo database e la sua amministrazione.
 | **Due stili grafici** | Vetrina (intestazione a tutta larghezza) o Classico, con larghezza, altezza del logo e corpo del menu regolabili |
 | **Shortcode per WordPress** | Ogni pagina (o singola sezione) si incolla dentro WordPress |
 | **Sezioni per pagina** | Ogni pagina sceglie cosa mostrare, **in che ordine** e **in quale colonna**: non escono tutte uguali |
-| **Sezioni a card** | Ogni sezione si disegna a riquadri o a elenco, con effetti dinamici |
+| **Sezioni a card** | Ogni sezione si disegna a riquadri o a elenco, con immagini di anteprima ed effetti dinamici |
 | **CSS/HTML/JS** | Tre livelli: globale, per città, per pagina |
 | **Bozze** | Le pagine non pubblicate sono 404 per tutti, tranne per chi è collegato |
 
@@ -497,6 +497,14 @@ Una precisazione, perché è una domanda che torna sempre: **i tag non servono
 a Google.** Il `meta keywords` non conta più da vent'anni. Servono a chi
 legge, e indirettamente agli assistenti IA, che dalle pastiglie capiscono in
 una riga di cosa tratta la pagina.
+
+**Le immagini nelle card** sono l'immagine di anteprima di ogni pagina
+servizio — la stessa della scheda SEO, quella che si vede quando il
+collegamento viene condiviso. Escono come fascia in cima alla card, ritagliate
+in 16:9, con il numero e l'icona in sovrimpressione. Le pagine che non ce
+l'hanno escono come prima, senza riquadro vuoto: per non avere card a metà
+conviene dare l'immagine a tutte o a nessuna. Si spengono da
+**Impostazioni → Aspetto → «Mostra l'immagine di anteprima nelle card»**.
 
 **Le icone** stanno sul *tipo di servizio*, non sulla singola pagina: così
 tutte le città che offrono quel servizio mostrano lo stesso segno. Si

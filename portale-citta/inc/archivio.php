@@ -64,6 +64,7 @@ function impostazioni_predefinite() {
 		'logo_altezza'    => '56',
 		'menu_dimensione' => '12.5',
 		'cartella_nascosta' => '0',
+		'card_immagini'   => '1',
 		'effetti'         => '1',
 		'telefono_etichetta' => 'Assistenza 24h',
 		'telefono'        => '',
