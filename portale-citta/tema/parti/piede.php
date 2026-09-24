@@ -7,6 +7,7 @@ $telefono = empty( $citta ) ? $imp['telefono'] : contatto( $citta, 'telefono' );
 $email    = empty( $citta ) ? $imp['email'] : contatto( $citta, 'email' );
 // Ogni città può avere la sua società: se non ce l'ha, vale quella generale.
 $piva     = piva_da_mostrare( empty( $citta ) ? null : $citta );
+$societa  = ragione_sociale_da_mostrare( empty( $citta ) ? null : $citta );
 $js_extra = isset( $js_extra ) ? $js_extra : '';
 ?>
 <footer class="glp-bottombar">
@@ -20,6 +21,11 @@ $js_extra = isset( $js_extra ) ? $js_extra : '';
 				</p>
 			<?php else : ?>
 				<p class="glp-bottombar__name"><?php echo e( $imp['brand'] ); ?></p>
+			<?php endif; ?>
+			<?php /* La denominazione sociale apre i dati legali: è quella che
+				sta insieme alla partita IVA, non il nome commerciale. */ ?>
+			<?php if ( ! vuoto( $societa ) ) : ?>
+				<p class="glp-bottombar__societa"><?php echo e( $societa ); ?></p>
 			<?php endif; ?>
 			<?php if ( ! vuoto( $imp['piede_testo'] ) ) : ?>
 				<p class="glp-bottombar__intro"><?php echo testo_con_link( $imp['piede_testo'] ); // Già ripulito. ?></p>

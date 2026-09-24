@@ -496,6 +496,9 @@ function llms_txt() {
 	if ( ! vuoto( $imp['email'] ) ) {
 		$recapiti[] = 'Email: ' . $imp['email'];
 	}
+	if ( ! vuoto( $imp['ragione_sociale'] ) ) {
+		$recapiti[] = 'Denominazione sociale: ' . $imp['ragione_sociale'];
+	}
 	if ( ! vuoto( $imp['piva'] ) ) {
 		$recapiti[] = 'Partita IVA: ' . $imp['piva'];
 	}
@@ -528,7 +531,10 @@ function llms_txt() {
 		if ( ! empty( $comuni ) ) {
 			$dati[] = 'Copre anche: ' . implode( ', ', $comuni );
 		}
-		// Solo se è diversa da quella generale, già scritta sotto Contatti.
+		// Solo se sono diverse da quelle generali, già scritte sotto Contatti.
+		if ( ! vuoto( $c['ragione_sociale'] ) && $c['ragione_sociale'] !== $imp['ragione_sociale'] ) {
+			$dati[] = 'Denominazione sociale: ' . $c['ragione_sociale'];
+		}
 		if ( ! vuoto( $c['piva'] ) && $c['piva'] !== $imp['piva'] ) {
 			$dati[] = 'Partita IVA: ' . $c['piva'];
 		}

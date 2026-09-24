@@ -4015,3 +4015,15 @@ body.glp-standalone{
 
     flex:0 0 auto;
 }
+
+/* La denominazione sociale nel piè di pagina: apre i dati legali, quindi
+   sta sotto il logo e sopra l'indirizzo, in chiaro ma senza gridare. */
+.glp-bottombar__societa.glp-bottombar__societa{
+    margin:0 0 10px;
+
+    color:rgba(255,255,255,.88);
+
+    font-size:14px;
+    font-weight:700;
+    line-height:1.4;
+}

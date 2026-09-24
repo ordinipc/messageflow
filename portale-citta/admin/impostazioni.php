@@ -29,6 +29,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		'telefono'        => trim( (string) ( $_POST['telefono'] ?? '' ) ),
 		'whatsapp'        => trim( (string) ( $_POST['whatsapp'] ?? '' ) ),
 		'email'           => trim( (string) ( $_POST['email'] ?? '' ) ),
+		'ragione_sociale' => trim( (string) ( $_POST['ragione_sociale'] ?? '' ) ),
 		'piva'            => trim( (string) ( $_POST['piva'] ?? '' ) ),
 		'nazione'         => strtoupper( trim( (string) ( $_POST['nazione'] ?? 'IT' ) ) ),
 		'lingua'          => trim( (string) ( $_POST['lingua'] ?? 'it-IT' ) ),
@@ -255,7 +256,13 @@ $cfg      = db_config();
 			<label>WhatsApp <input type="tel" name="whatsapp" value="<?php echo e( $imp['whatsapp'] ); ?>"></label>
 			<label>Email <input type="email" name="email" value="<?php echo e( $imp['email'] ); ?>"></label>
 		</div>
-		<label>Partita IVA <input type="text" name="piva" value="<?php echo e( $imp['piva'] ); ?>"></label>
+		<div class="pc-riga pc-riga--2">
+			<label>Denominazione sociale
+				<input type="text" name="ragione_sociale" value="<?php echo e( $imp['ragione_sociale'] ); ?>" placeholder="Nome S.r.l.">
+				<small>Nel piè di pagina, sopra l'indirizzo. Ogni città può averne una sua.</small>
+			</label>
+			<label>Partita IVA <input type="text" name="piva" value="<?php echo e( $imp['piva'] ); ?>"></label>
+		</div>
 		<div class="pc-riga pc-riga--2">
 			<label>Privacy Policy (URL) <input type="url" name="privacy_url" value="<?php echo e( $imp['privacy_url'] ); ?>"></label>
 			<label>Cookie Policy (URL) <input type="url" name="cookie_url" value="<?php echo e( $imp['cookie_url'] ); ?>"></label>

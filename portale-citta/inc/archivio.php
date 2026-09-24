@@ -69,6 +69,7 @@ function impostazioni_predefinite() {
 		'telefono'        => '',
 		'whatsapp'        => '',
 		'email'           => '',
+		'ragione_sociale' => '',
 		'piva'            => '',
 		'nazione'         => 'IT',
 		'lingua'          => 'it-IT',
@@ -330,6 +331,7 @@ function citta_predefinita() {
 		'telefono'       => '',
 		'whatsapp'       => '',
 		'email'          => '',
+		'ragione_sociale' => '',
 		'piva'           => '',
 		'social'         => array(),
 		'indirizzo'      => '',
@@ -803,6 +805,20 @@ function sezioni_sposta( $scelte, $comando, $ammesse ) {
 /** True se la pagina mostra una certa sezione. */
 function pagina_mostra( $pagina, $chiave ) {
 	return in_array( $chiave, pagina_sezioni( $pagina ), true );
+}
+
+/**
+ * La denominazione sociale da mostrare.
+ *
+ * Stessa regola della partita IVA, e per lo stesso motivo: una città può
+ * essere di un'altra società. Vuota vale quella generale; vuote tutte e
+ * due, non si scrive niente — il nome commerciale è già nel logo.
+ */
+function ragione_sociale_da_mostrare( $citta = null ) {
+	if ( is_array( $citta ) && ! vuoto( isset( $citta['ragione_sociale'] ) ? $citta['ragione_sociale'] : '' ) ) {
+		return trim( (string) $citta['ragione_sociale'] );
+	}
+	return trim( (string) impostazione( 'ragione_sociale', '' ) );
 }
 
 /** Le tre larghezze che una sezione può avere. */

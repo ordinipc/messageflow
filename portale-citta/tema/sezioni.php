@@ -592,6 +592,11 @@ function sezione_recapiti( $citta ) {
 	$imp   = impostazioni();
 	$righe = array();
 
+	$societa = ragione_sociale_da_mostrare( $citta );
+	if ( ! vuoto( $societa ) ) {
+		$righe[] = array( 'Denominazione sociale', e( $societa ) );
+	}
+
 	$telefono = contatto( $citta, 'telefono' );
 	$whatsapp = contatto( $citta, 'whatsapp' );
 	$email    = contatto( $citta, 'email' );

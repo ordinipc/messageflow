@@ -11,7 +11,7 @@ Non è un plugin: gira da solo, con il suo database e la sua amministrazione.
 
 | | |
 |---|---|
-| **Città illimitate** | Ognuna con slug, provincia, CAP, coordinate, contatti, **partita IVA**, **social**, orari, zone servite |
+| **Città illimitate** | Ognuna con slug, provincia, CAP, coordinate, contatti, **denominazione sociale**, **partita IVA**, **social**, orari, zone servite |
 | **Pagine per città** | Principale, servizi, chi siamo, contatti, FAQ… Ogni città ha le sue |
 | **Menu nell'intestazione** | Costruito dalle pagine della città, sempre in alto, con ordine e visibilità per pagina |
 | **Sitemap** | Indice `/sitemap.xml` + una sitemap per città, aggiornate da sole |
@@ -483,7 +483,7 @@ lo legge nessuno e non lo cita nemmeno un assistente IA.
 
 ---
 
-## Tag, icone, partita IVA e social
+## Tag, icone, dati legali e social
 
 **I tag** sono le pastiglie sotto il testo: quattro o cinque parole che dicono
 di cosa parla la pagina a chi la guarda senza leggerla tutta. Si scrivono in
@@ -506,12 +506,19 @@ cassaforte, attrezzi, sicurezza, orari, telefono, mappa). Sono disegnati
 dentro il portale, quindi non c'è niente da scaricare da altri siti e
 prendono da soli il colore dell'accento.
 
-**La partita IVA** si può mettere due volte:
+**La denominazione sociale e la partita IVA** si mettono in due posti:
 
 | Dove | Quando |
 |---|---|
 | **Impostazioni → Contatti** | Una sola società per tutto il portale |
-| **Città → Contatti → Partita IVA** | Quella città ha una società diversa |
+| **Città → Contatti e orari** | Quella città ha una società diversa |
+
+La denominazione sociale è il nome con cui la società è registrata — quello
+che sta accanto alla partita IVA nel piè di pagina — e non va confuso con il
+nome commerciale, che è già nel logo. Esce sotto il logo, sopra l'indirizzo,
+e nei dati strutturati va nel campo `legalName`, separato da `name`: Google
+li tiene distinti, e tenerli distinti evita che il nome legale scacci quello
+commerciale dai risultati.
 
 Quella della città vince su quella generale. Se la lasci vuota vale la
 generale, quindi non devi riscriverla su ognuna. Esce nel piè di pagina,

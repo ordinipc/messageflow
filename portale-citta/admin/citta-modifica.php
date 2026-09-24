@@ -28,6 +28,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	$citta['telefono']       = trim( (string) ( $_POST['telefono'] ?? '' ) );
 	$citta['whatsapp']       = trim( (string) ( $_POST['whatsapp'] ?? '' ) );
 	$citta['email']          = trim( (string) ( $_POST['email'] ?? '' ) );
+	$citta['ragione_sociale'] = trim( (string) ( $_POST['ragione_sociale'] ?? '' ) );
 	$citta['piva']           = trim( (string) ( $_POST['piva'] ?? '' ) );
 	// Social della città: si salva solo quello che è stato scritto, così
 	// una rete lasciata vuota resta vuota e ricade su quella generale.
@@ -199,6 +200,11 @@ $immagini      = media_tutti();
 				<label>Email <input type="email" name="email" value="<?php echo e( $citta['email'] ); ?>"></label>
 			</div>
 			<label>Indirizzo della sede <input type="text" name="indirizzo" value="<?php echo e( $citta['indirizzo'] ); ?>" placeholder="Via Roma 12"></label>
+			<label>Denominazione sociale
+				<input type="text" name="ragione_sociale" value="<?php echo e( $citta['ragione_sociale'] ); ?>"
+					placeholder="<?php echo e( impostazione( 'ragione_sociale', 'Nome S.r.l.' ) ); ?>">
+				<small>Il nome con cui la società è registrata, quello che va nel piè di pagina accanto alla partita IVA. Non è il nome commerciale: quello è già nel logo.</small>
+			</label>
 			<label>Partita IVA
 				<input type="text" name="piva" value="<?php echo e( $citta['piva'] ); ?>" placeholder="<?php echo e( impostazione( 'piva', '01234567890' ) ); ?>">
 				<small>Solo se questa città ha una società diversa. Lasciala vuota e viene usata quella in Impostazioni<?php echo vuoto( impostazione( 'piva', '' ) ) ? '' : ' (' . e( impostazione( 'piva', '' ) ) . ')'; ?>.</small>

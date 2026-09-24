@@ -94,6 +94,10 @@ function schema_attivita( $citta ) {
 		'email'       => ! vuoto( $citta['email'] ) ? $citta['email'] : $imp['email'],
 		'image'       => url_media( impostazione( 'logo', '' ) ),
 		'vatID'       => piva_da_mostrare( $citta ),
+		// legalName è il nome registrato, name quello con cui ci si
+		// presenta: Google li tiene distinti, e tenerli distinti anche
+		// qui evita che il primo scacci il secondo dai risultati.
+		'legalName'   => ragione_sociale_da_mostrare( $citta ),
 		'address'     => schema_pulisci( array(
 			'@type'           => 'PostalAddress',
 			'streetAddress'   => $citta['indirizzo'],
