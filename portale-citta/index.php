@@ -68,9 +68,14 @@ if ( 'sitemap.xml' === $percorso ) {
 }
 if ( preg_match( '#^sitemap-([a-z0-9-]+)\.xml$#', $percorso, $m ) ) {
 	$citta = citta_per_slug( $m[1] );
-	if ( ! $citta ) {
+	// Una città in bozza, o senza nemmeno una pagina pubblicata, non ha
+	// una sitemap: qui c'è 404, non un elenco vuoto. Un elenco vuoto
+	// risponde 200, e Google se lo segna come sitemap buona che non
+	// porta niente — resta lì per sempre a dire che qualcosa non va.
+	if ( ! $citta || 'pubblicata' !== $citta['stato'] || empty( sitemap_voci( $citta['id'] ) ) ) {
 		http_response_code( 404 );
-		exit;
+		header( 'Content-Type: text/plain; charset=UTF-8' );
+		exit( "Questa città non ha una sitemap: o è in bozza, o non ha pagine pubblicate.\n" );
 	}
 	header( 'Content-Type: application/xml; charset=UTF-8' );
 	echo sitemap_xml( $citta['id'] );

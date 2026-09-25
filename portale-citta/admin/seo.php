@@ -161,11 +161,30 @@ foreach ( pagine_tutte() as $p ) {
 				<td><a href="<?php echo e( base_url() ); ?>/llms.txt" target="_blank" rel="noopener"><code><?php echo e( base_url() ); ?>/llms.txt</code></a></td>
 			</tr>
 			<?php endif; ?>
+			<?php /* Le città senza sitemap si elencano lo stesso, con il
+				motivo: sparire e basta fa cercare l'indirizzo a mano, e
+				poi mandarlo a Search Console, che lo segna in errore. */ ?>
+			<?php $senza = array(); ?>
 			<?php foreach ( $citta as $c ) : ?>
-				<?php if ( 'pubblicata' !== $c['stato'] ) { continue; } ?>
+				<?php
+				if ( 'pubblicata' !== $c['stato'] ) {
+					$senza[] = array( $c['nome'], 'è in bozza' );
+					continue;
+				}
+				if ( empty( sitemap_voci( $c['id'] ) ) ) {
+					$senza[] = array( $c['nome'], 'non ha ancora pagine pubblicate' );
+					continue;
+				}
+				?>
 				<tr>
 					<td><?php echo e( $c['nome'] ); ?></td>
 					<td><a href="<?php echo e( base_url() ); ?>/sitemap-<?php echo e( $c['slug'] ); ?>.xml" target="_blank" rel="noopener"><code>/sitemap-<?php echo e( $c['slug'] ); ?>.xml</code></a></td>
+				</tr>
+			<?php endforeach; ?>
+			<?php foreach ( $senza as $s ) : ?>
+				<tr>
+					<td><?php echo e( $s[0] ); ?></td>
+					<td><span class="pc-nota">Nessuna sitemap: <?php echo e( $s[1] ); ?>. L'indirizzo risponde 404, non mandarlo a Search Console.</span></td>
 				</tr>
 			<?php endforeach; ?>
 		</tbody>

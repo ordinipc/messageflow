@@ -248,6 +248,13 @@ pubblicate.
 
 **5. SEO e sitemap** → prendi l'indirizzo della sitemap e mettilo in Search Console.
 
+> **Una città in bozza non ha una sitemap.** Il suo indirizzo
+> `/sitemap-citta.xml` risponde 404, e l'indice non la nomina: è giusto così,
+> perché le sue pagine non sono pubbliche. Se lo mandi lo stesso a Search
+> Console te lo segna «Impossibile recuperare» e resta lì in errore finché non
+> lo togli. La schermata SEO e sitemap elenca quelle città con scritto il
+> motivo, invece di farle sparire e basta.
+
 **6. Articoli** → scrivili a mano oppure importali da un'esportazione WordPress.
 
 ---
