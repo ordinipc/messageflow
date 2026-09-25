@@ -17,6 +17,21 @@ function media_tutti() {
 	return db_righe( 'SELECT * FROM ' . db_tab( 'media' ) . ' ORDER BY caricata DESC, nome ASC' );
 }
 
+/**
+ * Il testo alternativo scritto in libreria per un file.
+ *
+ * Vuoto se l'immagine non è in archivio o se nessuno l'ha scritto: chi
+ * chiama decide cosa metterci al posto suo.
+ */
+function media_alt( $file ) {
+	$file = trim( (string) $file );
+	if ( '' === $file ) {
+		return '';
+	}
+	$r = db_riga( 'SELECT alt FROM ' . db_tab( 'media' ) . ' WHERE file = ?', array( $file ) );
+	return $r ? trim( (string) $r['alt'] ) : '';
+}
+
 function media_per_id( $id ) {
 	return db_riga( 'SELECT * FROM ' . db_tab( 'media' ) . ' WHERE id = ?', array( $id ) );
 }

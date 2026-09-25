@@ -240,6 +240,41 @@ function schema_servizio( $citta, $pagina ) {
 	return schema_pulisci( $nodo );
 }
 
+/**
+ * Il nodo della pagina, con le date.
+ *
+ * Gli assistenti IA e Google danno più peso a una fonte che dice chi
+ * l'ha scritta e quando è stata aggiornata. La data c'è già — è quella
+ * dell'ultimo salvataggio — e finora non la vedeva nessuno.
+ */
+function schema_pagina_web( $citta, $pagina ) {
+	$quando = vuoto( $pagina['aggiornata'] ) ? '' : (string) $pagina['aggiornata'];
+	if ( '' === $quando ) {
+		return null;
+	}
+	$nodo = array(
+		'@context'      => 'https://schema.org',
+		'@type'         => 'WebPage',
+		'@id'           => url_pagina( $citta, $pagina ) . '#pagina',
+		'url'           => url_pagina( $citta, $pagina ),
+		'name'          => seo_titolo( $citta, $pagina ),
+		'dateModified'  => $quando,
+		'datePublished' => $quando,
+		'inLanguage'    => impostazione( 'lingua', 'it-IT' ),
+		// Chi l'ha scritta: l'attività, non una persona. È il nodo che
+		// sta già in pagina, quindi si rimanda a quello invece di
+		// ripetere nome e indirizzo una seconda volta.
+		'publisher'     => array( '@id' => url_citta( $citta ) . '#attivita' ),
+		'isPartOf'      => array(
+			'@type' => 'WebSite',
+			'@id'   => base_url() . '/#sito',
+			'name'  => impostazione( 'brand', '' ),
+			'url'   => base_url() . '/',
+		),
+	);
+	return schema_pulisci( $nodo );
+}
+
 /** Nodo FAQPage. */
 function schema_faq( $faq ) {
 	$voci = array();

@@ -36,6 +36,7 @@ $schemi      = array(
 	schema_faq( pagina_mostra( $pagina, 'faq' ) ? $pagina['faq'] : array() ),
 	schema_elenco_servizi( $citta, $pagina, $servizi ),
 	schema_breadcrumb( $citta, $pagina ),
+	schema_pagina_web( $citta, $pagina ),
 );
 
 // Pulsante principale.

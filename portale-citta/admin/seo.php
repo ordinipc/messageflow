@@ -61,6 +61,33 @@ foreach ( pagine_tutte() as $p ) {
 	Su WordPress: Yoast → Strumenti → Modifica file, oppure Rank Math → Impostazioni generali → Modifica robots.txt.
 	La sitemap resta comunque da aggiungere a mano in Search Console, ed è la strada che conta di più.
 </div>
+
+<?php /* Stessa storia di robots.txt: chi cerca llms.txt lo cerca nella
+	radice del dominio, e lì c'è WordPress. Il file si genera qui, si
+	salva e si carica là: è un file di testo, non cambia da solo, quindi
+	va rifatto quando si aggiungono città o pagine. */ ?>
+<?php if ( '0' !== (string) impostazione( 'ia_consenti', '1' ) ) : ?>
+	<div class="pc-scheda">
+		<h2>Il file <code>llms.txt</code> per la radice</h2>
+		<p class="pc-scheda__nota">
+			Il portale lo pubblica già a
+			<a href="<?php echo e( base_url() ); ?>/llms.txt" target="_blank" rel="noopener"><code><?php echo e( base_url() ); ?>/llms.txt</code></a>,
+			ma chi lo cerca — e gli strumenti che ti analizzano il sito — lo cercano in
+			<code><?php echo e( preg_replace( '#/' . preg_quote( trim( sottocartella(), '/' ), '#' ) . '$#', '', base_url() ) ); ?>/llms.txt</code>,
+			cioè nella radice del dominio, dove c'è WordPress.
+		</p>
+		<p class="pc-scheda__nota">
+			Copia questo testo, salvalo come <code>llms.txt</code> e caricalo nella radice
+			accanto a <code>index.php</code> di WordPress.
+		</p>
+		<textarea class="pc-codice" readonly rows="14" onclick="this.select()"><?php echo e( llms_txt() ); ?></textarea>
+		<p class="pc-nota">
+			È una copia, non un collegamento: quando aggiungi una città o pubblichi pagine
+			nuove, torna qui e ricaricalo. Quello dentro la cartella si aggiorna da solo e
+			resta la versione buona.
+		</p>
+	</div>
+<?php endif; ?>
 <?php endif; ?>
 
 <?php /* Nascondere la sottocartella: le regole si generano qui, si

@@ -2,6 +2,14 @@
 /** Impostazioni generali del portale. */
 defined( 'PC_AVVIO' ) || exit;
 
+if ( isset( $_GET['prova_modulo'] ) ) {
+	verifica_token();
+	$citta_prova = citta_tutte();
+	$esito_prova = modulo_prova( empty( $citta_prova ) ? array( 'email' => '' ) : $citta_prova[0] );
+	avviso( $esito_prova['messaggio'], $esito_prova['ok'] ? 'ok' : 'errore' );
+	vai_a( 'admin.php?p=impostazioni' );
+}
+
 if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 	verifica_token();
 
@@ -24,6 +32,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		// solo il numero scritto, virgola compresa.
 		'menu_dimensione' => trim( (string) ( $_POST['menu_dimensione'] ?? '12.5' ) ),
 		'card_immagini'   => isset( $_POST['card_immagini'] ) ? '1' : '0',
+		'mostra_data'     => isset( $_POST['mostra_data'] ) ? '1' : '0',
 		'cartella_nascosta' => isset( $_POST['cartella_nascosta'] ) ? '1' : '0',
 		'telefono_etichetta' => trim( (string) ( $_POST['telefono_etichetta'] ?? '' ) ),
 		'effetti'         => isset( $_POST['effetti'] ) ? '1' : '0',
@@ -31,6 +40,8 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 		'whatsapp'        => trim( (string) ( $_POST['whatsapp'] ?? '' ) ),
 		'email'           => trim( (string) ( $_POST['email'] ?? '' ) ),
 		'ragione_sociale' => trim( (string) ( $_POST['ragione_sociale'] ?? '' ) ),
+		'modulo_email'    => trim( (string) ( $_POST['modulo_email'] ?? '' ) ),
+		'modulo_mittente' => trim( (string) ( $_POST['modulo_mittente'] ?? '' ) ),
 		'piva'            => trim( (string) ( $_POST['piva'] ?? '' ) ),
 		'nazione'         => strtoupper( trim( (string) ( $_POST['nazione'] ?? 'IT' ) ) ),
 		'lingua'          => trim( (string) ( $_POST['lingua'] ?? 'it-IT' ) ),
@@ -209,6 +220,16 @@ $cfg      = db_config();
 			<input type="checkbox" name="card_immagini" value="1" <?php checked_pc( '1' === (string) $imp['card_immagini'] ); ?>>
 			Mostra l'immagine di anteprima nelle card dei servizi
 		</label>
+
+		<label class="pc-inline">
+			<input type="checkbox" name="mostra_data" value="1" <?php checked_pc( '1' === (string) $imp['mostra_data'] ); ?>>
+			Mostra «Aggiornato il…» sotto il testo delle pagine
+		</label>
+		<small style="display:block;margin:-8px 0 16px">
+			Il nome dell'attività e la data dell'ultimo salvataggio. Google e gli assistenti
+			IA danno più peso a una fonte che dice chi l'ha scritta e quando: la data c'è
+			già, dichiararla costa niente.
+		</small>
 		<small style="display:block;margin:-8px 0 16px">
 			È l'immagine della scheda SEO di ogni pagina servizio, quella che si vede anche
 			quando il collegamento viene condiviso. Le pagine che non ce l'hanno escono
@@ -274,6 +295,50 @@ $cfg      = db_config();
 			</label>
 			<label>Partita IVA <input type="text" name="piva" value="<?php echo e( $imp['piva'] ); ?>"></label>
 		</div>
+		<h3 class="pc-sottotitolo">Modulo di contatto</h3>
+		<p class="pc-scheda__nota">
+			Le richieste arrivano via email. <strong>Vince l'email della città</strong>
+			(Città → Contatti e orari): questi due campi valgono per le città che non ce
+			l'hanno.
+		</p>
+		<div class="pc-riga pc-riga--2">
+			<label>Email che riceve le richieste
+				<input type="email" name="modulo_email" value="<?php echo e( $imp['modulo_email'] ); ?>" placeholder="<?php echo e( vuoto( $imp['email'] ) ? 'info@iltuosito.it' : $imp['email'] ); ?>">
+				<small>Vuota: si usa l'email dei contatti qui sopra.</small>
+			</label>
+			<label>Indirizzo mittente
+				<input type="email" name="modulo_mittente" value="<?php echo e( $imp['modulo_mittente'] ); ?>" placeholder="<?php echo e( modulo_mittente() ); ?>">
+				<small><strong>Dev'essere del tuo dominio.</strong> Con un indirizzo di un altro dominio (gmail.com, libero.it) i provider rifiutano l'email o la mandano in posta indesiderata.</small>
+			</label>
+		</div>
+		<p>
+			<a class="pc-btn pc-btn--ghost" href="admin.php?p=impostazioni&prova_modulo=1&token=<?php echo e( rawurlencode( token() ) ); ?>">Manda una email di prova</a>
+			<span class="pc-nota" style="margin-left:8px">Arriva a <code><?php echo e( '' === modulo_destinatario( ( citta_tutte() ?: array( array( 'email' => '' ) ) )[0] ) ? 'nessuno: manca l\'email' : modulo_destinatario( citta_tutte()[0] ) ); ?></code>.</span>
+		</p>
+
+		<?php /* Dove finiscono davvero le richieste, città per città: è
+			l'unica risposta alla domanda «a chi arrivano?». */ ?>
+		<?php $tutte = citta_tutte(); ?>
+		<?php if ( count( $tutte ) > 1 ) : ?>
+			<table class="pc-tabella" style="margin-bottom:16px">
+				<tbody>
+					<?php foreach ( $tutte as $c ) : ?>
+						<tr>
+							<td><?php echo e( $c['nome'] ); ?></td>
+							<td>
+								<?php $dove = modulo_destinatario( $c ); ?>
+								<?php if ( '' === $dove ) : ?>
+									<span style="color:#b3261e;font-weight:600">Nessun indirizzo: le richieste si perdono</span>
+								<?php else : ?>
+									<code><?php echo e( $dove ); ?></code>
+								<?php endif; ?>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+		<?php endif; ?>
+
 		<div class="pc-riga pc-riga--2">
 			<label>Privacy Policy (URL) <input type="url" name="privacy_url" value="<?php echo e( $imp['privacy_url'] ); ?>"></label>
 			<label>Cookie Policy (URL) <input type="url" name="cookie_url" value="<?php echo e( $imp['cookie_url'] ); ?>"></label>

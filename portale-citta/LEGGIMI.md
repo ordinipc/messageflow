@@ -367,13 +367,26 @@ pannello: la sezione viene aggiunta in fondo agli orari senza spostare
 nient'altro di quello che avevi ordinato, e resta invisibile finché quella
 pagina non ha domande scritte.
 
-**3. `/llms.txt`.** Un indice in testo semplice, all'indirizzo
-`iltuosito.it/zone/llms.txt`, che elenca il brand, i recapiti e — città per
-città — tutte le pagine pubblicate con titolo, indirizzo e descrizione. È
-una convenzione giovane: non tutti gli assistenti la leggono, ma costa zero
-e chi la legge trova tutto in ordine.
+**3. `/llms.txt`.** Un indice in testo semplice che elenca il brand, i
+recapiti e — città per città — tutte le pagine pubblicate con titolo,
+indirizzo e descrizione. È una convenzione giovane: non tutti gli assistenti
+la leggono, ma costa zero e chi la legge trova tutto in ordine.
 
-**4. I crawler IA nel `robots.txt`.** GPTBot, ClaudeBot, PerplexityBot,
+> **In sottocartella va copiato nella radice.** Il portale lo pubblica a
+> `iltuosito.it/zone/llms.txt` e si aggiorna da solo, ma chi lo cerca — e gli
+> strumenti che analizzano il sito — lo cerca in `iltuosito.it/llms.txt`.
+> In **SEO e sitemap** trovi il testo pronto da salvare come file e caricare
+> nella radice accanto a WordPress. È una copia, quindi va rifatta quando
+> aggiungi città o pagine.
+
+**4. Chi l'ha scritto e quando.** Sotto il testo di ogni pagina c'è il nome
+dell'attività e la data dell'ultimo aggiornamento, in una forma che leggono
+anche le macchine (`<time datetime>` e `dateModified` nei dati strutturati).
+Gli assistenti danno più peso a una fonte che si firma e si data. Si toglie da
+**Impostazioni → Aspetto**, ma le date restano comunque nei dati strutturati,
+dove servono.
+
+**5. I crawler IA nel `robots.txt`.** GPTBot, ClaudeBot, PerplexityBot,
 Google-Extended, Applebot-Extended e gli altri sono nominati uno per uno e
 autorizzati (pannello e cartelle di sistema restano off-limits anche per
 loro). Se un giorno **non** vuoi più che i tuoi testi finiscano negli
@@ -505,6 +518,10 @@ a Google.** Il `meta keywords` non conta più da vent'anni. Servono a chi
 legge, e indirettamente agli assistenti IA, che dalle pastiglie capiscono in
 una riga di cosa tratta la pagina.
 
+**Il testo alternativo delle immagini** viene da quello scritto in libreria
+(Immagini → campo *Alt*); se manca, dal nome del servizio. Non resta mai vuoto:
+è quello che descrive l'immagine a chi non la vede e ai motori di ricerca.
+
 **Le immagini nelle card** sono l'immagine di anteprima di ogni pagina
 servizio — la stessa della scheda SEO, quella che si vede quando il
 collegamento viene condiviso. Escono come fascia in cima alla card, ritagliate
@@ -600,9 +617,29 @@ spostare qualcosa.
 Si attiva dalla scheda **Sezioni** di una pagina, portando *Modulo di contatto*
 fra quelle mostrate (e di solito anche *Recapiti completi*).
 
-Le richieste arrivano via email all'indirizzo della città; se non c'è, a quello
-delle impostazioni. L'editor ti dice a quale indirizzo andranno, e ti avvisa se
-non ne hai messo nessuno.
+Le richieste arrivano via email. L'indirizzo si sceglie così, in quest'ordine:
+
+| Dove | Vale per |
+|---|---|
+| **Città → Contatti e orari → Email** | Quella città. Vince su tutto |
+| **Impostazioni → Contatti → Email che riceve le richieste** | Le città che non ce l'hanno |
+| **Impostazioni → Contatti → Email** | Ripiego finale |
+
+Nella stessa schermata c'è una tabella che dice, città per città, **dove
+arrivano davvero** le richieste — e scrive in rosso quelle che non hanno
+nessun indirizzo, perché lì le richieste si perdono.
+
+**L'indirizzo mittente** (sempre lì) è quello da cui il portale spedisce.
+Dev'essere **del tuo dominio**: con un indirizzo Gmail o Libero i provider
+rifiutano l'email o la mandano in posta indesiderata, perché dice di venire da
+un dominio che non è quello da cui parte. Lasciandolo vuoto si usa
+`noreply@iltuodominio.it`.
+
+**Il pulsante «Manda una email di prova»** spedisce davvero, e ti dice cosa ha
+risposto il server. Se dice che l'invio è stato rifiutato, il modulo non
+funziona e va sistemato prima di pubblicare. Se dice che è partita ma non
+arriva niente, guarda nella posta indesiderata: in quel caso il problema è il
+mittente.
 
 Contro lo spam, senza captcha e senza far perdere tempo a chi scrive davvero:
 

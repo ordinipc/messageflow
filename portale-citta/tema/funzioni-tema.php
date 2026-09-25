@@ -187,8 +187,17 @@ function foto_card( $voce, $classe = 'glp-box__foto' ) {
 	if ( vuoto( $file ) || '1' !== (string) impostazione( 'card_immagini', '1' ) ) {
 		return '';
 	}
+	// Prima quello scritto in libreria, poi il nome del servizio. Vuoto
+	// sarebbe difendibile — il titolo è lì accanto, dentro lo stesso
+	// collegamento — ma la libreria un campo alt ce l'ha, e lasciarlo
+	// inutilizzato vuol dire buttare via l'unica descrizione scritta a
+	// mano che abbiamo.
+	$alt = media_alt( $file );
+	if ( '' === $alt ) {
+		$alt = trim( (string) ( isset( $voce['nome'] ) ? $voce['nome'] : '' ) );
+	}
 	return '<span class="' . e( $classe ) . '">'
-		. '<img src="' . e( url_media( $file ) ) . '" alt="" loading="lazy" decoding="async">'
+		. '<img src="' . e( url_media( $file ) ) . '" alt="' . e( $alt ) . '" loading="lazy" decoding="async">'
 		. '</span>';
 }
 

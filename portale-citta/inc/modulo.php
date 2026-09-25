@@ -24,6 +24,69 @@ function modulo_firma( $quando ) {
 	return hash_hmac( 'sha256', (string) $quando, modulo_segreto() );
 }
 
+/**
+ * L'indirizzo con cui il portale spedisce.
+ *
+ * Deve essere del dominio del sito: i provider rifiutano — o mandano in
+ * posta indesiderata — una email che dice di venire da un dominio che
+ * non è quello da cui parte davvero.
+ */
+function modulo_mittente() {
+	$mittente = impostazione( 'modulo_mittente', '' );
+	if ( ! vuoto( $mittente ) && filter_var( $mittente, FILTER_VALIDATE_EMAIL ) ) {
+		return $mittente;
+	}
+	$host = preg_replace( '/^www\./', '', (string) parse_url( base_url(), PHP_URL_HOST ) );
+	return 'noreply@' . ( '' === $host ? 'localhost' : $host );
+}
+
+/**
+ * Manda una email di prova al destinatario di una città.
+ *
+ * Serve a rispondere alla domanda che non ha altra risposta: il modulo
+ * funziona davvero su questo server? mail() dice solo se ha consegnato
+ * al sistema di posta, non se l'email arriverà — ma un falso qui vuol
+ * dire che non parte proprio, ed è già metà del problema.
+ *
+ * @return array( 'ok' => bool, 'messaggio' => string )
+ */
+function modulo_prova( $citta ) {
+	$a = modulo_destinatario( $citta );
+	if ( '' === $a ) {
+		return array( 'ok' => false, 'messaggio' => 'Nessun indirizzo a cui mandarla: scrivi un\'email qui sotto o nella scheda della città.' );
+	}
+	if ( ! function_exists( 'mail' ) ) {
+		return array( 'ok' => false, 'messaggio' => 'Questo server non ha la funzione mail() di PHP: il modulo non può spedire. Chiedi all\'hosting.' );
+	}
+
+	$corpo = "Questa è una prova mandata dal pannello del portale.\n\n"
+		. "Se la stai leggendo, il modulo di contatto riesce a spedire.\n\n"
+		. 'Destinatario: ' . $a . "\n"
+		. 'Mittente:     ' . modulo_mittente() . "\n"
+		. 'Quando:       ' . date( 'd/m/Y H:i' ) . "\n";
+
+	$intestazioni = array(
+		'From: ' . mb_encode_mimeheader( impostazione( 'brand', 'Sito' ) ) . ' <' . modulo_mittente() . '>',
+		'Content-Type: text/plain; charset=UTF-8',
+		'MIME-Version: 1.0',
+	);
+
+	$ok = @mail( $a, mb_encode_mimeheader( 'Prova del modulo di contatto' ), $corpo, implode( "\r\n", $intestazioni ) );
+
+	if ( ! $ok ) {
+		return array(
+			'ok'        => false,
+			'messaggio' => 'Il server ha rifiutato l\'invio a ' . $a . '. Di solito manca il servizio di posta, '
+				. 'o il mittente non è del dominio del sito.',
+		);
+	}
+	return array(
+		'ok'        => true,
+		'messaggio' => 'Prova consegnata al sistema di posta per ' . $a . '. Controlla la casella, '
+			. 'e guarda anche nella posta indesiderata: se è finita lì, il mittente è da sistemare.',
+	);
+}
+
 /** Destinatario delle richieste di una città. */
 function modulo_destinatario( $citta ) {
 	foreach ( array( $citta['email'], impostazione( 'modulo_email', '' ), impostazione( 'email', '' ) ) as $e ) {
@@ -109,11 +172,7 @@ function modulo_gestisci( $citta, $pagina ) {
 		. ( vuoto( $valori['servizio'] ) ? '' : "Servizio:  " . $valori['servizio'] . "\n" )
 		. "\nMessaggio:\n" . $valori['messaggio'] . "\n";
 
-	$mittente = impostazione( 'modulo_mittente', '' );
-	if ( vuoto( $mittente ) || ! filter_var( $mittente, FILTER_VALIDATE_EMAIL ) ) {
-		$host     = preg_replace( '/^www\./', '', (string) parse_url( base_url(), PHP_URL_HOST ) );
-		$mittente = 'noreply@' . ( '' === $host ? 'localhost' : $host );
-	}
+	$mittente = modulo_mittente();
 
 	$intestazioni = array(
 		'From: ' . mb_encode_mimeheader( impostazione( 'brand', 'Sito' ) ) . ' <' . $mittente . '>',

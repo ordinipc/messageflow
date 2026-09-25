@@ -720,7 +720,37 @@ function sezione_testo( $citta, $pagina ) {
 	return sezione_apri( 'approfondimento', seo_h1( $citta, $pagina ) . ': cosa sapere', 'Approfondimento' )
 		. blocco_prosa( $pagina['corpo'] )
 		. blocco_tag( isset( $pagina['tag'] ) ? $pagina['tag'] : '' )
+		. riga_aggiornata( $pagina )
 		. '</section>';
+}
+
+/**
+ * «Aggiornato il …» sotto il testo.
+ *
+ * La data c'è già — è l'ultimo salvataggio — e dichiararla in chiaro
+ * conta: sia Google sia gli assistenti IA danno più peso a una fonte
+ * che dice quando è stata scritta. Il <time> la rende leggibile anche
+ * alle macchine, non solo a chi guarda.
+ */
+function riga_aggiornata( $pagina ) {
+	$quando = isset( $pagina['aggiornata'] ) ? trim( (string) $pagina['aggiornata'] ) : '';
+	if ( '' === $quando || '1' !== (string) impostazione( 'mostra_data', '1' ) ) {
+		return '';
+	}
+	$t = strtotime( $quando );
+	if ( false === $t ) {
+		return '';
+	}
+	$mesi  = array( 'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
+		'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre' );
+	$umana = (int) date( 'j', $t ) . ' ' . $mesi[ (int) date( 'n', $t ) - 1 ] . ' ' . date( 'Y', $t );
+
+	$chi = trim( (string) impostazione( 'brand', '' ) );
+
+	return '<p class="glp-aggiornata">'
+		. ( '' === $chi ? '' : '<span class="glp-aggiornata__chi">' . e( $chi ) . '</span> · ' )
+		. 'Aggiornato il <time datetime="' . e( date( 'Y-m-d', $t ) ) . '">' . e( $umana ) . '</time>'
+		. '</p>';
 }
 
 /**

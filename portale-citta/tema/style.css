@@ -4119,3 +4119,19 @@ body.glp-standalone{
 
     .glp-card__foto.glp-card__foto{ display:none; }
 }
+
+/* Firma e data sotto il testo: chi l'ha scritto e quando. Piccola, ma
+   in chiaro — è quello che chiedono Google e gli assistenti IA. */
+.glp-aggiornata.glp-aggiornata{
+    margin:26px 0 0;
+
+    color:var(--glp-muted,#6b6b70);
+
+    font-size:12.5px;
+    line-height:1.5;
+}
+
+.glp-aggiornata__chi{
+    font-weight:700;
+    color:var(--glp-text,#111);
+}
