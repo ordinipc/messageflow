@@ -267,9 +267,27 @@ function db_installa() {
 		estratto ' . $t( 'LONGTEXT' ) . ' NULL,
 		corpo ' . $t( 'LONGTEXT' ) . ' NULL,
 		immagine ' . $t( 'VARCHAR(255)' ) . ' NULL,
+		categoria ' . $t( 'VARCHAR(16)' ) . ' NULL,
+		tag ' . $t( 'LONGTEXT' ) . ' NULL,
 		data ' . $t( 'VARCHAR(20)' ) . ' NULL,
 		origine ' . $t( 'VARCHAR(255)' ) . ' NULL,
 		stato ' . $t( 'VARCHAR(20)' ) . ' NOT NULL DEFAULT \'bozza\',
+		aggiornata ' . $t( 'VARCHAR(20)' ) . ' NULL,
+		PRIMARY KEY (id)
+	)' . $coda;
+
+	// Le categorie sono del portale, non di una città: "Chiavi auto" è la
+	// stessa a Trapani e a Marsala. L'archivio però è per città, così ogni
+	// città tiene il suo indirizzo e la sua pagina locale.
+	$sql[] = 'CREATE TABLE IF NOT EXISTS ' . db_tab( 'categorie' ) . ' (
+		id ' . $t( 'VARCHAR(16)' ) . ' NOT NULL,
+		slug ' . $t( 'VARCHAR(190)' ) . ' NOT NULL,
+		nome ' . $t( 'VARCHAR(190)' ) . ' NOT NULL,
+		descrizione ' . $t( 'LONGTEXT' ) . ' NULL,
+		seo_titolo ' . $t( 'VARCHAR(255)' ) . ' NULL,
+		seo_desc ' . $t( 'LONGTEXT' ) . ' NULL,
+		immagine ' . $t( 'VARCHAR(255)' ) . ' NULL,
+		ordine ' . $t( 'INT' ) . ' NOT NULL DEFAULT 10,
 		aggiornata ' . $t( 'VARCHAR(20)' ) . ' NULL,
 		PRIMARY KEY (id)
 	)' . $coda;
@@ -312,6 +330,8 @@ function db_installa() {
 		'CREATE INDEX pc_idx_articoli_citta ON ' . db_tab( 'articoli' ) . ' (citta_id)',
 		'CREATE UNIQUE INDEX pc_idx_articoli_slug ON ' . db_tab( 'articoli' ) . ' (citta_id, slug)',
 		'CREATE INDEX pc_idx_articoli_origine ON ' . db_tab( 'articoli' ) . ' (origine)',
+		'CREATE UNIQUE INDEX pc_idx_categorie_slug ON ' . db_tab( 'categorie' ) . ' (slug)',
+		'CREATE INDEX pc_idx_articoli_categoria ON ' . db_tab( 'articoli' ) . ' (categoria)',
 		'CREATE UNIQUE INDEX pc_idx_utenti_nome ON ' . db_tab( 'utenti' ) . ' (nome)',
 	);
 	foreach ( $indici as $q ) {
@@ -356,7 +376,10 @@ function db_colonne_attese() {
 			'ragione_sociale' => 'VARCHAR(190) NULL',
 			'social' => 'LONGTEXT NULL',
 		),
-		'articoli' => array(),
+		'articoli' => array(
+			'categoria' => 'VARCHAR(16) NULL',
+			'tag'       => 'LONGTEXT NULL',
+		),
 		'servizi'  => array(
 			'ordine' => 'INT NOT NULL DEFAULT 10',
 			'icona'  => 'VARCHAR(190) NULL',

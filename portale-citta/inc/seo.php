@@ -235,6 +235,16 @@ function sitemap_voci( $citta_id = '' ) {
 		// Gli articoli del blog, se la città ha una pagina che li ospita.
 		$blog = pagina_blog( $citta['id'] );
 		if ( $blog && 'pubblicata' === $blog['stato'] ) {
+			// Le categorie prima: sono pagine di raccolta, valgono più di un
+			// singolo articolo e Google le usa per capire com'è fatto il blog.
+			foreach ( categorie_di_citta( $citta['id'], true ) as $categoria ) {
+				$voci[] = array(
+					'url'      => url_categoria( $citta, $categoria, $blog ),
+					'modifica' => vuoto( $categoria['aggiornata'] ) ? oggi() : $categoria['aggiornata'],
+					'priorita' => '0.7',
+					'freq'     => 'weekly',
+				);
+			}
 			foreach ( articoli_di_citta( $citta['id'], true ) as $articolo ) {
 				$voci[] = array(
 					'url'      => url_articolo( $citta, $articolo, $blog ),
@@ -549,6 +559,42 @@ function llms_txt() {
 			$descrizione = vuoto( $p['seo_desc'] ) ? $p['intro'] : $p['seo_desc'];
 			$fuori[]     = '- [' . $p['titolo'] . '](' . url_pagina( $c, $p ) . ')'
 				. ( vuoto( $descrizione ) ? '' : ': ' . trim( preg_replace( '/\s+/u', ' ', $descrizione ) ) );
+		}
+
+		// Il blog: prima le categorie, poi gli articoli più recenti. Le
+		// categorie da sole dicono a un assistente di cosa si parla qui,
+		// senza fargli leggere mille titoli.
+		$blog = pagina_blog( $c['id'] );
+		if ( $blog && 'pubblicata' === $blog['stato'] ) {
+			$categorie = categorie_di_citta( $c['id'], true );
+			if ( ! empty( $categorie ) ) {
+				$fuori[] = '';
+				$fuori[] = '### Argomenti del blog di ' . $c['nome'];
+				$fuori[] = '';
+				foreach ( $categorie as $cat ) {
+					$spiega = vuoto( $cat['seo_desc'] )
+						? trim( preg_replace( '/\s+/u', ' ', strip_tags( (string) $cat['descrizione'] ) ) )
+						: $cat['seo_desc'];
+					$fuori[] = '- [' . $cat['nome'] . '](' . url_categoria( $c, $cat, $blog ) . ')'
+						. ' — ' . (int) $cat['quanti'] . ' articoli'
+						. ( '' === $spiega ? '' : ': ' . mb_substr( $spiega, 0, 180 ) );
+				}
+			}
+
+			// Un elenco di mille titoli non è un indice, è un muro: si
+			// mettono i più recenti, e il resto si trova dalla sitemap.
+			$articoli = articoli_di_citta( $c['id'], true, 30 );
+			if ( ! empty( $articoli ) ) {
+				$quanti  = articoli_conta( $c['id'], true );
+				$fuori[] = '';
+				$fuori[] = '### Articoli su ' . $c['nome']
+					. ( $quanti > count( $articoli ) ? ' (i ' . count( $articoli ) . ' più recenti di ' . $quanti . ')' : '' );
+				$fuori[] = '';
+				foreach ( $articoli as $a ) {
+					$fuori[] = '- [' . $a['titolo'] . '](' . url_articolo( $c, $a, $blog ) . ')'
+						. ( vuoto( $a['estratto'] ) ? '' : ': ' . trim( preg_replace( '/\s+/u', ' ', $a['estratto'] ) ) );
+				}
+			}
 		}
 	}
 

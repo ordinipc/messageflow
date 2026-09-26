@@ -230,6 +230,25 @@ function titolo_evidenziato( $testo ) {
  * Senza la barra verticale si prende la riga intera come etichetta e come
  * indirizzo: così un indirizzo scritto da solo funziona lo stesso.
  */
+/**
+ * Aggiunge il nome della città a un titolo, se non c'è già.
+ *
+ * Serve alle categorie: "Chiavi auto" da solo darebbe lo stesso titolo a
+ * Trapani e a Marsala, e due pagine con lo stesso titolo si fanno
+ * concorrenza da sole. "Chiavi auto a Trapani" invece è quello che si cerca.
+ */
+function titolo_con_citta( $titolo, $nome_citta ) {
+	$titolo = trim( (string) $titolo );
+	$nome   = trim( (string) $nome_citta );
+	if ( '' === $titolo || '' === $nome ) {
+		return '' === $titolo ? $nome : $titolo;
+	}
+	if ( false !== mb_stripos( $titolo, $nome ) ) {
+		return $titolo;
+	}
+	return $titolo . ' a ' . $nome;
+}
+
 function link_da_righe( $testo ) {
 	$voci = array();
 	foreach ( righe( $testo ) as $riga ) {
@@ -553,6 +572,8 @@ function articolo_predefinito() {
 		'estratto'   => '',
 		'corpo'      => '',
 		'immagine'   => '',
+		'categoria'  => '',
+		'tag'        => '',
 		'data'       => '',
 		'origine'    => '',
 		'stato'      => 'bozza',
@@ -626,12 +647,198 @@ function articolo_slug_libero( $slug, $citta_id, $escludi_id = '' ) {
 			'SELECT id FROM ' . db_tab( 'articoli' ) . ' WHERE citta_id = ? AND slug = ? AND id <> ?',
 			array( $citta_id, $slug, (string) $escludi_id )
 		);
+		// "categoria" è il pezzo fisso degli archivi: un articolo con quello
+		// slug non sarebbe raggiungibile, perché l'indirizzo va all'archivio.
+		if ( null === $usato && 'categoria' !== $slug ) {
+			return $slug;
+		}
+		$n++;
+		$slug = $base . '-' . $n;
+	}
+}
+
+/* ---------------------------------------------------------------------------
+ * Categorie degli articoli
+ *
+ * Una categoria vale per tutto il portale: "Chiavi auto" è la stessa a
+ * Trapani e a Marsala, e non ha senso ricrearla città per città. L'archivio
+ * che si vede sul sito invece è per città — /trapani/blog/categoria/chiavi-auto/
+ * — così ogni città ha la sua pagina locale, con i suoi articoli.
+ * ------------------------------------------------------------------------- */
+
+function categoria_predefinita() {
+	return array(
+		'id'          => '',
+		'slug'        => '',
+		'nome'        => '',
+		'descrizione' => '',
+		'seo_titolo'  => '',
+		'seo_desc'    => '',
+		'immagine'    => '',
+		'ordine'      => 10,
+		'aggiornata'  => '',
+	);
+}
+
+/** Tutte le categorie, nell'ordine deciso in amministrazione. */
+function categorie_tutte() {
+	$out = array();
+	foreach ( db_righe( 'SELECT * FROM ' . db_tab( 'categorie' ) . ' ORDER BY ordine ASC, nome ASC' ) as $r ) {
+		$out[] = array_merge( categoria_predefinita(), $r );
+	}
+	return $out;
+}
+
+function categoria_per_id( $id ) {
+	if ( vuoto( $id ) ) {
+		return null;
+	}
+	$r = db_riga( 'SELECT * FROM ' . db_tab( 'categorie' ) . ' WHERE id = ?', array( $id ) );
+	return $r ? array_merge( categoria_predefinita(), $r ) : null;
+}
+
+function categoria_per_slug( $slug ) {
+	$r = db_riga( 'SELECT * FROM ' . db_tab( 'categorie' ) . ' WHERE slug = ?', array( $slug ) );
+	return $r ? array_merge( categoria_predefinita(), $r ) : null;
+}
+
+function categoria_per_nome( $nome ) {
+	$nome = trim( (string) $nome );
+	if ( '' === $nome ) {
+		return null;
+	}
+	// Prima per slug, che è il confronto sicuro: "Chiavi Auto" e
+	// "chiavi auto" sono la stessa categoria.
+	$per_slug = categoria_per_slug( slugifica( $nome ) );
+	if ( $per_slug ) {
+		return $per_slug;
+	}
+	foreach ( categorie_tutte() as $c ) {
+		if ( mb_strtolower( $c['nome'] ) === mb_strtolower( $nome ) ) {
+			return $c;
+		}
+	}
+	return null;
+}
+
+function categoria_salva( $dati ) {
+	$base               = categoria_predefinita();
+	$dati               = array_merge( $base, array_intersect_key( $dati, $base ) );
+	$dati['aggiornata'] = oggi();
+	return db_salva( 'categorie', $dati );
+}
+
+/**
+ * Elimina una categoria. Gli articoli restano: perdono solo la categoria,
+ * perché cancellare del testo scritto per aver tolto un'etichetta sarebbe
+ * un danno che nessuno si aspetta.
+ */
+function categoria_elimina( $id ) {
+	db_esegui( 'UPDATE ' . db_tab( 'articoli' ) . " SET categoria = '' WHERE categoria = ?", array( $id ) );
+	return db_elimina( 'categorie', 'id = ?', array( $id ) );
+}
+
+function categoria_slug_libero( $slug, $escludi_id = '' ) {
+	$slug = slugifica( $slug );
+	if ( '' === $slug ) {
+		$slug = 'categoria';
+	}
+	$base = $slug;
+	$n    = 1;
+	while ( true ) {
+		$usato = db_valore(
+			'SELECT id FROM ' . db_tab( 'categorie' ) . ' WHERE slug = ? AND id <> ?',
+			array( $slug, (string) $escludi_id )
+		);
 		if ( null === $usato ) {
 			return $slug;
 		}
 		$n++;
 		$slug = $base . '-' . $n;
 	}
+}
+
+/**
+ * Crea la categoria se non c'è già, e restituisce il suo id.
+ * La usa l'importazione, che legge i nomi dai file di WordPress.
+ */
+function categoria_assicura( $nome ) {
+	$nome = trim( preg_replace( '/\s+/u', ' ', (string) $nome ) );
+	if ( '' === $nome ) {
+		return '';
+	}
+	$c = categoria_per_nome( $nome );
+	if ( $c ) {
+		return $c['id'];
+	}
+	$c         = categoria_predefinita();
+	$c['id']   = nuovo_id();
+	$c['nome'] = $nome;
+	$c['slug'] = categoria_slug_libero( $nome );
+	categoria_salva( $c );
+	return $c['id'];
+}
+
+/** Articoli di una città in una categoria, dal più recente. */
+function articoli_di_categoria( $citta_id, $categoria_id, $solo_pubblicati = false, $limite = 0, $salta = 0 ) {
+	$sql = 'SELECT * FROM ' . db_tab( 'articoli' ) . ' WHERE citta_id = ? AND categoria = ?';
+	if ( $solo_pubblicati ) {
+		$sql .= " AND stato = 'pubblicato'";
+	}
+	$sql .= ' ORDER BY data DESC, titolo ASC';
+	if ( $limite > 0 ) {
+		$sql .= ' LIMIT ' . (int) $limite . ' OFFSET ' . (int) $salta;
+	}
+	$out = array();
+	foreach ( db_righe( $sql, array( $citta_id, $categoria_id ) ) as $r ) {
+		$out[] = array_merge( articolo_predefinito(), $r );
+	}
+	return $out;
+}
+
+function articoli_conta_categoria( $citta_id, $categoria_id, $solo_pubblicati = false ) {
+	$sql = 'SELECT COUNT(*) FROM ' . db_tab( 'articoli' ) . ' WHERE citta_id = ? AND categoria = ?';
+	if ( $solo_pubblicati ) {
+		$sql .= " AND stato = 'pubblicato'";
+	}
+	return (int) db_valore( $sql, array( $citta_id, $categoria_id ), 0 );
+}
+
+/** Quanti articoli ha ogni categoria, in tutto il portale. */
+function categorie_conteggio() {
+	$out = array();
+	foreach ( db_righe( 'SELECT categoria, COUNT(*) AS quanti FROM ' . db_tab( 'articoli' ) . " WHERE categoria <> '' GROUP BY categoria" ) as $r ) {
+		$out[ (string) $r['categoria'] ] = (int) $r['quanti'];
+	}
+	return $out;
+}
+
+/**
+ * Le categorie che in questa città hanno almeno un articolo visibile.
+ *
+ * Una categoria vuota non deve avere una pagina: sarebbe un indirizzo che
+ * Google indicizza per poi non trovarci niente.
+ */
+function categorie_di_citta( $citta_id, $solo_pubblicati = true ) {
+	$conteggio = array();
+	$sql       = 'SELECT categoria, COUNT(*) AS quanti FROM ' . db_tab( 'articoli' ) . " WHERE citta_id = ? AND categoria <> ''";
+	if ( $solo_pubblicati ) {
+		$sql .= " AND stato = 'pubblicato'";
+	}
+	$sql .= ' GROUP BY categoria';
+	foreach ( db_righe( $sql, array( $citta_id ) ) as $r ) {
+		$conteggio[ (string) $r['categoria'] ] = (int) $r['quanti'];
+	}
+
+	$out = array();
+	foreach ( categorie_tutte() as $c ) {
+		if ( empty( $conteggio[ $c['id'] ] ) ) {
+			continue;
+		}
+		$c['quanti'] = $conteggio[ $c['id'] ];
+		$out[]       = $c;
+	}
+	return $out;
 }
 
 /** La pagina di tipo blog di una città, se esiste. */

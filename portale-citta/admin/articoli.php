@@ -69,12 +69,26 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['pubblica_tutti'] ) 
 	vai_a( 'admin.php?p=articoli&citta=' . rawurlencode( $citta_id ) );
 }
 
+// Filtro per categoria: con cinquanta articoli trovarne uno a occhio non si
+// può, e la categoria è il taglio più naturale.
+$filtro_cat = (string) ( $_GET['cat'] ?? '' );
+$categorie  = categorie_tutte();
+$nomi_cat   = array();
+foreach ( $categorie as $c ) {
+	$nomi_cat[ $c['id'] ] = $c['nome'];
+}
+if ( '' !== $filtro_cat && ! isset( $nomi_cat[ $filtro_cat ] ) ) {
+	$filtro_cat = '';
+}
+
 $per_pagina = 40;
-$totale     = articoli_conta( $citta_id );
+$totale     = '' === $filtro_cat ? articoli_conta( $citta_id ) : articoli_conta_categoria( $citta_id, $filtro_cat );
 $pagine_tot = max( 1, (int) ceil( $totale / $per_pagina ) );
 $corrente   = max( 1, min( $pagine_tot, (int) ( $_GET['pag'] ?? 1 ) ) );
-$articoli   = articoli_di_citta( $citta_id, false, $per_pagina, ( $corrente - 1 ) * $per_pagina );
-$bozze      = $totale - articoli_conta( $citta_id, true );
+$articoli   = '' === $filtro_cat
+	? articoli_di_citta( $citta_id, false, $per_pagina, ( $corrente - 1 ) * $per_pagina )
+	: articoli_di_categoria( $citta_id, $filtro_cat, false, $per_pagina, ( $corrente - 1 ) * $per_pagina );
+$bozze      = articoli_conta( $citta_id ) - articoli_conta( $citta_id, true );
 $pagina_b   = pagina_blog( $citta_id );
 $tutte      = citta_tutte();
 $tok        = '&token=' . rawurlencode( token() );
@@ -96,6 +110,19 @@ $tok        = '&token=' . rawurlencode( token() );
 				<?php endforeach; ?>
 			</select>
 		</form>
+		<?php if ( ! empty( $categorie ) ) : ?>
+			<form method="get" style="display:flex;gap:6px;align-items:center">
+				<input type="hidden" name="p" value="articoli">
+				<input type="hidden" name="citta" value="<?php echo e( $citta_id ); ?>">
+				<select name="cat" onchange="this.form.submit()" style="margin:0;width:auto">
+					<option value="">tutte le categorie</option>
+					<?php foreach ( $categorie as $c ) : ?>
+						<option value="<?php echo e( $c['id'] ); ?>" <?php selected_pc( $c['id'], $filtro_cat ); ?>><?php echo e( $c['nome'] ); ?> (<?php echo articoli_conta_categoria( $citta_id, $c['id'] ); ?>)</option>
+					<?php endforeach; ?>
+				</select>
+			</form>
+		<?php endif; ?>
+		<a class="pc-btn pc-btn--ghost" href="admin.php?p=categorie">Categorie</a>
 		<a class="pc-btn pc-btn--ghost" href="admin.php?p=importa">Importa da WordPress</a>
 		<a class="pc-btn" href="admin.php?p=articolo-modifica&citta=<?php echo e( $citta_id ); ?>">+ Nuovo articolo</a>
 	</div>
@@ -140,7 +167,7 @@ $tok        = '&token=' . rawurlencode( token() );
 		<thead>
 			<tr>
 				<th style="width:28px"><input type="checkbox" onclick="document.querySelectorAll('[name=\'scelte[]\']').forEach(c=>c.checked=this.checked)"></th>
-				<th>Titolo</th><th>Data</th><th>Indirizzo</th><th>Stato</th><th></th>
+				<th>Titolo</th><th>Categoria</th><th>Data</th><th>Indirizzo</th><th>Stato</th><th></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -152,6 +179,9 @@ $tok        = '&token=' . rawurlencode( token() );
 					<?php if ( ! vuoto( $a['origine'] ) ) : ?>
 						<br><span class="pc-nota">importato da <?php echo e( $a['origine'] ); ?></span>
 					<?php endif; ?>
+				</td>
+				<td class="pc-nota">
+					<?php echo vuoto( $a['categoria'] ) || ! isset( $nomi_cat[ $a['categoria'] ] ) ? '&mdash;' : e( $nomi_cat[ $a['categoria'] ] ); ?>
 				</td>
 				<td class="pc-nota"><?php echo e( $a['data'] ); ?></td>
 				<td>

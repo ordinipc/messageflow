@@ -8,7 +8,7 @@ if ( ! defined( 'PC_AVVIO' ) ) {
 	define( 'PC_AVVIO', true );
 }
 
-define( 'PC_VERSIONE', '1.1.0' );
+define( 'PC_VERSIONE', '1.2.0' );
 // Segnaposto salvato fra le sezioni di una pagina: dice che l'ordine è
 // stato deciso a mano, e non va più corretto dai valori di una volta.
 define( 'PC_ORDINE_DECISO', '--ordine--' );
@@ -479,4 +479,20 @@ function url_articolo( $citta, $articolo, $pagina_blog = null ) {
 	}
 	$base = null === $pagina_blog ? 'blog' : $pagina_blog['slug'];
 	return base_url() . '/' . $citta['slug'] . '/' . $base . '/' . $articolo['slug'] . '/';
+}
+
+/**
+ * URL dell'archivio di una categoria, dentro una città.
+ *
+ * Il pezzo fisso "categoria" c'è perché senza di lui una categoria chiamata
+ * come un articolo si mangerebbe l'articolo: /trapani/blog/chiavi-auto/ non
+ * potrebbe essere due cose insieme. È anche la forma che usa WordPress, e
+ * questi indirizzi una volta indicizzati non si cambiano più.
+ */
+function url_categoria( $citta, $categoria, $pagina_blog = null ) {
+	if ( null === $pagina_blog ) {
+		$pagina_blog = pagina_blog( $citta['id'] );
+	}
+	$base = null === $pagina_blog ? 'blog' : $pagina_blog['slug'];
+	return base_url() . '/' . $citta['slug'] . '/' . $base . '/categoria/' . $categoria['slug'] . '/';
 }

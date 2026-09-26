@@ -4135,3 +4135,59 @@ body.glp-standalone{
     font-weight:700;
     color:var(--glp-text,#111);
 }
+
+/* =========================================================
+   CATEGORIE DEL BLOG
+
+   Le pastiglie delle categorie sono cliccabili, a differenza
+   dei tag: portano a un archivio vero. Il colore del testo
+   resta quello della pagina — l'accento è giallo, illeggibile
+   su bianco — e il bordo si accende al passaggio, come già
+   fanno le altre pastiglie che sono collegamenti.
+========================================================= */
+
+.glp-tags--categorie.glp-tags--categorie{
+    margin:0 0 22px;
+}
+
+.glp-tags--pagina.glp-tags--pagina li a{
+    color:inherit;
+
+    font-weight:600;
+    text-decoration:none;
+}
+
+.glp-tags--pagina.glp-tags--pagina li:has(a){
+    border:1px solid var(--glp-line);
+
+    transition:border-color .3s ease;
+}
+
+.glp-tags--pagina.glp-tags--pagina li:has(a):hover{
+    border-color:var(--glp-accent);
+}
+
+/* Senza :has() — browser vecchi — la sottolineatura al passaggio
+   resta l'unico segno che è un link, e basta. */
+.glp-tags--pagina.glp-tags--pagina li a:hover,
+.glp-tags--pagina.glp-tags--pagina li a:focus-visible{
+    text-decoration:underline;
+    text-underline-offset:3px;
+}
+
+/* La riga "Categoria: …" in fondo all'articolo: staccata dal
+   testo, discreta, ma un collegamento vero. */
+.glp-articolo__categoria{
+    margin:26px 0 0;
+    padding-top:16px;
+
+    border-top:1px solid var(--glp-line);
+
+    color:var(--glp-muted);
+    font-size:14px;
+}
+
+.glp-articolo__categoria a{
+    color:inherit;
+    font-weight:600;
+}

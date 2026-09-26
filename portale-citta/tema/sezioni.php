@@ -425,6 +425,18 @@ function sezione_blog( $citta, $pagina_blog, $per_pagina = 12 ) {
 	$html .= '<p class="glp-areas__label">' . (int) $totale . ' articoli'
 		. ( $pagine_totali > 1 ? ' · pagina ' . $corrente . ' di ' . $pagine_totali : '' ) . '</p>';
 
+	// Le categorie che in questa città hanno davvero degli articoli: sono
+	// collegamenti interni verso pagine vere, non un menu decorativo.
+	$categorie = categorie_di_citta( $citta['id'], $solo_pubblicati );
+	if ( ! empty( $categorie ) ) {
+		$html .= '<ul class="glp-tags glp-tags--pagina glp-tags--categorie">';
+		foreach ( $categorie as $c ) {
+			$html .= '<li><a href="' . e( url_categoria( $citta, $c, $pagina_blog ) ) . '">'
+				. e( $c['nome'] ) . ' (' . (int) $c['quanti'] . ')</a></li>';
+		}
+		$html .= '</ul>';
+	}
+
 	$html .= '<ul class="glp-boxes glp-boxes--larghe">';
 	foreach ( $articoli as $i => $a ) {
 		$html .= box_apri( 'link', $i )

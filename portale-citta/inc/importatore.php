@@ -138,6 +138,24 @@ function import_leggi_item( $xml ) {
 		return null;
 	}
 
+	// <category domain="category"> sono le categorie, domain="post_tag" i tag.
+	// WordPress ne mette più di una: la prima categoria è quella buona, il
+	// resto dei tag si tiene tutto.
+	$categorie = array();
+	$tag       = array();
+	foreach ( $i->category as $c ) {
+		$dominio = isset( $c['domain'] ) ? (string) $c['domain'] : '';
+		$nome    = trim( (string) $c );
+		if ( '' === $nome || 'uncategorized' === strtolower( $nome ) || 'senza categoria' === mb_strtolower( $nome ) ) {
+			continue;
+		}
+		if ( 'post_tag' === $dominio ) {
+			$tag[] = $nome;
+		} elseif ( 'category' === $dominio || '' === $dominio ) {
+			$categorie[] = $nome;
+		}
+	}
+
 	return array(
 		'titolo'    => trim( (string) $i->title ),
 		'origine'   => trim( (string) $i->link ),
@@ -146,6 +164,9 @@ function import_leggi_item( $xml ) {
 		'stato'     => trim( (string) $wp->status ),
 		'corpo'     => (string) $co->encoded,
 		'estratto'  => trim( (string) $ex->encoded ),
+		'categoria' => $categorie[0] ?? '',
+		'categorie' => $categorie,
+		'tag'       => $tag,
 	);
 }
 
@@ -178,6 +199,37 @@ function import_stato_nome( $stato ) {
 	);
 	$stato = strtolower( trim( (string) $stato ) );
 	return $nomi[ $stato ] ?? ( '' === $stato ? 'senza stato' : $stato );
+}
+
+/**
+ * Le categorie nominate dal file, con quanti articoli ognuna.
+ *
+ * Si vede prima di importare: così si sa quali categorie nasceranno, e non
+ * si scopre dopo di averne venti create da sole.
+ *
+ * @return array array( 'nome', 'quanti', 'esiste' => bool )
+ */
+function import_categorie( $file ) {
+	$conteggio = array();
+	import_scorri( $file, function ( $a ) use ( &$conteggio ) {
+		$nome = trim( (string) ( $a['categoria'] ?? '' ) );
+		if ( '' === $nome ) {
+			return true;
+		}
+		$conteggio[ $nome ] = ( $conteggio[ $nome ] ?? 0 ) + 1;
+	 	return true;
+	} );
+	arsort( $conteggio );
+
+	$out = array();
+	foreach ( $conteggio as $nome => $quanti ) {
+		$out[] = array(
+			'nome'   => $nome,
+			'quanti' => $quanti,
+			'esiste' => null !== categoria_per_nome( $nome ),
+		);
+	}
+	return $out;
 }
 
 /* ---------------------------------------------------------------------------

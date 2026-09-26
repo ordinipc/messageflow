@@ -275,6 +275,46 @@ L'editor dell'articolo è lo stesso delle pagine: barra con grassetto,
 corsivo, sottotitoli, elenchi e collegamenti. Quello che si salva è HTML
 ripulito, con le stesse regole degli articoli importati.
 
+Nella stessa schermata ci sono anche:
+
+- **Categoria** e **Tag**, per raggruppare gli articoli e dire di cosa parlano
+- **l'immagine**, che si prende dalla libreria, **si carica da qui** con un file
+  dal computer, oppure la genera l'assistente. Il caricamento salva anche
+  l'articolo, così non perdi quello che hai scritto
+- **l'assistente** su ogni campo: titolo, estratto, testo, tag, titolo e
+  descrizione per Google, immagine
+
+### Le categorie
+
+Menu **Articoli → Categorie**. Una categoria vale per tutto il portale —
+«Chiavi auto» è la stessa a Trapani e a Marsala, e non ha senso ricrearla città
+per città — ma l'**archivio è per città**:
+
+    /trapani/blog/categoria/chiavi-auto/
+    /marsala/blog/categoria/chiavi-auto/
+
+Due indirizzi diversi, ognuno con i suoi articoli, il suo titolo locale
+(«Chiavi auto a Trapani»), le sue briciole di pane, il suo schema
+`CollectionPage` con l'`ItemList` degli articoli, e una riga sua nella sitemap
+e in `llms.txt`. Il pezzo fisso `categoria/` nell'indirizzo c'è perché senza di
+lui una categoria chiamata come un articolo se lo mangerebbe: è anche la forma
+che usa WordPress.
+
+Di ogni categoria si scrivono nome, indirizzo, descrizione (l'assistente la
+scrive, se vuoi), titolo e descrizione per Google, immagine e ordine.
+
+> **Una categoria vuota non ha pagina.** Se in quella città non ha nemmeno un
+> articolo pubblicato, l'indirizzo risponde 404 e non entra in sitemap: meglio
+> di una pagina indicizzata che non porta niente. Da amministratore la vedi
+> comunque, in anteprima, con l'avviso rosso.
+
+Eliminare una categoria **non elimina gli articoli**: perdono solo l'etichetta.
+
+**Cinquanta articoli non si categorizzano uno per uno.** Nella schermata
+Categorie c'è **Assegna in blocco**: scrivi una parola per riga, e ogni
+articolo *senza categoria* che ha quella parola nel titolo passa alla categoria
+scelta. Quelli che ne hanno già una non si toccano.
+
 > **Prima serve la pagina Blog.** Senza una pagina di tipo *Blog* in quella
 > città, gli articoli non hanno un indirizzo pubblico e non finiscono nella
 > sitemap: puoi scriverli lo stesso, ma non li vede nessuno. La schermata
@@ -286,9 +326,20 @@ In WordPress: Strumenti → Esporta → Articoli. Poi qui, in **Importa**:
 
 1. Carichi il file (`.xml` o `.zip`). Se supera il limite di caricamento del
    server, lo metti via FTP in `dati/import/` e compare da solo nell'elenco
-2. **Analizza il file**: ti dice quanti articoli contiene e come verrebbero
-   smistati fra le tue città
-3. Scegli le città, quanti per volta, e se pubblicarli subito o lasciarli in bozza
+2. **Analizza il file**: ti dice quanti articoli contiene, in che stato erano
+   in WordPress, quali categorie ci sono dentro e come verrebbero smistati fra
+   le tue città
+3. Scegli le città, quanti per volta, e tre spunte: se pubblicarli subito, se
+   prendere anche le bozze di WordPress, se creare le categorie trovate nel file
+
+**Le bozze di WordPress entrano.** Un piano editoriale esportato prima di
+pubblicarlo è pieno di articoli scritti: entrano come bozze del portale,
+invisibili sul sito finché non li pubblichi tu. Il cestino non entra mai. Alla
+fine il messaggio dice quanti ne ha saltati **e perché**, motivo per motivo.
+
+**Le categorie di WordPress diventano categorie del portale**, col nome che
+hanno nel file, e i tag (`post_tag`) diventano i tag dell'articolo. Se una
+categoria c'è già non si duplica.
 
 Lo smistamento legge il titolo e lo confronta con i nomi delle tue città: un
 articolo su Marsala va a Marsala, **se quella città esiste nel portale**. Vince
@@ -973,6 +1024,7 @@ Prefisso predefinito `pc_`, si cambia in fase di installazione.
 | `pc_citta` | Una riga per città |
 | `pc_pagine` | Una riga per pagina, legata a una città |
 | `pc_articoli` | Articoli del blog, legati a una città |
+| `pc_categorie` | Categorie degli articoli, comuni a tutto il portale |
 | `pc_media` | Immagini caricate |
 
 I campi ripetibili (orari, FAQ, recensioni, processo, numeri, team) sono

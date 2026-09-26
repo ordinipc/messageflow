@@ -116,18 +116,34 @@ if ( count( $parti ) > 1 && '' !== $parti[1] ) {
 }
 
 // Terzo livello: /{citta}/{blog}/{articolo}/
-$articolo = null;
+// e quarto: /{citta}/{blog}/categoria/{categoria}/
+$articolo  = null;
+$categoria = null;
 if ( $pagina && 'blog' === $pagina['tipo'] && count( $parti ) > 2 && '' !== $parti[2] ) {
-	$articolo = articolo_per_slug( $citta['id'], $parti[2] );
-	if ( ! $articolo ) {
-		http_response_code( 404 );
-		include __DIR__ . '/tema/404.php';
-		exit;
-	}
-	if ( 'pubblicato' !== $articolo['stato'] && ! $anteprima ) {
-		http_response_code( 404 );
-		include __DIR__ . '/tema/404.php';
-		exit;
+	if ( 'categoria' === $parti[2] ) {
+		// Il pezzo fisso "categoria" tiene separati i due spazi di nomi: una
+		// categoria e un articolo possono chiamarsi allo stesso modo.
+		$categoria = ( count( $parti ) > 3 && '' !== $parti[3] ) ? categoria_per_slug( $parti[3] ) : null;
+		// Una categoria che in questa città non ha nemmeno un articolo
+		// pubblicato non è una pagina: sarebbe un indirizzo vuoto in indice.
+		$vuota = $categoria && 0 === articoli_conta_categoria( $citta['id'], $categoria['id'], true );
+		if ( ! $categoria || ( $vuota && ! $anteprima ) ) {
+			http_response_code( 404 );
+			include __DIR__ . '/tema/404.php';
+			exit;
+		}
+	} else {
+		$articolo = articolo_per_slug( $citta['id'], $parti[2] );
+		if ( ! $articolo ) {
+			http_response_code( 404 );
+			include __DIR__ . '/tema/404.php';
+			exit;
+		}
+		if ( 'pubblicato' !== $articolo['stato'] && ! $anteprima ) {
+			http_response_code( 404 );
+			include __DIR__ . '/tema/404.php';
+			exit;
+		}
 	}
 }
 
@@ -140,6 +156,11 @@ if ( ! $pagina ) {
 if ( 'pubblicata' !== $pagina['stato'] && ! $anteprima ) {
 	http_response_code( 404 );
 	include __DIR__ . '/tema/404.php';
+	exit;
+}
+
+if ( $categoria ) {
+	include __DIR__ . '/tema/categoria.php';
 	exit;
 }
 

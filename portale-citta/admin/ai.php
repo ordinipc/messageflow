@@ -66,9 +66,84 @@ if ( 'home_immagine' === $compito ) {
 	) );
 }
 
+/* --- Le categorie ------------------------------------------------------- */
+if ( 'cat_testo' === $compito ) {
+	$categoria = categoria_per_id( (string) ( $_POST['categoria'] ?? '' ) );
+	if ( ! $categoria ) {
+		$categoria = categoria_predefinita();
+	}
+	$nome = trim( (string) ( $_POST['nome'] ?? '' ) );
+	if ( '' !== $nome ) {
+		$categoria['nome'] = $nome;
+	}
+	if ( vuoto( $categoria['nome'] ) ) {
+		ai_risposta( array( 'ok' => false, 'errore' => 'Scrivi prima il nome della categoria.' ) );
+	}
+
+	$esempi = array();
+	$quanti = 0;
+	if ( ! vuoto( $categoria['id'] ) ) {
+		$quanti = (int) ( categorie_conteggio()[ $categoria['id'] ] ?? 0 );
+		foreach ( db_righe( 'SELECT titolo FROM ' . db_tab( 'articoli' ) . ' WHERE categoria = ? LIMIT 8', array( $categoria['id'] ) ) as $r ) {
+			$esempi[] = (string) $r['titolo'];
+		}
+	}
+
+	$esito = ai_categoria_testo( $categoria, $quanti, $esempi );
+	ai_risposta( array(
+		'ok'     => (bool) $esito['ok'],
+		'testo'  => isset( $esito['testo'] ) ? $esito['testo'] : '',
+		'errore' => $esito['errore'],
+	) );
+}
+
 $citta = citta_per_id( (string) ( $_POST['citta'] ?? '' ) );
 if ( ! $citta ) {
 	ai_risposta( array( 'ok' => false, 'errore' => 'Città non trovata.' ) );
+}
+
+/* --- Gli articoli del blog ---------------------------------------------- */
+$compiti_articolo = array(
+	'art_titolo'     => 'ai_articolo_titolo',
+	'art_estratto'   => 'ai_articolo_estratto',
+	'art_corpo'      => 'ai_articolo_corpo',
+	'art_tag'        => 'ai_articolo_tag',
+	'art_seo_titolo' => 'ai_articolo_seo_titolo',
+	'art_seo_desc'   => 'ai_articolo_seo_desc',
+);
+
+if ( isset( $compiti_articolo[ $compito ] ) || 'art_immagine' === $compito ) {
+	$articolo = articolo_per_id( (string) ( $_POST['articolo'] ?? '' ) );
+	if ( ! $articolo ) {
+		$articolo             = articolo_predefinito();
+		$articolo['citta_id'] = $citta['id'];
+	}
+	// Quello che si sta scrivendo adesso conta più di quello che c'è salvato:
+	// l'assistente deve vedere la stessa schermata che vede chi scrive.
+	$modulo_art = (array) ( $_POST['modulo'] ?? array() );
+	foreach ( array( 'titolo', 'estratto', 'corpo', 'categoria', 'tag', 'slug' ) as $campo ) {
+		if ( isset( $modulo_art[ $campo ] ) && '' !== trim( (string) $modulo_art[ $campo ] ) ) {
+			$articolo[ $campo ] = trim( (string) $modulo_art[ $campo ] );
+		}
+	}
+
+	if ( 'art_immagine' === $compito ) {
+		$esito = ai_articolo_immagine( $citta, $articolo, (string) ( $_POST['richiesta'] ?? '' ) );
+		ai_risposta( array(
+			'ok'     => (bool) $esito['ok'],
+			'file'   => $esito['file'],
+			'alt'    => $esito['alt'],
+			'url'    => '' === $esito['file'] ? '' : url_media( $esito['file'] ),
+			'errore' => $esito['errore'],
+		) );
+	}
+
+	$esito = call_user_func( $compiti_articolo[ $compito ], $citta, $articolo );
+	ai_risposta( array(
+		'ok'     => (bool) $esito['ok'],
+		'testo'  => isset( $esito['testo'] ) ? $esito['testo'] : '',
+		'errore' => $esito['errore'],
+	) );
 }
 
 $pagina = pagina_per_id( (string) ( $_POST['pagina'] ?? '' ) );

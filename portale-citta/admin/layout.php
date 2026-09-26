@@ -24,7 +24,7 @@ $io = utente_corrente();
 $attiva = $schermata;
 if ( 'citta-modifica' === $attiva ) { $attiva = 'citta'; }
 if ( 'pagina-modifica' === $attiva ) { $attiva = 'pagine'; }
-if ( 'articolo-modifica' === $attiva || 'importa' === $attiva ) { $attiva = 'articoli'; }
+if ( in_array( $attiva, array( 'articolo-modifica', 'importa', 'categorie' ), true ) ) { $attiva = 'articoli'; }
 ?>
 <!DOCTYPE html>
 <html lang="it">

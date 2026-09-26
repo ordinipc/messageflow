@@ -17,6 +17,7 @@ $altre    = altre_citta( $citta['id'] );
 $titolo      = vuoto( $articolo['seo_titolo'] ) ? $articolo['titolo'] . ' | ' . $imp['brand'] : $articolo['seo_titolo'];
 $descrizione = vuoto( $articolo['seo_desc'] ) ? $articolo['estratto'] : $articolo['seo_desc'];
 $canonico    = url_articolo( $citta, $articolo, $pagina );
+$categoria   = categoria_per_id( $articolo['categoria'] );
 $immagine    = vuoto( $articolo['immagine'] ) ? url_media( $imp['logo'] ) : url_media( $articolo['immagine'] );
 $indicizza   = '1' === (string) $imp['indicizza'] && 'pubblicato' === $articolo['stato'] && 'pubblicata' === $citta['stato'];
 $css_extra   = $citta['css'];
@@ -24,28 +25,42 @@ $js_extra    = $citta['js'];
 
 $schemi = array(
 	schema_attivita( $citta ),
-	array(
-		'@context'         => 'https://schema.org',
-		'@type'            => 'BlogPosting',
-		'headline'         => mb_substr( $articolo['titolo'], 0, 110 ),
-		'description'      => $descrizione,
-		'url'              => $canonico,
-		'datePublished'    => $articolo['data'],
-		'dateModified'     => vuoto( $articolo['aggiornata'] ) ? $articolo['data'] : $articolo['aggiornata'],
-		'inLanguage'       => $imp['lingua'],
-		'author'           => array( '@type' => 'Organization', 'name' => $imp['brand'] ),
-		'publisher'        => array( '@id' => url_citta( $citta ) . '#attivita' ),
-		'mainEntityOfPage' => $canonico,
-		'about'            => array( '@type' => 'City', 'name' => $citta['nome'] ),
+	array_merge(
+		array(
+			'@context'         => 'https://schema.org',
+			'@type'            => 'BlogPosting',
+			'headline'         => mb_substr( $articolo['titolo'], 0, 110 ),
+			'description'      => $descrizione,
+			'url'              => $canonico,
+			'datePublished'    => $articolo['data'],
+			'dateModified'     => vuoto( $articolo['aggiornata'] ) ? $articolo['data'] : $articolo['aggiornata'],
+			'inLanguage'       => $imp['lingua'],
+			'author'           => array( '@type' => 'Organization', 'name' => $imp['brand'] ),
+			'publisher'        => array( '@id' => url_citta( $citta ) . '#attivita' ),
+			'mainEntityOfPage' => $canonico,
+			'about'            => array( '@type' => 'City', 'name' => $citta['nome'] ),
+		),
+		// Categoria e tag solo se ci sono: una chiave vuota nei dati
+		// strutturati è peggio della chiave che manca.
+		$categoria ? array( 'articleSection' => $categoria['nome'] ) : array(),
+		vuoto( $articolo['tag'] ) ? array() : array( 'keywords' => implode( ', ', righe( (string) $articolo['tag'] ) ) )
 	),
 	array(
 		'@context'        => 'https://schema.org',
 		'@type'           => 'BreadcrumbList',
-		'itemListElement' => array(
-			array( '@type' => 'ListItem', 'position' => 1, 'name' => $imp['brand'], 'item' => base_url() . '/' ),
-			array( '@type' => 'ListItem', 'position' => 2, 'name' => $citta['nome'], 'item' => url_citta( $citta ) ),
-			array( '@type' => 'ListItem', 'position' => 3, 'name' => $pagina['titolo'], 'item' => url_pagina( $citta, $pagina ) ),
-			array( '@type' => 'ListItem', 'position' => 4, 'name' => $articolo['titolo'], 'item' => $canonico ),
+		// array_merge e non «+»: con le chiavi numeriche «+» tiene quelle
+		// di sinistra e butta via l'aggiunta, senza dire niente.
+		'itemListElement' => array_merge(
+			array(
+				array( '@type' => 'ListItem', 'position' => 1, 'name' => $imp['brand'], 'item' => base_url() . '/' ),
+				array( '@type' => 'ListItem', 'position' => 2, 'name' => $citta['nome'], 'item' => url_citta( $citta ) ),
+				array( '@type' => 'ListItem', 'position' => 3, 'name' => $pagina['titolo'], 'item' => url_pagina( $citta, $pagina ) ),
+			),
+			// La categoria è un anello vero della catena: se c'è, ci va.
+			$categoria
+				? array( array( '@type' => 'ListItem', 'position' => 4, 'name' => $categoria['nome'], 'item' => url_categoria( $citta, $categoria, $pagina ) ) )
+				: array(),
+			array( array( '@type' => 'ListItem', 'position' => $categoria ? 5 : 4, 'name' => $articolo['titolo'], 'item' => $canonico ) )
 		),
 	),
 );
@@ -69,6 +84,10 @@ include __DIR__ . '/parti/barra.php';
 		<a href="<?php echo e( url_citta( $citta ) ); ?>"><?php echo e( $citta['nome'] ); ?></a>
 		<span aria-hidden="true">›</span>
 		<a href="<?php echo e( url_pagina( $citta, $pagina ) ); ?>"><?php echo e( $pagina['titolo'] ); ?></a>
+		<?php if ( $categoria ) : ?>
+			<span aria-hidden="true">›</span>
+			<a href="<?php echo e( url_categoria( $citta, $categoria, $pagina ) ); ?>"><?php echo e( $categoria['nome'] ); ?></a>
+		<?php endif; ?>
 	</p>
 
 	<header class="glp-section glp-reveal">
@@ -86,6 +105,13 @@ include __DIR__ . '/parti/barra.php';
 
 	<div class="glp-section glp-articolo__corpo glp-reveal">
 		<?php echo $articolo['corpo']; // Ripulito in fase di importazione. ?>
+		<?php echo blocco_tag( $articolo['tag'] ); ?>
+		<?php if ( $categoria ) : ?>
+			<p class="glp-articolo__categoria">
+				Categoria:
+				<a href="<?php echo e( url_categoria( $citta, $categoria, $pagina ) ); ?>"><?php echo e( $categoria['nome'] ); ?></a>
+			</p>
+		<?php endif; ?>
 	</div>
 
 	<?php

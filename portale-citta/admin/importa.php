@@ -100,6 +100,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['azione'] ) && '' !=
 			'esempi'       => $esempi,
 			'riserva'      => $riserva,
 			'luoghi'       => import_luoghi( $xml, $elenco ),
+			'categorie'    => import_categorie( $xml ),
 		);
 	}
 
@@ -108,12 +109,14 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['azione'] ) && '' !=
 		$limite    = max( 1, min( 2000, (int) ( $_POST['limite'] ?? 500 ) ) );
 		$pubblica  = isset( $_POST['pubblica'] );
 		$bozze     = isset( $_POST['anche_bozze'] );
+		$con_cat   = isset( $_POST['con_categorie'] );
 		$importati = 0;
 		// Un solo numero non dice niente: chi guarda vuole sapere perché.
 		$motivi    = array( 'gia' => 0, 'stato' => 0, 'bozza' => 0, 'citta' => 0, 'escluse' => 0, 'vuoti' => 0 );
 		$per_citta = array();
 
-		import_scorri( $xml, function ( $a ) use ( &$importati, &$motivi, &$per_citta, $elenco, $riserva, $solo, $limite, $pubblica, $bozze ) {
+		$create_cat = array();
+		import_scorri( $xml, function ( $a ) use ( &$importati, &$motivi, &$per_citta, &$create_cat, $elenco, $riserva, $solo, $limite, $pubblica, $bozze, $con_cat ) {
 			if ( $importati >= $limite ) {
 				return false;
 			}
@@ -148,16 +151,29 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['azione'] ) && '' !=
 				return true;
 			}
 
+			// La categoria di WordPress diventa una categoria del portale, se
+			// non c'è già: il nome lo decide il file, non si inventa niente.
+			$categoria_id = '';
+			if ( $con_cat && ! vuoto( $a['categoria'] ?? '' ) ) {
+				$prima        = null === categoria_per_nome( $a['categoria'] );
+				$categoria_id = categoria_assicura( $a['categoria'] );
+				if ( $prima && '' !== $categoria_id ) {
+					$create_cat[ $a['categoria'] ] = true;
+				}
+			}
+
 			articolo_salva( array(
-				'id'       => nuovo_id(),
-				'citta_id' => $citta_id,
-				'slug'     => articolo_slug_libero( vuoto( $a['slug'] ) ? $a['titolo'] : $a['slug'], $citta_id ),
-				'titolo'   => $a['titolo'],
-				'estratto' => import_estratto( $a['estratto'], $corpo ),
-				'corpo'    => $corpo,
-				'data'     => $a['data'],
-				'origine'  => $a['origine'],
-				'stato'    => $pubblica ? 'pubblicato' : 'bozza',
+				'id'        => nuovo_id(),
+				'citta_id'  => $citta_id,
+				'slug'      => articolo_slug_libero( vuoto( $a['slug'] ) ? $a['titolo'] : $a['slug'], $citta_id ),
+				'titolo'    => $a['titolo'],
+				'estratto'  => import_estratto( $a['estratto'], $corpo ),
+				'corpo'     => $corpo,
+				'categoria' => $categoria_id,
+				'tag'       => implode( "\n", array_slice( (array) ( $a['tag'] ?? array() ), 0, 8 ) ),
+				'data'      => $a['data'],
+				'origine'   => $a['origine'],
+				'stato'     => $pubblica ? 'pubblicato' : 'bozza',
 			) );
 
 			$importati++;
@@ -191,6 +207,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['azione'] ) && '' !=
 			$importati . ' articoli importati' . ( $pubblica ? ' e pubblicati' : ' in bozza' )
 			. ( empty( $dettaglio ) ? '' : ' (' . implode( ', ', $dettaglio ) . ')' )
 			. '. Saltati ' . $saltati . ( empty( $perche ) ? '' : ': ' . implode( ', ', $perche ) ) . '.'
+			. ( empty( $create_cat ) ? '' : ' Categorie create: ' . implode( ', ', array_keys( $create_cat ) ) . '.' )
 			. ( $importati >= $limite ? ' Raggiunto il limite di questo giro: premi di nuovo per continuare.' : '' ),
 			$importati > 0 ? 'ok' : 'errore'
 		);
@@ -422,6 +439,32 @@ $limite_upload   = ini_get( 'upload_max_filesize' );
 		</details>
 	<?php endif; ?>
 
+	<?php if ( ! empty( $analisi['categorie'] ) ) : ?>
+		<h3 style="font-size:14px;margin:18px 0 10px">Categorie nel file</h3>
+		<p class="pc-scheda__nota">
+			Quelle che non ci sono ancora vengono create da sé, col nome che hanno nel file.
+			Poi le sistemi in <a href="admin.php?p=categorie">Categorie</a>: nome, descrizione, titolo su Google.
+		</p>
+		<table class="pc-tabella" id="tabella-categorie">
+			<thead><tr><th>Categoria</th><th>Articoli</th><th>Nel portale</th></tr></thead>
+			<tbody>
+			<?php foreach ( $analisi['categorie'] as $c ) : ?>
+				<tr>
+					<td><strong><?php echo e( $c['nome'] ); ?></strong></td>
+					<td><?php echo (int) $c['quanti']; ?></td>
+					<td>
+						<?php if ( $c['esiste'] ) : ?>
+							<span class="pc-stato pc-stato--pubblicata">c'è già</span>
+						<?php else : ?>
+							<span class="pc-stato pc-stato--bozza">da creare</span>
+						<?php endif; ?>
+					</td>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
+		</table>
+	<?php endif; ?>
+
 	<form method="post">
 		<?php echo campo_token(); ?>
 		<input type="hidden" name="file" value="<?php echo e( $analisi['file'] ); ?>">
@@ -460,6 +503,10 @@ $limite_upload   = ini_get( 'upload_max_filesize' );
 				<label class="pc-inline" style="margin:8px 0 0">
 					<input type="checkbox" name="anche_bozze" value="1" checked>
 					Prendi anche le bozze di WordPress
+				</label>
+				<label class="pc-inline" style="margin:8px 0 0">
+					<input type="checkbox" name="con_categorie" value="1" checked>
+					Crea le categorie che trovi nel file
 				</label>
 			</div>
 		</div>

@@ -956,3 +956,189 @@ function ai_immagine_portale( $richiesta = '' ) {
 	$soggetto = vuoto( $richiesta ) ? ai_soggetto_portale() : trim( $richiesta );
 	return ai_disegna_immagine( $soggetto, impostazione( 'brand', '' ), 'home-portale', '' );
 }
+
+/* ---------------------------------------------------------------------------
+ * Articoli del blog
+ *
+ * Un articolo non è una pagina di servizio: risponde a una domanda, e la
+ * città è il posto dove la domanda se la fanno, non l'argomento. Per questo
+ * ha istruzioni sue e non riusa quelle delle pagine.
+ * ------------------------------------------------------------------------- */
+
+/** Contesto per l'assistente quando lavora su un articolo. */
+function ai_contesto_articolo( $citta, $articolo ) {
+	$parti   = array();
+	$parti[] = ai_contesto( $citta );
+
+	$dentro = array();
+	if ( ! vuoto( $articolo['titolo'] ) ) {
+		$dentro[] = "Titolo dell'articolo: " . $articolo['titolo'];
+	}
+	$categoria = categoria_per_id( $articolo['categoria'] ?? '' );
+	if ( $categoria ) {
+		$dentro[] = 'Categoria: ' . $categoria['nome']
+			. ( vuoto( $categoria['descrizione'] ) ? '' : ' — ' . mb_substr( strip_tags( $categoria['descrizione'] ), 0, 160 ) );
+	}
+	if ( ! vuoto( $articolo['estratto'] ) ) {
+		$dentro[] = 'Di cosa parla: ' . $articolo['estratto'];
+	}
+	if ( ! vuoto( $articolo['corpo'] ) ) {
+		// Solo l'inizio: serve a capire il taglio, non a rileggersi tutto.
+		$testo    = trim( preg_replace( '/\s+/u', ' ', strip_tags( (string) $articolo['corpo'] ) ) );
+		$dentro[] = 'Testo già scritto (inizio): ' . mb_substr( $testo, 0, 600 );
+	}
+	if ( ! empty( $dentro ) ) {
+		$parti[] = implode( "\n", $dentro );
+	}
+	return implode( "\n", $parti );
+}
+
+/** Regole comuni agli articoli. */
+function ai_regole_articolo() {
+	return ai_regole() . "\n"
+		. "Questo è un articolo di blog, non una pagina di vendita: risponde a una domanda "
+		. "concreta e aiuta chi legge anche se poi non chiama nessuno.\n"
+		. "Nomina la città dove serve, non a ogni paragrafo.";
+}
+
+/** Titolo dell'articolo. */
+function ai_articolo_titolo( $citta, $articolo ) {
+	$spunto = vuoto( $articolo['titolo'] ) ? '' : "Titolo attuale, da migliorare: " . $articolo['titolo'] . "\n";
+	$istruzione = "Scrivi il titolo di un articolo di blog per un'attività locale.\n\n"
+		. ai_contesto_articolo( $citta, $articolo ) . "\n\n"
+		. $spunto
+		. "Massimo 70 caratteri. Deve dire di cosa parla e nominare " . $citta['nome'] . ".\n"
+		. "Una domanda va bene se è la domanda che fa il cliente.\n"
+		. "Niente due punti decorativi, niente «guida completa», niente «tutto quello che».\n\n"
+		. ai_regole_articolo();
+	return ai_chiedi_testo( $istruzione, 'titolo', 72 );
+}
+
+/** Estratto dell'articolo: le due righe che si leggono nell'elenco. */
+function ai_articolo_estratto( $citta, $articolo ) {
+	$istruzione = "Scrivi l'estratto di questo articolo: le due righe che si leggono nell'elenco del blog.\n\n"
+		. ai_contesto_articolo( $citta, $articolo ) . "\n\n"
+		. "Fra 140 e 200 caratteri. Dice cosa si impara leggendolo, non «in questo articolo vedremo».\n\n"
+		. ai_regole_articolo();
+	return ai_chiedi_testo( $istruzione, 'estratto', 205 );
+}
+
+/** Corpo dell'articolo, già formattato in HTML. */
+function ai_articolo_corpo( $citta, $articolo ) {
+	$istruzione = "Scrivi il testo di un articolo di blog per un'attività locale.\n\n"
+		. ai_contesto_articolo( $citta, $articolo ) . "\n\n"
+		. "Lunghezza: 500-650 parole, divise in 4 o 5 blocchi, ognuno con il suo <h3>.\n"
+		. "Il primo blocco risponde subito alla domanda del titolo: chi legge non deve "
+		. "scorrere per sapere la risposta.\n"
+		. "Poi: quando succede, cosa si può fare da sé, quando serve un tecnico, "
+		. "cosa aspettarsi in termini di tempi e di costi.\n"
+		. "Se ci sono cifre o tempi, dilli come intervalli e di' che dipendono dal caso: "
+		. "non inventare prezzi precisi.\n"
+		. "Chiudi con un blocco che dice cosa fare a " . $citta['nome'] . ", senza slogan.\n\n"
+		. ai_regole_articolo() . "\n\n"
+		. ai_regole_formato();
+	return ai_chiedi_testo( $istruzione, 'testo', 0, 20480, 'html' );
+}
+
+/** Tag dell'articolo. */
+function ai_articolo_tag( $citta, $articolo, $quanti = 5 ) {
+	$schema = array( 'type' => 'ARRAY', 'items' => array( 'type' => 'STRING' ) );
+
+	$istruzione = "Elenca {$quanti} tag per questo articolo di blog.\n\n"
+		. ai_contesto_articolo( $citta, $articolo ) . "\n\n"
+		. "I tag sono le cose concrete di cui parla l'articolo: oggetti, pezzi, situazioni. "
+		. "«Transponder», «Cilindro europeo», «Chiave spezzata» vanno bene; "
+		. "«Sicurezza», «Professionalità», «Consigli» no.\n"
+		. "Una o due parole ciascuno, con la maiuscola iniziale, senza punteggiatura.\n"
+		. "Non mettere il nome della città.\n\n"
+		. ai_regole_articolo();
+
+	$esito = ai_chiedi( $istruzione, $schema );
+	if ( ! $esito['ok'] ) {
+		return array( 'ok' => false, 'testo' => '', 'errore' => $esito['errore'] );
+	}
+	$voci = json_decode( $esito['testo'], true );
+	if ( ! is_array( $voci ) ) {
+		return array( 'ok' => false, 'testo' => '', 'errore' => 'Risposta non interpretabile.' );
+	}
+	$pulite = array();
+	foreach ( $voci as $v ) {
+		$v = trim( ai_ripulisci( (string) $v ), " \t\n\r.,;:•-–—" );
+		if ( '' === $v || mb_strlen( $v ) > 28 ) {
+			continue;
+		}
+		$pulite[] = maiuscola( $v );
+	}
+	$pulite = array_slice( array_unique( $pulite ), 0, $quanti + 1 );
+	if ( empty( $pulite ) ) {
+		return array( 'ok' => false, 'testo' => '', 'errore' => 'Il modello non ha proposto tag utilizzabili. Riprova.' );
+	}
+	return array( 'ok' => true, 'testo' => implode( "\n", $pulite ), 'errore' => '' );
+}
+
+/** Titolo per Google. */
+function ai_articolo_seo_titolo( $citta, $articolo ) {
+	$istruzione = "Scrivi il titolo per Google di questo articolo (il tag title).\n\n"
+		. ai_contesto_articolo( $citta, $articolo ) . "\n\n"
+		. "Fra 45 e 60 caratteri, contando gli spazi. Nomina " . $citta['nome'] . ".\n"
+		. "Non ripetere alla lettera il titolo dell'articolo: qui conta la parola che si cerca.\n\n"
+		. ai_regole_articolo();
+	return ai_chiedi_testo( $istruzione, 'titolo', 62 );
+}
+
+/** Descrizione per Google. */
+function ai_articolo_seo_desc( $citta, $articolo ) {
+	$istruzione = "Scrivi la descrizione per Google di questo articolo (la meta description).\n\n"
+		. ai_contesto_articolo( $citta, $articolo ) . "\n\n"
+		. "Fra 120 e 155 caratteri. Dice cosa si trova nell'articolo e nomina " . $citta['nome'] . ".\n\n"
+		. ai_regole_articolo();
+	return ai_chiedi_testo( $istruzione, 'descrizione', 158 );
+}
+
+/** Immagine dell'articolo. */
+function ai_articolo_immagine( $citta, $articolo, $richiesta = '' ) {
+	if ( vuoto( impostazione( 'gemini_key', '' ) ) ) {
+		return array( 'ok' => false, 'file' => '', 'alt' => '', 'errore' => 'Chiave Gemini non impostata.' );
+	}
+	if ( ! function_exists( 'curl_init' ) ) {
+		return array( 'ok' => false, 'file' => '', 'alt' => '', 'errore' => 'Estensione cURL non disponibile sul server.' );
+	}
+
+	$titolo   = trim( (string) $articolo['titolo'] );
+	$soggetto = vuoto( $richiesta )
+		? ( '' === $titolo
+			? 'il mestiere di ' . impostazione( 'brand', 'questa attività' ) . ', attrezzi e banco di lavoro ordinati'
+			: 'una scena che illustra "' . $titolo . '": dettaglio ravvicinato, mani al lavoro, attrezzi veri' )
+		: trim( $richiesta );
+
+	$base = vuoto( $articolo['slug'] ) ? 'articolo' : $articolo['slug'];
+	return ai_disegna_immagine(
+		$soggetto,
+		'' === $titolo ? impostazione( 'brand', '' ) . ' a ' . $citta['nome'] : $titolo,
+		$base . '-' . $citta['slug'],
+		$citta['nome']
+	);
+}
+
+/** Descrizione di una categoria: il testo che sta in cima all'archivio. */
+function ai_categoria_testo( $categoria, $quanti_articoli = 0, $esempi = array() ) {
+	$parti   = array();
+	$parti[] = ai_contesto_portale();
+	$parti[] = 'Categoria: ' . $categoria['nome'];
+	if ( $quanti_articoli > 0 ) {
+		$parti[] = 'Articoli che contiene: ' . $quanti_articoli;
+	}
+	if ( ! empty( $esempi ) ) {
+		$parti[] = "Titoli di esempio:\n- " . implode( "\n- ", array_slice( $esempi, 0, 8 ) );
+	}
+
+	$istruzione = "Scrivi il testo di presentazione della categoria di un blog, quello che si legge "
+		. "in cima all'archivio, sopra l'elenco degli articoli.\n\n"
+		. implode( "\n", $parti ) . "\n\n"
+		. "Due paragrafi, 90-140 parole in tutto. Dice cosa si trova in questa categoria e "
+		. "a chi serve. Non elencare i titoli: quelli si vedono già sotto.\n"
+		. "Non nominare una città in particolare: la stessa descrizione si legge in tutte.\n\n"
+		. ai_regole_portale() . "\n\n"
+		. ai_regole_formato();
+	return ai_chiedi_testo( $istruzione, 'testo', 0, 8192, 'html' );
+}

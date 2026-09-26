@@ -95,6 +95,8 @@
 			var compito = bottone.getAttribute('data-ai');
 			var bersaglio = document.getElementById(bottone.getAttribute('data-ai-campo') || '');
 			var pagina = bottone.getAttribute('data-ai-pagina') || '';
+			var articolo = bottone.getAttribute('data-ai-articolo') || '';
+			var categoria = bottone.getAttribute('data-ai-categoria') || '';
 			var citta = bottone.getAttribute('data-ai-citta') || '';
 			var etichetta = bottone.textContent;
 
@@ -104,8 +106,16 @@
 			var corpo = new FormData();
 			corpo.append('compito', compito);
 			corpo.append('pagina', pagina);
+			corpo.append('articolo', articolo);
 			corpo.append('citta', citta);
 			corpo.append('token', document.body.getAttribute('data-token') || '');
+			// La descrizione di una categoria non riguarda una città: le serve
+			// il nome che si sta scrivendo adesso, non quello salvato.
+			if (compito === 'cat_testo') {
+				corpo.append('categoria', categoria);
+				var campoNome = document.getElementById('campo-nome-categoria');
+				corpo.append('nome', campoNome ? campoNome.value : '');
+			}
 			// Il modulo corrente viene inviato così l'assistente vede le modifiche non salvate.
 			var modulo = bottone.closest('form');
 			if (modulo) {
@@ -308,9 +318,18 @@
 		// La home del portale chiede un disegno diverso: niente città.
 		corpo.append('compito', bottone.getAttribute('data-ai-compito') || 'immagine');
 		corpo.append('pagina', bottone.getAttribute('data-ai-pagina') || '');
+		corpo.append('articolo', bottone.getAttribute('data-ai-articolo') || '');
 		corpo.append('citta', bottone.getAttribute('data-ai-citta') || '');
 		corpo.append('richiesta', richiesta ? richiesta.value : '');
 		corpo.append('token', document.body.getAttribute('data-token') || '');
+		// Anche qui il modulo non salvato: un articolo nuovo ha il titolo
+		// solo nella casella, e il disegno si ricava dal titolo.
+		var moduloImg = bottone.closest('form');
+		if (moduloImg) {
+			new FormData(moduloImg).forEach(function (v, k) {
+				if (k !== 'token' && typeof v === 'string') { corpo.append('modulo[' + k + ']', v); }
+			});
+		}
 
 		fetch('admin.php?p=ai', { method: 'POST', body: corpo })
 			.then(function (r) { return r.json(); })
