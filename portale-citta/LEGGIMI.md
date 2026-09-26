@@ -265,6 +265,21 @@ Ogni città può avere il suo blog: una pagina di tipo **Blog** elenca gli
 articoli di quella città, dodici per volta, e ogni articolo vive a
 `/citta/blog/titolo-articolo/` con il suo schema `BlogPosting`.
 
+**Dove si gestiscono:** menu **Articoli**. In alto c'è la tendina della città —
+gli articoli appartengono a una città, non al portale — e due pulsanti:
+**+ Nuovo articolo** per scriverne uno, **Importa da WordPress** per portarli
+da un'esportazione. Ogni riga dell'elenco ha *Modifica*, e i comandi per
+pubblicare, riportare in bozza o eliminare, anche in blocco.
+
+L'editor dell'articolo è lo stesso delle pagine: barra con grassetto,
+corsivo, sottotitoli, elenchi e collegamenti. Quello che si salva è HTML
+ripulito, con le stesse regole degli articoli importati.
+
+> **Prima serve la pagina Blog.** Senza una pagina di tipo *Blog* in quella
+> città, gli articoli non hanno un indirizzo pubblico e non finiscono nella
+> sitemap: puoi scriverli lo stesso, ma non li vede nessuno. La schermata
+> Articoli te lo dice in rosso, con il collegamento per crearla.
+
 ### Importare da WordPress
 
 In WordPress: Strumenti → Esporta → Articoli. Poi qui, in **Importa**:

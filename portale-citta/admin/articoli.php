@@ -96,23 +96,28 @@ $tok        = '&token=' . rawurlencode( token() );
 				<?php endforeach; ?>
 			</select>
 		</form>
-		<a class="pc-btn" href="admin.php?p=importa">Importa da WordPress</a>
+		<a class="pc-btn pc-btn--ghost" href="admin.php?p=importa">Importa da WordPress</a>
+		<a class="pc-btn" href="admin.php?p=articolo-modifica&citta=<?php echo e( $citta_id ); ?>">+ Nuovo articolo</a>
 	</div>
 </div>
 
-<?php if ( ! $pagina_b && $totale > 0 ) : ?>
+<?php if ( ! $pagina_b ) : ?>
 	<div class="pc-avviso pc-avviso--errore">
 		<strong><?php echo e( $citta['nome'] ); ?> non ha una pagina di tipo "Blog".</strong><br>
-		Senza quella pagina gli articoli non hanno un indirizzo pubblico e non finiscono nella sitemap.
+		Senza quella pagina gli articoli non hanno un indirizzo pubblico e non finiscono nella sitemap:
+		puoi scriverli lo stesso, ma nessuno li vede.
 		<a href="admin.php?p=pagina-modifica&citta=<?php echo e( $citta_id ); ?>">Creane una</a> scegliendo il tipo <strong>Blog</strong>.
 	</div>
 <?php endif; ?>
 
 <?php if ( 0 === $totale ) : ?>
 	<div class="pc-scheda pc-vuoto">
-		<h3>Nessun articolo</h3>
-		<p>Puoi importarli da un'esportazione WordPress: vengono smistati da soli fra le città.</p>
-		<a class="pc-btn" href="admin.php?p=importa">Importa da WordPress</a>
+		<h3>Nessun articolo per <?php echo e( $citta['nome'] ); ?></h3>
+		<p>Scrivine uno, oppure importali da un'esportazione WordPress: vengono smistati da soli fra le città.</p>
+		<p>
+			<a class="pc-btn" href="admin.php?p=articolo-modifica&citta=<?php echo e( $citta_id ); ?>">+ Nuovo articolo</a>
+			<a class="pc-btn pc-btn--ghost" href="admin.php?p=importa">Importa da WordPress</a>
+		</p>
 	</div>
 <?php else : ?>
 

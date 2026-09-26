@@ -111,10 +111,10 @@ $parole   = str_word_count( strip_tags( (string) $articolo['corpo'] ), 0, 'àá�
 	<div class="pc-scheda">
 		<h2>Testo</h2>
 		<p class="pc-scheda__nota">
-			HTML consentito: paragrafi, titoli, elenchi, grassetto, link, tabelle.
+			Grassetto, corsivo, sottotitoli, elenchi e collegamenti dalla barra qui sotto.
 			Script e attributi vengono tolti al salvataggio. <?php echo (int) $parole; ?> parole.
 		</p>
-		<label><textarea class="pc-codice" name="corpo" style="min-height:420px" spellcheck="false"><?php echo e( $articolo['corpo'] ); ?></textarea></label>
+		<textarea id="campo-corpo-articolo" name="corpo" data-editor style="min-height:420px" aria-label="Testo dell'articolo"><?php echo e( $articolo['corpo'] ); ?></textarea>
 	</div>
 </div>
 
