@@ -949,6 +949,53 @@ Il prompt dell'immagine chiede esplicitamente niente testo, niente volti
 riconoscibili, niente marchi e niente luoghi reali: un'immagine generica, non
 una finta foto della tua città.
 
+### Migliora invece di riscrivere
+
+Se il riquadro del testo è **vuoto**, l'assistente scrive da zero. Se c'è
+**già del testo**, il pulsante cambia da sé — *Migliora il testo* — e il
+comportamento cambia con lui: il testo che c'è viene mandato al modello per
+intero, con l'ordine di non buttarlo.
+
+Il modello riceve istruzione di:
+
+- **tenere fatti, numeri, prezzi, tempi e nomi propri** che ci sono già: sono
+  veri, e lui non li sa
+- tenere l'ordine degli argomenti e le frasi che funzionano — si deve
+  riconoscere che è lo stesso testo
+- intervenire dove serve: frasi contorte, ripetizioni, paragrafi lunghi,
+  passaggi che danno per scontato quello che il cliente non sa
+- se è già buono, restituirlo quasi identico
+
+Vale per il testo di approfondimento delle pagine, l'introduzione, il testo
+degli articoli e l'estratto. Sotto le 40 battute il campo conta come vuoto:
+tre parole buttate lì non sono un testo da migliorare.
+
+### Il richiamo alla pagina del servizio
+
+Un articolo del blog che spiega un problema e finisce lì è mezzo lavoro. Per
+questo il testo degli articoli si chiude con un **richiamo alla pagina di
+servizio** della stessa città — quella più vicina all'argomento — con un
+collegamento vero.
+
+Come funziona:
+
+1. L'assistente riceve l'elenco delle pagine di servizio pubblicate di quella
+   città, **con gli indirizzi esatti**, e l'ordine di chiudere linkandone una
+2. Al ritorno gli indirizzi vengono controllati uno per uno. Un modello che
+   inventa un indirizzo non te lo dice: scrive un link che sembra giusto e
+   porta a una pagina che non esiste. Qui **gli indirizzi che non sono
+   nell'elenco perdono il collegamento** e restano testo normale
+3. Se alla fine non c'è nessun richiamo, **lo mette il portale**, scegliendo
+   la pagina di servizio col titolo più vicino all'argomento dell'articolo.
+   Così l'indirizzo è giusto per forza
+
+Sulle **pagine** il richiamo è facoltativo e non punta mai a sé stessa: una
+pagina di servizio non ha bisogno di rimandare a sé. Il controllo sugli
+indirizzi inventati però vale lì come qui.
+
+> Se la città non ha ancora nessuna pagina di tipo *Servizio* pubblicata, non
+> c'è niente da linkare e il richiamo non compare. È il caso di crearne una.
+
 ### Se il modello risponde male
 
 Capita che un modello consegni i propri appunti invece del risultato — per

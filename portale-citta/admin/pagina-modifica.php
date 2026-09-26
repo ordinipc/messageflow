@@ -209,7 +209,7 @@ $lista_s  = servizi();
 			<h2>Introduzione
 				<?php if ( ai_attiva() ) : ?>
 					<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo" style="float:right"
-						data-ai="intro" data-ai-campo="campo-intro" data-ai-pagina="<?php echo e( $pagina['id'] ); ?>" data-ai-citta="<?php echo e( $citta['id'] ); ?>">✦ Scrivi con l'assistente</button>
+						data-ai="intro" data-ai-migliora="✦ Migliora l'introduzione" data-ai-campo="campo-intro" data-ai-pagina="<?php echo e( $pagina['id'] ); ?>" data-ai-citta="<?php echo e( $citta['id'] ); ?>">✦ Scrivi con l'assistente</button>
 				<?php endif; ?>
 			</h2>
 			<p class="pc-scheda__nota">Una o due frasi sotto il titolo principale.</p>
@@ -220,10 +220,13 @@ $lista_s  = servizi();
 			<h2>Testo di approfondimento
 				<?php if ( ai_attiva() ) : ?>
 					<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo" style="float:right"
-						data-ai="corpo" data-ai-campo="campo-corpo" data-ai-pagina="<?php echo e( $pagina['id'] ); ?>" data-ai-citta="<?php echo e( $citta['id'] ); ?>">✦ Scrivi con l'assistente</button>
+						data-ai="corpo" data-ai-migliora="✦ Migliora il testo" data-ai-campo="campo-corpo" data-ai-pagina="<?php echo e( $pagina['id'] ); ?>" data-ai-citta="<?php echo e( $citta['id'] ); ?>">✦ Scrivi con l'assistente</button>
 				<?php endif; ?>
 			</h2>
-			<p class="pc-scheda__nota">Il corpo della pagina. Minimo consigliato: 300 parole, spezzate in sottotitoli invece che in un muro unico.</p>
+			<p class="pc-scheda__nota">
+				Il corpo della pagina. Minimo consigliato: 300 parole, spezzate in sottotitoli invece che in un muro unico.
+				Se qui c'&egrave; gi&agrave; del testo, l'assistente non lo riscrive da capo: lo migliora.
+			</p>
 			<textarea id="campo-corpo" name="corpo" data-editor style="min-height:300px" aria-label="Testo di approfondimento"><?php echo e( $pagina['corpo'] ); ?></textarea>
 			<p class="pc-nota"><strong>Deve essere diverso da quello delle altre città.</strong> Testi identici con solo il nome cambiato è il motivo numero uno per cui Google non indicizza le pagine locali.</p>
 		</div>

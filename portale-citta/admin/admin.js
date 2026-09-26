@@ -90,6 +90,22 @@
 	});
 
 	/* --- Assistente Gemini ------------------------------------------------ */
+
+	// Un campo già pieno non si riscrive da capo, si migliora: il pulsante
+	// lo deve dire prima di premerlo, non dopo.
+	document.querySelectorAll('[data-ai][data-ai-migliora]').forEach(function (bottone) {
+		var campo = document.getElementById(bottone.getAttribute('data-ai-campo') || '');
+		if (!campo) { return; }
+		var scrivi = bottone.textContent;
+		var corregge = bottone.getAttribute('data-ai-migliora');
+		function aggiorna() {
+			var nudo = (campo.value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+			bottone.textContent = nudo.length >= 40 ? corregge : scrivi;
+		}
+		campo.addEventListener('input', aggiorna);
+		aggiorna();
+	});
+
 	document.querySelectorAll('[data-ai]').forEach(function (bottone) {
 		bottone.addEventListener('click', function () {
 			var compito = bottone.getAttribute('data-ai');

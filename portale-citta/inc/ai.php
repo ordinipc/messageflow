@@ -619,6 +619,188 @@ function ai_contesto( $citta, $pagina = null ) {
 }
 
 /** Regole comuni a ogni richiesta. */
+/* ---------------------------------------------------------------------------
+ * Migliorare invece di riscrivere
+ *
+ * Un testo già scritto contiene cose che il modello non sa: prezzi veri,
+ * tempi veri, il modo in cui l'attività parla di sé. Buttarlo e ripartire da
+ * zero è una perdita secca, e chi ha scritto quelle righe se ne accorge.
+ * Quando il campo è già pieno, quindi, l'assistente non scrive: corregge.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Il testo già presente in un campo, se è abbastanza da valere qualcosa.
+ *
+ * Tre parole non sono un testo da migliorare: sono un inizio buttato lì, e
+ * su quello conviene lasciar scrivere da capo.
+ */
+function ai_esistente( $testo ) {
+	$nudo = trim( preg_replace( '/\s+/u', ' ', strip_tags( (string) $testo ) ) );
+	return mb_strlen( $nudo ) >= 40 ? trim( (string) $testo ) : '';
+}
+
+/**
+ * Il blocco di istruzione che trasforma «scrivi» in «migliora».
+ * Torna '' se non c'è niente da migliorare: allora vale l'istruzione normale.
+ */
+function ai_istruzione_migliora( $testo ) {
+	$esistente = ai_esistente( $testo );
+	if ( '' === $esistente ) {
+		return '';
+	}
+	return "ATTENZIONE: questo testo esiste già. Non riscriverlo da capo, miglioralo.\n"
+		. "- I fatti, i numeri, i prezzi, i tempi e i nomi propri che ci sono dentro sono veri "
+		. "e tu non li sai: tienili come sono. Non aggiungerne di nuovi.\n"
+		. "- Tieni l'ordine degli argomenti e le frasi che già funzionano. Si riconosce che è lo stesso testo.\n"
+		. "- Intervieni dove serve: frasi contorte, ripetizioni, paragrafi troppo lunghi, "
+		. "passaggi che danno per scontato quello che il cliente non sa, formattazione mancante.\n"
+		. "- Puoi aggiungere quello che manca davvero, ma non allungare per allungare.\n"
+		. "- Se è già buono, restituiscilo quasi identico: va bene anche cambiare poco.\n\n"
+		. "Testo attuale, da migliorare:\n---\n" . $esistente . "\n---";
+}
+
+/* ---------------------------------------------------------------------------
+ * Il richiamo alla pagina del servizio
+ *
+ * Un articolo del blog che spiega un problema e finisce lì è mezzo lavoro:
+ * chi ha letto vuole sapere dove si risolve. Il richiamo in fondo porta alla
+ * pagina del servizio della stessa città — un collegamento interno vero, che
+ * serve al lettore e che Google legge come struttura del sito.
+ * ------------------------------------------------------------------------- */
+
+/** Le pagine di servizio pubblicate di una città, con il loro indirizzo. */
+function ai_pagine_servizio( $citta, $escludi_id = '' ) {
+	$fuori = array();
+	foreach ( pagine_di_citta( $citta['id'], true ) as $p ) {
+		if ( ! in_array( $p['tipo'], array( 'servizio', 'servizi' ), true ) ) {
+			continue;
+		}
+		if ( '' !== $escludi_id && $p['id'] === $escludi_id ) {
+			continue;
+		}
+		$fuori[] = array(
+			'id'     => $p['id'],
+			'titolo' => $p['titolo'],
+			'url'    => url_pagina( $citta, $p ),
+		);
+	}
+	return $fuori;
+}
+
+/** L'elenco delle pagine di servizio, da mettere nel contesto del modello. */
+function ai_elenco_servizi( $pagine ) {
+	if ( empty( $pagine ) ) {
+		return '';
+	}
+	$righe = array();
+	foreach ( $pagine as $p ) {
+		$righe[] = '- ' . $p['titolo'] . ' → ' . $p['url'];
+	}
+	return "Pagine di servizio di questa città (sono gli unici indirizzi che puoi usare):\n"
+		. implode( "\n", $righe );
+}
+
+/** L'istruzione che chiede il richiamo finale. */
+function ai_regole_richiamo( $pagine, $obbligatorio = true ) {
+	if ( empty( $pagine ) ) {
+		return '';
+	}
+	return "Chiusura" . ( $obbligatorio ? ' (obbligatoria)' : ' (solo se ci sta bene)' ) . ":\n"
+		. "- " . ( $obbligatorio ? 'Chiudi' : 'Puoi chiudere' ) . " con un <h3> e un paragrafo che rimanda "
+		. "alla pagina di servizio più vicina all'argomento, fra quelle elencate sopra.\n"
+		. "- Il collegamento si scrive <a href=\"INDIRIZZO\">testo</a>, con l'indirizzo copiato "
+		. "esatto dall'elenco. Non inventare indirizzi: quelli che non sono nell'elenco vengono tolti.\n"
+		. "- Un collegamento solo, dentro una frase che dice cosa si trova di là. "
+		. "Non «clicca qui», non «scopri di più».";
+}
+
+/**
+ * Quale pagina di servizio c'entra di più con un testo.
+ *
+ * Confronto grezzo di parole in comune, ed è giusto così: serve a scegliere
+ * fra cinque pagine, non a capire la lingua.
+ */
+function ai_servizio_piu_vicino( $pagine, $testo ) {
+	if ( empty( $pagine ) ) {
+		return null;
+	}
+	$scarta = array( 'della', 'delle', 'degli', 'nella', 'nelle', 'sono', 'come', 'cosa',
+		'quando', 'dove', 'perche', 'perché', 'tutti', 'tutte', 'questo', 'questa', 'anche',
+		'servizio', 'servizi', 'pagina', 'casa', 'auto' );
+
+	$parole = function ( $t ) use ( $scarta ) {
+		$t    = mb_strtolower( strip_tags( (string) $t ) );
+		$out  = array();
+		foreach ( preg_split( '/[^\p{L}]+/u', $t, -1, PREG_SPLIT_NO_EMPTY ) as $w ) {
+			if ( mb_strlen( $w ) >= 5 && ! in_array( $w, $scarta, true ) ) {
+				$out[ $w ] = true;
+			}
+		}
+		return $out;
+	};
+
+	$cerca   = $parole( $testo );
+	$scelta  = $pagine[0];
+	$massimo = -1;
+	foreach ( $pagine as $p ) {
+		$quante = count( array_intersect_key( $parole( $p['titolo'] ), $cerca ) );
+		if ( $quante > $massimo ) {
+			$massimo = $quante;
+			$scelta  = $p;
+		}
+	}
+	return $scelta;
+}
+
+/**
+ * Tiene solo i collegamenti che puntano davvero da qualche parte, e mette
+ * il richiamo se il modello non l'ha messo.
+ *
+ * Un modello che inventa un indirizzo non lo dice: scrive un link che sembra
+ * giusto e porta a una pagina che non esiste. Qui gli indirizzi ammessi sono
+ * quelli dell'elenco, e gli altri diventano testo normale.
+ */
+function ai_richiamo_applica( $html, $citta, $pagine, $riferimento = '', $obbligatorio = true ) {
+	$html = (string) $html;
+	if ( empty( $pagine ) ) {
+		return $html;
+	}
+
+	$ammessi = array();
+	foreach ( $pagine as $p ) {
+		$ammessi[ rtrim( $p['url'], '/' ) ] = true;
+	}
+
+	$trovato = false;
+	$html    = preg_replace_callback(
+		'#<a\b[^>]*href\s*=\s*["\']([^"\']*)["\'][^>]*>(.*?)</a>#is',
+		function ( $m ) use ( $ammessi, &$trovato ) {
+			if ( isset( $ammessi[ rtrim( trim( $m[1] ), '/' ) ] ) ) {
+				$trovato = true;
+				return $m[0];
+			}
+			// Indirizzo inventato: resta il testo, sparisce il collegamento.
+			return $m[2];
+		},
+		$html
+	);
+
+	if ( $trovato || ! $obbligatorio ) {
+		return $html;
+	}
+
+	// Il modello non l'ha messo: lo mettiamo noi, che almeno l'indirizzo è giusto.
+	$scelta = ai_servizio_piu_vicino( $pagine, '' === $riferimento ? $html : $riferimento );
+	if ( ! $scelta ) {
+		return $html;
+	}
+	$nome = titolo_con_citta( $scelta['titolo'], $citta['nome'] );
+	return rtrim( $html ) . "\n"
+		. '<h3>Ti serve ' . e( mb_strtolower( $scelta['titolo'] ) ) . ' a ' . e( $citta['nome'] ) . '?</h3>' . "\n"
+		. '<p>Nella pagina <a href="' . e( $scelta['url'] ) . '">' . e( $nome ) . '</a> trovi '
+		. 'cosa comprende il servizio, come si svolge e quanto costa.</p>';
+}
+
 function ai_regole() {
 	return "Regole:\n"
 		. "- Scrivi in italiano, in seconda persona plurale o impersonale, tono professionale e concreto.\n"
@@ -647,15 +829,31 @@ function ai_regole_formato() {
 
 /** Genera il testo di approfondimento. */
 function ai_corpo( $citta, $pagina ) {
-	$istruzione = "Scrivi il testo di approfondimento per una pagina di servizio locale.\n\n"
+	// Una pagina di servizio non rimanda a sé stessa: le altre pagine della
+	// città sì, quando c'entrano, ma senza forzare la chiusura.
+	$servizi = ai_pagine_servizio( $citta, $pagina['id'] );
+	$migliora = ai_istruzione_migliora( $pagina['corpo'] );
+
+	$istruzione = ( '' === $migliora
+			? "Scrivi il testo di approfondimento per una pagina di servizio locale.\n\n"
+			: "Migliora il testo di approfondimento di una pagina di servizio locale.\n\n" )
 		. ai_contesto( $citta, $pagina ) . "\n\n"
-		. "Lunghezza: 300-380 parole in tutto, divise in 3 o 4 blocchi, ognuno con il suo <h3>.\n"
-		. "Spiega quando serve il servizio, come si svolge, cosa deve sapere il cliente e cosa lo distingue in questa città.\n\n"
+		. ( '' === $migliora
+			? "Lunghezza: 300-380 parole in tutto, divise in 3 o 4 blocchi, ognuno con il suo <h3>.\n"
+				. "Spiega quando serve il servizio, come si svolge, cosa deve sapere il cliente e cosa lo distingue in questa città.\n\n"
+			: $migliora . "\n\n" )
+		. ( '' === ai_elenco_servizi( $servizi ) ? '' : ai_elenco_servizi( $servizi ) . "\n\n" )
 		. ai_regole() . "\n\n"
-		. ai_regole_formato();
+		. ai_regole_formato()
+		. ( '' === ai_regole_richiamo( $servizi, false ) ? '' : "\n\n" . ai_regole_richiamo( $servizi, false ) );
+
 	// Il testo di approfondimento è lungo: serve spazio per il ragionamento
 	// del modello e per le quattrocento parole richieste.
-	return ai_chiedi_testo( $istruzione, 'testo', 0, 16384, 'html' );
+	$esito = ai_chiedi_testo( $istruzione, 'testo', 0, 16384, 'html' );
+	if ( $esito['ok'] ) {
+		$esito['testo'] = ai_richiamo_applica( $esito['testo'], $citta, $servizi, $pagina['titolo'], false );
+	}
+	return $esito;
 }
 
 /**
@@ -796,9 +994,12 @@ function ai_titolo( $citta, $pagina ) {
 
 /** Genera l'introduzione breve. */
 function ai_intro( $citta, $pagina ) {
-	$istruzione = "Scrivi l'introduzione che compare sotto il titolo principale della pagina.\n\n"
+	$migliora   = ai_istruzione_migliora( $pagina['intro'] );
+	$istruzione = ( '' === $migliora
+			? "Scrivi l'introduzione che compare sotto il titolo principale della pagina.\n\n"
+			: "Migliora l'introduzione che compare sotto il titolo principale della pagina.\n\n" )
 		. ai_contesto( $citta, $pagina ) . "\n\n"
-		. "Una o due frasi che dicano subito cosa fate e dove. Breve.\n\n"
+		. ( '' === $migliora ? "Una o due frasi che dicano subito cosa fate e dove. Breve.\n\n" : $migliora . "\n\n" )
 		. ai_regole();
 	return ai_chiedi_testo( $istruzione, 'introduzione', 220 );
 }
@@ -966,7 +1167,7 @@ function ai_immagine_portale( $richiesta = '' ) {
  * ------------------------------------------------------------------------- */
 
 /** Contesto per l'assistente quando lavora su un articolo. */
-function ai_contesto_articolo( $citta, $articolo ) {
+function ai_contesto_articolo( $citta, $articolo, $con_corpo = true ) {
 	$parti   = array();
 	$parti[] = ai_contesto( $citta );
 
@@ -982,7 +1183,9 @@ function ai_contesto_articolo( $citta, $articolo ) {
 	if ( ! vuoto( $articolo['estratto'] ) ) {
 		$dentro[] = 'Di cosa parla: ' . $articolo['estratto'];
 	}
-	if ( ! vuoto( $articolo['corpo'] ) ) {
+	// Quando il compito è migliorare il testo, quel testo arriva già per
+	// intero più avanti: ripeterne l'inizio qui confonderebbe e basta.
+	if ( $con_corpo && ! vuoto( $articolo['corpo'] ) ) {
 		// Solo l'inizio: serve a capire il taglio, non a rileggersi tutto.
 		$testo    = trim( preg_replace( '/\s+/u', ' ', strip_tags( (string) $articolo['corpo'] ) ) );
 		$dentro[] = 'Testo già scritto (inizio): ' . mb_substr( $testo, 0, 600 );
@@ -1016,8 +1219,11 @@ function ai_articolo_titolo( $citta, $articolo ) {
 
 /** Estratto dell'articolo: le due righe che si leggono nell'elenco. */
 function ai_articolo_estratto( $citta, $articolo ) {
-	$istruzione = "Scrivi l'estratto di questo articolo: le due righe che si leggono nell'elenco del blog.\n\n"
+	$migliora   = ai_istruzione_migliora( $articolo['estratto'] );
+	$istruzione = ( '' === $migliora ? 'Scrivi' : 'Migliora' )
+		. " l'estratto di questo articolo: le due righe che si leggono nell'elenco del blog.\n\n"
 		. ai_contesto_articolo( $citta, $articolo ) . "\n\n"
+		. ( '' === $migliora ? '' : $migliora . "\n\n" )
 		. "Fra 140 e 200 caratteri. Dice cosa si impara leggendolo, non «in questo articolo vedremo».\n\n"
 		. ai_regole_articolo();
 	return ai_chiedi_testo( $istruzione, 'estratto', 205 );
@@ -1025,19 +1231,42 @@ function ai_articolo_estratto( $citta, $articolo ) {
 
 /** Corpo dell'articolo, già formattato in HTML. */
 function ai_articolo_corpo( $citta, $articolo ) {
-	$istruzione = "Scrivi il testo di un articolo di blog per un'attività locale.\n\n"
-		. ai_contesto_articolo( $citta, $articolo ) . "\n\n"
-		. "Lunghezza: 500-650 parole, divise in 4 o 5 blocchi, ognuno con il suo <h3>.\n"
-		. "Il primo blocco risponde subito alla domanda del titolo: chi legge non deve "
-		. "scorrere per sapere la risposta.\n"
-		. "Poi: quando succede, cosa si può fare da sé, quando serve un tecnico, "
-		. "cosa aspettarsi in termini di tempi e di costi.\n"
-		. "Se ci sono cifre o tempi, dilli come intervalli e di' che dipendono dal caso: "
-		. "non inventare prezzi precisi.\n"
-		. "Chiudi con un blocco che dice cosa fare a " . $citta['nome'] . ", senza slogan.\n\n"
+	// Un articolo del blog esiste per portare qualcuno alla pagina del
+	// servizio: il richiamo in fondo non è un di più, è il motivo.
+	$servizi  = ai_pagine_servizio( $citta );
+	$migliora = ai_istruzione_migliora( $articolo['corpo'] );
+
+	$istruzione = ( '' === $migliora
+			? "Scrivi il testo di un articolo di blog per un'attività locale.\n\n"
+			: "Migliora il testo di un articolo di blog per un'attività locale.\n\n" )
+		. ai_contesto_articolo( $citta, $articolo, '' === $migliora ) . "\n\n"
+		. ( '' === $migliora
+			? "Lunghezza: 500-650 parole, divise in 4 o 5 blocchi, ognuno con il suo <h3>.\n"
+				. "Il primo blocco risponde subito alla domanda del titolo: chi legge non deve "
+				. "scorrere per sapere la risposta.\n"
+				. "Poi: quando succede, cosa si può fare da sé, quando serve un tecnico, "
+				. "cosa aspettarsi in termini di tempi e di costi.\n"
+				. "Se ci sono cifre o tempi, dilli come intervalli e di' che dipendono dal caso: "
+				. "non inventare prezzi precisi.\n"
+			: $migliora . "\n\n" )
+		. ( '' === ai_elenco_servizi( $servizi ) ? '' : "\n" . ai_elenco_servizi( $servizi ) . "\n\n" )
 		. ai_regole_articolo() . "\n\n"
-		. ai_regole_formato();
-	return ai_chiedi_testo( $istruzione, 'testo', 0, 20480, 'html' );
+		. ai_regole_formato()
+		. ( '' === ai_regole_richiamo( $servizi, true )
+			? "\n\nChiudi con un blocco che dice cosa fare a " . $citta['nome'] . ", senza slogan."
+			: "\n\n" . ai_regole_richiamo( $servizi, true ) );
+
+	$esito = ai_chiedi_testo( $istruzione, 'testo', 0, 20480, 'html' );
+	if ( $esito['ok'] ) {
+		$esito['testo'] = ai_richiamo_applica(
+			$esito['testo'],
+			$citta,
+			$servizi,
+			$articolo['titolo'] . ' ' . $articolo['estratto'],
+			true
+		);
+	}
+	return $esito;
 }
 
 /** Tag dell'articolo. */

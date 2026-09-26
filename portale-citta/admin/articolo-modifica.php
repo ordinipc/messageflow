@@ -179,7 +179,7 @@ $parole   = str_word_count( strip_tags( (string) $articolo['corpo'] ), 0, 'àá�
 			<textarea name="estratto" id="campo-estratto" style="min-height:70px"><?php echo e( $articolo['estratto'] ); ?></textarea>
 			<?php if ( $ia ) : ?>
 				<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo"
-					data-ai="art_estratto" data-ai-campo="campo-estratto" data-ai-articolo="<?php echo e( $articolo['id'] ); ?>" data-ai-citta="<?php echo e( $citta['id'] ); ?>">&#10022; Scrivi l'estratto</button>
+					data-ai="art_estratto" data-ai-migliora="✦ Migliora l'estratto" data-ai-campo="campo-estratto" data-ai-articolo="<?php echo e( $articolo['id'] ); ?>" data-ai-citta="<?php echo e( $citta['id'] ); ?>">&#10022; Scrivi l'estratto</button>
 			<?php endif; ?>
 			<small>Compare nell'elenco del blog e, se manca la descrizione SEO, anche su Google.</small>
 		</label>
@@ -194,8 +194,13 @@ $parole   = str_word_count( strip_tags( (string) $articolo['corpo'] ), 0, 'àá�
 		<?php if ( $ia ) : ?>
 			<p>
 				<button type="button" class="pc-btn pc-btn--ghost pc-btn--piccolo"
-					data-ai="art_corpo" data-ai-campo="campo-corpo-articolo" data-ai-articolo="<?php echo e( $articolo['id'] ); ?>" data-ai-citta="<?php echo e( $citta['id'] ); ?>">&#10022; Scrivi con l'assistente</button>
-				<span class="pc-nota">500-650 parole gi&agrave; divise in blocchi coi sottotitoli. Rileggile: i fatti li conosci tu.</span>
+					data-ai="art_corpo" data-ai-migliora="✦ Migliora il testo" data-ai-campo="campo-corpo-articolo" data-ai-articolo="<?php echo e( $articolo['id'] ); ?>" data-ai-citta="<?php echo e( $citta['id'] ); ?>">&#10022; Scrivi con l'assistente</button>
+				<span class="pc-nota">
+					Riquadro vuoto: scrive 500-650 parole gi&agrave; divise in blocchi coi sottotitoli.
+					Riquadro pieno: <strong>non butta quello che c'&egrave;</strong>, lo migliora tenendo
+					fatti e numeri. In fondo mette il richiamo alla pagina di servizio pi&ugrave; vicina
+					all'argomento. Rileggi sempre: i fatti li conosci tu.
+				</span>
 			</p>
 		<?php endif; ?>
 		<textarea id="campo-corpo-articolo" name="corpo" data-editor style="min-height:420px" aria-label="Testo dell'articolo"><?php echo e( $articolo['corpo'] ); ?></textarea>
