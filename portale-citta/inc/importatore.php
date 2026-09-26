@@ -86,12 +86,18 @@ function import_scorri( $file, $per_ogni ) {
 	}
 
 	$letti = 0;
-	while ( @$lettore->read() ) {
+	// next() sposta il lettore sull'<item> successivo. Se dopo si chiamasse
+	// read(), quell'<item> verrebbe attraversato senza essere esaminato: si
+	// leggerebbe un articolo su due. Quindi l'avanzamento è una sola cosa,
+	// $avanti, e dopo un next() il ciclo riparte da dove siamo già.
+	$avanti = @$lettore->read();
+	while ( $avanti ) {
 		if ( XMLReader::ELEMENT !== $lettore->nodeType || 'item' !== $lettore->name ) {
+			$avanti = @$lettore->read();
 			continue;
 		}
 		$grezzo = $lettore->readOuterXml();
-		$lettore->next();
+		$avanti = @$lettore->next();
 		if ( '' === $grezzo ) {
 			continue;
 		}
@@ -141,6 +147,37 @@ function import_leggi_item( $xml ) {
 		'corpo'     => (string) $co->encoded,
 		'estratto'  => trim( (string) $ex->encoded ),
 	);
+}
+
+/**
+ * Stati di WordPress che possono entrare nel portale.
+ *
+ * Una bozza di WordPress è un articolo scritto, solo non ancora pubblicato:
+ * entra come bozza del portale, invisibile sul sito finché non la pubblichi.
+ * Quello che invece non deve tornare a galla è il cestino, e le bozze
+ * automatiche che WordPress crea da sé.
+ */
+function import_stati_ammessi() {
+	return array( 'publish', 'draft', 'pending', 'future', 'private' );
+}
+
+/** Vero se un articolo con questo stato di WordPress può entrare. */
+function import_stato_ammesso( $stato ) {
+	return in_array( strtolower( trim( (string) $stato ) ), import_stati_ammessi(), true );
+}
+
+/** Nome leggibile di uno stato di WordPress. */
+function import_stato_nome( $stato ) {
+	$nomi = array(
+		'publish' => 'pubblicato',
+		'draft'   => 'bozza',
+		'pending' => 'in revisione',
+		'future'  => 'programmato',
+		'private' => 'privato',
+		'trash'   => 'nel cestino',
+	);
+	$stato = strtolower( trim( (string) $stato ) );
+	return $nomi[ $stato ] ?? ( '' === $stato ? 'senza stato' : $stato );
 }
 
 /* ---------------------------------------------------------------------------

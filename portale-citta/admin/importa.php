@@ -59,9 +59,12 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['azione'] ) && '' !=
 		$riconosciuti = 0;
 		$di_riserva   = 0;
 		$esempi    = array();
+		$per_stato = array();
 
-		import_scorri( $xml, function ( $a ) use ( &$per_citta, &$totale, &$gia, &$esempi, &$riconosciuti, &$di_riserva, $elenco, $riserva ) {
+		import_scorri( $xml, function ( $a ) use ( &$per_citta, &$totale, &$gia, &$esempi, &$riconosciuti, &$di_riserva, &$per_stato, $elenco, $riserva ) {
 			$totale++;
+			$stato = strtolower( trim( (string) $a['stato'] ) );
+			$per_stato[ $stato ] = ( $per_stato[ $stato ] ?? 0 ) + 1;
 			if ( articolo_gia_importato( $a['origine'] ) ) {
 				$gia++;
 				return true;
@@ -84,7 +87,9 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['azione'] ) && '' !=
 		} );
 
 		arsort( $per_citta );
+		arsort( $per_stato );
 		$analisi = array(
+			'per_stato'    => $per_stato,
 			'file'         => basename( $scelto ),
 			'xml'          => basename( $xml ),
 			'totale'       => $totale,
@@ -102,36 +107,44 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['azione'] ) && '' !=
 	if ( 'importa' === $_POST['azione'] ) {
 		$limite    = max( 1, min( 2000, (int) ( $_POST['limite'] ?? 500 ) ) );
 		$pubblica  = isset( $_POST['pubblica'] );
+		$bozze     = isset( $_POST['anche_bozze'] );
 		$importati = 0;
-		$saltati   = 0;
+		// Un solo numero non dice niente: chi guarda vuole sapere perché.
+		$motivi    = array( 'gia' => 0, 'stato' => 0, 'bozza' => 0, 'citta' => 0, 'escluse' => 0, 'vuoti' => 0 );
 		$per_citta = array();
 
-		import_scorri( $xml, function ( $a ) use ( &$importati, &$saltati, &$per_citta, $elenco, $riserva, $solo, $limite, $pubblica ) {
+		import_scorri( $xml, function ( $a ) use ( &$importati, &$motivi, &$per_citta, $elenco, $riserva, $solo, $limite, $pubblica, $bozze ) {
 			if ( $importati >= $limite ) {
 				return false;
 			}
-			if ( 'publish' !== $a['stato'] || vuoto( $a['titolo'] ) ) {
-				$saltati++;
+			if ( vuoto( $a['titolo'] ) || ! import_stato_ammesso( $a['stato'] ) ) {
+				$motivi['stato']++;
+				return true;
+			}
+			// Una bozza di WordPress entra come bozza del portale, se lo si
+			// è chiesto: è un articolo scritto, non un articolo mancante.
+			if ( ! $bozze && 'publish' !== strtolower( trim( (string) $a['stato'] ) ) ) {
+				$motivi['bozza']++;
 				return true;
 			}
 			if ( articolo_gia_importato( $a['origine'] ) ) {
-				$saltati++;
+				$motivi['gia']++;
 				return true;
 			}
 
 			$citta_id = import_citta_di( $a['titolo'], $elenco, $riserva );
 			if ( '' === $citta_id ) {
-				$saltati++;
+				$motivi['citta']++;
 				return true;
 			}
 			if ( ! empty( $solo ) && ! in_array( $citta_id, $solo, true ) ) {
-				$saltati++;
+				$motivi['escluse']++;
 				return true;
 			}
 
 			$corpo = import_pulisci_corpo( $a['corpo'] );
 			if ( vuoto( $corpo ) ) {
-				$saltati++;
+				$motivi['vuoti']++;
 				return true;
 			}
 
@@ -158,10 +171,26 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['azione'] ) && '' !=
 			$dettaglio[] = ( $c ? $c['nome'] : '?' ) . ' ' . $n;
 		}
 
+		$spiegazioni = array(
+			'gia'     => 'già importati',
+			'stato'   => 'nel cestino o senza titolo',
+			'bozza'   => 'bozze di WordPress (togli la spunta "solo i pubblicati" per farle entrare)',
+			'citta'   => 'nessuna città riconosciuta nel titolo',
+			'escluse' => 'città non selezionate qui sopra',
+			'vuoti'   => 'senza testo',
+		);
+		$perche = array();
+		foreach ( $motivi as $chiave => $quanti ) {
+			if ( $quanti > 0 ) {
+				$perche[] = $quanti . ' ' . $spiegazioni[ $chiave ];
+			}
+		}
+		$saltati = array_sum( $motivi );
+
 		avviso(
 			$importati . ' articoli importati' . ( $pubblica ? ' e pubblicati' : ' in bozza' )
 			. ( empty( $dettaglio ) ? '' : ' (' . implode( ', ', $dettaglio ) . ')' )
-			. '. Saltati ' . $saltati . ' (già importati, non pubblicati o senza testo).'
+			. '. Saltati ' . $saltati . ( empty( $perche ) ? '' : ': ' . implode( ', ', $perche ) ) . '.'
 			. ( $importati >= $limite ? ' Raggiunto il limite di questo giro: premi di nuovo per continuare.' : '' ),
 			$importati > 0 ? 'ok' : 'errore'
 		);
@@ -312,6 +341,25 @@ $limite_upload   = ini_get( 'upload_max_filesize' );
 	</p>
 
 	<?php
+	$stati_buoni  = 0;
+	$stati_fuori  = 0;
+	$righe_stato  = array();
+	foreach ( (array) ( $analisi['per_stato'] ?? array() ) as $st => $quanti ) {
+		$ammesso = import_stato_ammesso( $st );
+		$ammesso ? $stati_buoni += $quanti : $stati_fuori += $quanti;
+		$righe_stato[] = $quanti . ' ' . import_stato_nome( $st ) . ( $ammesso ? '' : ' (non entrano)' );
+	}
+	?>
+	<?php if ( ! empty( $righe_stato ) ) : ?>
+		<p class="pc-scheda__nota" id="esito-stati">
+			Nel file per stato di WordPress: <?php echo e( implode( ', ', $righe_stato ) ); ?>.
+			<?php if ( $stati_buoni > 0 && $stati_fuori < $analisi['totale'] ) : ?>
+				Le bozze e gli articoli programmati entrano come bozze del portale.
+			<?php endif; ?>
+		</p>
+	<?php endif; ?>
+
+	<?php
 	$mancanti = array_filter( $analisi['luoghi'], function ( $l ) {
 		return '' === $l['citta_id'];
 	} );
@@ -404,13 +452,21 @@ $limite_upload   = ini_get( 'upload_max_filesize' );
 				<input type="number" name="limite" value="500" min="1" max="2000">
 				<small>Su hosting lenti conviene poco alla volta: il pulsante si ripreme.</small>
 			</label>
-			<label class="pc-inline" style="align-self:end;margin-bottom:14px">
-				<input type="checkbox" name="pubblica" value="1">
-				Pubblicali subito
-			</label>
+			<div style="align-self:end;margin-bottom:14px">
+				<label class="pc-inline" style="margin:0">
+					<input type="checkbox" name="pubblica" value="1">
+					Pubblicali subito
+				</label>
+				<label class="pc-inline" style="margin:8px 0 0">
+					<input type="checkbox" name="anche_bozze" value="1" checked>
+					Prendi anche le bozze di WordPress
+				</label>
+			</div>
 		</div>
 		<p class="pc-nota">
-			Senza la spunta entrano in bozza: li rileggi e li pubblichi quando vuoi, anche in blocco.
+			Senza la prima spunta entrano in bozza: li rileggi e li pubblichi quando vuoi, anche in blocco.
+			La seconda riguarda gli articoli che in WordPress non erano ancora pubblicati: sono scritti,
+			quindi per difetto entrano anche loro. Il cestino non entra mai.
 		</p>
 
 		<button class="pc-btn" type="submit" name="azione" value="importa">Importa gli articoli selezionati</button>
