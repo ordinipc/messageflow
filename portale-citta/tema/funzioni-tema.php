@@ -182,7 +182,42 @@ function icona_social( $chiave ) {
  * Vuota se la pagina non ne ha una o se le immagini nelle card sono
  * spente: la card esce senza, non con un riquadro grigio.
  */
-function foto_card( $voce, $classe = 'glp-box__foto' ) {
+/**
+ * L'immagine da mostrare per un articolo, nelle card.
+ *
+ * Prima la sua, poi quella della categoria. Il ripiego non è pigrizia:
+ * cinquanta articoli importati non hanno una foto ciascuno, e una griglia
+ * dove una card su dieci ha l'immagine e le altre no sembra rotta. Con la
+ * foto della categoria bastano quattro immagini per cinquanta articoli, e
+ * chi legge vede comunque di cosa si parla.
+ */
+function foto_articolo( $articolo, $classe = 'glp-box__foto' ) {
+	$file     = isset( $articolo['immagine'] ) ? (string) $articolo['immagine'] : '';
+	$ereditata = false;
+
+	if ( vuoto( $file ) && ! vuoto( $articolo['categoria'] ?? '' ) ) {
+		$categoria = categoria_per_id( $articolo['categoria'] );
+		if ( $categoria && ! vuoto( $categoria['immagine'] ) ) {
+			$file      = $categoria['immagine'];
+			$ereditata = true;
+		}
+	}
+	if ( vuoto( $file ) ) {
+		return '';
+	}
+
+	// Immagine ereditata: l'alt della libreria descrive quel file in
+	// generale, e su dieci card della stessa categoria diventerebbe dieci
+	// volte la stessa frase. Chi legge con lo schermo sente dieci immagini
+	// identiche e non sa a quale articolo appartengono. Qui vale il titolo.
+	return foto_card(
+		array( 'immagine' => $file, 'titolo' => $articolo['titolo'] ?? '' ),
+		$classe,
+		$ereditata ? (string) ( $articolo['titolo'] ?? '' ) : ''
+	);
+}
+
+function foto_card( $voce, $classe = 'glp-box__foto', $alt_preferito = '' ) {
 	$file = isset( $voce['immagine'] ) ? (string) $voce['immagine'] : '';
 	if ( vuoto( $file ) || '1' !== (string) impostazione( 'card_immagini', '1' ) ) {
 		return '';
@@ -192,9 +227,16 @@ function foto_card( $voce, $classe = 'glp-box__foto' ) {
 	// collegamento — ma la libreria un campo alt ce l'ha, e lasciarlo
 	// inutilizzato vuol dire buttare via l'unica descrizione scritta a
 	// mano che abbiamo.
-	$alt = media_alt( $file );
+	// Di norma vince quello scritto in libreria: è l'unica descrizione
+	// scritta a mano che abbiamo. Ma chi chiama può imporne un altro, e ha
+	// ragione quando la stessa immagine sta su card diverse.
+	$alt = trim( (string) $alt_preferito );
 	if ( '' === $alt ) {
-		$alt = trim( (string) ( isset( $voce['nome'] ) ? $voce['nome'] : '' ) );
+		$alt = media_alt( $file );
+	}
+	if ( '' === $alt ) {
+		// I servizi hanno «nome», gli articoli «titolo»: vale il primo che c'è.
+		$alt = trim( (string) ( $voce['nome'] ?? $voce['titolo'] ?? '' ) );
 	}
 	return '<span class="' . e( $classe ) . '">'
 		. '<img src="' . e( url_media( $file ) ) . '" alt="' . e( $alt ) . '" loading="lazy" decoding="async">'

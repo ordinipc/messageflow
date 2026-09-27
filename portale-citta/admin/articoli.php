@@ -74,8 +74,10 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['pubblica_tutti'] ) 
 $filtro_cat = (string) ( $_GET['cat'] ?? '' );
 $categorie  = categorie_tutte();
 $nomi_cat   = array();
+$foto_cat   = array();
 foreach ( $categorie as $c ) {
 	$nomi_cat[ $c['id'] ] = $c['nome'];
+	$foto_cat[ $c['id'] ] = $c['immagine'];
 }
 if ( '' !== $filtro_cat && ! isset( $nomi_cat[ $filtro_cat ] ) ) {
 	$filtro_cat = '';
@@ -167,13 +169,28 @@ $tok        = '&token=' . rawurlencode( token() );
 		<thead>
 			<tr>
 				<th style="width:28px"><input type="checkbox" onclick="document.querySelectorAll('[name=\'scelte[]\']').forEach(c=>c.checked=this.checked)"></th>
-				<th>Titolo</th><th>Categoria</th><th>Data</th><th>Indirizzo</th><th>Stato</th><th></th>
+				<th style="width:64px">Foto</th><th>Titolo</th><th>Categoria</th><th>Data</th><th>Indirizzo</th><th>Stato</th><th></th>
 			</tr>
 		</thead>
 		<tbody>
 		<?php foreach ( $articoli as $a ) : ?>
 			<tr>
 				<td><input type="checkbox" name="scelte[]" value="<?php echo e( $a['id'] ); ?>"></td>
+				<td>
+					<?php
+					// Quella dell'articolo, o quella che eredita dalla categoria:
+					// qui si vede subito chi resterebbe senza niente.
+					$suo       = ! vuoto( $a['immagine'] );
+					$da_usare  = $suo ? $a['immagine'] : (string) ( $foto_cat[ $a['categoria'] ] ?? '' );
+					?>
+					<?php if ( '' !== $da_usare ) : ?>
+						<img src="<?php echo e( url_media( $da_usare ) ); ?>" alt=""
+							style="width:56px;height:38px;object-fit:cover;border-radius:4px;display:block<?php echo $suo ? '' : ';opacity:.55'; ?>"
+							title="<?php echo $suo ? 'Immagine dell\'articolo' : 'Ereditata dalla categoria'; ?>">
+					<?php else : ?>
+						<span class="pc-nota" title="Né l'articolo né la sua categoria hanno un'immagine">senza</span>
+					<?php endif; ?>
+				</td>
 				<td>
 					<strong><?php echo e( $a['titolo'] ); ?></strong>
 					<?php if ( ! vuoto( $a['origine'] ) ) : ?>

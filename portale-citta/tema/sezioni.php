@@ -439,8 +439,10 @@ function sezione_blog( $citta, $pagina_blog, $per_pagina = 12 ) {
 
 	$html .= '<ul class="glp-boxes glp-boxes--larghe">';
 	foreach ( $articoli as $i => $a ) {
-		$html .= box_apri( 'link', $i )
+		$foto  = foto_articolo( $a );
+		$html .= box_apri( 'link' . ( '' === $foto ? '' : ' foto' ), $i )
 			. '<a href="' . e( url_articolo( $citta, $a, $pagina_blog ) ) . '">'
+			. $foto
 			. '<span class="glp-box__titolo">' . e( $a['titolo'] ) . '</span>';
 		if ( ! vuoto( $a['estratto'] ) ) {
 			$html .= '<span class="glp-box__testo">' . e( mb_substr( $a['estratto'], 0, 140 ) ) . '</span>';

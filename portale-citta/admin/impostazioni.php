@@ -218,7 +218,8 @@ $cfg      = db_config();
 
 		<label class="pc-inline">
 			<input type="checkbox" name="card_immagini" value="1" <?php checked_pc( '1' === (string) $imp['card_immagini'] ); ?>>
-			Mostra l'immagine di anteprima nelle card dei servizi
+			Mostra l'immagine di anteprima nelle card dei servizi e degli articoli
+			<small>Un articolo senza immagine sua usa quella della sua categoria.</small>
 		</label>
 
 		<label class="pc-inline">

@@ -61,6 +61,7 @@ $schemi = array(
 		'inLanguage'    => $imp['lingua'],
 		'isPartOf'      => array( '@type' => 'Blog', 'name' => $pagina['titolo'], 'url' => url_pagina( $citta, $pagina ) ),
 		'dateModified'  => vuoto( $categoria['aggiornata'] ) ? oggi() : $categoria['aggiornata'],
+		'image'         => $immagine,
 		'publisher'     => array( '@id' => url_citta( $citta ) . '#attivita' ),
 		'about'         => array( '@type' => 'City', 'name' => $citta['nome'] ),
 		'mainEntity'    => array(
@@ -119,8 +120,10 @@ include __DIR__ . '/parti/barra.php';
 		<section class="glp-section glp-reveal">
 			<ul class="glp-boxes glp-boxes--larghe">
 			<?php foreach ( $articoli as $i => $a ) : ?>
-				<?php echo box_apri( 'link', $i ); ?>
+				<?php $foto = foto_articolo( $a ); ?>
+				<?php echo box_apri( 'link' . ( '' === $foto ? '' : ' foto' ), $i ); ?>
 					<a href="<?php echo e( url_articolo( $citta, $a, $pagina ) ); ?>">
+						<?php echo $foto; ?>
 						<span class="glp-box__titolo"><?php echo e( $a['titolo'] ); ?></span>
 						<?php if ( ! vuoto( $a['estratto'] ) ) : ?>
 							<span class="glp-box__testo"><?php echo e( mb_substr( $a['estratto'], 0, 140 ) ); ?></span>

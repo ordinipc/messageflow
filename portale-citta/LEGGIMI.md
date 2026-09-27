@@ -284,6 +284,33 @@ Nella stessa schermata ci sono anche:
 - **l'assistente** su ogni campo: titolo, estratto, testo, tag, titolo e
   descrizione per Google, immagine
 
+### Le immagini degli articoli
+
+L'immagine di un articolo si vede in tre posti: in cima all'articolo, nelle
+**card** del blog e dell'archivio di categoria, e fra gli «altri articoli» in
+fondo. È anche quella che esce quando il link si incolla su WhatsApp o su
+Facebook.
+
+Se un articolo **non ha un'immagine sua**, usa quella della **sua categoria**.
+Non è pigrizia: cinquanta articoli importati non hanno una foto ciascuno, e
+una griglia dove una card su dieci ha l'immagine e le altre no sembra rotta.
+Con quattro immagini di categoria ne copri cinquanta, e chi guarda vede
+comunque di cosa si parla. Metti l'immagine sulla categoria da **Articoli →
+Categorie**.
+
+Quando l'immagine è ereditata, il testo alternativo diventa il **titolo
+dell'articolo**, non quello scritto in libreria: dieci card con la stessa
+immagine avrebbero avuto dieci volte la stessa descrizione, e chi legge con
+lo schermo non avrebbe saputo distinguerle.
+
+Nell'elenco **Articoli** la prima colonna mostra la miniatura: a piena
+opacità è l'immagine dell'articolo, sbiadita è quella ereditata dalla
+categoria, e la scritta «senza» vuol dire che non ce l'ha né l'uno né
+l'altra. Così si vede in un colpo d'occhio dove manca.
+
+> Le foto nelle card si possono spegnere tutte insieme da **Impostazioni →
+> Aspetto**, con la stessa spunta delle card dei servizi.
+
 ### Le categorie
 
 Menu **Articoli → Categorie**. Una categoria vale per tutto il portale —

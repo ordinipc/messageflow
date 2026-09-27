@@ -18,7 +18,14 @@ $titolo      = vuoto( $articolo['seo_titolo'] ) ? $articolo['titolo'] . ' | ' . 
 $descrizione = vuoto( $articolo['seo_desc'] ) ? $articolo['estratto'] : $articolo['seo_desc'];
 $canonico    = url_articolo( $citta, $articolo, $pagina );
 $categoria   = categoria_per_id( $articolo['categoria'] );
-$immagine    = vuoto( $articolo['immagine'] ) ? url_media( $imp['logo'] ) : url_media( $articolo['immagine'] );
+// L'immagine per l'anteprima social: la sua, poi quella della categoria,
+// e solo alla fine il logo. Il logo condiviso su WhatsApp non dice niente
+// di quell'articolo; la foto della categoria almeno dice l'argomento.
+$immagine    = $articolo['immagine'];
+if ( vuoto( $immagine ) && $categoria && ! vuoto( $categoria['immagine'] ) ) {
+	$immagine = $categoria['immagine'];
+}
+$immagine    = vuoto( $immagine ) ? url_media( $imp['logo'] ) : url_media( $immagine );
 $indicizza   = '1' === (string) $imp['indicizza'] && 'pubblicato' === $articolo['stato'] && 'pubblicata' === $citta['stato'];
 $css_extra   = $citta['css'];
 $js_extra    = $citta['js'];
@@ -40,8 +47,9 @@ $schemi = array(
 			'mainEntityOfPage' => $canonico,
 			'about'            => array( '@type' => 'City', 'name' => $citta['nome'] ),
 		),
-		// Categoria e tag solo se ci sono: una chiave vuota nei dati
-		// strutturati è peggio della chiave che manca.
+		// Categoria, tag e immagine solo se ci sono: una chiave vuota nei
+		// dati strutturati è peggio della chiave che manca.
+		vuoto( $immagine ) ? array() : array( 'image' => $immagine ),
 		$categoria ? array( 'articleSection' => $categoria['nome'] ) : array(),
 		vuoto( $articolo['tag'] ) ? array() : array( 'keywords' => implode( ', ', righe( (string) $articolo['tag'] ) ) )
 	),
@@ -142,8 +150,10 @@ include __DIR__ . '/parti/barra.php';
 		echo sezione_apri( 'altri-articoli', 'Altri articoli su ' . $citta['nome'], 'Dal blog' );
 		echo '<ul class="glp-boxes glp-boxes--larghe">';
 		foreach ( $vicini as $i => $a ) {
-			echo box_apri( 'link', $i )
+			$foto = foto_articolo( $a );
+			echo box_apri( 'link' . ( '' === $foto ? '' : ' foto' ), $i )
 				. '<a href="' . e( url_articolo( $citta, $a, $pagina ) ) . '">'
+				. $foto
 				. '<span class="glp-box__titolo">' . e( $a['titolo'] ) . '</span>';
 			if ( ! vuoto( $a['estratto'] ) ) {
 				echo '<span class="glp-box__testo">' . e( mb_substr( $a['estratto'], 0, 110 ) ) . '</span>';
