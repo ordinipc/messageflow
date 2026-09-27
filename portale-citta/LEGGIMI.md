@@ -311,6 +311,35 @@ l'altra. Così si vede in un colpo d'occhio dove manca.
 > Le foto nelle card si possono spegnere tutte insieme da **Impostazioni →
 > Aspetto**, con la stessa spunta delle card dei servizi.
 
+### Il peso delle immagini
+
+Un'immagine disegnata dall'assistente arriva anche a **800 KB** per 1376 px:
+è il peso di una pagina intera, per una foto che in una card si vede larga
+330 px. Su una connessione mobile si sente.
+
+Il portale fa tre cose da sé:
+
+1. **Ogni immagine nuova viene ricompressa** appena arriva — caricata da te o
+   disegnata dall'IA. Larghezza massima 1600 px e qualità 82: è il punto in
+   cui non si vede la differenza, e toglie fra il 70% e l'80% del peso
+2. Ne tiene da parte una **copia piccola** da 800 px in `media/mini/`, ed è
+   quella che finisce nelle card. Una card passa da 456 KB a 69 KB
+3. Se la copia piccola manca — immagini vecchie, cartella non scrivibile —
+   si usa l'originale: non si rompe niente
+
+Per le immagini **già caricate** c'è il pulsante: **Immagini → Peso →
+Alleggerisci le immagini**. Riscrive i file più leggeri **tenendo lo stesso
+nome**, quindi nessuna pagina perde la sua immagine, e crea le copie piccole
+mancanti. Lavora a gruppi di quindici e ti dice a che punto è: su hosting
+lenti cinquanta immagini in un colpo supererebbero il tempo massimo. Alla
+fine dice quanto ha risparmiato.
+
+> **Non si torna indietro.** Gli originali vengono sostituiti. Se le foto le
+> hai solo lì, tienine una copia sul computer prima di premere.
+
+Larghezza e qualità si cambiano nello stesso riquadro. Sotto 70 di qualità la
+compressione si inizia a vedere; sopra 90 si torna a pesare senza guadagno.
+
 ### Le categorie
 
 Menu **Articoli → Categorie**. Una categoria vale per tutto il portale —
@@ -1109,6 +1138,11 @@ salvati in JSON dentro la loro colonna.
 ## Aggiornare
 
 Sovrascrivi tutto **tranne** `config.php`, `dati/` e `media/`.
+
+**In fondo a ogni schermata dell'amministrazione c'è la versione installata**
+e la data dei file. Serve quando una novità «non c'è»: quasi sempre vuol dire
+che i file nuovi non sono saliti, e da lì si controlla in due secondi senza
+riaprire l'FTP.
 
 Al primo accesso all'amministrazione le tabelle mancanti vengono create e le
 colonne nuove aggiunte a quelle esistenti: non devi toccare il database.

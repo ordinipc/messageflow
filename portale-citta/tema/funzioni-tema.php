@@ -238,8 +238,15 @@ function foto_card( $voce, $classe = 'glp-box__foto', $alt_preferito = '' ) {
 		// I servizi hanno «nome», gli articoli «titolo»: vale il primo che c'è.
 		$alt = trim( (string) ( $voce['nome'] ?? $voce['titolo'] ?? '' ) );
 	}
+	// Nella card si vede larga 330 px: mandarle l'originale da 1600 px è
+	// peso buttato. La copia piccola c'è quasi sempre; se manca — immagini
+	// vecchie, cartella non scrivibile — si usa l'originale e non si rompe
+	// niente.
+	$mini = media_mini( $file );
+	$src  = url_media( '' === $mini ? $file : $mini );
+
 	return '<span class="' . e( $classe ) . '">'
-		. '<img src="' . e( url_media( $file ) ) . '" alt="' . e( $alt ) . '" loading="lazy" decoding="async">'
+		. '<img src="' . e( $src ) . '" alt="' . e( $alt ) . '" loading="lazy" decoding="async">'
 		. '</span>';
 }
 

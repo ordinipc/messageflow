@@ -36,6 +36,212 @@ function media_per_id( $id ) {
 	return db_riga( 'SELECT * FROM ' . db_tab( 'media' ) . ' WHERE id = ?', array( $id ) );
 }
 
+/* ---------------------------------------------------------------------------
+ * Peso delle immagini
+ *
+ * Un'immagine generata dall'IA arriva a 800 KB per 1376 px: è il peso di
+ * una pagina intera, per una foto che in una card si vede larga 330 px.
+ * Ricomprimerla a qualità 82 ne toglie l'80% senza che si veda la
+ * differenza, e per le card si tiene da parte una copia piccola.
+ * ------------------------------------------------------------------------- */
+
+/** Larghezza massima di un'immagine in libreria. */
+function media_larghezza_max() {
+	return max( 600, min( 4000, (int) impostazione( 'media_larghezza', '1600' ) ) );
+}
+
+/** Qualità di ricompressione, 50-95. */
+function media_qualita() {
+	return max( 50, min( 95, (int) impostazione( 'media_qualita', '82' ) ) );
+}
+
+/** Larghezza della copia piccola usata nelle card. */
+function media_mini_larghezza() {
+	return max( 320, min( 1600, (int) impostazione( 'media_mini', '800' ) ) );
+}
+
+/** La cartella delle copie piccole. */
+function media_mini_cartella() {
+	$dir = PC_MEDIA . '/mini';
+	if ( ! is_dir( $dir ) ) {
+		@mkdir( $dir, 0755, true );
+	}
+	return $dir;
+}
+
+/** Apre un file immagine come risorsa GD, o false. */
+function media_apri( $percorso, $mime ) {
+	switch ( $mime ) {
+		case 'image/jpeg':
+			return @imagecreatefromjpeg( $percorso );
+		case 'image/png':
+			return @imagecreatefrompng( $percorso );
+		case 'image/webp':
+			return function_exists( 'imagecreatefromwebp' ) ? @imagecreatefromwebp( $percorso ) : false;
+	}
+	return false;
+}
+
+/** Scrive una risorsa GD su file, nel formato giusto. */
+function media_scrivi( $risorsa, $percorso, $mime, $qualita ) {
+	switch ( $mime ) {
+		case 'image/jpeg':
+			// Progressiva: la foto compare sfocata e si definisce, invece
+			// di scendere una riga per volta.
+			imageinterlace( $risorsa, true );
+			return imagejpeg( $risorsa, $percorso, $qualita );
+		case 'image/png':
+			return imagepng( $risorsa, $percorso, 9 );
+		case 'image/webp':
+			return function_exists( 'imagewebp' ) ? imagewebp( $risorsa, $percorso, $qualita ) : false;
+	}
+	return false;
+}
+
+/** Una copia rimpicciolita di una risorsa GD, o la stessa se è già stretta. */
+function media_scala( $sorgente, $larghezza_max, $mime ) {
+	$l = imagesx( $sorgente );
+	$a = imagesy( $sorgente );
+	if ( $l <= $larghezza_max ) {
+		return null;
+	}
+	$nuova_a = max( 1, (int) round( $a * ( $larghezza_max / $l ) ) );
+	$dest    = imagecreatetruecolor( $larghezza_max, $nuova_a );
+	if ( 'image/png' === $mime || 'image/webp' === $mime ) {
+		imagealphablending( $dest, false );
+		imagesavealpha( $dest, true );
+	}
+	imagecopyresampled( $dest, $sorgente, 0, 0, 0, 0, $larghezza_max, $nuova_a, $l, $a );
+	return $dest;
+}
+
+/**
+ * Ricomprime un'immagine già salvata, sul posto.
+ *
+ * Il file nuovo si tiene solo se pesa meno: un'immagine già ottimizzata non
+ * deve ingrassare per essere passata di qui. Il nome non cambia mai, così
+ * nessun collegamento si rompe.
+ *
+ * @return array( 'fatto' => bool, 'prima' => int, 'dopo' => int,
+ *                'larghezza' => int, 'altezza' => int )
+ */
+function media_alleggerisci( $percorso, $larghezza_max = 0, $qualita = 0 ) {
+	$vuoto = array( 'fatto' => false, 'prima' => 0, 'dopo' => 0, 'larghezza' => 0, 'altezza' => 0 );
+	if ( ! is_file( $percorso ) || ! function_exists( 'imagecreatetruecolor' ) ) {
+		return $vuoto;
+	}
+
+	$dati = @getimagesize( $percorso );
+	if ( ! is_array( $dati ) ) {
+		return $vuoto;
+	}
+	$mime  = (string) $dati['mime'];
+	$prima = (int) filesize( $percorso );
+	$vuoto = array( 'fatto' => false, 'prima' => $prima, 'dopo' => $prima,
+		'larghezza' => (int) $dati[0], 'altezza' => (int) $dati[1] );
+
+	// Le GIF possono essere animate e il PNG con trasparenza spesso è un
+	// logo, dove la ricompressione rende poco: si toccano solo se sono
+	// più larghe del massimo.
+	if ( ! in_array( $mime, array( 'image/jpeg', 'image/png', 'image/webp' ), true ) ) {
+		return $vuoto;
+	}
+
+	$larghezza_max = $larghezza_max > 0 ? $larghezza_max : media_larghezza_max();
+	$qualita       = $qualita > 0 ? $qualita : media_qualita();
+
+	$sorgente = media_apri( $percorso, $mime );
+	if ( ! $sorgente ) {
+		return $vuoto;
+	}
+
+	$scalata = media_scala( $sorgente, $larghezza_max, $mime );
+	$lavoro  = null === $scalata ? $sorgente : $scalata;
+
+	// Prima in memoria: così si confronta il peso senza aver già
+	// sovrascritto l'originale.
+	ob_start();
+	$ok    = media_scrivi( $lavoro, null, $mime, $qualita );
+	$nuovo = ob_get_clean();
+
+	$esito = $vuoto;
+	if ( $ok && '' !== $nuovo && ( strlen( $nuovo ) < $prima || null !== $scalata ) ) {
+		if ( false !== file_put_contents( $percorso, $nuovo ) ) {
+			@chmod( $percorso, 0644 );
+			$esito = array(
+				'fatto'     => true,
+				'prima'     => $prima,
+				'dopo'      => strlen( $nuovo ),
+				'larghezza' => imagesx( $lavoro ),
+				'altezza'   => imagesy( $lavoro ),
+			);
+		}
+	}
+
+	if ( null !== $scalata ) {
+		imagedestroy( $scalata );
+	}
+	imagedestroy( $sorgente );
+	return $esito;
+}
+
+/**
+ * Crea la copia piccola per le card, se serve.
+ * Se l'originale è già stretto non si crea niente: sarebbe una copia uguale.
+ */
+function media_mini_crea( $file ) {
+	$file = basename( (string) $file );
+	if ( '' === $file ) {
+		return false;
+	}
+	$origine = PC_MEDIA . '/' . $file;
+	if ( ! is_file( $origine ) || ! function_exists( 'imagecreatetruecolor' ) ) {
+		return false;
+	}
+	$dati = @getimagesize( $origine );
+	if ( ! is_array( $dati ) || ! in_array( $dati['mime'], array( 'image/jpeg', 'image/png', 'image/webp' ), true ) ) {
+		return false;
+	}
+	if ( (int) $dati[0] <= media_mini_larghezza() ) {
+		return false;
+	}
+
+	$sorgente = media_apri( $origine, (string) $dati['mime'] );
+	if ( ! $sorgente ) {
+		return false;
+	}
+	$piccola = media_scala( $sorgente, media_mini_larghezza(), (string) $dati['mime'] );
+	$ok      = false;
+	if ( null !== $piccola ) {
+		$ok = media_scrivi( $piccola, media_mini_cartella() . '/' . $file, (string) $dati['mime'], media_qualita() );
+		@chmod( media_mini_cartella() . '/' . $file, 0644 );
+		imagedestroy( $piccola );
+	}
+	imagedestroy( $sorgente );
+	return (bool) $ok;
+}
+
+/**
+ * Il nome da usare per la copia piccola, o '' se non c'è.
+ * Chi chiama ripiega sull'originale: una miniatura mancante non è un guasto.
+ */
+function media_mini( $file ) {
+	$file = basename( (string) $file );
+	if ( '' === $file ) {
+		return '';
+	}
+	return is_file( PC_MEDIA . '/mini/' . $file ) ? 'mini/' . $file : '';
+}
+
+/** Cancella la copia piccola di un file. */
+function media_mini_elimina( $file ) {
+	$file = basename( (string) $file );
+	$p    = PC_MEDIA . '/mini/' . $file;
+	if ( '' !== $file && is_file( $p ) ) {
+		@unlink( $p );
+	}
+}
+
 /**
  * Gestisce un file caricato.
  * Restituisce array( 'ok' => bool, 'messaggio' => string, 'file' => string ).
@@ -89,14 +295,14 @@ function media_carica( $file ) {
 			$larghezza = (int) $dimensioni[0];
 			$altezza   = (int) $dimensioni[1];
 		}
-		if ( $larghezza > 1800 && function_exists( 'imagecreatetruecolor' ) ) {
-			media_ridimensiona( $destinazione, $mime, 1800 );
-			$dimensioni = @getimagesize( $destinazione );
-			if ( is_array( $dimensioni ) ) {
-				$larghezza = (int) $dimensioni[0];
-				$altezza   = (int) $dimensioni[1];
-			}
+		// Taglia la larghezza e ricomprime: un'immagine dal telefono arriva
+		// a 4 MB, e sul sito serve larga al massimo quanto lo schermo.
+		$alleggerita = media_alleggerisci( $destinazione );
+		if ( $alleggerita['fatto'] ) {
+			$larghezza = $alleggerita['larghezza'];
+			$altezza   = $alleggerita['altezza'];
 		}
+		media_mini_crea( $nome );
 	}
 
 	db_salva( 'media', array(
@@ -171,14 +377,14 @@ function media_salva_dati( $binario, $mime, $nome_base, $alt = '' ) {
 		$larghezza = (int) $dimensioni[0];
 		$altezza   = (int) $dimensioni[1];
 	}
-	if ( $larghezza > 1800 && function_exists( 'imagecreatetruecolor' ) ) {
-		media_ridimensiona( $destinazione, $vero, 1800 );
-		$dimensioni = @getimagesize( $destinazione );
-		if ( is_array( $dimensioni ) ) {
-			$larghezza = (int) $dimensioni[0];
-			$altezza   = (int) $dimensioni[1];
-		}
+	// Un'immagine appena disegnata dall'IA arriva sugli 800 KB: qui si
+	// ricomprime prima ancora di finire in archivio.
+	$alleggerita = media_alleggerisci( $destinazione );
+	if ( $alleggerita['fatto'] ) {
+		$larghezza = $alleggerita['larghezza'];
+		$altezza   = $alleggerita['altezza'];
 	}
+	media_mini_crea( $nome );
 
 	db_salva( 'media', array(
 		'id'        => nuovo_id(),
@@ -195,54 +401,6 @@ function media_salva_dati( $binario, $mime, $nome_base, $alt = '' ) {
 	return array( 'ok' => true, 'messaggio' => 'Immagine salvata.', 'file' => $nome );
 }
 
-/** Riduce la larghezza massima di un'immagine. */
-function media_ridimensiona( $percorso, $mime, $larghezza_max ) {
-	switch ( $mime ) {
-		case 'image/jpeg':
-			$sorgente = @imagecreatefromjpeg( $percorso );
-			break;
-		case 'image/png':
-			$sorgente = @imagecreatefrompng( $percorso );
-			break;
-		case 'image/webp':
-			$sorgente = function_exists( 'imagecreatefromwebp' ) ? @imagecreatefromwebp( $percorso ) : false;
-			break;
-		default:
-			return false;
-	}
-	if ( ! $sorgente ) {
-		return false;
-	}
-	$l = imagesx( $sorgente );
-	$a = imagesy( $sorgente );
-	if ( $l <= $larghezza_max ) {
-		imagedestroy( $sorgente );
-		return false;
-	}
-	$nuova_l = $larghezza_max;
-	$nuova_a = (int) round( $a * ( $larghezza_max / $l ) );
-	$dest    = imagecreatetruecolor( $nuova_l, $nuova_a );
-	if ( 'image/png' === $mime || 'image/webp' === $mime ) {
-		imagealphablending( $dest, false );
-		imagesavealpha( $dest, true );
-	}
-	imagecopyresampled( $dest, $sorgente, 0, 0, 0, 0, $nuova_l, $nuova_a, $l, $a );
-	switch ( $mime ) {
-		case 'image/jpeg':
-			imagejpeg( $dest, $percorso, 82 );
-			break;
-		case 'image/png':
-			imagepng( $dest, $percorso, 6 );
-			break;
-		case 'image/webp':
-			imagewebp( $dest, $percorso, 82 );
-			break;
-	}
-	imagedestroy( $sorgente );
-	imagedestroy( $dest );
-	return true;
-}
-
 function media_elimina( $id ) {
 	$m = media_per_id( $id );
 	if ( ! $m ) {
@@ -252,6 +410,7 @@ function media_elimina( $id ) {
 	if ( is_file( $percorso ) ) {
 		@unlink( $percorso );
 	}
+	media_mini_elimina( $m['file'] );
 	return db_elimina( 'media', 'id = ?', array( $id ) );
 }
 

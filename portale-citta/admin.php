@@ -4,7 +4,7 @@
 define( 'PC_AVVIO', true );
 // La versione che questo file si aspetta di trovare dentro inc/. Sta qui
 // e non lì apposta: serve proprio a scoprire quando i due non combaciano.
-define( 'PC_VERSIONE_ATTESA', '1.2.0' );
+define( 'PC_VERSIONE_ATTESA', '1.3.0' );
 require_once __DIR__ . '/inc/core.php';
 
 if ( ! db_configurato() ) {

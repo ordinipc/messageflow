@@ -8,7 +8,7 @@ if ( ! defined( 'PC_AVVIO' ) ) {
 	define( 'PC_AVVIO', true );
 }
 
-define( 'PC_VERSIONE', '1.2.0' );
+define( 'PC_VERSIONE', '1.3.0' );
 // Segnaposto salvato fra le sezioni di una pagina: dice che l'ordine è
 // stato deciso a mano, e non va più corretto dai valori di una volta.
 define( 'PC_ORDINE_DECISO', '--ordine--' );

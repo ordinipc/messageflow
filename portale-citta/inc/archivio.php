@@ -65,6 +65,11 @@ function impostazioni_predefinite() {
 		'menu_dimensione' => '12.5',
 		'cartella_nascosta' => '0',
 		'card_immagini'   => '1',
+		// Peso delle immagini: larghezza massima, qualità, e la copia
+		// piccola che finisce nelle card.
+		'media_larghezza' => '1600',
+		'media_qualita'   => '82',
+		'media_mini'      => '800',
 		'mostra_data'     => '1',
 		'effetti'         => '1',
 		'telefono_etichetta' => 'Assistenza 24h',

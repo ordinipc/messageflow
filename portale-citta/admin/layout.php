@@ -95,6 +95,19 @@ if ( in_array( $attiva, array( 'articolo-modifica', 'importa', 'categorie' ), tr
 			</div>
 		<?php endif; ?>
 		<?php echo $contenuto; // Generato dalle schermate. ?>
+
+		<?php
+		// La versione installata, in chiaro. Serve quando una novità «non
+		// c'è»: quasi sempre vuol dire che i file nuovi non sono saliti,
+		// e da qui si vede subito senza aprire i file via FTP.
+		$pc_quando_inc = @filemtime( PC_RADICE . '/inc/core.php' );
+		?>
+		<p class="pc-nota" style="margin:34px 0 0;text-align:right">
+			Portale Città <?php echo e( PC_VERSIONE ); ?>
+			<?php if ( $pc_quando_inc ) : ?>
+				· file del <?php echo e( date( 'd/m/Y H:i', $pc_quando_inc ) ); ?>
+			<?php endif; ?>
+		</p>
 	</main>
 </div>
 
