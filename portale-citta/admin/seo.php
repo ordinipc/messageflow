@@ -171,7 +171,13 @@ foreach ( pagine_tutte() as $p ) {
 
 <div class="pc-scheda">
 	<h2>Indirizzi da dare a Google</h2>
-	<p class="pc-scheda__nota">Aggiungi la sitemap in Search Console: Indicizzazione → Sitemap.</p>
+	<p class="pc-scheda__nota">
+		Aggiungi la sitemap in Search Console: Indicizzazione &rarr; Sitemap.
+		<strong>Manda solo l'indice</strong>, la prima riga qui sotto: contiene tutte le altre e
+		Google le legge da s&eacute;. Le sitemap delle singole citt&agrave; sono elencate per
+		controllarle, non per mandarle: mandate a mano diventano righe in pi&ugrave; che vanno in
+		rosso da sole quando una citt&agrave; torna in bozza.
+	</p>
 	<table class="pc-tabella">
 		<tbody>
 			<tr>
