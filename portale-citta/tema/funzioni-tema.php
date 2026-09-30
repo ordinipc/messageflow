@@ -192,16 +192,8 @@ function icona_social( $chiave ) {
  * chi legge vede comunque di cosa si parla.
  */
 function foto_articolo( $articolo, $classe = 'glp-box__foto' ) {
-	$file     = isset( $articolo['immagine'] ) ? (string) $articolo['immagine'] : '';
-	$ereditata = false;
-
-	if ( vuoto( $file ) && ! vuoto( $articolo['categoria'] ?? '' ) ) {
-		$categoria = categoria_per_id( $articolo['categoria'] );
-		if ( $categoria && ! vuoto( $categoria['immagine'] ) ) {
-			$file      = $categoria['immagine'];
-			$ereditata = true;
-		}
-	}
+	$file      = articolo_immagine_file( $articolo );
+	$ereditata = '' !== $file && vuoto( $articolo['immagine'] ?? '' );
 	if ( vuoto( $file ) ) {
 		return '';
 	}

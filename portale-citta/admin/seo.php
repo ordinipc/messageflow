@@ -175,16 +175,44 @@ foreach ( pagine_tutte() as $p ) {
 	<table class="pc-tabella">
 		<tbody>
 			<tr>
-				<td><strong>Indice delle sitemap</strong><br><span class="pc-nota">Una sitemap per città, aggiornata da sola.</span></td>
+				<td>
+					<strong>Indice delle sitemap</strong><br>
+					<span class="pc-nota">
+						&Egrave; l'unico da mandare a Search Console: dentro ci sono tutte le altre.
+						<?php if ( '' !== sottocartella() ) : ?>
+							Questo funziona anche dalla sottocartella, basta incollarlo per intero.
+						<?php endif; ?>
+					</span>
+				</td>
 				<td><a href="<?php echo e( base_url() ); ?>/sitemap.xml" target="_blank" rel="noopener"><code><?php echo e( base_url() ); ?>/sitemap.xml</code></a></td>
 			</tr>
 			<tr>
-				<td><strong>robots.txt</strong></td>
+				<td>
+					<strong>robots.txt</strong>
+					<?php if ( '' !== sottocartella() ) : ?>
+						<br><span class="pc-nota">Google non lo legge qui: sta in una sottocartella.
+						La riga <code>Sitemap:</code> va nel robots.txt della radice &mdash; vedi l'avviso rosso in cima.</span>
+					<?php endif; ?>
+				</td>
 				<td><a href="<?php echo e( base_url() ); ?>/robots.txt" target="_blank" rel="noopener"><code><?php echo e( base_url() ); ?>/robots.txt</code></a></td>
 			</tr>
+			<?php if ( ! empty( sitemap_voci_portale() ) ) : ?>
+			<tr>
+				<td>Home del portale<br><span class="pc-nota">L'elenco delle citt&agrave;: &egrave; una pagina anche lei.</span></td>
+				<td><a href="<?php echo e( base_url() ); ?>/sitemap-portale.xml" target="_blank" rel="noopener"><code>/sitemap-portale.xml</code></a></td>
+			</tr>
+			<?php endif; ?>
 			<?php if ( '0' !== (string) impostazione( 'ia_consenti', '1' ) ) : ?>
 			<tr>
-				<td><strong>llms.txt</strong><br><span class="pc-nota">L'indice scritto per gli assistenti IA.</span></td>
+				<td>
+					<strong>llms.txt</strong><br>
+					<span class="pc-nota">
+						L'indice scritto per gli assistenti IA.
+						<?php if ( '' !== sottocartella() ) : ?>
+							Anche questo va copiato nella radice del dominio: qui nessuno lo cerca.
+						<?php endif; ?>
+					</span>
+				</td>
 				<td><a href="<?php echo e( base_url() ); ?>/llms.txt" target="_blank" rel="noopener"><code><?php echo e( base_url() ); ?>/llms.txt</code></a></td>
 			</tr>
 			<?php endif; ?>

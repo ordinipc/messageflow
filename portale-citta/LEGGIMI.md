@@ -462,6 +462,40 @@ Sopra l'88% di somiglianza hai un problema.
 
 ---
 
+## Cosa c'è nella sitemap
+
+Un indice, `/sitemap.xml`, e dentro una sitemap per città più una per la home
+del portale. **In Search Console si manda solo l'indice**: le altre le trova
+da sé.
+
+Ogni sitemap contiene le pagine pubblicate della città, le categorie del blog
+che hanno almeno un articolo visibile, e gli articoli pubblicati. Con
+l'estensione `image` di Google: la foto di ogni pagina e di ogni articolo
+viene dichiarata, così finisce anche in Google Immagini. L'immagine
+dichiarata è sempre quella che si vede davvero sulla pagina — se ne
+dichiarassimo una che lì non c'è, Google la segnalerebbe come non trovata.
+
+**Il `lastmod` dice la data vera** del contenuto più recente, non la data di
+oggi. Sembra un dettaglio e non lo è: Google usa `lastmod` per decidere cosa
+rivisitare, ma solo finché lo trova affidabile. Una sitemap che ogni giorno
+dichiara «cambiata oggi» gli fa smettere di crederci, e da quel momento il
+segnale è perso per sempre.
+
+Quello che **non** entra in sitemap: le città in bozza, le pagine in bozza,
+gli articoli in bozza, le categorie senza articoli visibili in quella città.
+Un indirizzo che non c'è non va dichiarato a Google.
+
+Se non c'è niente da dichiarare — nessuna città pubblicata — `/sitemap.xml`
+risponde **404 con la spiegazione**, non una sitemap vuota. Una sitemap vuota
+risponde 200, e Google se la segna come sitemap buona che non porta niente:
+resta lì per sempre a dire che qualcosa non va.
+
+> **Se il portale sta in una sottocartella** (`/zone/`), l'indice della
+> sitemap funziona lo stesso: basta incollarlo per intero in Search Console.
+> Ma `robots.txt` e `llms.txt` **no**: Google legge il `robots.txt` solo nella
+> radice del dominio, quindi la riga `Sitemap:` va aggiunta al `robots.txt` di
+> WordPress. La schermata SEO te lo dice in rosso, con la riga da copiare.
+
 ## Farsi trovare dagli assistenti IA (GEO)
 
 La SEO serve a finire nei dieci link blu. Il **GEO** serve a finire dentro la

@@ -229,6 +229,7 @@ function sitemap_voci( $citta_id = '' ) {
 				'modifica' => vuoto( $pagina['aggiornata'] ) ? oggi() : $pagina['aggiornata'],
 				'priorita' => 'home' === $pagina['tipo'] ? '0.9' : '0.8',
 				'freq'     => 'weekly',
+				'immagine' => (string) $pagina['immagine'],
 			);
 		}
 
@@ -243,6 +244,7 @@ function sitemap_voci( $citta_id = '' ) {
 					'modifica' => vuoto( $categoria['aggiornata'] ) ? oggi() : $categoria['aggiornata'],
 					'priorita' => '0.7',
 					'freq'     => 'weekly',
+					'immagine' => (string) $categoria['immagine'],
 				);
 			}
 			foreach ( articoli_di_citta( $citta['id'], true ) as $articolo ) {
@@ -251,6 +253,10 @@ function sitemap_voci( $citta_id = '' ) {
 					'modifica' => vuoto( $articolo['aggiornata'] ) ? ( vuoto( $articolo['data'] ) ? oggi() : $articolo['data'] ) : $articolo['aggiornata'],
 					'priorita' => '0.6',
 					'freq'     => 'monthly',
+					// La stessa che si vede nella card: se in sitemap ci
+					// fosse un'immagine che sulla pagina non c'è, Google
+					// la segnala come immagine non trovata.
+					'immagine' => articolo_immagine_file( $articolo ),
 				);
 			}
 		}
@@ -258,16 +264,68 @@ function sitemap_voci( $citta_id = '' ) {
 	return $voci;
 }
 
-/** XML della sitemap di una città (o di tutto il portale). */
-function sitemap_xml( $citta_id = '' ) {
-	$xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-	$xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+/**
+ * Le voci della home del portale: l'elenco delle città.
+ *
+ * È una pagina indicizzabile col suo canonical, e finora non stava in
+ * nessuna sitemap: Google la trovava solo seguendo i link.
+ */
+function sitemap_voci_portale() {
+	$tutte = citta_tutte( true );
+	if ( empty( $tutte ) ) {
+		return array();
+	}
+	// La home elenca le città: cambia quando cambia una di loro.
+	return array(
+		array(
+			'url'      => base_url() . '/',
+			'modifica' => sitemap_ultima_modifica( '' ),
+			'priorita' => '1.0',
+			'freq'     => 'weekly',
+			'immagine' => (string) impostazione( 'home_immagine', '' ),
+		),
+	);
+}
+
+/**
+ * La data più recente fra le voci di una sitemap.
+ *
+ * Si ricava dalle voci stesse, non da un conteggio a parte: così comprende
+ * pagine, categorie e articoli senza che nessuno debba ricordarsi di
+ * aggiungere il pezzo nuovo anche qui.
+ */
+function sitemap_ultima_modifica( $citta_id = '' ) {
+	$ultima = '';
 	foreach ( sitemap_voci( $citta_id ) as $v ) {
+		$data = (string) $v['modifica'];
+		if ( '' !== $data && $data > $ultima ) {
+			$ultima = $data;
+		}
+	}
+	return '' === $ultima ? oggi() : $ultima;
+}
+
+/** XML della sitemap di una città (o di tutto il portale). */
+function sitemap_xml( $citta_id = '', $voci = null ) {
+	$voci = null === $voci ? sitemap_voci( $citta_id ) : $voci;
+
+	$xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+	$xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"' . "\n";
+	$xml .= "\t" . 'xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' . "\n";
+	foreach ( $voci as $v ) {
 		$xml .= "\t<url>\n";
 		$xml .= "\t\t<loc>" . e( $v['url'] ) . "</loc>\n";
 		$xml .= "\t\t<lastmod>" . e( $v['modifica'] ) . "</lastmod>\n";
 		$xml .= "\t\t<changefreq>" . e( $v['freq'] ) . "</changefreq>\n";
 		$xml .= "\t\t<priority>" . e( $v['priorita'] ) . "</priority>\n";
+		// L'immagine della pagina: è così che finisce in Google Immagini.
+		// Solo quella che si vede davvero sulla pagina, o Google la
+		// segnala come immagine dichiarata e non trovata.
+		if ( ! vuoto( $v['immagine'] ?? '' ) ) {
+			$xml .= "\t\t<image:image>\n";
+			$xml .= "\t\t\t<image:loc>" . e( url_media( $v['immagine'] ) ) . "</image:loc>\n";
+			$xml .= "\t\t</image:image>\n";
+		}
 		$xml .= "\t</url>\n";
 	}
 	$xml .= '</urlset>';
@@ -278,24 +336,47 @@ function sitemap_xml( $citta_id = '' ) {
 function sitemap_indice() {
 	$xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 	$xml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
-	foreach ( citta_tutte( true ) as $citta ) {
-		$pagine = pagine_di_citta( $citta['id'], true );
-		if ( empty( $pagine ) ) {
-			continue;
-		}
-		$ultima = oggi();
-		foreach ( $pagine as $p ) {
-			if ( ! vuoto( $p['aggiornata'] ) && $p['aggiornata'] > $ultima ) {
-				$ultima = $p['aggiornata'];
-			}
-		}
+
+	foreach ( sitemap_elenco() as $voce ) {
 		$xml .= "\t<sitemap>\n";
-		$xml .= "\t\t<loc>" . e( base_url() . '/sitemap-' . $citta['slug'] . '.xml' ) . "</loc>\n";
-		$xml .= "\t\t<lastmod>" . e( $ultima ) . "</lastmod>\n";
+		$xml .= "\t\t<loc>" . e( $voce['url'] ) . "</loc>\n";
+		$xml .= "\t\t<lastmod>" . e( $voce['modifica'] ) . "</lastmod>\n";
 		$xml .= "\t</sitemap>\n";
 	}
+
 	$xml .= '</sitemapindex>';
 	return $xml;
+}
+
+/**
+ * Le sitemap che l'indice deve elencare.
+ *
+ * Il lastmod è la data vera del contenuto più recente, non la data di
+ * oggi. Google usa lastmod per decidere cosa rivisitare, ma solo se lo
+ * trova affidabile: una sitemap che ogni giorno dichiara «cambiata oggi»
+ * gli fa smettere di crederci, e da quel momento il segnale è perso.
+ */
+function sitemap_elenco() {
+	$fuori = array();
+
+	if ( ! empty( sitemap_voci_portale() ) ) {
+		$fuori[] = array(
+			'url'      => base_url() . '/sitemap-portale.xml',
+			'modifica' => sitemap_ultima_modifica( '' ),
+		);
+	}
+
+	foreach ( citta_tutte( true ) as $citta ) {
+		if ( empty( sitemap_voci( $citta['id'] ) ) ) {
+			continue;
+		}
+		$fuori[] = array(
+			'url'      => base_url() . '/sitemap-' . $citta['slug'] . '.xml',
+			'modifica' => sitemap_ultima_modifica( $citta['id'] ),
+		);
+	}
+
+	return $fuori;
 }
 
 /**

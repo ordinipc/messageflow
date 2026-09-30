@@ -419,7 +419,9 @@ function citta_elimina( $id ) {
 
 /** Slug riservati che non possono essere usati da una città. */
 function slug_riservati() {
-	return array( 'admin', 'media', 'dati', 'inc', 'tema', 'sitemap', 'robots', 'config', 'install', 'index' );
+	// 'portale' è il nome della sitemap della home: una città con quello
+	// slug se la mangerebbe.
+	return array( 'admin', 'media', 'dati', 'inc', 'tema', 'sitemap', 'robots', 'config', 'install', 'index', 'portale' );
 }
 
 function citta_slug_libero( $slug, $escludi_id = '' ) {
@@ -619,6 +621,22 @@ function articolo_per_id( $id ) {
 function articolo_per_slug( $citta_id, $slug ) {
 	$r = db_riga( 'SELECT * FROM ' . db_tab( 'articoli' ) . ' WHERE citta_id = ? AND slug = ?', array( $citta_id, $slug ) );
 	return $r ? array_merge( articolo_predefinito(), $r ) : null;
+}
+
+/**
+ * Il file immagine di un articolo: il suo, o quello della sua categoria.
+ *
+ * Sta qui e non nel tema perché lo usano tutti e due: le card e la sitemap
+ * devono dire la stessa cosa, o Google indicizza un'immagine che sulla
+ * pagina non c'è.
+ */
+function articolo_immagine_file( $articolo ) {
+	$file = trim( (string) ( $articolo['immagine'] ?? '' ) );
+	if ( '' !== $file ) {
+		return $file;
+	}
+	$categoria = categoria_per_id( $articolo['categoria'] ?? '' );
+	return $categoria ? trim( (string) $categoria['immagine'] ) : '';
 }
 
 /** True se l'indirizzo di origine è già stato importato. */

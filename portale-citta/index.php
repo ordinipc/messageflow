@@ -62,10 +62,33 @@ if ( 'llms.txt' === $percorso ) {
 
 /* --- sitemap ------------------------------------------------------------- */
 if ( 'sitemap.xml' === $percorso ) {
+	// Un indice vuoto risponderebbe 200 con dentro niente, e Google se lo
+	// segnerebbe come sitemap buona che non porta nulla: resta lì per
+	// sempre a dire che qualcosa non va. Meglio dire che non c'è.
+	if ( empty( sitemap_elenco() ) ) {
+		http_response_code( 404 );
+		header( 'Content-Type: text/plain; charset=UTF-8' );
+		exit( "Nessuna città pubblicata: non c'è ancora niente da mettere in sitemap.\n" );
+	}
 	header( 'Content-Type: application/xml; charset=UTF-8' );
 	echo sitemap_indice();
 	exit;
 }
+
+// La sitemap della home del portale: l'elenco delle città. Sta prima del
+// caso generale, o una città chiamata «portale» se la prenderebbe.
+if ( 'sitemap-portale.xml' === $percorso ) {
+	$voci_portale = sitemap_voci_portale();
+	if ( empty( $voci_portale ) ) {
+		http_response_code( 404 );
+		header( 'Content-Type: text/plain; charset=UTF-8' );
+		exit( "Nessuna città pubblicata: la home del portale non ha ancora una sitemap.\n" );
+	}
+	header( 'Content-Type: application/xml; charset=UTF-8' );
+	echo sitemap_xml( '', $voci_portale );
+	exit;
+}
+
 if ( preg_match( '#^sitemap-([a-z0-9-]+)\.xml$#', $percorso, $m ) ) {
 	$citta = citta_per_slug( $m[1] );
 	// Una città in bozza, o senza nemmeno una pagina pubblicata, non ha
